@@ -168,6 +168,13 @@ export type ComputedProjectionExpression =
     readonly distinct: boolean
     readonly operation?: ComputedProjectionOperation
   }
+  | {
+    readonly _tag: "relation-collect-fields"
+    readonly path: string
+    readonly fields: readonly string[]
+    readonly distinct: boolean
+    readonly operation?: ComputedProjectionOperation
+  }
 
 export type ComputedProjectionMap = Readonly<Record<string, ComputedProjectionExpression>>
 export type Q<TFieldValues extends FieldValues> =
@@ -601,6 +608,39 @@ export const relation = <TFieldValues extends FieldValues>(
         _tag: "relation-collect",
         path: path as string,
         field,
+        distinct: true
+      },
+  collectFields: (fields: readonly string[], operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields,
+        distinct: false,
+        operation
+      }
+      : {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields,
+        distinct: false
+      },
+  collectDistinctFields: (
+    fields: readonly string[],
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields,
+        distinct: true,
+        operation
+      }
+      : {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields,
         distinct: true
       }
 })

@@ -469,6 +469,23 @@ export function buildWhereSQLQuery(
         const aggArg = computed.distinct ? `DISTINCT ${fieldExtract}` : fieldExtract
         return `(SELECT COALESCE(jsonb_agg(${aggArg}), '[]'::jsonb) FROM ${relationFrom}${whereClause()}) AS "${key}"`
       }
+      case "relation-collect-fields": {
+        const branches = computed.fields.map((field) => {
+          const fieldExtract = dialect.jsonExtractElement(relationAlias, field)
+          return `SELECT ${fieldExtract} AS __v FROM ${relationFrom}${whereClause()}`
+        })
+        const unionQuery = branches.join(" UNION ALL ")
+        if (dialect.jsonColumnType === "JSON") {
+          if (computed.distinct) {
+            return `(SELECT COALESCE(json_group_array(__v), json_array()) FROM (SELECT DISTINCT __v FROM (${unionQuery}))) AS "${key}"`
+          }
+          return `(SELECT COALESCE(json_group_array(__v), json_array()) FROM (${unionQuery})) AS "${key}"`
+        }
+        if (computed.distinct) {
+          return `(SELECT COALESCE(jsonb_agg(__v), '[]'::jsonb) FROM (SELECT DISTINCT __v FROM (${unionQuery}) inner_q) outer_q) AS "${key}"`
+        }
+        return `(SELECT COALESCE(jsonb_agg(__v), '[]'::jsonb) FROM (${unionQuery}) t) AS "${key}"`
+      }
       default:
         return assertUnreachable(computed)
     }

@@ -48,6 +48,8 @@ const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
       return true
     case "relation-collect":
       return [] as unknown[]
+    case "relation-collect-fields":
+      return [] as unknown[]
     default:
       return assertUnreachable(tag)
   }
@@ -133,6 +135,22 @@ const computeProjectionValue = (
           seen.add(v)
         }
         out.push(v)
+      }
+      return out
+    }
+    case "relation-collect-fields": {
+      const out: unknown[] = []
+      const seen = computed.distinct ? new Set<unknown>() : undefined
+      for (const value of relation) {
+        if (!matches(value)) continue
+        for (const field of computed.fields) {
+          const v = get(value, field)
+          if (seen) {
+            if (seen.has(v)) continue
+            seen.add(v)
+          }
+          out.push(v)
+        }
       }
       return out
     }

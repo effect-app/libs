@@ -76,6 +76,13 @@ export type ComputedProjectionIrExpression =
     readonly distinct: boolean
     readonly filter: readonly FilterResult[]
   }
+  | {
+    readonly _tag: "relation-collect-fields"
+    readonly path: string
+    readonly fields: readonly string[]
+    readonly distinct: boolean
+    readonly filter: readonly FilterResult[]
+  }
 
 type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   filter: FilterResult[]
@@ -266,6 +273,17 @@ const interpret = <
                       _tag: e._tag,
                       path: e.path,
                       field: e.field,
+                      distinct: e.distinct,
+                      filter
+                    } as ComputedProjectionIrExpression
+                  ]
+                case "relation-collect-fields":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      fields: e.fields,
                       distinct: e.distinct,
                       filter
                     } as ComputedProjectionIrExpression

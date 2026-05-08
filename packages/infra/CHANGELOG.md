@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 4.0.0-beta.213
+
+### Minor Changes
+
+- aac6308: Add computed projections for repository queries with adapter-level compilation for memory, SQL, and Cosmos stores.
+
+### Patch Changes
+
+- 6613f3d: Document `Q.project` modes (`transform` / `project` / `collect`): how `select` is derived from the schema AST, the PM reverse-mapping behaviour per mode, and which decode errors surface vs `orDie`.
+  - effect-app@4.0.0-beta.213
+
 ## 4.0.0-beta.212
 
 ### Patch Changes

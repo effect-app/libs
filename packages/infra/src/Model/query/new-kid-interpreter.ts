@@ -8,6 +8,17 @@ import type { FieldValues } from "../filter/types.js"
 import type { FieldPath } from "../filter/types/path/eager.js"
 import { make, type Q, type QAll } from "../query/dsl.js"
 
+export type ComputedProjectionMathIrExpression =
+  | {
+    readonly _tag: "field"
+    readonly field: string
+  }
+  | {
+    readonly _tag: "mul"
+    readonly left: ComputedProjectionMathIrExpression
+    readonly right: ComputedProjectionMathIrExpression
+  }
+
 export type ComputedProjectionIrExpression =
   | {
     readonly _tag: "relation-count"
@@ -34,6 +45,28 @@ export type ComputedProjectionIrExpression =
     readonly _tag: "relation-sum"
     readonly path: string
     readonly field: string
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-sum-expr"
+    readonly path: string
+    readonly expression: ComputedProjectionMathIrExpression
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-sum-expr-by"
+    readonly path: string
+    readonly expression: ComputedProjectionMathIrExpression
+    readonly unit: string
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-sum-expr-normalized"
+    readonly path: string
+    readonly expression: ComputedProjectionMathIrExpression
+    readonly unit: string
+    readonly toBase: string
+    readonly factors: Readonly<Record<string, number>>
     readonly filter: readonly FilterResult[]
   }
   | {
@@ -196,6 +229,35 @@ const interpret = <
                   return [
                     key,
                     { _tag: e._tag, path: e.path, field: e.field, filter } as ComputedProjectionIrExpression
+                  ]
+                case "relation-sum-expr":
+                  return [
+                    key,
+                    { _tag: e._tag, path: e.path, expression: e.expression, filter } as ComputedProjectionIrExpression
+                  ]
+                case "relation-sum-expr-by":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      expression: e.expression,
+                      unit: e.unit,
+                      filter
+                    } as ComputedProjectionIrExpression
+                  ]
+                case "relation-sum-expr-normalized":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      expression: e.expression,
+                      unit: e.unit,
+                      toBase: e.toBase,
+                      factors: e.factors,
+                      filter
+                    } as ComputedProjectionIrExpression
                   ]
                 case "relation-collect":
                   return [

@@ -6,7 +6,7 @@ import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-ap
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { and, computed, count, make, one, or, order, page, project, projectComputed, type QueryEnd, type QueryProjection, type QueryWhere, relation, toFilter, where } from "../src/Model/query.js"
+import { and, computed, count, expr, make, one, or, order, page, project, projectComputed, type QueryEnd, type QueryProjection, type QueryWhere, relation, toFilter, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
@@ -728,6 +728,61 @@ it("projectComputed.collect / collectDistinct emit relation-collect IR", () => {
   expect((all as { distinct: boolean } | undefined)?.distinct).toBe(false)
   expect(distinct?._tag).toBe("relation-collect")
   expect((distinct as { distinct: boolean } | undefined)?.distinct).toBe(true)
+})
+
+it("projectComputed.sumExpr emits relation-sum-expr IR", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({
+      weight: S.Number,
+      tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
+    }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({ total: S.Number }),
+      computed({
+        total: relation<S.Codec.Encoded<typeof baseSchema>>("items").sumExpr(
+          expr.mul(expr.field("weight"), expr.field("tradeUnit.amount"))
+        )
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  const ir = interpreted.computed?.["total"]
+  expect(ir?._tag).toBe("relation-sum-expr")
+  expect((ir as { expression: unknown } | undefined)?.expression).toEqual({
+    _tag: "mul",
+    left: { _tag: "field", field: "weight" },
+    right: { _tag: "field", field: "tradeUnit.amount" }
+  })
+})
+
+it("projectComputed.sumExprBy emits relation-sum-expr-by IR", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({
+      weight: S.Number,
+      tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
+    }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({
+        totals: S.Array(S.Struct({ unit: S.String, total: S.Number }))
+      }),
+      computed({
+        totals: relation<S.Codec.Encoded<typeof baseSchema>>("items").sumExprBy(
+          expr.mul(expr.field("weight"), expr.field("tradeUnit.amount")),
+          { unit: "tradeUnit.unit" }
+        )
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  const ir = interpreted.computed?.["totals"]
+  expect(ir?._tag).toBe("relation-sum-expr-by")
+  expect((ir as { unit: string } | undefined)?.unit).toBe("tradeUnit.unit")
 })
 
 it(
@@ -1581,6 +1636,57 @@ it("memFilter: computed projection with multi-statement relation filter", () => 
     { id: "r1", hits: 1 }, // only i2 (a, qty 20)
     { id: "r2", hits: 0 },
     { id: "r3", hits: 0 }
+  ])
+})
+
+it("memFilter: relation-sum-expr / sum-expr-by / sum-expr-normalized", () => {
+  const schema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({
+      weight: S.Finite,
+      tradeUnit: S.Struct({ amount: S.Finite, unit: S.String })
+    }))
+  })
+  type Row = S.Codec.Encoded<typeof schema>
+  const rows: Row[] = [
+    {
+      id: "r1",
+      items: [
+        { weight: 2, tradeUnit: { amount: 5, unit: "kg" } },
+        { weight: 4, tradeUnit: { amount: 1000, unit: "g" } },
+        { weight: 3, tradeUnit: { amount: 1, unit: "kg" } }
+      ]
+    },
+    { id: "r2", items: [] }
+  ]
+  const weighted = expr.mul(expr.field("weight"), expr.field("tradeUnit.amount"))
+  const q = make<Row>().pipe(
+    projectComputed(
+      S.Struct({
+        id: S.String,
+        totalRaw: S.Finite,
+        totalsByUnit: S.Array(S.Struct({ unit: S.String, total: S.Finite })),
+        totalKg: S.Finite
+      }),
+      computed({
+        totalRaw: relation<Row>("items").sumExpr(weighted),
+        totalsByUnit: relation<Row>("items").sumExprBy(weighted, { unit: "tradeUnit.unit" }),
+        totalKg: relation<Row>("items").sumExprNormalized(weighted, {
+          unit: "tradeUnit.unit",
+          toBase: "kg",
+          factors: { g: 0.001 }
+        })
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, schema))(rows)).toEqual([
+    {
+      id: "r1",
+      totalRaw: 4013,
+      totalsByUnit: [{ unit: "kg", total: 13 }, { unit: "g", total: 4000 }],
+      totalKg: 17
+    },
+    { id: "r2", totalRaw: 0, totalsByUnit: [], totalKg: 0 }
   ])
 })
 

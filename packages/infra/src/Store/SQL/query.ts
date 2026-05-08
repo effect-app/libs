@@ -3,7 +3,7 @@ import { Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
-import type { ComputedProjectionIrExpression } from "../../Model/query.js"
+import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {
@@ -147,6 +147,8 @@ const dottedToJsonPath = (path: string) =>
     .split(".")
     .filter((p) => p !== "-1")
     .join(".")
+
+const sqlStringLiteral = (value: string) => `'${value.replaceAll("'", "''")}'`
 
 export function buildWhereSQLQuery(
   dialect: SQLDialect,
@@ -391,6 +393,23 @@ export function buildWhereSQLQuery(
     const relationPath = dottedToJsonPath(computed.path)
     const relationAlias = `_${computed.path}`
     const relationFrom = dialect.jsonEachFrom(relationPath, relationAlias)
+    const toNumber = (expr: string) =>
+      dialect.jsonColumnType === "JSON" ? `CAST(${expr} AS REAL)` : `(${expr})::numeric`
+    const compileExpr = (expression: ComputedProjectionMathIrExpression): string => {
+      switch (expression._tag) {
+        case "field":
+          return toNumber(dialect.jsonExtractElement(relationAlias, expression.field))
+        case "mul":
+          return `(${compileExpr(expression.left)} * ${compileExpr(expression.right)})`
+        default:
+          return assertUnreachable(expression)
+      }
+    }
+    const factorCaseExpr = (unitExpr: string, toBase: string, factors: Readonly<Record<string, number>>) => {
+      const entries = Object.entries(factors).filter(([, factor]) => Number.isFinite(factor))
+      const cases = entries.map(([unit, factor]) => ` WHEN ${sqlStringLiteral(unit)} THEN ${factor}`).join("")
+      return `CASE ${unitExpr} WHEN ${sqlStringLiteral(toBase)} THEN 1${cases} ELSE NULL END`
+    }
     const whereClause = () =>
       computed.filter.length > 0
         ? ` WHERE ${print(computed.filter, computed.path, false)}`
@@ -417,10 +436,25 @@ export function buildWhereSQLQuery(
       }
       case "relation-sum": {
         const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)
-        const cast = dialect.jsonColumnType === "JSON"
-          ? `CAST(${fieldExtract} AS REAL)`
-          : `(${fieldExtract})::numeric`
-        return `(SELECT COALESCE(SUM(${cast}), 0) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+        return `(SELECT COALESCE(SUM(${toNumber(fieldExtract)}), 0) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      }
+      case "relation-sum-expr": {
+        const expression = compileExpr(computed.expression)
+        return `(SELECT COALESCE(SUM(${expression}), 0) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      }
+      case "relation-sum-expr-by": {
+        const expression = compileExpr(computed.expression)
+        const unitExpr = dialect.jsonExtractElement(relationAlias, computed.unit)
+        if (dialect.jsonColumnType === "JSON") {
+          return `(SELECT COALESCE(json_group_array(json_object('unit', __unit, 'total', __total)), json_array()) FROM (SELECT ${unitExpr} AS __unit, COALESCE(SUM(${expression}), 0) AS __total FROM ${relationFrom}${whereClause()} GROUP BY ${unitExpr})) AS "${key}"`
+        }
+        return `(SELECT COALESCE(jsonb_agg(jsonb_build_object('unit', __unit, 'total', __total)), '[]'::jsonb) FROM (SELECT ${unitExpr} AS __unit, COALESCE(SUM(${expression}), 0) AS __total FROM ${relationFrom}${whereClause()} GROUP BY ${unitExpr}) __grouped) AS "${key}"`
+      }
+      case "relation-sum-expr-normalized": {
+        const expression = compileExpr(computed.expression)
+        const unitExpr = dialect.jsonExtractElement(relationAlias, computed.unit)
+        const factorExpr = factorCaseExpr(unitExpr, computed.toBase, computed.factors)
+        return `(SELECT COALESCE(SUM((${expression}) * (${factorExpr})), 0) FROM ${relationFrom}${whereClause()}) AS "${key}"`
       }
       case "relation-collect": {
         const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)

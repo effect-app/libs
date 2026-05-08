@@ -358,6 +358,18 @@ export function buildWhereCosmosQuery3(
         }
         return `ARRAY(SELECT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
       }
+      case "relation-collect-fields": {
+        const subqueries = computed.fields.map((field) => {
+          const fieldRef = dottedToAccess(`${relationAlias}.${field}`)
+          return computed.distinct
+            ? `ARRAY(SELECT DISTINCT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where})`
+            : `ARRAY(SELECT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where})`
+        })
+        const combined = computed.distinct
+          ? subqueries.reduce((acc, sq) => `SetUnion(${acc}, ${sq})`)
+          : subqueries.reduce((acc, sq) => `ARRAY_CONCAT(${acc}, ${sq})`)
+        return `${combined} AS ${key}`
+      }
     }
   }
   // with joins, you should use DISTINCT

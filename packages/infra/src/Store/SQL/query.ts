@@ -404,6 +404,8 @@ export function buildWhereSQLQuery(
         }
         return `${existsExpr} AS "${key}"`
       }
+      default:
+        return assertUnreachable(computed)
     }
   }
 

@@ -98,7 +98,7 @@ function makeRelaxedDeclaration(
  * Schema.encodeUnknownSync(A)({ a: "hello" }) // { a: "hello" }
  * ```
  */
-export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
+export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}>(
   identifier: string
 ) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
@@ -108,7 +108,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
   : EnhancedClass<
     Self,
     ExtendedSchema<S.Struct<Fields>, Encoded>,
-    {}
+    Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
     // Build the original Schema.Class
@@ -165,7 +165,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
  * Schema.encodeUnknownSync(Circle)({ _tag: "Circle", radius: 5 })
  * ```
  */
-export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
+export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}>(
   identifier?: string
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
@@ -176,7 +176,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
   : EnhancedClass<
     Self,
     ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
-    {}
+    Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })

@@ -1433,3 +1433,336 @@ it("refine union with nested union", () =>
       >()
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+// ---------------------------------------------------------------------------
+// memFilter: computed projection execution (in-memory) and code filter coverage
+// ---------------------------------------------------------------------------
+
+const computedBaseSchema = S.Struct({
+  id: S.String,
+  status: S.Literals(["active", "archived"]),
+  items: S.Array(S.Struct({
+    id: S.String,
+    tag: S.Literals(["a", "b", "c"]),
+    qty: S.Finite,
+    note: S.String
+  }))
+})
+type ComputedBase = S.Codec.Encoded<typeof computedBaseSchema>
+
+const computedRows: ComputedBase[] = [
+  {
+    id: "r1",
+    status: "active",
+    items: [
+      { id: "i1", tag: "a", qty: 10, note: "alpha" },
+      { id: "i2", tag: "a", qty: 20, note: "alpha" },
+      { id: "i3", tag: "b", qty: 5, note: "beta" }
+    ]
+  },
+  { id: "r2", status: "active", items: [] },
+  {
+    id: "r3",
+    status: "archived",
+    items: [
+      { id: "i4", tag: "b", qty: 7, note: "gamma" },
+      { id: "i5", tag: "b", qty: 7, note: "gamma" },
+      { id: "i6", tag: "c", qty: 3, note: "delta" }
+    ]
+  }
+]
+
+it("memFilter: relation-count with filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String, aCount: S.NonNegativeInt }),
+      computed({
+        aCount: relation<ComputedBase>("items").count(where("tag", "a"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", aCount: 2 },
+    { id: "r2", aCount: 0 },
+    { id: "r3", aCount: 0 }
+  ])
+})
+
+it("memFilter: relation-any / every with filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({
+        id: S.String,
+        hasA: S.Boolean,
+        allB: S.Boolean
+      }),
+      computed({
+        hasA: relation<ComputedBase>("items").any(where("tag", "a")),
+        allB: relation<ComputedBase>("items").every(where("tag", "b"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", hasA: true, allB: false },
+    // empty array: any → false, every → true (JS Array.every on [] is true)
+    { id: "r2", hasA: false, allB: true },
+    { id: "r3", hasA: false, allB: false }
+  ])
+})
+
+it("memFilter: relation-distinct-count with filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String, distinctNotes: S.NonNegativeInt }),
+      computed({
+        distinctNotes: relation<ComputedBase>("items").distinctCount("note", where("tag", "neq", "c"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", distinctNotes: 2 }, // alpha, beta
+    { id: "r2", distinctNotes: 0 },
+    { id: "r3", distinctNotes: 1 } // gamma (delta filtered out)
+  ])
+})
+
+it("memFilter: relation-sum with filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String, totalQty: S.Finite }),
+      computed({
+        totalQty: relation<ComputedBase>("items").sum("qty", where("tag", "neq", "c"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", totalQty: 35 },
+    { id: "r2", totalQty: 0 },
+    { id: "r3", totalQty: 14 }
+  ])
+})
+
+it("memFilter: relation-collect / collectDistinct with filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({
+        id: S.String,
+        notes: S.Array(S.String),
+        distinctNotes: S.Array(S.String)
+      }),
+      computed({
+        notes: relation<ComputedBase>("items").collect("note", where("tag", "neq", "c")),
+        distinctNotes: relation<ComputedBase>("items").collectDistinct("note", where("tag", "neq", "c"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", notes: ["alpha", "alpha", "beta"], distinctNotes: ["alpha", "beta"] },
+    { id: "r2", notes: [], distinctNotes: [] },
+    { id: "r3", notes: ["gamma", "gamma"], distinctNotes: ["gamma"] }
+  ])
+})
+
+it("memFilter: computed projection with multi-statement relation filter", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String, hits: S.NonNegativeInt }),
+      computed({
+        hits: relation<ComputedBase>("items").count(
+          flow(
+            where("tag", "a"),
+            and("qty", "gt", 10)
+          )
+        )
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", hits: 1 }, // only i2 (a, qty 20)
+    { id: "r2", hits: 0 },
+    { id: "r3", hits: 0 }
+  ])
+})
+
+it("memFilter: computed projection combined with root where filter", () => {
+  const q = make<ComputedBase>().pipe(
+    where("id", "neq", "r3"),
+    projectComputed(
+      S.Struct({ id: S.String, totalQty: S.Finite }),
+      computed({
+        totalQty: relation<ComputedBase>("items").sum("qty", where("tag", "neq", "c"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r1", totalQty: 35 },
+    { id: "r2", totalQty: 0 }
+  ])
+})
+
+it("memFilter: computed projection with order/limit/skip applied to base rows", () => {
+  const q = make<ComputedBase>().pipe(
+    order("id", "DESC"),
+    page({ skip: 1, take: 1 }),
+    projectComputed(
+      S.Struct({ id: S.String, total: S.NonNegativeInt }),
+      computed({
+        total: relation<ComputedBase>("items").count(where("qty", "gte", 0))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
+    { id: "r2", total: 0 }
+  ])
+})
+
+it("memFilter: computed projection - relation missing on row returns empty value", () => {
+  const partial: ComputedBase[] = [
+    { id: "x1" } as ComputedBase,
+    { id: "x2", status: "active", items: undefined as unknown as ComputedBase["items"] }
+  ]
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({
+        id: S.String,
+        c: S.NonNegativeInt,
+        s: S.Finite,
+        any_: S.Boolean,
+        every_: S.Boolean,
+        coll: S.Array(S.String)
+      }),
+      computed({
+        c: relation<ComputedBase>("items").count(where("tag", "a")),
+        s: relation<ComputedBase>("items").sum("qty", where("tag", "a")),
+        any_: relation<ComputedBase>("items").any(where("tag", "a")),
+        every_: relation<ComputedBase>("items").every(where("tag", "a")),
+        coll: relation<ComputedBase>("items").collect("note", where("tag", "a"))
+      })
+    )
+  )
+  expect(memFilter(toFilter(q, computedBaseSchema))(partial)).toEqual([
+    { id: "x1", c: 0, s: 0, any_: false, every_: true, coll: [] },
+    { id: "x2", c: 0, s: 0, any_: false, every_: true, coll: [] }
+  ])
+})
+
+it("memFilter: rejects extra computed keys not in projection schema", () => {
+  const q = make<ComputedBase>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String }),
+      computed({
+        bogus: relation<ComputedBase>("items").count(where("tag", "a"))
+      })
+    )
+  )
+  expect(() => toFilter(q, computedBaseSchema)).toThrowError(
+    "Computed projection keys must exist in projection schema"
+  )
+})
+
+// ---------------------------------------------------------------------------
+// memFilter: code filter (where/and/or/scopes) execution coverage
+// ---------------------------------------------------------------------------
+
+type CFRow = {
+  readonly id: string
+  readonly tag: "x" | "y" | "z"
+  readonly qty: number
+  readonly desc: string
+  readonly tags: ReadonlyArray<string>
+  readonly nested: { readonly kind: "k1" | "k2"; readonly v: number }
+}
+
+const cfRows: CFRow[] = [
+  { id: "1", tag: "x", qty: 10, desc: "Hello World", tags: ["red", "green"], nested: { kind: "k1", v: 1 } },
+  { id: "2", tag: "y", qty: 20, desc: "Goodbye", tags: ["blue"], nested: { kind: "k2", v: 5 } },
+  { id: "3", tag: "z", qty: 0, desc: "Hello again", tags: ["red", "blue", "green"], nested: { kind: "k1", v: 9 } },
+  { id: "4", tag: "y", qty: 30, desc: "World cup", tags: [], nested: { kind: "k2", v: 0 } }
+]
+
+const runCF = (q: any) =>
+  (memFilter(toFilter(q))(cfRows) as unknown as readonly CFRow[]).map((_) => _.id)
+
+it("codeFilter: where + and chain", () => {
+  const q = make<CFRow>().pipe(
+    where("tag", "y"),
+    and("qty", "gt", 25)
+  )
+  expect(runCF(q)).toEqual(["4"])
+})
+
+it("codeFilter: where + or chain", () => {
+  const q = make<CFRow>().pipe(
+    where("tag", "x"),
+    or("tag", "z")
+  )
+  expect(runCF(q).sort()).toEqual(["1", "3"])
+})
+
+it("codeFilter: nested scope precedence (a AND (b OR c))", () => {
+  const q = make<CFRow>().pipe(
+    where("tag", "y"),
+    and(
+      where("qty", "gt", 25),
+      or("desc", "contains", "good")
+    )
+  )
+  // tag=y AND (qty>25 OR desc contains "good") → row 2 (Goodbye) and row 4 (qty 30)
+  expect(runCF(q).sort()).toEqual(["2", "4"])
+})
+
+it("codeFilter: contains/startsWith/endsWith are case-insensitive", () => {
+  expect(runCF(make<CFRow>().pipe(where("desc", "contains", "WORLD"))).sort()).toEqual(["1", "4"])
+  expect(runCF(make<CFRow>().pipe(where("desc", "startsWith", "hello"))).sort()).toEqual(["1", "3"])
+  expect(runCF(make<CFRow>().pipe(where("desc", "endsWith", "AGAIN")))).toEqual(["3"])
+})
+
+it("codeFilter: array includes / includes-any / includes-all", () => {
+  expect(runCF(make<CFRow>().pipe(where("tags", "includes", "red"))).sort()).toEqual(["1", "3"])
+  expect(runCF(make<CFRow>().pipe(where("tags", "includes-any", ["blue", "green"]))).sort()).toEqual([
+    "1",
+    "2",
+    "3"
+  ])
+  expect(runCF(make<CFRow>().pipe(where("tags", "includes-all", ["red", "blue"])))).toEqual(["3"])
+})
+
+it("codeFilter: in / notIn", () => {
+  expect(runCF(make<CFRow>().pipe(where("tag", "in", ["x", "z"]))).sort()).toEqual(["1", "3"])
+  expect(runCF(make<CFRow>().pipe(where("tag", "notIn", ["x", "z"]))).sort()).toEqual(["2", "4"])
+})
+
+it("codeFilter: gt / gte / lt / lte / neq", () => {
+  expect(runCF(make<CFRow>().pipe(where("qty", "gt", 10))).sort()).toEqual(["2", "4"])
+  expect(runCF(make<CFRow>().pipe(where("qty", "gte", 10))).sort()).toEqual(["1", "2", "4"])
+  expect(runCF(make<CFRow>().pipe(where("qty", "lt", 10)))).toEqual(["3"])
+  expect(runCF(make<CFRow>().pipe(where("qty", "lte", 10))).sort()).toEqual(["1", "3"])
+  expect(runCF(make<CFRow>().pipe(where("qty", "neq", 0))).sort()).toEqual(["1", "2", "4"])
+})
+
+it("codeFilter: nested path access through dot notation", () => {
+  expect(runCF(make<CFRow>().pipe(where("nested.kind", "k1"))).sort()).toEqual(["1", "3"])
+  expect(
+    runCF(
+      make<CFRow>().pipe(
+        where("nested.kind", "k2"),
+        and("nested.v", "gt", 0)
+      )
+    )
+  )
+    .toEqual(["2"])
+})
+
+it("codeFilter: array length predicates", () => {
+  expect(runCF(make<CFRow>().pipe(where("tags.length", 0)))).toEqual(["4"])
+  expect(runCF(make<CFRow>().pipe(where("tags.length", "gte", 2))).sort()).toEqual(["1", "3"])
+})
+
+it("codeFilter: order + skip + limit applied after filter", () => {
+  const q = make<CFRow>().pipe(
+    where("tag", "neq", "z"),
+    order("qty", "DESC"),
+    page({ skip: 1, take: 2 })
+  )
+  expect(runCF(q)).toEqual(["2", "1"])
+})

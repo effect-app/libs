@@ -607,8 +607,10 @@ export const relation = <TFieldValues extends FieldValues>(
 
 export const expr = {
   field: (field: string): ComputedProjectionMathExpression => ({ _tag: "field", field }),
-  mul: (left: ComputedProjectionMathExpression, right: ComputedProjectionMathExpression): ComputedProjectionMathExpression =>
-    ({ _tag: "mul", left, right })
+  mul: (
+    left: ComputedProjectionMathExpression,
+    right: ComputedProjectionMathExpression
+  ): ComputedProjectionMathExpression => ({ _tag: "mul", left, right })
 } as const
 
 export const computed = <T extends ComputedProjectionMap>(value: T): T => value

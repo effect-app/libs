@@ -1669,13 +1669,13 @@ it("memFilter: relation-sum-expr / sum-expr-by / sum-expr-normalized", () => {
         totalKg: S.Finite
       }),
       computed({
-        totalRaw: relation<Row>("items").sumExpr(weighted),
-        totalsByUnit: relation<Row>("items").sumExprBy(weighted, { unit: "tradeUnit.unit" }),
+        totalRaw: relation<Row>("items").sumExpr(weighted, where("weight", "gte", 0)),
+        totalsByUnit: relation<Row>("items").sumExprBy(weighted, { unit: "tradeUnit.unit" }, where("weight", "gte", 0)),
         totalKg: relation<Row>("items").sumExprNormalized(weighted, {
           unit: "tradeUnit.unit",
           toBase: "kg",
           factors: { g: 0.001 }
-        })
+        }, where("weight", "gte", 0))
       })
     )
   )
@@ -1786,8 +1786,7 @@ const cfRows: CFRow[] = [
   { id: "4", tag: "y", qty: 30, desc: "World cup", tags: [], nested: { kind: "k2", v: 0 } }
 ]
 
-const runCF = (q: any) =>
-  (memFilter(toFilter(q))(cfRows) as unknown as readonly CFRow[]).map((_) => _.id)
+const runCF = (q: any) => (memFilter(toFilter(q))(cfRows) as unknown as readonly CFRow[]).map((_) => _.id)
 
 it("codeFilter: where + and chain", () => {
   const q = make<CFRow>().pipe(

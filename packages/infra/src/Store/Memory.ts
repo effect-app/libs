@@ -108,7 +108,7 @@ const computeProjectionValue = (
         const current = totals.get(unit) ?? 0
         totals.set(unit, current + evalExpr(value, computed.expression))
       }
-      return Array.from(totals.entries(), ([unit, total]) => ({ unit, total }))
+      return [...totals.entries()].map(([unit, total]) => ({ unit, total }))
     }
     case "relation-sum-expr-normalized":
       return relation.reduce<number>((acc, value) => {

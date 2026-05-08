@@ -41,6 +41,7 @@
     "commander-state-toast-types",
     "commander-stream-fn",
     "common-schools-stop",
+    "computed-projections-extensions",
     "computed-projections-infra",
     "concurrent-decode-helpers",
     "context-map-resolver-cache",

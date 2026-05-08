@@ -269,6 +269,116 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.sql).toContain("CASE WHEN EXISTS(")
     expect(result.sql).toContain(`AS "hasPicked"`)
   })
+
+  it("computed relation every projection (sqlite emits NOT EXISTS NOT)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "allPicked",
+        computed: {
+          _tag: "relation-every",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
+        }
+      }]
+    )
+    expect(result.sql).toContain(`NOT EXISTS(SELECT 1 FROM json_each(data, '$.items') AS _items WHERE NOT (`)
+    expect(result.sql).toContain(`AS "allPicked"`)
+    expect(result.params).toContain("picked")
+  })
+
+  it("computed relation-every with no filter degenerates to true", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "allPicked",
+        computed: { _tag: "relation-every", path: "items", filter: [] }
+      }]
+    )
+    expect(result.sql).toContain("CASE WHEN 1=1")
+    expect(result.sql).toContain(`AS "allPicked"`)
+  })
+
+  it("computed relation-distinct-count projection (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "positionCount",
+        computed: {
+          _tag: "relation-distinct-count",
+          path: "items",
+          field: "rowId",
+          filter: [{ t: "where", path: "items.-1.state._tag", op: "neq", value: "cancelled" }]
+        }
+      }]
+    )
+    expect(result.sql).toContain(`SELECT COUNT(DISTINCT json_extract(_items.value, '$.rowId'))`)
+    expect(result.sql).toContain(`AS "positionCount"`)
+    expect(result.params).toContain("cancelled")
+  })
+
+  it("computed relation-sum projection (sqlite casts to REAL)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalWeight",
+        computed: { _tag: "relation-sum", path: "items", field: "weight", filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`SELECT COALESCE(SUM(CAST(json_extract(_items.value, '$.weight') AS REAL)), 0)`)
+    expect(result.sql).toContain(`AS "totalWeight"`)
+  })
+
+  it("computed relation-collect (non-distinct) projection (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "tags",
+        computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: false, filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(
+      `SELECT COALESCE(json_group_array(json_extract(_items.value, '$.articleId')), json_array())`
+    )
+    expect(result.sql).toContain(`AS "tags"`)
+  })
+
+  it("computed relation-collect (distinct) emits inner DISTINCT subquery (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "tags",
+        computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: true, filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`json_group_array(__v)`)
+    expect(result.sql).toContain(`SELECT DISTINCT json_extract(_items.value, '$.articleId') AS __v`)
+    expect(result.sql).toContain(`AS "tags"`)
+  })
 })
 
 describe("SQL query builder (PostgreSQL dialect)", () => {
@@ -351,6 +461,89 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     )
     expect(result.sql).toContain("EXISTS(SELECT 1 FROM jsonb_array_elements(data->'items') AS _items")
     expect(result.sql).toContain(`AS "hasPicked"`)
+  })
+
+  it("computed relation-every (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "allPicked",
+        computed: {
+          _tag: "relation-every",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
+        }
+      }]
+    )
+    expect(result.sql).toContain(`NOT EXISTS(SELECT 1 FROM jsonb_array_elements(data->'items') AS _items WHERE NOT (`)
+    expect(result.sql).toContain(`AS "allPicked"`)
+  })
+
+  it("computed relation-distinct-count (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "positions",
+        computed: { _tag: "relation-distinct-count", path: "items", field: "rowId", filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`COUNT(DISTINCT _items->>'rowId')`)
+    expect(result.sql).toContain(`AS "positions"`)
+  })
+
+  it("computed relation-sum (pg casts via ::numeric)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalWeight",
+        computed: { _tag: "relation-sum", path: "items", field: "weight", filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`COALESCE(SUM((_items->>'weight')::numeric), 0)`)
+    expect(result.sql).toContain(`AS "totalWeight"`)
+  })
+
+  it("computed relation-collect (pg jsonb_agg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "ids",
+        computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: false, filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`COALESCE(jsonb_agg(_items->>'articleId'), '[]'::jsonb)`)
+    expect(result.sql).toContain(`AS "ids"`)
+  })
+
+  it("computed relation-collect distinct (pg jsonb_agg DISTINCT)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "ids",
+        computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: true, filter: [] }
+      }]
+    )
+    expect(result.sql).toContain(`COALESCE(jsonb_agg(DISTINCT _items->>'articleId'), '[]'::jsonb)`)
   })
 })
 
@@ -654,6 +847,114 @@ describe("SQL Store (SQLite integration)", () => {
       const r10 = query(db, q10.sql, q10.params)
       expect(r10.length).toBe(2)
       expect((JSON.parse((r10[0] as any).data) as any).name).toBe("Charlie") // oldest first
+    }))
+
+  it("computed relation-every / distinct-count / sum / collect run on SQLite", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "test_orders" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      const orders = [
+        {
+          id: "o1",
+          items: [
+            { rowId: "r1", articleId: "A", weight: 1.5, state: { _tag: "picked" } },
+            { rowId: "r2", articleId: "A", weight: 2.5, state: { _tag: "picked" } },
+            { rowId: "r2", articleId: "B", weight: 0.25, state: { _tag: "picking" } }
+          ]
+        },
+        {
+          id: "o2",
+          items: [
+            { rowId: "r9", articleId: "Z", weight: 10, state: { _tag: "packed" } }
+          ]
+        }
+      ]
+      const insert = db.prepare(`INSERT INTO "test_orders" (id, _etag, data) VALUES (?, ?, ?)`)
+      for (const o of orders) {
+        const { id, ...data } = o
+        insert.run(id, `etag_${id}`, JSON.stringify(data))
+      }
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_orders",
+        {},
+        [
+          {
+            key: "allPicked",
+            computed: {
+              _tag: "relation-every",
+              path: "items",
+              filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
+            }
+          },
+          {
+            key: "positionCount",
+            computed: { _tag: "relation-distinct-count", path: "items", field: "rowId", filter: [] }
+          },
+          {
+            key: "totalWeight",
+            computed: { _tag: "relation-sum", path: "items", field: "weight", filter: [] }
+          },
+          {
+            key: "articleIds",
+            computed: {
+              _tag: "relation-collect",
+              path: "items",
+              field: "articleId",
+              distinct: true,
+              filter: []
+            }
+          }
+        ] as any,
+        [{ key: "id", direction: "ASC" }] as any
+      )
+      const rows = query(db, q.sql, q.params) as Array<Record<string, unknown>>
+      expect(rows.length).toBe(2)
+      // o1: not all picked (one is "picking")
+      expect(JSON.parse(rows[0]!["allPicked"] as string)).toBe(false)
+      expect(rows[0]!["positionCount"]).toBe(2)
+      expect(rows[0]!["totalWeight"]).toBeCloseTo(4.25)
+      expect((JSON.parse(rows[0]!["articleIds"] as string) as string[]).sort()).toEqual(["A", "B"])
+      // o2: all packed (so not "picked"), allPicked = !exists(NOT picked) = false
+      expect(JSON.parse(rows[1]!["allPicked"] as string)).toBe(false)
+      expect(rows[1]!["positionCount"]).toBe(1)
+      expect(rows[1]!["totalWeight"]).toBeCloseTo(10)
+      expect(JSON.parse(rows[1]!["articleIds"] as string)).toEqual(["Z"])
+    }))
+
+  it("computed relation-every is true when all items match filter", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "test_every" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "test_every" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({
+          items: [
+            { state: { _tag: "picked" } },
+            { state: { _tag: "picked" } }
+          ]
+        })
+      )
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_every",
+        {},
+        [{
+          key: "allPicked",
+          computed: {
+            _tag: "relation-every",
+            path: "items",
+            filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
+          }
+        }]
+      )
+      const rows = query(db, q.sql, q.params) as Array<Record<string, unknown>>
+      expect(JSON.parse(rows[0]!["allPicked"] as string)).toBe(true)
     }))
 
   it("namespace param is in correct position for SQLite positional placeholders", () =>

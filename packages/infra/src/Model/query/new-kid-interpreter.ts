@@ -19,6 +19,30 @@ export type ComputedProjectionIrExpression =
     readonly path: string
     readonly filter: readonly FilterResult[]
   }
+  | {
+    readonly _tag: "relation-every"
+    readonly path: string
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-distinct-count"
+    readonly path: string
+    readonly field: string
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-sum"
+    readonly path: string
+    readonly field: string
+    readonly filter: readonly FilterResult[]
+  }
+  | {
+    readonly _tag: "relation-collect"
+    readonly path: string
+    readonly field: string
+    readonly distinct: boolean
+    readonly filter: readonly FilterResult[]
+  }
 
 type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   filter: FilterResult[]
@@ -162,7 +186,29 @@ const interpret = <
             Object.entries(v.computed).map(([key, expression]) => {
               const e = expression
               const filter = e.operation ? interpret(e.operation(make())).filter.map(applyPath(e.path)) : []
-              return [key, { _tag: e._tag, path: e.path, filter } as const]
+              switch (e._tag) {
+                case "relation-count":
+                case "relation-any":
+                case "relation-every":
+                  return [key, { _tag: e._tag, path: e.path, filter } as ComputedProjectionIrExpression]
+                case "relation-distinct-count":
+                case "relation-sum":
+                  return [
+                    key,
+                    { _tag: e._tag, path: e.path, field: e.field, filter } as ComputedProjectionIrExpression
+                  ]
+                case "relation-collect":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      field: e.field,
+                      distinct: e.distinct,
+                      filter
+                    } as ComputedProjectionIrExpression
+                  ]
+              }
             })
           )
           : undefined

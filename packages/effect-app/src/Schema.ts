@@ -10,6 +10,102 @@ import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from
 import { type AST } from "./Schema/schema.js"
 import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
 
+// ---------------------------------------------------------------------------
+// Default helpers — re-exported from effect/Schema
+//
+// The five helpers below are surfaced explicitly so the (important) policy
+// around them lives next to the export. See also the file-level note in
+// `./Schema/ext.ts` and the documented wrappers in
+// `./Schema/ext.ts`, `./Schema/numbers.ts`, `./Schema/moreStrings.ts`,
+// and `./ids.ts`.
+//
+// **Construction-only**: `withConstructorDefault` fills the field when it
+// is omitted from `.make(...)` input. It is NOT applied during decode, so
+// it CANNOT be used to just-in-time migrate database fields. A stored
+// record missing the field will still fail to decode.
+//
+// **`withDecodingDefault*` is discouraged**: a missing field in persisted
+// data is just as likely to be data corruption as it is an old-shape
+// document; silently substituting a default hides the problem and can
+// poison downstream aggregates. Prefer an explicit, preferably versioned
+// migration of database data over shoving missing fields under the rug.
+// ---------------------------------------------------------------------------
+
+/**
+ * Attach a default value used **only** when constructing a value (e.g. via
+ * `.make(...)` or struct constructors) and the field is omitted from input.
+ *
+ * **Not applied during decode.** Decoding a payload that is missing the
+ * field will still raise a parse error. Do **not** rely on this to migrate
+ * database fields just-in-time — see the section header above.
+ *
+ * @see {@link withDecodingDefault} / {@link withDecodingDefaultType} —
+ *   decode-time variants (discouraged for persisted data; use explicit,
+ *   versioned migrations instead).
+ */
+export { withConstructorDefault } from "effect/Schema"
+
+/**
+ * Attach a default value used during decode when the field's `Encoded` value
+ * is missing **or** `undefined`. The default is specified as an `Encoded`
+ * value and threaded through the schema's decode step.
+ *
+ * **Discouraged for persisted data.** A missing field in a stored record is
+ * just as likely to be data corruption as it is an old-shape document;
+ * silently substituting a default hides the problem. Prefer an explicit,
+ * preferably versioned migration of database data — see the section header
+ * above.
+ *
+ * @see {@link withDecodingDefaultKey} — key-absent-only variant
+ * @see {@link withDecodingDefaultType} — `Type`-side variant
+ * @see {@link withConstructorDefault} — for `.make(...)`-time defaults
+ */
+export { withDecodingDefault } from "effect/Schema"
+
+/**
+ * Attach a default value used during decode when the field **key is absent**
+ * (note: not when present and `undefined`). The default is an `Encoded`
+ * value.
+ *
+ * **Discouraged for persisted data** — same reasoning as
+ * {@link withDecodingDefault}. Use explicit, preferably versioned migrations
+ * over decode-time fallbacks.
+ *
+ * @see {@link withDecodingDefault} — value-absent-or-undefined variant
+ * @see {@link withDecodingDefaultTypeKey} — `Type`-side variant
+ * @see {@link withConstructorDefault} — for `.make(...)`-time defaults
+ */
+export { withDecodingDefaultKey } from "effect/Schema"
+
+/**
+ * Attach a default value used during decode when the field is missing **or**
+ * `undefined`. The default is specified as a `Type` value (i.e. on the
+ * decoded side).
+ *
+ * **Discouraged for persisted data** — same reasoning as
+ * {@link withDecodingDefault}. Use explicit, preferably versioned migrations
+ * over decode-time fallbacks.
+ *
+ * @see {@link withDecodingDefault} — `Encoded`-side variant
+ * @see {@link withDecodingDefaultTypeKey} — key-absent-only variant
+ * @see {@link withConstructorDefault} — for `.make(...)`-time defaults
+ */
+export { withDecodingDefaultType } from "effect/Schema"
+
+/**
+ * Attach a default value used during decode when the field **key is absent**
+ * (note: not when present and `undefined`). The default is a `Type` value.
+ *
+ * **Discouraged for persisted data** — same reasoning as
+ * {@link withDecodingDefault}. Use explicit, preferably versioned migrations
+ * over decode-time fallbacks.
+ *
+ * @see {@link withDecodingDefaultKey} — `Encoded`-side variant
+ * @see {@link withDecodingDefaultType} — value-absent-or-undefined variant
+ * @see {@link withConstructorDefault} — for `.make(...)`-time defaults
+ */
+export { withDecodingDefaultTypeKey } from "effect/Schema"
+
 export * from "effect/Schema"
 
 export * from "./Schema/Class.js"

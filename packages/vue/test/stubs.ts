@@ -131,7 +131,7 @@ class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("G
 }, { success: S.FiniteFromString }) {}
 
 class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()("GetSomething3", {
-  id: S.NullOr(S.String).withDefault
+  id: S.NullOr(S.String).withConstructorDefault
 }, { success: S.FiniteFromString }) {}
 
 class SomethingGetSomething4

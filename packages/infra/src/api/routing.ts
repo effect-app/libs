@@ -609,7 +609,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
 
           return RpcServer
             .layerHttp({
-              spanPrefix: "RpcServer." + meta.moduleName,
+              spanPrefix: "RpcServer",
               group: rpcs,
               path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
               protocol: "http"

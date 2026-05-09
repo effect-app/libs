@@ -171,7 +171,7 @@ const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
   // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
   const layer = Layer.effect(
     TheClient,
-    RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName })
+    RpcClient.make(rpcs, { spanPrefix: "RpcClient" })
   )
   return Object.assign(TheClient, { layer })
 }

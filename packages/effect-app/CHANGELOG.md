@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.219
+
+### Patch Changes
+
+- d738811: remove double prefix
+
 ## 4.0.0-beta.218
 
 ## 4.0.0-beta.217

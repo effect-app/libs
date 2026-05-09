@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.219
+
+### Patch Changes
+
+- 13c2fd9: doc span
+- d738811: remove double prefix
+- 724da29: replace useless span
+- Updated dependencies [d738811]
+  - effect-app@4.0.0-beta.219
+
 ## 4.0.0-beta.218
 
 ### Minor Changes

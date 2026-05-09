@@ -539,15 +539,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 assignHeaderAttribute(spanAttributes, headers, "x-fe-device-id")
                 let effect = Effect
                   .annotateCurrentSpan(spanAttributes)
-                  .pipe(
-                    Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>),
-                    Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
-                      kind: "server",
-                      sampled: false
-                    }, {
-                      captureStackTrace: () => handler.stack
-                    })
-                  )
+                  .pipe(Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>))
 
                 // Commands: provide a request-scoped `InvalidationSet` and wrap both
                 // success (`CommandResponseWithMetaData`) and handler-thrown failure

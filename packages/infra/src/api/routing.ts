@@ -537,15 +537,9 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 assignHeaderAttribute(spanAttributes, headers, "x-locale")
                 assignHeaderAttribute(spanAttributes, headers, "x-store-id")
                 assignHeaderAttribute(spanAttributes, headers, "x-fe-device-id")
-                let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
-                  Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
-                    kind: "server",
-                    attributes: spanAttributes,
-                    sampled: false // Not sampled by OTel; enables quick navigation to source on error.
-                  }, {
-                    captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
-                  })
-                )
+                let effect = Effect
+                  .annotateCurrentSpan(spanAttributes)
+                  .pipe(Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>))
 
                 // Commands: provide a request-scoped `InvalidationSet` and wrap both
                 // success (`CommandResponseWithMetaData`) and handler-thrown failure

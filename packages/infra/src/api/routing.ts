@@ -495,7 +495,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     )
                   )
                 }
-                // this span is not visible on otel, probably because rpc/http attaches its parent span differently
                 let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
                     kind: "server",
@@ -506,7 +505,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       "code.function.name": resource._tag,
                       "code.namespace": meta.moduleName,
                       "app.rpc.type": resource.type
-                    }
+                    },
+                    sampled: false // we don't want it to appear on otel, just a way to quickly jump to src on error..
                   }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })

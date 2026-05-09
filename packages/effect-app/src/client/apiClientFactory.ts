@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { constant, flow } from "effect/Function"
 import * as Layer from "effect/Layer"
-import { layer } from "effect/Logger"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
@@ -267,7 +266,7 @@ const makeApiClientFactory = Effect
               mr.contextEffect.pipe(
                 Effect.flatMap((svcs) => {
                   const rpcEffect = TheClient
-                    .use((client) => client[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
+                    .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
                     .pipe(
                       Effect.provide(layers),
                       Effect.provide(svcs)
@@ -282,7 +281,7 @@ const makeApiClientFactory = Effect
                   Effect.flatMap((svcs) =>
                     TheClient
                       .useSync((client) => {
-                        const rpcStream = client[requestAttr]!(
+                        const rpcStream = (client as any)[requestAttr]!(
                           Request.make(input)
                         ) as Stream.Stream<any, any, any>
                         return rpcStream.pipe(

@@ -54,6 +54,7 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
 
 export interface SetupRequestOptions {
   readonly withTransaction?: boolean
+  readonly withSpan?: boolean
 }
 
 export const setupRequestContextFromCurrent =
@@ -61,7 +62,7 @@ export const setupRequestContextFromCurrent =
     self
       .pipe(
         options?.withTransaction === true ? withSqlTransaction : (_) => _,
-        withRequestSpan(name, options),
+        options?.withSpan === false ? (_) => _ : withRequestSpan(name, options),
         Effect.provide(ContextMapContainer.layer, { local: true })
       )
 
@@ -79,7 +80,7 @@ export function setupRequestContext<R, E, A>(
   return self
     .pipe(
       options?.withTransaction === true ? withSqlTransaction : (_) => _,
-      withRequestSpan(requestContext.name),
+      options?.withSpan === false ? (_) => _ : withRequestSpan(requestContext.name),
       Effect.provide(layer, { local: true })
     )
 }
@@ -98,7 +99,7 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   return self
     .pipe(
       options?.withTransaction === true ? withSqlTransaction : (_) => _,
-      withRequestSpan(name, options),
+      options?.withSpan === false ? (_) => _ : withRequestSpan(name, options),
       Effect.provide(layer, { local: true })
     )
 }

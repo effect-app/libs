@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Ref, S, type Scope, Stream } from "effect-app"
 import { getMeta } from "effect-app/client"
-import { type HttpHeaders } from "effect-app/http"
+import { type HttpHeaders, HttpMiddleware } from "effect-app/http"
 import { Invalidation } from "effect-app/rpc"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
@@ -20,6 +20,10 @@ export const applyRequestTypeInterruptibility = <A, E, R>(
   requestType: "command" | "query",
   effect: Effect.Effect<A, E, R>
 ) => requestType === "command" ? Rpc.uninterruptible(effect) : effect
+
+export const rpcServerSpanPrefix = "RpcServer"
+
+export const isRpcServerRequestForModule = (moduleName: string, url: string) => url.startsWith(`/rpc/${moduleName}`)
 
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata
@@ -434,6 +438,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
             const handler = controllers[cur as keyof typeof controllers]
             const resource = rsc[cur]
+            const rpcPath = `/rpc/${meta.moduleName}`
 
             acc[cur] = [
               handler._tag === RequestTypes.RAW
@@ -442,6 +447,10 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 } as any
                 : resource,
               (payload: any, headers: any) => {
+                const selectHeader = (key: string) => {
+                  const value = headers[key]
+                  return Array.isArray(value) ? value[0] : value
+                }
                 const result: any = handler.handler(payload, headers)
                 if (resource.stream) {
                   // Wrap stream items as { _tag: "value", value } and append a final
@@ -504,7 +513,19 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       "rpc.method": resource._tag,
                       "code.function.name": resource._tag,
                       "code.namespace": meta.moduleName,
-                      "app.rpc.type": resource.type
+                      "app.rpc.type": resource.type,
+                      "http.request.method": "POST",
+                      "url.path": rpcPath,
+                      "url.query": `action=${resource._tag}`,
+                      ...(selectHeader("x-locale") !== undefined
+                        ? { "http.request.header.x-locale": String(selectHeader("x-locale")) }
+                        : {}),
+                      ...(selectHeader("x-store-id") !== undefined
+                        ? { "http.request.header.x-store-id": String(selectHeader("x-store-id")) }
+                        : {}),
+                      ...(selectHeader("x-fe-device-id") !== undefined
+                        ? { "http.request.header.x-fe-device-id": String(selectHeader("x-fe-device-id")) }
+                        : {})
                     }
                   }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
@@ -609,12 +630,20 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
 
           return RpcServer
             .layerHttp({
-              spanPrefix: "RpcServer." + meta.moduleName,
+              spanPrefix: rpcServerSpanPrefix,
               group: rpcs,
               path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
               protocol: "http"
             })
-            .pipe(Layer.provide(rpc))
+            .pipe(
+              Layer.provide(rpc),
+              Layer.provideMerge(
+                Layer.succeed(
+                  HttpMiddleware.TracerDisabledWhen,
+                  (request) => isRpcServerRequestForModule(meta.moduleName, request.url)
+                )
+              )
+            )
         })
         .pipe(Layer.unwrap)
 

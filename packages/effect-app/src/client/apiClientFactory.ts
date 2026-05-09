@@ -53,6 +53,11 @@ class RequestName extends Context.Reference("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
 }) {}
 
+export const rpcClientSpanPrefix = "RpcClient"
+
+export const isRpcHttpClientRequest = (request: HttpClientRequest.HttpClientRequest) =>
+  String(request.url).includes("/rpc/")
+
 export const HttpClientLayer = (config: ApiConfig) =>
   Layer.effect(
     HttpClient.HttpClient,
@@ -171,7 +176,16 @@ const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
   // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
   const layer = Layer.effect(
     TheClient,
-    RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName })
+    RpcClient.make(rpcs, {
+      spanPrefix: rpcClientSpanPrefix,
+      spanAttributes: {
+        "rpc.system": "effect-app",
+        "rpc.service": meta.moduleName,
+        "http.request.method": "POST",
+        "url.path": `/rpc/${meta.moduleName}`,
+        "url.query": "action=<rpc-method>"
+      }
+    })
   )
   return Object.assign(TheClient, { layer })
 }
@@ -269,7 +283,8 @@ const makeApiClientFactory = Effect
                     .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
                     .pipe(
                       Effect.provide(layers),
-                      Effect.provide(svcs)
+                      Effect.provide(svcs),
+                      Effect.provideService(HttpClient.TracerDisabledWhen, isRpcHttpClientRequest)
                     )
                   return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
                 })
@@ -317,6 +332,7 @@ const makeApiClientFactory = Effect
                               )
                               : Stream.fail(err)
                           ),
+                          Stream.provideService(HttpClient.TracerDisabledWhen, isRpcHttpClientRequest),
                           Stream.provide(layers),
                           Stream.provide(svcs)
                         )

@@ -4,10 +4,14 @@ import { NonEmptyString255 } from "effect-app/Schema"
 import { Locale, RequestContext } from "../../RequestContext.js"
 import { setupRequestContext } from "../setupRequest.js"
 
+export const isRpcRequestUrl = (url: string, originalUrl: string) =>
+  url.startsWith("/rpc/") || originalUrl.startsWith("/rpc/")
+
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
   HttpMiddleware.make((app) =>
     Effect.gen(function*() {
       const req = yield* HttpServerRequest.HttpServerRequest
+      const isRpcRequest = isRpcRequestUrl(req.url, req.originalUrl)
 
       const currentSpan = yield* Effect.currentSpan.pipe(Effect.orDie)
       const supported = Locale.literals
@@ -32,7 +36,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
         namespace,
         sourceId: deviceId ? NonEmptyString255(deviceId) : undefined
       })
-      const res = yield* setupRequestContext(app, requestContext)
+      const res = yield* setupRequestContext(app, requestContext, { withSpan: !isRpcRequest })
 
       // TODO: how to set also on errors?
       return HttpServerResponse.setHeaders(res, {

@@ -447,9 +447,13 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 } as any
                 : resource,
               (payload: any, headers: any) => {
-                const selectHeader = (key: string) => {
+                const getFirstHeaderValue = (key: string) => {
                   const value = headers[key]
                   return Array.isArray(value) ? value[0] : value
+                }
+                const includeHeaderAttribute = (headerName: string) => {
+                  const value = getFirstHeaderValue(headerName)
+                  return value === undefined ? {} : { [`http.request.header.${headerName}`]: String(value) }
                 }
                 const result: any = handler.handler(payload, headers)
                 if (resource.stream) {
@@ -517,15 +521,9 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       "http.request.method": "POST",
                       "url.path": rpcPath,
                       "url.query": `action=${resource._tag}`,
-                      ...(selectHeader("x-locale") !== undefined
-                        ? { "http.request.header.x-locale": String(selectHeader("x-locale")) }
-                        : {}),
-                      ...(selectHeader("x-store-id") !== undefined
-                        ? { "http.request.header.x-store-id": String(selectHeader("x-store-id")) }
-                        : {}),
-                      ...(selectHeader("x-fe-device-id") !== undefined
-                        ? { "http.request.header.x-fe-device-id": String(selectHeader("x-fe-device-id")) }
-                        : {})
+                      ...includeHeaderAttribute("x-locale"),
+                      ...includeHeaderAttribute("x-store-id"),
+                      ...includeHeaderAttribute("x-fe-device-id")
                     }
                   }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here

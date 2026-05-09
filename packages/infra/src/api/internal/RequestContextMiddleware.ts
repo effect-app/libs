@@ -1,8 +1,9 @@
-import { Effect } from "effect-app"
+import { Effect, Layer } from "effect-app"
 import { HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-app/http"
 import { NonEmptyString255 } from "effect-app/Schema"
-import { Locale, RequestContext } from "../../RequestContext.js"
-import { setupRequestContext } from "../setupRequest.js"
+import { Locale, LocaleRef, RequestContext, spanAttributes } from "../../RequestContext.js"
+import { ContextMapContainer } from "../../Store/ContextMapContainer.js"
+import { storeId } from "../../Store/Memory.js"
 
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
   HttpMiddleware.make((app) =>
@@ -32,7 +33,16 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
         namespace,
         sourceId: deviceId ? NonEmptyString255(deviceId) : undefined
       })
-      const res = yield* setupRequestContext(app, requestContext)
+      yield* Effect.annotateCurrentSpan(spanAttributes(requestContext))
+      const layer = Layer.mergeAll(
+        ContextMapContainer.layer,
+        Layer.succeed(LocaleRef, requestContext.locale),
+        Layer.succeed(storeId, requestContext.namespace)
+      )
+      const res = yield* app.pipe(
+        Effect.withLogSpan(requestContext.name),
+        Effect.provide(layer, { local: true })
+      )
 
       // TODO: how to set also on errors?
       return HttpServerResponse.setHeaders(res, {

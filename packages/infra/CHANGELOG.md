@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.220
+
+### Patch Changes
+
+- aa436d3: fix bs span
+  - effect-app@4.0.0-beta.220
+
 ## 4.0.0-beta.219
 
 ### Patch Changes

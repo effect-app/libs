@@ -541,7 +541,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
                     kind: "server",
                     attributes: spanAttributes,
-                    sampled: false // we don't want it to appear on otel, just a way to quickly jump to src on error..
+                    sampled: false // Not sampled by OTel; enables quick navigation to source on error.
                   }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })

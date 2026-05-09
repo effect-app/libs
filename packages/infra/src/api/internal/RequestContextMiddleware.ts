@@ -44,7 +44,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
         Layer.succeed(storeId, requestContext.namespace)
       )
       const res = yield* app.pipe(
-        Effect.withLogSpan(rpcRequest ? "rpc.request" : requestContext.name),
+        Effect.withLogSpan(rpcRequest ? `rpc.${req.method.toLowerCase()}` : requestContext.name),
         Effect.provide(layer, { local: true })
       )
 

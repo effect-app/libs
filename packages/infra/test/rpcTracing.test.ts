@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { isRpcRequestUrl } from "../src/api/internal/RequestContextMiddleware.js"
+import { isRpcRequest } from "../src/api/internal/RequestContextMiddleware.js"
 import { isRpcServerRequestForModule, rpcServerSpanPrefix } from "../src/api/routing.js"
 
 describe("rpc tracing server config", () => {
@@ -13,7 +13,7 @@ describe("rpc tracing server config", () => {
   })
 
   test("identifies rpc request urls for request-context span suppression", () => {
-    expect(isRpcRequestUrl("/rpc/Users", "/rpc/Users?action=list")).toBe(true)
-    expect(isRpcRequestUrl("/api/Users", "/api/Users?action=list")).toBe(false)
+    expect(isRpcRequest("/rpc/Users", "/rpc/Users?action=list")).toBe(true)
+    expect(isRpcRequest("/api/Users", "/api/Users?action=list")).toBe(false)
   })
 })

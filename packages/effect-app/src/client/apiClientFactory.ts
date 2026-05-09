@@ -55,8 +55,14 @@ class RequestName extends Context.Reference("RequestName", {
 
 export const rpcClientSpanPrefix = "RpcClient"
 
-export const isRpcHttpClientRequest = (request: HttpClientRequest.HttpClientRequest) =>
-  String(request.url).includes("/rpc/")
+export const isRpcHttpClientRequest = (request: HttpClientRequest.HttpClientRequest) => {
+  try {
+    const url = new URL(String(request.url), "http://local")
+    return /(^|\/)rpc(\/|$)/.test(url.pathname)
+  } catch {
+    return false
+  }
+}
 
 export const HttpClientLayer = (config: ApiConfig) =>
   Layer.effect(
@@ -182,8 +188,7 @@ const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
         "rpc.system": "effect-app",
         "rpc.service": meta.moduleName,
         "http.request.method": "POST",
-        "url.path": `/rpc/${meta.moduleName}`,
-        "url.query": "action=<rpc-method>"
+        "url.path": `/rpc/${meta.moduleName}`
       }
     })
   )

@@ -25,6 +25,29 @@ export const rpcServerSpanPrefix = "RpcServer"
 
 export const isRpcServerRequestForModule = (moduleName: string, url: string) => url.startsWith(`/rpc/${moduleName}`)
 
+const extractSingleHeaderValue = (headers: Record<string, unknown>, key: string): string | undefined => {
+  const value = headers[key]
+  if (typeof value === "string") {
+    return value
+  }
+  if (Array.isArray(value)) {
+    const first = value[0]
+    return typeof first === "string" ? first : undefined
+  }
+  return undefined
+}
+
+const assignHeaderAttribute = (
+  attributes: Record<string, string>,
+  headers: Record<string, unknown>,
+  headerName: string
+) => {
+  const value = extractSingleHeaderValue(headers, headerName)
+  if (typeof value === "string") {
+    attributes[`http.request.header.${headerName}`] = value
+  }
+}
+
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata
 export type AnyRequestModule = S.Top & {
@@ -447,14 +470,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 } as any
                 : resource,
               (payload: any, headers: any) => {
-                const getFirstHeaderValue = (key: string) => {
-                  const value = headers[key]
-                  return Array.isArray(value) ? value[0] : value
-                }
-                const includeHeaderAttribute = (headerName: string) => {
-                  const value = getFirstHeaderValue(headerName)
-                  return value === undefined ? {} : { [`http.request.header.${headerName}`]: String(value) }
-                }
                 const result: any = handler.handler(payload, headers)
                 if (resource.stream) {
                   // Wrap stream items as { _tag: "value", value } and append a final
@@ -508,23 +523,24 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     )
                   )
                 }
+                const spanAttributes: Record<string, string> = {
+                  "rpc.system": "effect-app",
+                  "rpc.service": meta.moduleName,
+                  "rpc.method": resource._tag,
+                  "code.function.name": resource._tag,
+                  "code.namespace": meta.moduleName,
+                  "app.rpc.type": resource.type,
+                  "http.request.method": "POST",
+                  "url.path": rpcPath,
+                  "url.query": `action=${resource._tag}`
+                }
+                assignHeaderAttribute(spanAttributes, headers, "x-locale")
+                assignHeaderAttribute(spanAttributes, headers, "x-store-id")
+                assignHeaderAttribute(spanAttributes, headers, "x-fe-device-id")
                 let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
                     kind: "server",
-                    attributes: {
-                      "rpc.system": "effect-app",
-                      "rpc.service": meta.moduleName,
-                      "rpc.method": resource._tag,
-                      "code.function.name": resource._tag,
-                      "code.namespace": meta.moduleName,
-                      "app.rpc.type": resource.type,
-                      "http.request.method": "POST",
-                      "url.path": rpcPath,
-                      "url.query": `action=${resource._tag}`,
-                      ...includeHeaderAttribute("x-locale"),
-                      ...includeHeaderAttribute("x-store-id"),
-                      ...includeHeaderAttribute("x-fe-device-id")
-                    }
+                    attributes: spanAttributes
                   }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })

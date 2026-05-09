@@ -495,6 +495,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     )
                   )
                 }
+                // this span is not visible on otel, probably because rpc/http attaches its parent span differently
                 let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
                     kind: "server",
@@ -609,7 +610,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
 
           return RpcServer
             .layerHttp({
-              spanPrefix: "RpcServer",
               group: rpcs,
               path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
               protocol: "http"

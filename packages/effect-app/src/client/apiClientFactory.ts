@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { constant, flow } from "effect/Function"
 import * as Layer from "effect/Layer"
+import { layer } from "effect/Logger"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
@@ -171,7 +172,7 @@ const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
   // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
   const layer = Layer.effect(
     TheClient,
-    RpcClient.make(rpcs, { spanPrefix: "RpcClient" })
+    RpcClient.make(rpcs)
   )
   return Object.assign(TheClient, { layer })
 }
@@ -266,7 +267,7 @@ const makeApiClientFactory = Effect
               mr.contextEffect.pipe(
                 Effect.flatMap((svcs) => {
                   const rpcEffect = TheClient
-                    .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
+                    .use((client) => client[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
                     .pipe(
                       Effect.provide(layers),
                       Effect.provide(svcs)
@@ -281,7 +282,7 @@ const makeApiClientFactory = Effect
                   Effect.flatMap((svcs) =>
                     TheClient
                       .useSync((client) => {
-                        const rpcStream = (client as any)[requestAttr]!(
+                        const rpcStream = client[requestAttr]!(
                           Request.make(input)
                         ) as Stream.Stream<any, any, any>
                         return rpcStream.pipe(

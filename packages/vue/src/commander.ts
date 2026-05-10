@@ -2466,7 +2466,7 @@ export const CommanderStatic = {
       const k = keyMaker ? keyMaker(_k) : _k as unknown as Arg
       // we want to compare structurally, unless custom equal/hash has been implemented
       const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullishOr(r.deref())))
-      if (Option.isSome(item)) {
+      if (item.value) {
         return item.value
       }
       const v = maker(k)

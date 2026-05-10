@@ -418,18 +418,18 @@ export function composeQueries<
     return error
   }
   const initial = Array.findFirst(values, (x) => x._tag === "Initial" ? Option.some(x) : Option.none())
-  if (Option.isSome(initial)) {
+  if (initial.value !== undefined) {
     return initial.value
   }
   const loading = Array.findFirst(values, (x) => AsyncResult.isInitial(x) && x.waiting ? Option.some(x) : Option.none())
-  if (Option.isSome(loading)) {
+  if (loading.value !== undefined) {
     return loading.value
   }
 
   const isRefreshing = values.some((x) => x.waiting)
 
   const r = Object.entries(results).reduce((prev, [key, value]) => {
-    prev[key] = Option.getOrUndefined(AsyncResult.value(value))
+    prev[key] = AsyncResult.value(value).value
     return prev
   }, {} as any)
   return AsyncResult.success(r, { waiting: isRefreshing })

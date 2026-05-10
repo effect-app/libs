@@ -3,6 +3,7 @@
 ---
 
 Optimize codegen barrel and model plugins:
+
 - Drop `io-ts-extra`, `io-ts`, and `lodash` dependencies; replace with native JS helpers
 - Add fast string comparison (skip AST parse) for barrel and model equality checks
 - Avoid triple file reads in the CLI path: pass already-read source into `model` via context

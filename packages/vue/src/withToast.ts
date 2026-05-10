@@ -1,5 +1,11 @@
-import { Cause, Context, Effect, Fiber, Layer, type Option, S } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import type * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import { wrapEffect } from "effect-app/utils"
+import * as Cause from "effect/Cause"
+import * as Fiber from "effect/Fiber"
 import { CurrentToastId, Toast, type ToastId } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {

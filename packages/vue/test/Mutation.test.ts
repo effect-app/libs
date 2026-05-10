@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
-import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
 import { TestClock } from "effect/testing"
 import { CommandContext, DefaultIntl } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"

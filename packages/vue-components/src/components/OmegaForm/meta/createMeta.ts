@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Record, S } from "effect-app"
+import type * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
+import type * as Record from "effect/Record"
 import { getTransformationFrom } from "../../../utils"
 import type { FieldMeta, MetaRecord } from "./types"
 import { classifyAndWalkUnion, leafMetaForAst, type ParentMeta, type WalkerContext, walkStruct } from "./walker"

@@ -1,4 +1,6 @@
-import { Chunk, Effect, Equal } from "effect-app"
+import * as Chunk from "effect-app/Chunk"
+import * as Effect from "effect-app/Effect"
+import * as Equal from "effect/Equal"
 import { NotFoundError } from "../client/errors.js"
 
 function getFirstBy<A, Type extends string>(

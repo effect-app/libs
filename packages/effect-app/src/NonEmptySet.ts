@@ -1,5 +1,7 @@
-import { type Equivalence, Option, type Order } from "effect"
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import type * as Equivalence from "effect/Equivalence"
+import * as Option from "effect/Option"
+import type * as Order from "effect/Order"
 import { flow, pipe } from "./Function.js"
 import { filter_, filterMap, filterMap_, fromArray as fromArrayOriginal, insert as insertOriginal, insert_ as insert_Original, map, map_, reduce, reduce_, remove, remove_, type Set, toArray as toArrayOriginal } from "./Set.js"
 

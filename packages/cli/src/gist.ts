@@ -1,7 +1,22 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { Array, Config, Context, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, SynchronizedRef } from "effect"
+import * as Array from "effect/Array"
+import * as Config from "effect/Config"
+import * as Context from "effect/Context"
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import { pipe } from "effect/Function"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Path from "effect/Path"
+import * as Redacted from "effect/Redacted"
+import * as Result from "effect/Result"
+import * as Schema from "effect/Schema"
+import * as SchemaIssue from "effect/SchemaIssue"
+import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as SynchronizedRef from "effect/SynchronizedRef"
 
 import * as yaml from "js-yaml"
 import path from "path"

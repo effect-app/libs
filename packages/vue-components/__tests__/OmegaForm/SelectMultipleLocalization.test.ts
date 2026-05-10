@@ -1,6 +1,7 @@
 // __tests__/OmegaForm/SelectMultipleLocalization.test.ts
 import { mount } from "@vue/test-utils"
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { defineComponent } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"

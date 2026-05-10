@@ -1,4 +1,6 @@
-import { Context, Effect, Layer } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
 import { I18n } from "./intl.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off

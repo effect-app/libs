@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect } from "effect-app"
+import * as Effect from "effect-app/Effect"
 import { HttpHeaders } from "effect-app/http"
 import { SignJWT } from "jose"
 import { checkJWTI, InvalidRequestError, InvalidTokenError, UnauthorizedError } from "../src/api/internal/auth.js"

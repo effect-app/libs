@@ -1,5 +1,7 @@
-import { Context, Effect, Option } from "effect-app"
+import * as Context from "effect-app/Context"
 import { accessEffectFn } from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number; groupId?: string; requestId?: string }

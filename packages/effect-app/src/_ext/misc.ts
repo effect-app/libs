@@ -1,5 +1,8 @@
-import { Effect, Option, Result, type Scope } from "effect"
 import type { LazyArg } from "effect-app/Function"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Result from "effect/Result"
+import type * as Scope from "effect/Scope"
 
 export type _R<T extends Effect.Effect<any, any, any>> = [T] extends [
   Effect.Effect<any, any, infer R>

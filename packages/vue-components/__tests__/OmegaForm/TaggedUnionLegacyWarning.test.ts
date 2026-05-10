@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 

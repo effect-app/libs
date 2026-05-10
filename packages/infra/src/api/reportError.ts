@@ -1,4 +1,5 @@
-import { Cause, Effect } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Cause from "effect/Cause"
 import { logError, reportError } from "../errorReporter.js"
 
 // const onExitReportError = (name: string, unknownOnly?: boolean) => {

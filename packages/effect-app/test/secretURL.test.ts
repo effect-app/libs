@@ -1,4 +1,7 @@
-import { Chunk, Config, ConfigProvider, Effect } from "effect"
+import * as Chunk from "effect/Chunk"
+import * as Config from "effect/Config"
+import * as ConfigProvider from "effect/ConfigProvider"
+import * as Effect from "effect/Effect"
 import { describe, expect, test } from "vitest"
 import { fromChunk, fromString, isSecretURL, make, secretURL, unsafeWipe, value } from "../src/Config/SecretURL.js"
 

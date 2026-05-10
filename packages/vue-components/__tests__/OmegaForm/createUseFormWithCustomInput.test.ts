@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { createUseFormWithCustomInput } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"

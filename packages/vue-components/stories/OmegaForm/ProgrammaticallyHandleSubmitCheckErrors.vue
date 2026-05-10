@@ -18,7 +18,9 @@
 </template>
 
 <script setup lang="ts">
-import { Effect, type Exit, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
+import type * as Exit from "effect/Exit"
 import { ref } from "vue"
 import { useOmegaForm } from "../../src"
 

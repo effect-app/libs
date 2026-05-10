@@ -1,8 +1,14 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SchemaTransformation } from "effect"
-import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
+import { flow, pipe } from "effect/Function"
+import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as Struct from "effect/Struct"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"

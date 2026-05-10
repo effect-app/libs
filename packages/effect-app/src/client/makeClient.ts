@@ -1,5 +1,5 @@
-import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"

@@ -131,7 +131,7 @@ export interface InvalidationSetService {
  *
  * ```ts
  * import { makeQueryKey } from "effect-app/client"
- * import { Effect } from "effect"
+ * import * as Effect from "effect/Effect"
  * import { Invalidation } from "effect-app/rpc"
  * import * as CartRsc from "../Cart/queries.js"
  * import * as UserRsc from "../User/queries.js"

@@ -68,7 +68,8 @@
 
 <script setup lang="ts">
 // TODO: remove the story after manual _tag deprecation
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src"
 
 // Legacy pattern: S.Struct with _tag: S.Literal instead of S.TaggedStruct.

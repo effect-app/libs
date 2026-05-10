@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils"
-import { S, SchemaGetter } from "effect-app"
+import * as S from "effect-app/Schema"
+import * as SchemaGetter from "effect/SchemaGetter"
 import { describe, expect, it } from "vitest"
 import { defaultsValueFromSchema, generateMetaFromSchema, useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"

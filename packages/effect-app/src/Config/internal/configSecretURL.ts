@@ -1,5 +1,5 @@
-import { Redacted } from "effect"
 import * as Chunk from "effect/Chunk"
+import * as Redacted from "effect/Redacted"
 import type * as SecretURL from "../SecretURL.js"
 
 /** @internal */

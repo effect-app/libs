@@ -1,5 +1,5 @@
 import { flushPromises, mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"

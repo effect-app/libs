@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, type NonEmptyReadonlyArray } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
+import * as Effect from "effect-app/Effect"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"

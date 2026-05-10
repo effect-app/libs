@@ -20,8 +20,11 @@
 //   }
 // }
 
-import { Array, type Duration, Effect, type NonEmptyArray } from "effect-app"
+import * as Array from "effect-app/Array"
+import type { NonEmptyArray } from "effect-app/Array"
+import * as Effect from "effect-app/Effect"
 import { dual } from "effect-app/Function"
+import type * as Duration from "effect/Duration"
 import type { Semaphore } from "effect/Semaphore"
 import type { Concurrency } from "effect/Types"
 

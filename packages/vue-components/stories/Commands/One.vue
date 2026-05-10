@@ -30,7 +30,7 @@
 </template>
 <script setup lang="ts">
 import { I18n } from "@effect-app/vue/intl"
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 import { ref } from "vue"
 import { CommandButton } from "./components"
 import { makeFamily, useCommand } from "./helpers"

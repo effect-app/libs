@@ -1,5 +1,7 @@
-import { Data, Effect, Option } from "effect-app"
+import * as Effect from "effect-app/Effect"
 import { HttpHeaders, HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-app/http"
+import * as Option from "effect-app/Option"
+import * as Data from "effect/Data"
 import { createRemoteJWKSet, jwtVerify } from "jose"
 
 const getHeaders = (error: string, description: string, scopes?: ReadonlyArray<string>) => ({

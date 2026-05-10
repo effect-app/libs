@@ -1,5 +1,6 @@
 import crypto from "crypto"
-import { Effect, Option } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
 import { OptimisticConcurrencyException } from "../errors.js"
 import type { PersistenceModelType, SupportedValues2 } from "./service.js"
 

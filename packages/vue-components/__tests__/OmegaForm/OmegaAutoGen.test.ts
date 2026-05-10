@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils"
-import { Order } from "effect"
 import * as S from "effect-app/Schema"
+import * as Order from "effect/Order"
 import { describe, expect, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"

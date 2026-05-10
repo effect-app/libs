@@ -151,7 +151,7 @@
 
 <script setup lang="ts">
 import { useForm } from "@tanstack/vue-form"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 
 const schema = S.Struct({
   age: S.Finite.pipe(S.check(S.isLessThan(2))),

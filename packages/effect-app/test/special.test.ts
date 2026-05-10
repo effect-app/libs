@@ -1,10 +1,13 @@
-import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
 import { Class } from "effect-app/Schema/Class"
 import { flattenNestedAnyOf, flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
+import * as Option from "effect/Option"
+import * as Predicate from "effect/Predicate"
+import * as Schema from "effect/Schema"
 import * as S from "effect/Schema"
+import * as SchemaGetter from "effect/SchemaGetter"
 import { describe, expect, it } from "vitest"
 
 describe("Class", () => {

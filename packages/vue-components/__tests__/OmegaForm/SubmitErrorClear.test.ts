@@ -1,6 +1,6 @@
 // __tests__/OmegaForm/SubmitErrorClear.test.ts
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"

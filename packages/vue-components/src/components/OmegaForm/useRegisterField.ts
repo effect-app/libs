@@ -1,4 +1,4 @@
-import { injectCertain } from "@effect-app/vue"
+import { injectCertain } from "@effect-app/vue/makeContext"
 import { type ComputedRef, type InjectionKey, onUnmounted, provide, watch } from "vue"
 
 const Key = Symbol("injected") as InjectionKey<Map<string, { label: string; id: string }>>

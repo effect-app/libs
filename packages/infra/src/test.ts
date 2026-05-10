@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { copy } from "effect-app/utils"
 import { generate } from "./arbs.js"
 

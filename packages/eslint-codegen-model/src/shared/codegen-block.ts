@@ -12,8 +12,7 @@ export type BlockOptions = Record<string, unknown> & {
   preset: string
 }
 
-export const blockRe =
-  /^([ \t]*)\/\/ codegen:start[ \t]*(\{.*\})[ \t]*$\n?([\s\S]*?)^([ \t]*)\/\/ codegen:end[ \t]*$/gm
+export const blockRe = /^([ \t]*)\/\/ codegen:start[ \t]*(\{.*\})[ \t]*$\n?([\s\S]*?)^([ \t]*)\/\/ codegen:end[ \t]*$/gm
 
 const tsSourceRe = /\.[cm]?tsx?$/
 const jsExtRe = /(["'])(\.{1,2}\/[^"']+)\.js\1/g

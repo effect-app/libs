@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { Effect } from "effect-app"
+import * as Effect from "effect-app/Effect"
 import type { Abortable } from "events"
 import type { Mode, ObjectEncodingOptions, OpenMode } from "fs"
 import fs from "fs/promises"

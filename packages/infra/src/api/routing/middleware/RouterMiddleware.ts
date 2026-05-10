@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Context, type Layer } from "effect-app"
+import type * as Context from "effect-app/Context"
+import type * as Layer from "effect-app/Layer"
 import { type GetContextConfig, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type RpcMiddlewareV4 } from "effect-app/rpc/RpcMiddleware"
 // module:

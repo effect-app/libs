@@ -1,7 +1,11 @@
-import { Exit, flow, ManagedRuntime } from "effect"
-import { Effect, Layer, Logger } from "effect-app"
 import { CauseException } from "effect-app/client/errors"
 import { type Context } from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Exit from "effect/Exit"
+import { flow } from "effect/Function"
+import * as Logger from "effect/Logger"
+import * as ManagedRuntime from "effect/ManagedRuntime"
 
 export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
   const l = layer.pipe(

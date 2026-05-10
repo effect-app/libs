@@ -1,4 +1,4 @@
-import type { S } from "effect-app"
+import type * as S from "effect-app/Schema"
 
 export { getInputType, type SupportedInputs } from "./inputs"
 export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst } from "./meta/createMeta"

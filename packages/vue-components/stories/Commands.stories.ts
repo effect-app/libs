@@ -1,4 +1,4 @@
-import { type makeIntl } from "@effect-app/vue"
+import { type makeIntl } from "@effect-app/vue/makeIntl"
 import { type Meta, type StoryObj } from "@storybook/vue3"
 import { vueRouter } from "storybook-vue3-router"
 import { ref } from "vue"

@@ -1,8 +1,12 @@
 import { createIntl, type IntlFormatters } from "@formatjs/intl"
 
-import { Cause, Exit, Option, pipe, S } from "effect-app"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
+import { pipe } from "effect/Function"
 import { capitalize, ref } from "vue"
 
 // type GetSchemaFromProp<T> = T extends Field<infer S, any, any, any> ? S

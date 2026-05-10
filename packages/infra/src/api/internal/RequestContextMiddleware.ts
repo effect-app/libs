@@ -1,5 +1,6 @@
-import { Effect, Layer } from "effect-app"
+import * as Effect from "effect-app/Effect"
 import { HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-app/http"
+import * as Layer from "effect-app/Layer"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { Locale, LocaleRef, RequestContext, spanAttributes } from "../../RequestContext.js"
 import { ContextMapContainer } from "../../Store/ContextMapContainer.js"

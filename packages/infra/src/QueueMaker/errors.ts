@@ -1,5 +1,7 @@
 import { reportError } from "@effect-app/infra/errorReporter"
-import { Cause, Effect, Exit } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
 
 const reportQueueError_ = reportError("Queue")
 

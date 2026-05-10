@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Struct } from "effect-app"
+import * as Array from "effect-app/Array"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import { toNonEmptyArray } from "effect-app/Array"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Option from "effect-app/Option"
 import { dropUndefinedT, mutable } from "effect-app/utils"
+import * as Duration from "effect/Duration"
+import { pipe } from "effect/Function"
+import * as Redacted from "effect/Redacted"
+import * as Struct from "effect/Struct"
 import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"

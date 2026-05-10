@@ -3,7 +3,7 @@
   lang="ts"
   generic="I = never, RA = unknown, RE = unknown"
 >
-import type { CommandBase, Progress } from "@effect-app/vue"
+import type { CommandBase, Progress } from "@effect-app/vue/makeClient"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed } from "vue"
 import type { VBtn } from "vuetify/components"

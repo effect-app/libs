@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
+import * as Cause from "effect/Cause"
+import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
 import { dual } from "effect/Function"
+import * as Option from "effect/Option"
 import { isFunction } from "effect/Predicate"
+import * as Record from "effect/Record"
 import * as Result from "effect/Result"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
@@ -874,7 +879,7 @@ const genConstructor = (function*() {}).constructor
 /**
  * @example
  * ```ts
- * import { Utils } from "effect"
+ * import * as Utils from "effect/Utils"
  *
  * function* generatorFn() {
  *   yield 1

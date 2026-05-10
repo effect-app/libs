@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Option } from "effect"
 import * as S from "effect-app/Schema"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
 import { jwtDecode, type JwtDecodeOptions } from "jwt-decode"
 
 export const parseJwt = <Sch extends S.Top>(

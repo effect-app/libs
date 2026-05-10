@@ -2,8 +2,11 @@
 
 import * as api from "@opentelemetry/api"
 import type { DeepKeys, StandardSchemaV1Issue, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Data, Effect, Fiber, Option } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
 import { runtimeFiberAsPromise } from "effect-app/utils"
+import * as Data from "effect/Data"
+import * as Fiber from "effect/Fiber"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { OmegaFormApi, OmegaFormParams } from "./types"
 

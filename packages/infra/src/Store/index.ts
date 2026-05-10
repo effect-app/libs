@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, Redacted } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Redacted from "effect/Redacted"
 import type { SqlClient } from "effect/unstable/sql"
 import { CosmosStoreLayer } from "./Cosmos.js"
 import { DiskStoreLayer } from "./Disk.js"

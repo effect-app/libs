@@ -1,14 +1,14 @@
 {
-    "extends": "./tsconfig.base.json",
-    "compilerOptions": {
-        // "moduleResolution": "Node16",
-        // "outDir": "./dist",
-        // "baseUrl": "./",
-        // "rootDir": "./src",
-        // "noEmit": false,
-        // temp
-        "noImplicitAny": false,
-        "noPropertyAccessFromIndexSignature": false,
-        "noUncheckedIndexedAccess": false,
-    }
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // "moduleResolution": "Node16",
+    // "outDir": "./dist",
+    // "baseUrl": "./",
+    // "rootDir": "./src",
+    // "noEmit": false,
+    // temp
+    "noImplicitAny": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false
+  }
 }

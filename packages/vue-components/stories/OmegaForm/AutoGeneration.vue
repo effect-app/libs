@@ -50,9 +50,10 @@
 </template>
 
 <script setup lang="ts">
-import { Order } from "effect"
-import { Match, S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { constUndefined } from "effect/Function"
+import * as Match from "effect/Match"
+import * as Order from "effect/Order"
 import { type OmegaAutoGenMeta, useOmegaForm } from "../../src"
 
 const schema = S.Struct({

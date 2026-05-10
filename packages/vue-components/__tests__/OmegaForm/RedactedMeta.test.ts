@@ -1,5 +1,5 @@
-import { Redacted } from "effect"
 import * as S from "effect-app/Schema"
+import * as Redacted from "effect/Redacted"
 import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema, toFormSchema } from "../../src/components/OmegaForm"
 

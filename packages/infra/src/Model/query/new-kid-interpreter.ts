@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Array, identity, Match, Option, pipe, S, SchemaAST } from "effect-app"
+import * as Array from "effect-app/Array"
 import { toNonEmptyArray } from "effect-app/Array"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
+import { identity, pipe } from "effect/Function"
+import * as Match from "effect/Match"
+import * as SchemaAST from "effect/SchemaAST"
 import type { FilterResult } from "../filter/filterApi.js"
 import type { FieldValues } from "../filter/types.js"
 import type { FieldPath } from "../filter/types/path/eager.js"

@@ -18,7 +18,7 @@ import { dual } from "effect/Function"
  * **Example** (Nesting under a prefix)
  *
  * ```ts
- * import { ConfigProvider } from "effect"
+ * import * as ConfigProvider from "effect/ConfigProvider"
  *
  * const provider = ConfigProvider.fromEnv({
  *   env: { APP_HOST: "localhost", APP_PORT: "3000" }

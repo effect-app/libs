@@ -10,7 +10,7 @@
     ],
     "target": "es2022",
     // inline source maps stay better in sync with the source, which should aid with watchers.
-    //"sourceMap": true,
+    // "sourceMap": true,
     "inlineSourceMap": true,
     "incremental": true,
     "composite": true,
@@ -27,10 +27,10 @@
     "moduleResolution": "Node16",
     "noErrorTruncation": true,
     "forceConsistentCasingInFileNames": true,
-    //"preserveSymlinks": true
+    // "preserveSymlinks": true
     "types": [
       "node"
-    ],
+    ]
   },
   "watchOptions": {
     // Use native file system events for files and directories
@@ -48,7 +48,7 @@
       "**/.git",
       "**/.data",
       "**/.logs",
-      "**/.*",
+      "**/.*"
     ],
     "excludeFiles": [
       "**/*.tmp",

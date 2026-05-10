@@ -4,7 +4,7 @@
   "name": "Debug TSC",
   "program": "${workspaceFolder}/node_modules/tsc.js",
   "args": [
-    "--build tsconfig.all.json",
+    "--build tsconfig.all.json"
   ],
   "sourceMaps": false,
   "protocol": "inspector",

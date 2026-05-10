@@ -4,7 +4,12 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
 import { Argument, Command, Flag, Prompt } from "effect/unstable/cli"
 
-import { Effect, FileSystem, Layer, Option, Path, Stream } from "effect"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Path from "effect/Path"
+import * as Stream from "effect/Stream"
 import { ExtractExportMappingsService } from "./extract.js"
 import { GistHandler } from "./gist.js"
 import { RunCommandService } from "./os-command.js"

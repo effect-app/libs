@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { watch } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 

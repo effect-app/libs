@@ -1,5 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Layer, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"

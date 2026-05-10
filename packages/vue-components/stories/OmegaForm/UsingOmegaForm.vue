@@ -24,7 +24,7 @@
     </p>
     <p>For our examples, we will use the following dependencies:</p>
     <pre v-highlightjs>
-<code class="javascript">{{ `import { S } from "effect-app"
+<code class="javascript">{{ `import * as S from "effect-app/Schema"
 import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-components"` }}</code></pre>
 
     <h2>Basic Usage</h2>
@@ -177,7 +177,7 @@ export const useForm = createUseFormWithCustomInput(CustomInput)` }}</code></pre
     <p>Now you can use your custom <code>useForm</code> hook throughout your application:</p>
     <pre v-highlightjs>
 <code class="vue">{{ `<script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { useForm } from "./composables/useForm"
 
 const schema = S.Struct({
@@ -244,7 +244,7 @@ export const useForm = createUseFormWithCustomInput<TypeProps>(CustomInput)` }}<
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({

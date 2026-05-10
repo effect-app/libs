@@ -1,4 +1,4 @@
-import { Context } from "effect-app"
+import * as Context from "effect-app/Context"
 import { accessCn, accessFn } from "effect-app/Context"
 import { type MakeIntlReturn } from "./makeIntl.js"
 

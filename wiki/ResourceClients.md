@@ -12,13 +12,14 @@ Queries are for reading data from the api. No writing/mutating allowed. Queries 
 Mutations are for writing data to the api, return values should at most include identifiers, and often `void`.
 Mutations auto invalidate Queries in their namespace, so that a Users.Index Query will be invalidated upon a Users.Delete or Update mutation.
 This only occurs within the same namespace, like "Users".
-If you need to invalidate queries in another namespace, you can pass the following option to the Mutation constructor: 
+If you need to invalidate queries in another namespace, you can pass the following option to the Mutation constructor:
 
 ```ts
-  queryInvalidation: (queryKey) => [
-    { filters: { queryKey } },
-    { filters: { queryKey: makeQueryKey(meClient.GetMe) } }
-  ]
+queryInvalidation: ;
+;((queryKey) => [
+  { filters: { queryKey } },
+  { filters: { queryKey: makeQueryKey(meClient.GetMe) } }
+])
 ```
 
 ## Command

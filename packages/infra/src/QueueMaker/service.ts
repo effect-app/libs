@@ -1,4 +1,6 @@
-import type { Effect, NonEmptyReadonlyArray, Scope } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
+import type * as Effect from "effect-app/Effect"
+import type * as Scope from "effect/Scope"
 import { RequestContext } from "../RequestContext.js"
 
 export interface QueueBase<Evt, DrainEvt> {

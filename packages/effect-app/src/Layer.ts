@@ -1,6 +1,10 @@
-import { type Array, Effect, Layer, type Scope, type Types } from "effect"
+import type * as Array from "effect/Array"
+import * as Effect from "effect/Effect"
 import { type Yieldable } from "effect/Effect"
 import { dual } from "effect/Function"
+import * as Layer from "effect/Layer"
+import type * as Scope from "effect/Scope"
+import type * as Types from "effect/Types"
 import type * as Context from "./Context.js"
 import { type EffectGenUtils } from "./utils/gen.js"
 

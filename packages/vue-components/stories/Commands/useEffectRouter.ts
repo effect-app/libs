@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
 import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocationAsRelativeTyped, type RouteLocationAsString, type RouteLocationNormalizedLoaded, type RouteLocationRaw, type RouteLocationResolved, type RouteMap, type RouteRecordNameGeneric, type RouteRecordRaw, useRoute, useRouter } from "vue-router"
 
 /**

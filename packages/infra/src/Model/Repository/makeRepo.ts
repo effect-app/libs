@@ -6,7 +6,10 @@
 
 // import type { ParserEnv } from "effect-app/Schema/custom/Parser"
 
-import { type Context, Effect, type NonEmptyReadonlyArray, type S } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
+import type * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import type * as S from "effect-app/Schema"
 import type { StoreConfig, StoreMaker } from "../../Store.js"
 import type { FieldValues } from "../filter/types.js"
 import { type ExtendedRepository, extendRepo } from "./ext.js"

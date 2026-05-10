@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 
 /*
  * Checks if an AST node is a S.Redacted Declaration without encoding.

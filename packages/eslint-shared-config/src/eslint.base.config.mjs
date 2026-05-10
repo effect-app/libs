@@ -112,4 +112,3 @@ export function baseConfig(dirName, forceTS = false) {
     }
   ]
 }
-

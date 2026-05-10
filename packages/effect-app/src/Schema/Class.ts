@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Cause, Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
+import type * as Cause from "effect/Cause"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
 import * as S from "effect/Schema"
+import * as SchemaAST from "effect/SchemaAST"
+import * as SchemaIssue from "effect/SchemaIssue"
 import { copyOrigin } from "../utils.js"
 import { concurrencyUnbounded } from "./ext.js"
 import * as SchemaParser from "./SchemaParser.js"
@@ -49,11 +53,11 @@ export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, 
  */
 function makeRelaxedDeclaration(
   ast: SchemaAST.Declaration,
-  fields: Schema.Struct.Fields,
+  fields: S.Struct.Fields,
   cls: any
 ): SchemaAST.Declaration {
   const parseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
-  const structSchema = Schema.Struct(fields)
+  const structSchema = S.Struct(fields)
   const annotatedStruct = parseOptions ? S.toType(structSchema).annotate({ parseOptions }) : S.toType(structSchema)
   const decodeStruct = SchemaParser.decodeUnknownEffect(annotatedStruct)
 
@@ -86,7 +90,7 @@ function makeRelaxedDeclaration(
  *
  * @example
  * ```ts
- * import { Schema } from "effect"
+ * import * as Schema from "effect/Schema"
  * import { Class } from "./Class.js"
  *
  * class A extends Class<A>("A")({ a: Schema.String }) {}
@@ -155,7 +159,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}
  *
  * @example
  * ```ts
- * import { Schema } from "effect"
+ * import * as Schema from "effect/Schema"
  * import { TaggedClass } from "./Class.js"
  *
  * class Circle extends TaggedClass<Circle>()("Circle", {

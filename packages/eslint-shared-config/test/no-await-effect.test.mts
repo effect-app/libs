@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { ESLint } from "eslint"
-import path from "node:path"
 import fs from "node:fs"
 import os from "node:os"
+import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const fixtureDir = path.resolve(__dirname, "_fixture")

@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import * as fc from "fast-check"
 import { urlAlphabet } from "nanoid"
 import { test } from "vitest"

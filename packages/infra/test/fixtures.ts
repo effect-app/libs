@@ -1,7 +1,12 @@
-import { Context, Effect, Layer, RpcX, S, Scope } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as RpcX from "effect-app/rpc"
 import { RpcContextMap } from "effect-app/rpc"
+import * as S from "effect-app/Schema"
 import { TaggedErrorClass } from "effect-app/Schema"
+import * as Scope from "effect/Scope"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({

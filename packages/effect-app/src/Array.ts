@@ -1,7 +1,7 @@
-import { Chunk, Effect } from "effect"
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 import * as Array from "effect/Array"
-import * as T from "effect/Effect"
+import * as Chunk from "effect/Chunk"
+import * as Effect from "effect/Effect"
 import { dual, type Predicate } from "./Function.js"
 import * as Option from "./Option.js"
 
@@ -104,7 +104,7 @@ export function chunk_<T>(items_: Iterable<T>, size: number) {
 }
 
 export function forEachEffectNA<A, R, E, B>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Effect.Effect<B, E, R>) {
-  return Effect.map(T.forEach(as, f), (_) => Option.getOrNull(toNonEmptyArray(_)))
+  return Effect.map(Effect.forEach(as, f), (_) => Option.getOrNull(toNonEmptyArray(_)))
 }
 
 export * from "effect/Array"

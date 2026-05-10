@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { ExtractModuleName, HandlerInput, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
-import type * as ExitResult from "effect/Exit"
+import type * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import type * as Layer from "effect-app/Layer"
+import * as S from "effect-app/Schema"
+import * as Exit from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
+import * as Hash from "effect/Hash"
+import type * as ManagedRuntime from "effect/ManagedRuntime"
 import type * as Stream from "effect/Stream"
+import * as Struct from "effect/Struct"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic, type Progress } from "./commander.js"
@@ -904,7 +910,7 @@ export type QueryInvalidation<M> = {
     defaultKey: string[],
     name: string,
     input?: unknown,
-    output?: ExitResult.Exit<unknown, unknown>
+    output?: Exit.Exit<unknown, unknown>
   ) => {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined

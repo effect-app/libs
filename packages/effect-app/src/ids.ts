@@ -1,6 +1,6 @@
-import { Effect } from "effect"
 import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringIdBrand, withDefaultMake } from "effect-app/Schema"
 import type { B } from "effect-app/Schema/schema"
+import * as Effect from "effect/Effect"
 import type { Simplify } from "effect/Types"
 import { S } from "./index.js"
 import { extendM } from "./utils.js"

@@ -2,14 +2,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Ref, S, type Scope, Stream } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import { getMeta } from "effect-app/client"
+import * as Config from "effect-app/Config"
+import * as Effect from "effect-app/Effect"
 import { type HttpHeaders } from "effect-app/http"
+import * as Layer from "effect-app/Layer"
 import { Invalidation } from "effect-app/rpc"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
+import * as S from "effect-app/Schema"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Yieldable } from "effect/Effect"
+import * as Predicate from "effect/Predicate"
+import * as Ref from "effect/Ref"
+import type * as Scope from "effect/Scope"
+import * as Stream from "effect/Stream"
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { type LayerUtils } from "./layerUtils.js"
 import { RequestType as RequestTypeAnnotation } from "./routing/middleware.js"

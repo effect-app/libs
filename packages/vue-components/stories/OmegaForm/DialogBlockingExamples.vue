@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { ref } from "vue"
 import Dialog from "../../src/components/Dialog.vue"
 import { useOmegaForm } from "../../src/components/OmegaForm/useOmegaForm"

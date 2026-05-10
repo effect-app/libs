@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/namespace */
 
-import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as CTX from "effect/Context"
+import type * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import type * as Scope from "effect/Scope"
+import type * as Types from "effect/Types"
 import { type Yieldable } from "./Effect.js"
 
 export * from "effect/Context"

@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
-import { Context, S } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as S from "effect-app/Schema"
 import { type InjectionKey, watch } from "vue"
 import { eHoc, makeFieldMap } from "./errors"
 import { fHoc } from "./hocs"

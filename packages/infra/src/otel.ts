@@ -9,7 +9,7 @@
  * - Cosmos DB:  https://opentelemetry.io/docs/specs/semconv/database/cosmosdb/
  */
 
-import { Effect } from "effect-app"
+import * as Effect from "effect-app/Effect"
 
 export type DbSystem =
   | "postgresql"

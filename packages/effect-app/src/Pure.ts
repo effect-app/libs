@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Chunk, Effect, Layer, Result } from "effect"
+import * as Chunk from "effect/Chunk"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Result from "effect/Result"
 import * as Context from "./Context.js"
 import { tuple } from "./Function.js"
 

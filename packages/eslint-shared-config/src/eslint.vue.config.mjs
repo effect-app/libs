@@ -1,8 +1,8 @@
+import tsParser from "@typescript-eslint/parser"
 import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
 import globals from "globals"
 import vueParser from "vue-eslint-parser"
-import tsParser from "@typescript-eslint/parser"
 import { baseConfig } from "./eslint.base.config.mjs"
 import effectAppPlugin from "./plugin-effect-app.mjs"
 

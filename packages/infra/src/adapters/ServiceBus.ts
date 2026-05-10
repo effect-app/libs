@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, type ServiceBusMessage, type ServiceBusMessageBatch, type ServiceBusReceivedMessage, type ServiceBusReceiver } from "@azure/service-bus"
-import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
+import * as FiberSet from "effect/FiberSet"
+import type * as Scope from "effect/Scope"
 import { InfraLogger } from "../logger.js"
 
 const logged = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>

@@ -1,5 +1,5 @@
-import { type makeIntl } from "@effect-app/vue"
-import type { S } from "effect-app"
+import { type makeIntl } from "@effect-app/vue/makeIntl"
+import type * as S from "effect-app/Schema"
 import { inject, type InjectionKey, provide } from "vue"
 
 export const useIntlKey = Symbol() as InjectionKey<

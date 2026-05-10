@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.221
+
+### Patch Changes
+
+- 439cbeb: Adopt module system from effect-smol: replace barrel imports with specific submodule imports (`import * as X from "effect-app/X"` / `import * as X from "effect/X"`).
+- Updated dependencies [439cbeb]
+  - effect-app@4.0.0-beta.221
+  - @effect-app/vue@4.0.0-beta.221
+
 ## 4.0.0-beta.220
 
 ### Patch Changes

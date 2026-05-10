@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue-components",
-  "version": "4.0.0-beta.220",
+  "version": "4.0.0-beta.221",
   "scripts": {
     "check": "vue-tsc",
     "build": "pnpm build:run",

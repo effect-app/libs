@@ -13,6 +13,7 @@
   "changesets": [
     "add-oxlint-integration",
     "add-stream-mutation",
+    "adopt-module-system",
     "all-phones-dream",
     "amber-garlics-sing",
     "batch-dual-options",

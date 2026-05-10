@@ -1,4 +1,4 @@
-import { type makeIntl } from "@effect-app/vue"
+import { type makeIntl } from "@effect-app/vue/makeIntl"
 import type * as S from "effect-app/Schema"
 import { inject, type InjectionKey, provide } from "vue"
 

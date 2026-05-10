@@ -1,13 +1,13 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { pipe } from "effect"
 import * as Array from "effect/Array"
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
+import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Path from "effect/Path"

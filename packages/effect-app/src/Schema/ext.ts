@@ -30,9 +30,9 @@
  * is gated on an explicit version marker) over shoving missing fields under
  * the rug with a decode-time default.
  */
-import { pipe } from "effect"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
+import { pipe } from "effect/Function"
 import * as Function from "effect/Function"
 import * as Option from "effect/Option"
 import * as S from "effect/Schema"

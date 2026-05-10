@@ -1,4 +1,4 @@
-import { type makeIntl } from "@effect-app/vue"
+import { type makeIntl } from "@effect-app/vue/makeIntl"
 import type { Meta as StoryMeta, StoryObj } from "@storybook/vue3"
 import { ref } from "vue"
 import OmegaForm from "../src/components/OmegaForm/OmegaWrapper.vue"

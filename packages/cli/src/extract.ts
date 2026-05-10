@@ -1,7 +1,7 @@
-import { pipe } from "effect"
 import * as EffectArray from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
+import { pipe } from "effect/Function"
 import * as Order from "effect/Order"
 import * as Path from "effect/Path"
 import type * as PlatformError from "effect/PlatformError"

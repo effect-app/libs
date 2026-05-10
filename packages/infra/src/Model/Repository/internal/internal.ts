@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { flow, pipe } from "effect"
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import { toNonEmptyArray } from "effect-app/Array"
@@ -13,6 +12,7 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import { type Codec, NonNegativeInt } from "effect-app/Schema"
 import * as Equivalence from "effect/Equivalence"
+import { flow, pipe } from "effect/Function"
 import * as Pipeable from "effect/Pipeable"
 import * as PubSub from "effect/PubSub"
 import * as Result from "effect/Result"

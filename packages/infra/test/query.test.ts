@@ -1,12 +1,12 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { flow, pipe } from "effect"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
+import { flow, pipe } from "effect/Function"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
 import { inspect } from "util"

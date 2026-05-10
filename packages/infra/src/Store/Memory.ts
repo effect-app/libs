@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { flow, pipe } from "effect"
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Context from "effect-app/Context"
@@ -8,6 +7,7 @@ import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { assertUnreachable } from "effect-app/utils"
+import { flow, pipe } from "effect/Function"
 import * as Order from "effect/Order"
 import * as Ref from "effect/Ref"
 import * as Result from "effect/Result"

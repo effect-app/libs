@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { pipe } from "effect"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { pipe } from "effect/Function"
 import type * as Scope from "effect/Scope"
 
 import { type HttpRouter } from "effect-app/http"

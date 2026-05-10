@@ -3,9 +3,9 @@ import * as fu from "../fileUtil.js"
 
 import fs from "fs"
 
-import { flow } from "effect"
 import * as Effect from "effect-app/Effect"
 import * as Console from "effect/Console"
+import { flow } from "effect/Function"
 import * as Semaphore from "effect/Semaphore"
 import type { FieldValues } from "../Model/filter/types.js"
 import { annotateDb } from "../otel.js"

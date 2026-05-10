@@ -1,9 +1,9 @@
-import { flow } from "effect"
 import { CauseException } from "effect-app/client/errors"
 import { type Context } from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Exit from "effect/Exit"
+import { flow } from "effect/Function"
 import * as Logger from "effect/Logger"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 

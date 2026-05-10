@@ -8,10 +8,10 @@
  * For persisted data, prefer an explicit, preferably versioned migration
  * over decode-time fallbacks. See `./ext.ts` for the full policy note.
  */
-import { pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
 import * as Effect from "effect/Effect"
+import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"

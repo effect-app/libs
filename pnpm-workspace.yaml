@@ -1,9 +1,16 @@
 packages:
   - packages/*
+overrides:
+  typescript: 6.0.3
 allowBuilds:
-  "@parcel/watcher": set this to true or false
-  better-sqlite3: set this to true or false
-  dprint: set this to true or false
-  esbuild: set this to true or false
-  msgpackr-extract: set this to true or false
-  vue-demi: set this to true or false
+  "@parcel/watcher": false
+  better-sqlite3: true
+  dprint: true
+  esbuild: true
+  msgpackr-extract: false
+  vue-demi: false
+patchedDependencies:
+  ts-plugin-sort-import-suggestions: patches/ts-plugin-sort-import-suggestions.patch
+  "@tanstack/query-core": patches/@tanstack__query-core.patch
+  typescript@6.0.3: patches/typescript.patch
+  "@sendgrid/mail": patches/@sendgrid__mail.patch

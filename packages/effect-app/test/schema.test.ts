@@ -1,5 +1,6 @@
 // import { generateFromArbitrary } from "@effect-app/infra/test"
-import { Array, S } from "effect-app"
+import * as Array from "effect-app/Array"
+import * as S from "effect-app/Schema"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { describe, expect, expectTypeOf, test } from "vitest"
 

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type Schema as S } from "effect"
+import type * as S from "effect/Schema"
 import { type AnyWithProps } from "effect/unstable/rpc/Rpc"
 import * as Context from "../Context.js"
 import { type RpcDynamic } from "./RpcMiddleware.js"

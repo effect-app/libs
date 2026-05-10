@@ -1,4 +1,5 @@
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import { buildFieldInfoFromFieldsRoot, translate } from "../src/form.js"
 
 // test schema with integer field

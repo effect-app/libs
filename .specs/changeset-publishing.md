@@ -75,7 +75,6 @@ produces a release where all 24 packages share `4.0.0-beta.<n>`.
 
 Add the `fixed` group and change `access` to `"public"`:
 
-
 ## Ongoing workflow
 
 ### Adding changesets
@@ -132,9 +131,8 @@ Changesets' pre-release counter prevents collisions — `4.0.0-beta.0`,
 `4.0.0-beta.1`, etc. are distinct versions. npm's immutability guarantees that a
 published version can never be overwritten.
 
-
 ## Files to modify
 
-| File                                            | Change                                        |
-| ----------------------------------------------- | --------------------------------------------- |
-| `.changeset/config.json`                        | Add `fixed` array, set `access` to `"public"` |
+| File                     | Change                                        |
+| ------------------------ | --------------------------------------------- |
+| `.changeset/config.json` | Add `fixed` array, set `access` to `"public"` |

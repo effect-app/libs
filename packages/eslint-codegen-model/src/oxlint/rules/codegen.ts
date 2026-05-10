@@ -1,14 +1,6 @@
 // @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
 import type { CreateRule } from "oxlint/plugins-dev"
-import {
-  blockRe,
-  indentBlock,
-  normaliseGeneratedContent,
-  parseBlockOptions,
-  renderPreset,
-  trimTrailingNewline,
-  type BlockOptions
-} from "../../shared/codegen-block.js"
+import { type BlockOptions, blockRe, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.js"
 
 type RuleContext = {
   sourceCode: {

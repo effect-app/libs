@@ -1,4 +1,4 @@
-import { Logger } from "effect-app"
+import * as Logger from "effect/Logger"
 import { spanAttributes } from "../RequestContext.js"
 import { getRequestContextFromFiber } from "./shared.js"
 

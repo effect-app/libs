@@ -20,8 +20,8 @@
           "base": "$tsc-watch",
           "fileLocation": [
             "relative",
-            "${workspaceRoot}",
-          ],
+            "${workspaceRoot}"
+          ]
         }
       ]
     },

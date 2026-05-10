@@ -8,8 +8,8 @@
  * For persisted data, prefer an explicit, preferably versioned migration
  * over decode-time fallbacks. See `./ext.ts` for the full policy note.
  */
-import { Effect } from "effect"
 import { extendM } from "effect-app/utils"
+import * as Effect from "effect/Effect"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import { fromBrand, nominal } from "./brand.js"

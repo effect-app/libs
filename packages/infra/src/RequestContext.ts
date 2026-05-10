@@ -1,5 +1,6 @@
-import { Context, S } from "effect-app"
+import * as Context from "effect-app/Context"
 import { UserProfileId } from "effect-app/ids"
+import * as S from "effect-app/Schema"
 import { NonEmptyString255 } from "effect-app/Schema"
 
 export const Locale = S.Literals(["en", "de"])

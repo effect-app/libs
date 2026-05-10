@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const AlphaSchema = S.Struct({

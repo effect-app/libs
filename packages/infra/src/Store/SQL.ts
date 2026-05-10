@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Context, Layer, LayerMap } from "effect"
-import { Effect, type NonEmptyReadonlyArray, Option, Struct } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import { toNonEmptyArray } from "effect-app/Array"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
+import * as Context from "effect/Context"
+import * as Layer from "effect/Layer"
+import * as LayerMap from "effect/LayerMap"
+import * as Struct from "effect/Struct"
 import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"

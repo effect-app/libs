@@ -20,7 +20,7 @@
   Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { Order } from "effect-app"
+import * as Order from "effect/Order"
 import { computed } from "vue"
 import { type FieldMeta } from "./meta/types"
 import { type FieldPath, type OmegaAutoGenMeta, type OmegaInputProps } from "./types"

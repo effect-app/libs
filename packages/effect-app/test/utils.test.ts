@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { test } from "vitest"
 import { copyOrigin } from "../src/utils.js"
 

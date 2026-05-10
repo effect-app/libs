@@ -5,7 +5,8 @@
  * the last emitted stream element is.
  */
 import { expect, it } from "@effect/vitest"
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import * as Stream from "effect/Stream"
 import { asStreamResult } from "../src/mutate.js"
 import { ExportComplete, OperationProgress, Something } from "./stubs.js"

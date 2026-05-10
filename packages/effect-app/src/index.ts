@@ -15,8 +15,6 @@ export * as Set from "./Set.js"
 
 export { type NonEmptyArray, type NonEmptyReadonlyArray } from "./Array.js"
 
-export * from "effect"
-
 export type * as Types from "./Types.js"
 
 export * as SecretURL from "./Config/SecretURL.js"

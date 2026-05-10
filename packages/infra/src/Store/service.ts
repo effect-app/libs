@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
-import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
+import type { NonEmptyReadonlyArray } from "effect-app/Array"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import type * as Option from "effect-app/Option"
+import type * as Redacted from "effect/Redacted"
 import * as Semaphore from "effect/Semaphore"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"

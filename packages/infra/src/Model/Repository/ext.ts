@@ -1,8 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Array, Effect, Exit, type NonEmptyArray, Option, Request, RequestResolver } from "effect-app"
+import * as Array from "effect-app/Array"
+import type { NonEmptyArray } from "effect-app/Array"
 import { type InvalidStateError, NotFoundError, type OptimisticConcurrencyException } from "effect-app/client/errors"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
 import { type FixEnv, type PureEnv, runTerm } from "effect-app/Pure"
+import * as Exit from "effect/Exit"
+import * as Request from "effect/Request"
+import * as RequestResolver from "effect/RequestResolver"
 import { AnyPureDSL } from "../dsl.js"
 import type { FieldValues } from "../filter/types.js"
 import type { Query, QueryEnd, QueryWhere } from "../query.js"

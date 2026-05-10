@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Option, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 
 const extractDefaultFromLink = (link: any): unknown | undefined => {

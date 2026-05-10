@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Layer, Scope } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Scope from "effect/Scope"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 

@@ -22,7 +22,8 @@
 </template>
 
 <script setup lang="ts">
-import { S, SchemaGetter } from "effect-app"
+import * as S from "effect-app/Schema"
+import * as SchemaGetter from "effect/SchemaGetter"
 import { ref } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 

@@ -52,7 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const struct = {

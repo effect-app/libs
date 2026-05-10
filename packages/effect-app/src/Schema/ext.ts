@@ -30,9 +30,16 @@
  * is gated on an explicit version marker) over shoving missing fields under
  * the rug with a decode-time default.
  */
-import { Config, Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
+import { pipe } from "effect"
+import * as Config from "effect/Config"
+import * as Effect from "effect/Effect"
+import * as Function from "effect/Function"
+import * as Option from "effect/Option"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
+import type * as SchemaAST from "effect/SchemaAST"
+import * as SchemaIssue from "effect/SchemaIssue"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"

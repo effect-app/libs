@@ -1,4 +1,8 @@
-import { Context, Effect, Fiber, FiberSet, Layer } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Fiber from "effect/Fiber"
+import * as FiberSet from "effect/FiberSet"
 
 import { InfraLogger } from "./logger.js"
 import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.js"

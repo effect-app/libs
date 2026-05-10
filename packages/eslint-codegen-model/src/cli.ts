@@ -4,14 +4,7 @@ import * as path from "node:path"
 
 import glob from "glob"
 
-import {
-  blockRe,
-  indentBlock,
-  normaliseGeneratedContent,
-  parseBlockOptions,
-  renderPreset,
-  trimTrailingNewline
-} from "./shared/codegen-block.js"
+import { blockRe, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 
 function updateFile(filePath: string, source: string): boolean {
   let changed = false

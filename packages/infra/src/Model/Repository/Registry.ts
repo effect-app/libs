@@ -1,4 +1,5 @@
-import { Context, Effect } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
 
 export interface RegisteredRepository {
   readonly seedNamespace: (namespace: string) => Effect.Effect<void>

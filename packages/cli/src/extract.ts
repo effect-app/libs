@@ -1,4 +1,10 @@
-import { Array as EffectArray, Effect, FileSystem, Order, Path, pipe, type PlatformError } from "effect"
+import { pipe } from "effect"
+import * as EffectArray from "effect/Array"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Order from "effect/Order"
+import * as Path from "effect/Path"
+import type * as PlatformError from "effect/PlatformError"
 
 /**
  * Generates package.json exports mappings for TypeScript modules

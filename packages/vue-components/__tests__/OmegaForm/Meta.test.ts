@@ -1,5 +1,5 @@
 // __tests__/OmegaForm/Meta.test.ts
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 

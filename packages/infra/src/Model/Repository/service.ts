@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Effect, Option, PubSub, S } from "effect-app"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
+import type * as Effect from "effect-app/Effect"
+import type * as Option from "effect-app/Option"
+import type * as S from "effect-app/Schema"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
+import type * as PubSub from "effect/PubSub"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
 import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"

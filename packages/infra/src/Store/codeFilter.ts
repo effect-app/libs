@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Array, Option } from "effect-app"
+import * as Array from "effect-app/Array"
+import * as Option from "effect-app/Option"
 import { assertUnreachable } from "effect-app/utils"
 import type { FilterR, FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"

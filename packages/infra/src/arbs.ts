@@ -1,8 +1,8 @@
 // Do not import to frontend
 
 import { faker } from "@faker-js/faker"
-import { type S } from "effect-app"
 import { setFaker } from "effect-app/faker"
+import type * as S from "effect-app/Schema"
 import * as FastCheck from "effect/testing/FastCheck"
 import { Random } from "fast-check"
 import { congruential32 } from "pure-rand/generator/congruential32"

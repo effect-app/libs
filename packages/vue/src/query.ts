@@ -4,11 +4,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type DefaultError, type Enabled, experimental_streamedQuery as streamedQuery, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Array, Cause, type Context, Effect, Exit, Option, S } from "effect-app"
+import * as Array from "effect-app/Array"
 import { makeQueryKey, type Req } from "effect-app/client"
 import type { RequestHandlerWithInput, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
+import type * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
+import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
+import * as Exit from "effect/Exit"
 import * as Pull from "effect/Pull"
 import * as Scope from "effect/Scope"
 import type * as Stream from "effect/Stream"
@@ -412,18 +418,18 @@ export function composeQueries<
     return error
   }
   const initial = Array.findFirst(values, (x) => x._tag === "Initial" ? Option.some(x) : Option.none())
-  if (initial.value !== undefined) {
+  if (Option.isSome(initial)) {
     return initial.value
   }
   const loading = Array.findFirst(values, (x) => AsyncResult.isInitial(x) && x.waiting ? Option.some(x) : Option.none())
-  if (loading.value !== undefined) {
+  if (Option.isSome(loading)) {
     return loading.value
   }
 
   const isRefreshing = values.some((x) => x.waiting)
 
   const r = Object.entries(results).reduce((prev, [key, value]) => {
-    prev[key] = AsyncResult.value(value).value
+    prev[key] = Option.getOrUndefined(AsyncResult.value(value))
     return prev
   }, {} as any)
   return AsyncResult.success(r, { waiting: isRefreshing })

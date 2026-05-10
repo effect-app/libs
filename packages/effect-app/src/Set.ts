@@ -1,7 +1,11 @@
 // ets_tracing: off
 
-import { Array, type Equivalence, Option, type Order, type Result } from "effect"
+import * as Array from "effect/Array"
+import type * as Equivalence from "effect/Equivalence"
+import * as Option from "effect/Option"
+import type * as Order from "effect/Order"
 import { not } from "effect/Predicate"
+import type * as Result from "effect/Result"
 import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.js"
 
 export function find_<A, B extends A>(

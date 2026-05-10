@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm"
 

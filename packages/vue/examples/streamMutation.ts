@@ -11,7 +11,9 @@
  *
  * The example below shows the low-level `asStreamResult` API.
  */
-import { Effect, S, Stream } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
+import * as Stream from "effect/Stream"
 import { asStreamResult } from "../src/mutate.js"
 
 // ---------------------------------------------------------------------------

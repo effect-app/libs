@@ -145,8 +145,8 @@ export const barrel: PresetFn<{
           && exportOpt !== null
           && "keys" in exportOpt
           && (exportOpt as { name: string; keys: "path" | "camelCase" }).keys === "path"
-        ? withIdentifiers.map((i) => `${JSON.stringify(i.file)}: ${i.identifier}`)
-        : withIdentifiers.map((i) => i.identifier)
+      ? withIdentifiers.map((i) => `${JSON.stringify(i.file)}: ${i.identifier}`)
+      : withIdentifiers.map((i) => i.identifier)
 
     let exportPrefix: string
     if (exportOpt === undefined) {

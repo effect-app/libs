@@ -71,11 +71,15 @@ On Mac:
 On Windows:
 
 1. Select "Run Task"
-``` bash
+
+```bash
 cd packages/vue-components
 ```
+
 2. run storybook
+
 ```bash
 pnpm storybook
 ```
+
 3. Will automatically open browser to http://localhost:6006/ Enjoy!

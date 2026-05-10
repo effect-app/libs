@@ -1,4 +1,4 @@
-import { type LogLevel } from "effect"
+import type * as LogLevel from "effect/LogLevel"
 
 export const LogLevelToSentry = (level: LogLevel.LogLevel) => {
   switch (level) {

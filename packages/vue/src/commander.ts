@@ -1,9 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { asResult, asStreamResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
+import { flow } from "effect"
 import { SupportedErrors } from "effect-app/client"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
+import * as Cause from "effect/Cause"
+import type * as Exit from "effect/Exit"
+import type * as Fiber from "effect/Fiber"
+import * as Match from "effect/Match"
+import * as MutableHashMap from "effect/MutableHashMap"
+import * as Predicate from "effect/Predicate"
 import { type Refinement } from "effect/Predicate"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -2455,7 +2466,7 @@ export const CommanderStatic = {
       const k = keyMaker ? keyMaker(_k) : _k as unknown as Arg
       // we want to compare structurally, unless custom equal/hash has been implemented
       const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullishOr(r.deref())))
-      if (item.value) {
+      if (Option.isSome(item)) {
         return item.value
       }
       const v = maker(k)

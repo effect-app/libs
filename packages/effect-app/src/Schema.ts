@@ -1,6 +1,7 @@
-import { SchemaAST, type Tracer } from "effect"
 import * as S from "effect/Schema"
+import * as SchemaAST from "effect/SchemaAST"
 import { type Simplify } from "effect/Struct"
+import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
@@ -220,7 +221,7 @@ export interface Struct<Fields extends S.Struct.Fields> extends
    * **Example** (Reusing fields across structs)
    *
    * ```ts
-   * import { Schema } from "effect"
+   * import * as Schema from "effect/Schema"
    *
    * const Timestamped = Schema.Struct({
    *   createdAt: Schema.Date,

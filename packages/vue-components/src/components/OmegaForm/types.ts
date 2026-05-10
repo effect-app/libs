@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DeepKeys, DeepValue, FieldApi, FieldAsyncValidateOrFn, FieldState, FieldValidateOrFn, FormApi, FormAsyncValidateOrFn, FormOptions, FormState, FormValidateOrFn, StandardSchemaV1, VueFormApi } from "@tanstack/vue-form"
-import type { Effect, Order, S } from "effect-app"
+import type * as Effect from "effect-app/Effect"
+import type * as S from "effect-app/Schema"
 import type { UnionToTuples } from "effect-app/utils"
 import type { Fiber as EffectFiber } from "effect/Fiber"
+import type * as Order from "effect/Order"
 import type { Redacted } from "effect/Redacted"
 import type { AllowedComponentProps, ComponentCustomProps, ComputedRef, PublicProps, ShallowUnwrapRef, VNode, VNodeProps } from "vue"
 import type { MergedInputProps, OmegaFieldInternalApi, TaggedUnionOptionsArray } from "./InputProps"

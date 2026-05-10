@@ -5,10 +5,12 @@
 Add `wrapStream` support to `Command` with separate `result` and `running` props.
 
 **Key design:**
+
 - `result` is always the command's own execution outcome (from `asResult`)
 - `running` holds the stream's live `AsyncResult` ref for progress tracking
 
 **New behaviour:**
+
 - `CommanderImpl.wrapStream(mutation)` returns a callable like `wrap` — `wrapStream(mutation)()` gives `CommandOut`.
 - Accepts either `{ id, mutateStream: [...] }` or the augmented tuple directly (when `.id` is attached).
 - `Command.wrap` now accepts `{ mutateStream, id }` and the augmented tuple — both delegate to `wrapStream`.
@@ -29,8 +31,13 @@ const exportCmd = Command.wrapStream(client.myExport.mutateStream)()
 const exportCmd = Command.wrap(client.myExport.mutateStream)()
 
 // fn with external progress:
-const cmd = Command.fn({ id: "myExport", progress: client.myExport.mutateStream[0] })(
-  function*(arg) { yield* client.myExport.mutateStream[1](arg) }
+const cmd = Command.fn({
+  id: "myExport",
+  progress: client.myExport.mutateStream[0]
+})(
+  function*(arg) {
+    yield* client.myExport.mutateStream[1](arg)
+  }
 )
 // cmd.running === the stream AsyncResult ref
 ```

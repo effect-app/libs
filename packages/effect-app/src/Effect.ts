@@ -2,8 +2,10 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import { Effect, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Ref from "effect/Ref"
 import type { Scope } from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
 import type * as Context from "./Context.js"

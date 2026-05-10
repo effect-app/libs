@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { createUseFormWithCustomInput } from "../../src/components/OmegaForm"
 import CustomInput from "./CustomInput.vue"
 

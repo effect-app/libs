@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import type { Option } from "effect"
 import * as B from "effect/Brand"
+import type * as Option from "effect/Option"
 import type * as Result from "effect/Result"
 import * as S from "effect/Schema"
 

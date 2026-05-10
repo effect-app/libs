@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
-import { Effect } from "effect"
+import * as Effect from "effect/Effect"
 
 interface Callback<E, A> {
   (err: E, a?: A): void

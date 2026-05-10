@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DeepKeys } from "@tanstack/vue-form"
-import type { S } from "effect-app"
+import type * as S from "effect-app/Schema"
 import type { Redacted } from "effect/Redacted"
 
 // Recursively replace Redacted<A> with its inner type so DeepKeys treats it as a leaf

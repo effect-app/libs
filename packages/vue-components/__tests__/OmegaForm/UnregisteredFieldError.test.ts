@@ -17,7 +17,7 @@
 //   2. The `eHoc`-wrapped `Errors` component surfaces an entry whose
 //      `inputId` is `b` (the unregistered field path).
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"

@@ -1,4 +1,4 @@
-import { Effect } from "effect-app"
+import * as Effect from "effect-app/Effect"
 import { pretty } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import { Emailer } from "./service.js"

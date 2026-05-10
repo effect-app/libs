@@ -1,5 +1,7 @@
 import { expect, it } from "@effect/vitest"
-import { Deferred, Effect, Fiber } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as Deferred from "effect/Deferred"
+import * as Fiber from "effect/Fiber"
 import * as Stream from "effect/Stream"
 import { TestClock } from "effect/testing"
 import { CommanderStatic } from "../src/commander.js"

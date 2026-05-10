@@ -1,6 +1,9 @@
 // __tests__/OmegaForm/SubmitEffect.test.ts
 import { mount } from "@vue/test-utils"
-import { Cause, Effect, Exit, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
 import { describe, expect, it } from "vitest"
 import { defineComponent } from "vue"
 import { FormErrors, useOmegaForm } from "../../src/components/OmegaForm"

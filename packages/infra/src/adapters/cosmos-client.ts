@@ -1,5 +1,7 @@
 import { CosmosClient as ComosClient_ } from "@azure/cosmos"
-import { Context, Effect, Layer } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
 
 const withClient = (url: string) => Effect.sync(() => new ComosClient_(url))
 

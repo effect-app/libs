@@ -2,7 +2,9 @@
  * SpecialJsonSchema — A variant of Schema.toJsonSchemaDocument that
  * post-processes the output (e.g. flattens simple allOf).
  */
-import { type JsonSchema, type Schema, SchemaRepresentation } from "effect"
+import type * as JsonSchema from "effect/JsonSchema"
+import type * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
 /**
  * Converts a schema to a JSON Schema Document (draft-2020-12), with

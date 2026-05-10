@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as S from "effect/Schema"
+import type * as Scope from "effect/Scope"
 import { type Simplify } from "effect/Types"
 import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
@@ -167,9 +170,9 @@ export interface BuildingMiddleware<
 > {
   rpc: <
     const Tag extends string,
-    Payload extends Schema.Top | Schema.Struct.Fields = typeof Schema.Void,
-    Success extends Schema.Top = typeof Schema.Void,
-    Error extends Schema.Top = typeof Schema.Never,
+    Payload extends S.Top | S.Struct.Fields = typeof S.Void,
+    Success extends S.Top = typeof S.Void,
+    Error extends S.Top = typeof S.Never,
     const Stream extends boolean = false,
     Config extends GetContextConfig<RequestContextMap> = {}
   >(tag: Tag, options?: {
@@ -178,16 +181,16 @@ export interface BuildingMiddleware<
     readonly error?: Error
     readonly stream?: Stream
     readonly config?: Config
-    readonly primaryKey?: [Payload] extends [Schema.Struct.Fields] ? ((
-        payload: Payload extends Schema.Struct.Fields ? Simplify<Schema.Struct<Payload>["Type"]> : Payload["Type"]
+    readonly primaryKey?: [Payload] extends [S.Struct.Fields] ? ((
+        payload: Payload extends S.Struct.Fields ? Simplify<S.Struct<Payload>["Type"]> : Payload["Type"]
       ) => string)
       : never
   }) =>
     & Rpc.Rpc<
       Tag,
-      Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+      Payload extends S.Struct.Fields ? S.Struct<Payload> : Payload,
       Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
-      Stream extends true ? typeof Schema.Never : Error
+      Stream extends true ? typeof S.Never : Error
     >
     & { readonly config: Config }
 
@@ -313,7 +316,7 @@ const makeMiddlewareBasic = <Self>() =>
   // the rcm config entry pointed at by the middleware's `dynamic.key` (if any).
   // Reason: middlewares declared with `dynamic: RequestContextMap.get("foo")`
   // don't set a static `error` field — at runtime their `.error` defaults to
-  // `Schema.Never`. Without pulling from rcm, the composite middleware's
+  // `S.Never`. Without pulling from rcm, the composite middleware's
   // `.error` collapses to `Never`, and `Rpc.exitSchema` (which walks
   // `rpc.middlewares[*].error` to build the wire failure union) can't decode
   // the actual middleware-thrown error type. Critical for stream rpcs whose
@@ -396,9 +399,9 @@ export const Tag = <Self>() =>
     // rpc with config
     rpc: <
       const Tag extends string,
-      Payload extends Schema.Top | Schema.Struct.Fields = typeof Schema.Void,
-      Success extends Schema.Top = typeof Schema.Void,
-      Error extends Schema.Top = typeof Schema.Never,
+      Payload extends S.Top | S.Struct.Fields = typeof S.Void,
+      Success extends S.Top = typeof S.Void,
+      Error extends S.Top = typeof S.Never,
       const Stream extends boolean = false,
       Config extends GetContextConfig<RequestContextMap["config"]> = {}
     >(tag: Tag, options?: {
@@ -407,17 +410,17 @@ export const Tag = <Self>() =>
       readonly error?: Error
       readonly stream?: Stream
       readonly config?: Config
-      readonly primaryKey?: [Payload] extends [Schema.Struct.Fields] ? ((
-          payload: Payload extends Schema.Struct.Fields ? Simplify<Schema.Struct<Payload>["Type"]> : Payload["Type"]
+      readonly primaryKey?: [Payload] extends [S.Struct.Fields] ? ((
+          payload: Payload extends S.Struct.Fields ? Simplify<S.Struct<Payload>["Type"]> : Payload["Type"]
         ) => string)
         : never
     }):
       & Rpc.Rpc<
         Tag,
-        Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+        Payload extends S.Struct.Fields ? S.Struct<Payload> : Payload,
         // TODO: enhance `Error`. type based on middleware config.
         Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
-        Stream extends true ? typeof Schema.Never : Error
+        Stream extends true ? typeof S.Never : Error
       >
       & { config: Config } =>
     {

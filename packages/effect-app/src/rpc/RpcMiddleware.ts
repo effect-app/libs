@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Schema, type Schema as S, type Scope, type Stream } from "effect"
 import { type NonEmptyReadonlyArray } from "effect/Array"
+import type * as Effect from "effect/Effect"
+import type * as S from "effect/Schema"
+import type * as Scope from "effect/Scope"
+import type * as Stream from "effect/Stream"
 import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
 import { type TypeId } from "effect/unstable/rpc/RpcMiddleware"
 import type * as Context from "../Context.js"
@@ -12,7 +15,7 @@ export type RpcMiddlewareV4<Provides, E, Requires> = RpcMiddleware.RpcMiddleware
 
 export type RpcOptionsOriginal = {
   readonly optional?: boolean
-  readonly error?: Schema.Top
+  readonly error?: S.Top
   readonly requiredForClient?: boolean
 }
 
@@ -40,7 +43,7 @@ export interface TagClassAny extends RpcMiddleware.AnyService {
   readonly optional: boolean
   readonly provides: any
   readonly requires: any
-  readonly error: Schema.Top
+  readonly error: S.Top
   readonly dynamic?: RpcDynamic<any, any> | undefined
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
@@ -50,18 +53,17 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type FailureSchema<Options> = Options extends { readonly error: Schema.Top; readonly optional?: false }
+  export type FailureSchema<Options> = Options extends { readonly error: S.Top; readonly optional?: false }
     ? Options["error"]
     // actually not, the Failure depends on Dynamic Middleware Configuration!
     // : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
-    : typeof Schema.Never
+    : typeof S.Never
 
   /**
    * @since 1.0.0
    * @category models
    */
-  export type Failure<Options> = Options extends { readonly error: Schema.Codec<infer _A>; readonly optional?: false }
-    ? _A
+  export type Failure<Options> = Options extends { readonly error: S.Codec<infer _A>; readonly optional?: false } ? _A
     // actually not, the Failure depends on Dynamic Middleware Configuration!
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never
@@ -70,7 +72,7 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type FailureContext<Options> = Schema.Codec.DecodingServices<FailureSchema<Options>>
+  export type FailureContext<Options> = S.Codec.DecodingServices<FailureSchema<Options>>
 
   /**
    * @since 1.0.0

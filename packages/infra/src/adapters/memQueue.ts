@@ -1,5 +1,6 @@
-import { Context, Effect, type Queue } from "effect-app"
-import * as Q from "effect/Queue"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Queue from "effect/Queue"
 
 const make = Effect
   .gen(function*() {
@@ -9,7 +10,7 @@ const make = Effect
       getOrCreateQueue: Effect.fnUntraced(function*(k: string) {
         const q = store.get(k)
         if (q) return q
-        const newQ = yield* Q.unbounded<string>()
+        const newQ = yield* Queue.unbounded<string>()
         store.set(k, newQ)
         return newQ
       })

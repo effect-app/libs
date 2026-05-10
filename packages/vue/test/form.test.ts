@@ -1,4 +1,5 @@
-import { Effect, S } from "effect-app"
+import * as Effect from "effect-app/Effect"
+import * as S from "effect-app/Schema"
 import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, getMetadataFromSchema, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
 
 export class NestedSchema extends S.Class<NestedSchema>("NestedSchema")({

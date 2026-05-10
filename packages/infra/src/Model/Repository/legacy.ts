@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import type { Effect, Option, S } from "effect-app"
 import type { OptimisticConcurrencyException } from "effect-app/client/errors"
+import type * as Effect from "effect-app/Effect"
+import type * as Option from "effect-app/Option"
+import type * as S from "effect-app/Schema"
 
 export interface Mapped1<A, IdKey extends keyof A, R> {
   all: Effect.Effect<A[], S.SchemaError, R>

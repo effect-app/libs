@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Sentry from "@sentry/browser"
-import { Cause, Effect, type LogLevel } from "effect-app"
 import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
+import * as Effect from "effect-app/Effect"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
+import * as Cause from "effect/Cause"
+import type * as LogLevel from "effect/LogLevel"
 
 export const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
   try {

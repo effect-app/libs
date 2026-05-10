@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { useIntervalFn } from "@vueuse/core"
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { ref, watch } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 

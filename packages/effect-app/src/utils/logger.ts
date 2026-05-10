@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Effect, type LogLevel } from "effect"
+import * as Effect from "effect/Effect"
+import type * as LogLevel from "effect/LogLevel"
 import * as Context from "../Context.js"
 
 type Levels = "info" | "debug" | "warn" | "error"

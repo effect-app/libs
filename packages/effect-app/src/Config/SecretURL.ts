@@ -1,8 +1,10 @@
 /**
  * @since 1.0.0
  */
-import { Config, type Equal, type Redacted } from "effect"
 import type * as Chunk from "effect/Chunk"
+import * as Config from "effect/Config"
+import type * as Equal from "effect/Equal"
+import type * as Redacted from "effect/Redacted"
 import * as internal from "./internal/configSecretURL.js"
 
 // /**

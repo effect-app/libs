@@ -30,7 +30,6 @@ After **all** changes are made, run these from the **repo root**:
 <!-- - Build the project: `pnpm build`
 - Check JSDoc examples compile: `pnpm docgen` -->
 
-
 ## Code Style Guidelines
 
 **Always** look at existing code in the repository to learn and follow

@@ -1,4 +1,5 @@
-import { type Effect, type Option } from "effect"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
 import { expect, test } from "vitest"
 import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
 import { ForceVoid } from "../src/client/makeClient.js"

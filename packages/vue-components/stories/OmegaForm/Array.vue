@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import * as S from "effect-app/Schema"
 import { onMounted, ref } from "vue"
 import { OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Option } from "effect"
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import * as Option from "effect/Option"
 import type { Misc, Union } from "ts-toolbelt"
 import type * as SET from "./Set.js"
 

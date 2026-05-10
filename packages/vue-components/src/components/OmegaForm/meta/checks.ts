@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Record, S } from "effect-app"
+import * as S from "effect-app/Schema"
+import type * as Record from "effect/Record"
 import type { FieldMeta } from "./types"
 
 export const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {

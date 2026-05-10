@@ -1,6 +1,10 @@
-import { Context, Data, Effect, Layer, RequestResolver } from "effect-app"
+import * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as Data from "effect/Data"
 import { dual } from "effect/Function"
 import type * as Request from "effect/Request"
+import * as RequestResolver from "effect/RequestResolver"
 import { ContextMap } from "./service.js"
 
 // TODO: we have to create a new contextmap on every request.

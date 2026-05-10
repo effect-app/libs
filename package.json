@@ -1,18 +1,8 @@
 {
   "private": true,
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "patchedDependencies": {
-      "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
-      "@tanstack/query-core": "patches/@tanstack__query-core.patch",
-      "typescript@6.0.3": "patches/typescript.patch",
-      "@sendgrid/mail": "patches/@sendgrid__mail.patch"
-    }
-  },
+  "packageManager": "pnpm@11.0.9",
   "engines": {
-    "pnpm": ">= 10.0.0"
+    "pnpm": ">= 11.0.0"
   },
   "scripts": {
     "all": "pnpm -r",

@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.222
+
+### Patch Changes
+
+- b53382e: fix: vue components were bundling effect modules
+  - effect-app@4.0.0-beta.222
+  - @effect-app/vue@4.0.0-beta.222
+
 ## 4.0.0-beta.221
 
 ### Patch Changes

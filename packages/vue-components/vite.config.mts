@@ -54,10 +54,10 @@ export default defineConfig({
     rollupOptions: {
       // external modules won't be bundled into your library
       external: [
-        "effect",
-        /@effect/,
-        "effect-app",
-        /@effect-app/,
+        /^effect(\/|$)/,
+        /^@effect\//,
+        /^effect-app(\/|$)/,
+        /^@effect-app\//,
         "vue",
         /primevue\/.+/,
         /@tanstack/,

@@ -201,21 +201,22 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     // we wrap into CauseException because we want to keep the full cause of the failure.
     const runPromise = makeRunPromise(getRuntime())
     const arr = arg
-    const isOptional = options?.mode === "optional"
 
     let req: { value: I } | undefined
-    let enabledOpt: ComputedRef<boolean> | undefined
+    let callerOptions: any = options
 
-    if (isOptional) {
+    if (options?.mode === "optional") {
       const getOption: () => Option.Option<I> = typeof arr === "function"
         ? arr as () => Option.Option<I>
-        : () => (arr as any).value as Option.Option<I>
+        : () => (arr as { value: Option.Option<I> }).value
       req = {
         get value() {
+          // getOrUndefined returns undefined when None, but queryFn is only called when enabled (Some)
           return Option.getOrUndefined(getOption()) as I
         }
       }
-      enabledOpt = computed(() => Option.isSome(getOption()))
+      const { mode: _mode, enabled: _enabled, ...rest } = options ?? {}
+      callerOptions = { ...rest, enabled: computed(() => Option.isSome(getOption())) }
     } else {
       req = !arg
         ? undefined
@@ -241,12 +242,9 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       throwOnError: false
     }
 
-    const { mode: _mode, enabled: _enabled, ...optionalOpts } = isOptional ? (options ?? {}) : {}
-
     const r = useTanstackQuery<A, CauseException<E>, TData>({
       ...defaultOptions,
-      ...(isOptional ? optionalOpts : options),
-      ...(enabledOpt !== undefined ? { enabled: enabledOpt } : {}),
+      ...callerOptions,
       retry: (retryCount, error) => {
         if (error instanceof CauseException) {
           if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {

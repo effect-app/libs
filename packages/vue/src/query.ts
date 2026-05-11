@@ -150,6 +150,16 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       q: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
       <TData = A>(
+        arg: WatchSource<Option.Option<I>>,
+        options: Omit<CustomUndefinedInitialQueryOptions<A, E, TData>, "enabled"> & { mode: "optional" }
+      ): readonly [
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
+        ComputedRef<TData | undefined>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
+        UseQueryDefinedReturnType<TData, CauseException<E>>
+      ]
+
+      <TData = A>(
         arg: I | WatchSource<I> | undefined,
         options?: CustomUndefinedInitialQueryOptions<A, E, TData>
       ): readonly [
@@ -183,7 +193,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     q: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) =>
   <TData = A>(
-    arg: I | WatchSource<I> | undefined,
+    arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
     // todo QueryKey type would be [string, ...string[]], but with I it would be [string, ...string[], I]
     options?: any
     // TODO
@@ -191,15 +201,33 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     // we wrap into CauseException because we want to keep the full cause of the failure.
     const runPromise = makeRunPromise(getRuntime())
     const arr = arg
-    const req: { value: I } | undefined = !arg
-      ? undefined
-      : typeof arr === "function"
-      ? ({
+    const isOptional = options?.mode === "optional"
+
+    let req: { value: I } | undefined
+    let enabledOpt: ComputedRef<boolean> | undefined
+
+    if (isOptional) {
+      const getOption: () => Option.Option<I> = typeof arr === "function"
+        ? arr as () => Option.Option<I>
+        : () => (arr as any).value as Option.Option<I>
+      req = {
         get value() {
-          return (arr as any)()
+          return Option.getOrUndefined(getOption()) as I
         }
-      })
-      : ref(arg) as any
+      }
+      enabledOpt = computed(() => Option.isSome(getOption()))
+    } else {
+      req = !arg
+        ? undefined
+        : typeof arr === "function"
+        ? ({
+          get value() {
+            return (arr as any)()
+          }
+        })
+        : ref(arg) as any
+    }
+
     const queryKey = makeQueryKey(q)
     const projectionHash = (q as { queryKeyProjectionHash?: string }).queryKeyProjectionHash
 
@@ -213,9 +241,12 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       throwOnError: false
     }
 
+    const { mode: _mode, enabled: _enabled, ...optionalOpts } = isOptional ? (options ?? {}) : {}
+
     const r = useTanstackQuery<A, CauseException<E>, TData>({
       ...defaultOptions,
-      ...options,
+      ...(isOptional ? optionalOpts : options),
+      ...(enabledOpt !== undefined ? { enabled: enabledOpt } : {}),
       retry: (retryCount, error) => {
         if (error instanceof CauseException) {
           if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {

@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 4.0.0-beta.224
+
+### Minor Changes
+
+- 1e4c989: Add `mode: "optional"` overload for queries. When `mode: "optional"` is set, the `arg` must be a `WatchSource<Option<I>>`. The query is disabled (`enabled: false`) when the option is `None`, and enabled with the unwrapped value when `Some`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.224
+
 ## 4.0.0-beta.223
 
 ### Patch Changes

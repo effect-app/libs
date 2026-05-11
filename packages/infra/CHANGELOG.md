@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.223
+
+### Patch Changes
+
+- 2871841: RequestContextMiddleware: set request name to `HTTP <method> <path>` (strip query string) for clearer span/trace names.
+  - effect-app@4.0.0-beta.223
+
 ## 4.0.0-beta.222
 
 ### Patch Changes

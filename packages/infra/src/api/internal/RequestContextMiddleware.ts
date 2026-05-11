@@ -29,7 +29,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
           spanId: currentSpan.spanId,
           sampled: currentSpan.sampled
         },
-        name: NonEmptyString255(req.originalUrl), // set more detailed elsewhere
+        name: NonEmptyString255(`HTTP ${req.method} ${req.originalUrl.split("?")[0]}`), // set more detailed elsewhere
         locale,
         namespace,
         sourceId: deviceId ? NonEmptyString255(deviceId) : undefined

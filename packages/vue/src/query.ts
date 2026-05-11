@@ -304,6 +304,15 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
       <TData = A>(
+        arg: WatchSource<Option.Option<I>>,
+        options: Omit<CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>, "enabled"> & { mode: "optional" }
+      ): readonly [
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
+        ComputedRef<TData | undefined>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+      <TData = A>(
         arg: I | WatchSource<I>,
         options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [

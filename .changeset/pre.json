@@ -221,6 +221,7 @@
     "salty-weeks-walk",
     "schema-concurrency-unbounded",
     "schema-json-collections",
+    "scoped-mutation-invalidation",
     "secret-url-tests",
     "select-delayed-cache-invalidation",
     "sendgrid-configurable-fake-address",

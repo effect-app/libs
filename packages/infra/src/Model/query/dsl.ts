@@ -179,6 +179,10 @@ export type ComputedProjectionExpression =
     readonly distinct: boolean
     readonly operation?: ComputedProjectionOperation
   }
+  | {
+    readonly _tag: "relation-length"
+    readonly path: string
+  }
 
 export type ComputedProjectionMap = Readonly<Record<string, ComputedProjectionExpression>>
 export type Q<TFieldValues extends FieldValues> =
@@ -473,6 +477,10 @@ export const project: {
 export const relation = <TFieldValues extends FieldValues>(
   path: FieldPath<TFieldValues>
 ) => ({
+  length: (): ComputedProjectionExpression => ({
+    _tag: "relation-length",
+    path: path as string
+  }),
   count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
     operation
       ? {

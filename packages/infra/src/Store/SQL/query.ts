@@ -412,9 +412,10 @@ export function buildWhereSQLQuery(
       const cases = entries.map(([unit, factor]) => ` WHEN ${sqlStringLiteral(unit)} THEN ${factor}`).join("")
       return `CASE ${unitExpr} WHEN ${sqlStringLiteral(toBase)} THEN 1${cases} ELSE NULL END`
     }
+    const filter = "filter" in computed ? computed.filter : []
     const whereClause = () =>
-      computed.filter.length > 0
-        ? ` WHERE ${print(computed.filter, computed.path, false)}`
+      filter.length > 0
+        ? ` WHERE ${print(filter, computed.path, false)}`
         : ""
     const boolExpr = (sqlExpr: string) =>
       dialect.jsonColumnType === "JSON"
@@ -428,9 +429,9 @@ export function buildWhereSQLQuery(
       case "relation-every":
         // ∀x.P(x) ≡ ¬∃x.¬P(x). When no filter, no element exists that violates ⊤ → true.
         return boolExpr(
-          computed.filter.length === 0
+          filter.length === 0
             ? `1=1`
-            : `NOT EXISTS(SELECT 1 FROM ${relationFrom} WHERE NOT (${print(computed.filter, computed.path, false)}))`
+            : `NOT EXISTS(SELECT 1 FROM ${relationFrom} WHERE NOT (${print(filter, computed.path, false)}))`
         )
       case "relation-distinct-count": {
         const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)
@@ -469,6 +470,10 @@ export function buildWhereSQLQuery(
         }
         const aggArg = computed.distinct ? `DISTINCT ${fieldExtract}` : fieldExtract
         return `(SELECT COALESCE(jsonb_agg(${aggArg}), '[]'::jsonb) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      }
+      case "relation-length": {
+        const arrPath = dottedToJsonPath(computed.path)
+        return `${dialect.arrayLength(arrPath)} AS "${key}"`
       }
       case "relation-collect-fields": {
         const branches = computed.fields.map((field) => {

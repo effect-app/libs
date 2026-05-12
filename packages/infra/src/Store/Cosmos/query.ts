@@ -289,7 +289,9 @@ export function buildWhereCosmosQuery3(
           : [_]
       )
   const computedFilters = select
-    ? select.flatMap((_) => typeof _ === "object" && "computed" in _ ? getValues(_.computed.filter) : [])
+    ? select.flatMap((_) =>
+      typeof _ === "object" && "computed" in _ && "filter" in _.computed ? getValues(_.computed.filter) : []
+    )
     : []
   const values = [...computedFilters, ...getValues(filter)]
 
@@ -314,8 +316,9 @@ export function buildWhereCosmosQuery3(
         `IIF(${unitExpr} = ${JSON.stringify(toBase)}, 1, 0)`
       )
     }
-    const where = computed.filter.length > 0
-      ? ` WHERE ${print(computed.filter, relationPath, false)}`
+    const filter = "filter" in computed ? computed.filter : []
+    const where = filter.length > 0
+      ? ` WHERE ${print(filter, relationPath, false)}`
       : ""
     switch (computed._tag) {
       case "relation-count":
@@ -360,6 +363,8 @@ export function buildWhereCosmosQuery3(
         }
         return `ARRAY(SELECT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
       }
+      case "relation-length":
+        return `ARRAY_LENGTH(${relationSource}) AS ${key}`
       case "relation-collect-fields": {
         const subqueries = computed.fields.map((field) => {
           const fieldRef = dottedToAccess(`${relationAlias}.${field}`)

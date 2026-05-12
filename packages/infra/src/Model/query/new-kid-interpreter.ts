@@ -88,6 +88,10 @@ export type ComputedProjectionIrExpression =
     readonly distinct: boolean
     readonly filter: readonly FilterResult[]
   }
+  | {
+    readonly _tag: "relation-length"
+    readonly path: string
+  }
 
 type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   filter: FilterResult[]
@@ -230,7 +234,8 @@ const interpret = <
           ? Object.fromEntries(
             Object.entries(v.computed).map(([key, expression]) => {
               const e = expression
-              const filter = e.operation ? interpret(e.operation(make())).filter.map(applyPath(e.path)) : []
+              const op = "operation" in e ? e.operation : undefined
+              const filter = op ? interpret(op(make())).filter.map(applyPath(e.path)) : []
               switch (e._tag) {
                 case "relation-count":
                 case "relation-any":
@@ -293,6 +298,8 @@ const interpret = <
                       filter
                     } as ComputedProjectionIrExpression
                   ]
+                case "relation-length":
+                  return [key, { _tag: e._tag, path: e.path } as ComputedProjectionIrExpression]
               }
             })
           )

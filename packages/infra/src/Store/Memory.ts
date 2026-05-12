@@ -60,6 +60,8 @@ const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
       return [] as unknown[]
     case "relation-collect-fields":
       return [] as unknown[]
+    case "relation-length":
+      return 0
     default:
       return assertUnreachable(tag)
   }
@@ -72,6 +74,9 @@ const computeProjectionValue = (
   const relation = get(row, computed.path)
   if (!Array.isArray(relation)) {
     return emptyValueFor(computed._tag)
+  }
+  if (computed._tag === "relation-length") {
+    return relation.length
   }
   const filter = stripRelationFilterPaths(computed.filter, computed.path)
   // empty filter = unconditional match (codeFilter3_ uses eval on a built

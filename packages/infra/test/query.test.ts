@@ -614,7 +614,7 @@ it("projectComputed sets computed IR and forces project mode", () => {
   ])
   expect(interpreted.computed?.["pickedCount"]?._tag).toBe("relation-count")
   expect(interpreted.computed?.["pickedCount"]?.path).toBe("items")
-  expect(interpreted.computed?.["pickedCount"]?.filter).toEqual([
+  expect((interpreted.computed?.["pickedCount"] as { filter: unknown } | undefined)?.filter).toEqual([
     { t: "where", path: "items.-1.state._tag", op: "eq", value: "Picked" }
   ])
 })
@@ -662,7 +662,7 @@ it("projectComputed.every emits relation-every IR", () => {
   const interpreted = toFilter(query, baseSchema)
   expect(interpreted.computed?.["allPicked"]?._tag).toBe("relation-every")
   expect(interpreted.computed?.["allPicked"]?.path).toBe("items")
-  expect(interpreted.computed?.["allPicked"]?.filter).toEqual([
+  expect((interpreted.computed?.["allPicked"] as { filter: unknown } | undefined)?.filter).toEqual([
     { t: "where", path: "items.-1.state._tag", op: "eq", value: "Picked" }
   ])
 })
@@ -687,7 +687,7 @@ it("projectComputed.distinctCount emits relation-distinct-count IR with field", 
   const ir = interpreted.computed?.["positionCount"]
   expect(ir?._tag).toBe("relation-distinct-count")
   expect((ir as { field: string } | undefined)?.field).toBe("rowId")
-  expect(ir?.filter).toEqual([
+  expect((ir as { filter: unknown } | undefined)?.filter).toEqual([
     { t: "where", path: "items.-1.state._tag", op: "neq", value: "cancelled" }
   ])
 })
@@ -707,7 +707,7 @@ it("projectComputed.sum emits relation-sum IR with field", () => {
   const ir = interpreted.computed?.["totalWeight"]
   expect(ir?._tag).toBe("relation-sum")
   expect((ir as { field: string } | undefined)?.field).toBe("weight")
-  expect(ir?.filter).toEqual([])
+  expect((ir as { filter: unknown } | undefined)?.filter).toEqual([])
 })
 
 it("projectComputed.collect / collectDistinct emit relation-collect IR", () => {

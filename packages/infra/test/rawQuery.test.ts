@@ -369,6 +369,32 @@ describe("multi-level", () => {
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
 
+describe("array length projection", () => {
+  const test = Effect
+    .gen(function*() {
+      const repo = yield* SomethingRepo
+      const result = yield* repo.query(
+        projectComputed(
+          S.Struct({ id: S.String, itemCount: S.NonNegativeInt }),
+          computed({ itemCount: relation<S.Codec.Encoded<typeof Something>>("items").length() })
+        )
+      )
+      expect(result).toStrictEqual([
+        { id: "1", itemCount: 2 },
+        { id: "2", itemCount: 2 }
+      ])
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
+
+  it("works well in Memory", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
+})
+
 describe("computed projections", () => {
   const test = Effect
     .gen(function*() {

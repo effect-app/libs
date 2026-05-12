@@ -13,15 +13,44 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, shallowRef } from "vue"
 
-export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
+export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => string[]
+
+/**
+ * Default heuristic: invalidate the parent namespace of the action.
+ * e.g. `$project/$configuration.get` -> `["$project"]`
+ * e.g. `$project/$configuration/$something.get` -> `["$project","$configuration"]`
+ */
+export const defaultGetQueryKey: GetQueryKey = (h) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
-  // we invalidate the parent namespace e.g $project/$configuration.get, we invalidate $project
-  // for $project/$configuration/$something.get, we invalidate $project/$configuration
   const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
   if (!k) throw new Error("empty query key for: " + h.id)
   return k
 }
+
+let activeGetQueryKey: GetQueryKey = defaultGetQueryKey
+
+/**
+ * Override the default query-key heuristic used by mutations for cache
+ * invalidation. Call once at app bootstrap. Pass `undefined` to restore the
+ * built-in default.
+ *
+ * @example
+ * ```ts
+ * // invalidate the full namespace of the action (no parent collapse)
+ * setDefaultGetQueryKey((h) => {
+ *   const key = makeQueryKey(h)
+ *   const ns = key.filter((_) => _.startsWith("$"))
+ *   if (!ns.length) throw new Error("empty query key for: " + h.id)
+ *   return ns
+ * })
+ * ```
+ */
+export const setDefaultGetQueryKey = (fn: GetQueryKey | undefined) => {
+  activeGetQueryKey = fn ?? defaultGetQueryKey
+}
+
+export const getQueryKey: GetQueryKey = (h) => activeGetQueryKey(h)
 
 export function mutationResultToVue<A, E>(
   mutationResult: AsyncResult.AsyncResult<A, E>

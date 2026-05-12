@@ -277,7 +277,9 @@ export function makeRepoInternal<
             }
           )
 
-          const parseMany = Effect.fn("parseMany", { attributes: { "app.entity": name } })(
+          const parseMany = Effect.fn("parseMany", {
+            attributes: { "app.entity": name, "app.query.mode": "transform" }
+          })(
             function*(items: readonly PM[]) {
               const cm = yield* cms
               return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
@@ -295,7 +297,9 @@ export function makeRepoInternal<
             }
             return dec
           }
-          const parseMany2 = Effect.fn("parseMany2", { attributes: { "app.entity": name } })(
+          const parseMany2 = Effect.fn("parseMany", {
+            attributes: { "app.entity": name, "app.query.mode": "transform" }
+          })(
             function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
               const cm = yield* cms
               return yield* getDecodeMany(schema)(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
@@ -336,7 +340,15 @@ export function makeRepoInternal<
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
-                  Effect.andThen(flow(S.decodeEffectConcurrently(S.Array(a.schema ?? schema)), provideRctx))
+                  Effect.andThen(
+                    flow(
+                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema)),
+                      provideRctx,
+                      Effect.withSpan("parseMany", {
+                        attributes: { "app.entity": name, "app.query.mode": "project" }
+                      })
+                    )
+                  )
                 )
               : a.mode === "collect"
               ? filter(a)
@@ -345,7 +357,10 @@ export function makeRepoInternal<
                   Effect.flatMap(flow(
                     S.decodeEffectConcurrently(S.Array(a.schema)),
                     Effect.map(Array.getSomes),
-                    provideRctx
+                    provideRctx,
+                    Effect.withSpan("parseMany", {
+                      attributes: { "app.entity": name, "app.query.mode": "collect" }
+                    })
                   ))
                 )
               : Effect.flatMap(

@@ -397,7 +397,7 @@ export const count: {
  * persistence-model (PM) reverse-mapping is needed:
  *
  * - `"transform"` (default when `mode` omitted): goes through the repo's
- *   `parseMany`/`parseMany2` pipeline. The raw row is reverse-mapped via the
+ *   `parseMany` pipeline. The raw row is reverse-mapped via the
  *   etag/PM cache (re-injecting `_etag` and any PM-shape state) before
  *   decoding. Decode failures `orDie` (error channel = `never`). Use when
  *   the schema operates on the full PM shape (e.g. full-entity reads that

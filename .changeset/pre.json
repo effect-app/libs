@@ -47,6 +47,7 @@
     "computed-projections-infra",
     "concurrent-decode-helpers",
     "context-map-resolver-cache",
+    "cosmos-every-param-shift",
     "cosmos-filter-seed",
     "cosmos-namespace-spans",
     "cosmos-namespace-support",

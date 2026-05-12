@@ -16,9 +16,9 @@ import { computed, type ComputedRef, shallowRef } from "vue"
 export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
-  // we invalidate the full namespace of the action e.g $project/$configuration.get, we invalidate $project/$configuration
-  // for $project/$configuration/$something.get, we invalidate $project/$configuration/$something
-  const k = ns.length ? ns : undefined
+  // we invalidate the parent namespace e.g $project/$configuration.get, we invalidate $project
+  // for $project/$configuration/$something.get, we invalidate $project/$configuration
+  const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
   if (!k) throw new Error("empty query key for: " + h.id)
   return k
 }
@@ -74,7 +74,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
 
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
-   * By default we invalidate the full namespace of the query key, e.g $project/$configuration.get, we invalidate $project/$configuration.
+   * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
    */
   queryInvalidation?: (defaultKey: string[], name: string, input?: unknown, output?: Exit.Exit<unknown, unknown>) => {

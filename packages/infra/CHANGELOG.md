@@ -1,5 +1,21 @@
 # @effect-app/infra
 
+## 4.0.0-beta.226
+
+### Patch Changes
+
+- f7290aa: Add `relation(...).length()` computed projection — emits `ARRAY_LENGTH` on Cosmos / `arrayLength` on SQL / native `.length` on Memory. Cheaper than `relation.count()` for unconditional array sizing (no subquery scan, just metadata read).
+
+  ```ts
+  projectComputed(
+    S.Struct({ id: S.String, packageCount: S.NonNegativeInt }),
+    computed({ packageCount: relation<OrderEnc>("packages").length() })
+  );
+  ```
+
+- 8062ad3: Unify Emailer `sendMail` spans across implementations. `Fake.sendMail` and `Sendgrid.sendMail` now both emit as `Emailer.sendMail` with OTel-standard `messaging.system` attribute (`"fake"` / `"sendgrid"`).
+  - effect-app@4.0.0-beta.226
+
 ## 4.0.0-beta.225
 
 ### Patch Changes

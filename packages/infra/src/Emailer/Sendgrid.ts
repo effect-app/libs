@@ -17,52 +17,54 @@ const makeSendgrid = (
     sgMail.setApiKey(Redacted.value(apiKey))
 
     return Emailer.of({
-      sendMail: Effect.fn("Sendgrid.sendMail")(function*(msg_: EmailMsgOptionalFrom) {
-        const msg: EmailMsg = dropUndefinedT({
-          ...msg_,
-          from: msg_.from ?? defaultFrom,
-          replyTo: msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
-        })
-        const render = renderMessage(!realMail, fakeMailAddress)
+      sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
+        function*(msg_: EmailMsgOptionalFrom) {
+          const msg: EmailMsg = dropUndefinedT({
+            ...msg_,
+            from: msg_.from ?? defaultFrom,
+            replyTo: msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
+          })
+          const render = renderMessage(!realMail, fakeMailAddress)
 
-        const renderedMsg_ = render(msg)
-        const renderedMsg = {
-          ...renderedMsg_ as Omit<typeof renderedMsg_, "content">,
-          subject: `${subjectPrefix}${renderedMsg_.subject}`,
-          ..."content" in renderedMsg_
-            ? { content: [...renderedMsg_.content] as [MailContent, ...MailContent[]] }
-            : {}
+          const renderedMsg_ = render(msg)
+          const renderedMsg = {
+            ...renderedMsg_ as Omit<typeof renderedMsg_, "content">,
+            subject: `${subjectPrefix}${renderedMsg_.subject}`,
+            ..."content" in renderedMsg_
+              ? { content: [...renderedMsg_.content] as [MailContent, ...MailContent[]] }
+              : {}
+          }
+          yield* InfraLogger.logDebug("Sending email").pipe(Effect.annotateLogs("msg", inspect(renderedMsg, false, 5)))
+
+          const ret = yield* Effect
+            .callback<
+              [sgMail.ClientResponse, Record<string, unknown>],
+              Error | sgMail.ResponseError
+            >(
+              (resume) =>
+                void sgMail.send(
+                  renderedMsg as any, // sue me
+                  msg.isMultiple ?? true,
+                  (err, result) =>
+                    err
+                      ? resume(Effect.fail(err))
+                      : resume(Effect.sync(() => result))
+                )
+            )
+            .pipe(Effect.mapError((raw) => new SendMailError({ raw })))
+
+          // const event = {
+          //   name: "EmailSent",
+          //   properties: {
+          //     templateId: msg.templateId
+          //   }
+          // }
+          // yield* InfraLogger.logDebug("Tracking email event").annotateLogs("event", event.$$.pretty)
+          // const { trackEvent } = yield* AiContextService
+          // trackEvent(event)
+          return ret
         }
-        yield* InfraLogger.logDebug("Sending email").pipe(Effect.annotateLogs("msg", inspect(renderedMsg, false, 5)))
-
-        const ret = yield* Effect
-          .callback<
-            [sgMail.ClientResponse, Record<string, unknown>],
-            Error | sgMail.ResponseError
-          >(
-            (resume) =>
-              void sgMail.send(
-                renderedMsg as any, // sue me
-                msg.isMultiple ?? true,
-                (err, result) =>
-                  err
-                    ? resume(Effect.fail(err))
-                    : resume(Effect.sync(() => result))
-              )
-          )
-          .pipe(Effect.mapError((raw) => new SendMailError({ raw })))
-
-        // const event = {
-        //   name: "EmailSent",
-        //   properties: {
-        //     templateId: msg.templateId
-        //   }
-        // }
-        // yield* InfraLogger.logDebug("Tracking email event").annotateLogs("event", event.$$.pretty)
-        // const { trackEvent } = yield* AiContextService
-        // trackEvent(event)
-        return ret
-      })
+      )
     })
   })
 

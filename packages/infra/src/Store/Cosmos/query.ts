@@ -317,9 +317,10 @@ export function buildWhereCosmosQuery3(
       )
     }
     const filter = "filter" in computed ? computed.filter : []
-    const where = filter.length > 0
-      ? ` WHERE ${print(filter, relationPath, false)}`
-      : ""
+    // Print filter once — `print` mutates the outer `i` parameter counter, so
+    // re-walking the same filter would double-bump it and desync @v indices.
+    const filterSql = filter.length > 0 ? print(filter, relationPath, false) : ""
+    const where = filterSql ? ` WHERE ${filterSql}` : ""
     switch (computed._tag) {
       case "relation-count":
         return `(SELECT VALUE COUNT(1) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
@@ -328,10 +329,8 @@ export function buildWhereCosmosQuery3(
       case "relation-every": {
         // ∀x.P(x) ≡ ¬∃x.¬P(x). Cosmos has no NOT(...) on EXISTS subqueries directly,
         // but we can flip via NOT EXISTS(... WHERE NOT (filter)).
-        if (computed.filter.length === 0) return `true AS ${key}`
-        return `NOT EXISTS(SELECT VALUE ${relationAlias} FROM ${relationAlias} IN ${relationSource} WHERE NOT (${
-          print(computed.filter, relationPath, false)
-        })) AS ${key}`
+        if (filter.length === 0) return `true AS ${key}`
+        return `NOT EXISTS(SELECT VALUE ${relationAlias} FROM ${relationAlias} IN ${relationSource} WHERE NOT (${filterSql})) AS ${key}`
       }
       case "relation-distinct-count": {
         const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)

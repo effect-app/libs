@@ -16,7 +16,7 @@ import * as Struct from "effect/Struct"
 import { InfraLogger } from "../logger.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
-import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../Model/query.js"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../Model/query.js"
 import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -174,12 +174,76 @@ const computeProjectionValue = (
   }
 }
 
+const computeAggregateValue = <T extends FieldValues>(rows: readonly T[], agg: AggregateIrExpression): unknown => {
+  switch (agg._tag) {
+    case "agg-count":
+      return rows.length
+    case "agg-count-when": {
+      const filter = agg.filter
+      const matches = filter.length === 0 ? () => true : (row: unknown) => codeFilter3_(filter, row)
+      return rows.filter((row) => matches(row)).length
+    }
+    case "agg-sum":
+      return rows.reduce<number>((acc, row) => {
+        const v = get(row, agg.field)
+        return acc + (typeof v === "number" ? v : Number(v) || 0)
+      }, 0)
+    case "agg-min": {
+      let min: unknown = undefined
+      for (const row of rows) {
+        const v = get(row, agg.field)
+        if (v == null) continue
+        if (min === undefined || v < (min as any)) min = v
+      }
+      return min ?? null
+    }
+    case "agg-max": {
+      let max: unknown = undefined
+      for (const row of rows) {
+        const v = get(row, agg.field)
+        if (v == null) continue
+        if (max === undefined || v > (max as any)) max = v
+      }
+      return max ?? null
+    }
+    default:
+      return assertUnreachable(agg)
+  }
+}
+
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {
   type M = U extends undefined ? T : Pick<T, U>
   return ((c: T[]): M[] => {
-    const select = (r: T[]): M[] => {
-      const sel = f.select
+    const sel = f.select
+
+    const selectPerRow = (r: T[]): M[] => {
       if (!sel) return r as M[]
+
+      // Detect aggregate mode: any select item has `aggregate` key
+      const hasAggregates = sel.some((s) => typeof s === "object" && s !== null && "aggregate" in s)
+      if (hasAggregates) {
+        // GROUP BY + aggregate
+        const fieldItems = sel.filter((s): s is { key: string; path: string } =>
+          typeof s === "object" && s !== null && "path" in s && !("aggregate" in s)
+        )
+        const aggregateItems = sel.filter((s): s is { key: string; aggregate: AggregateIrExpression } =>
+          typeof s === "object" && s !== null && "aggregate" in s
+        )
+        const groups = new Map<string, T[]>()
+        for (const row of r) {
+          const key = fieldItems.map((fi) => JSON.stringify(get(row, fi.path))).join("\0")
+          const existing = groups.get(key) ?? []
+          existing.push(row)
+          groups.set(key, existing)
+        }
+        return [...groups.values()].map((rows) => {
+          const result: Record<string, unknown> = {}
+          for (const fi of fieldItems) result[fi.key] = get(rows[0]!, fi.path)
+          for (const ai of aggregateItems) result[ai.key] = computeAggregateValue(rows, ai.aggregate)
+          return result as M
+        })
+      }
+
       return r.map((i) => {
         const [keys, entries] = pipe(
           sel,
@@ -192,6 +256,9 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
           key: string
           computed: ComputedProjectionIrExpression
         } => typeof entry === "object" && entry !== null && "computed" in entry)
+        const pathKeys = entries.filter((entry): entry is { key: string; path: string } =>
+          typeof entry === "object" && entry !== null && "path" in entry && !("aggregate" in entry)
+        )
         const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
           n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
@@ -199,9 +266,13 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
         computedKeys.forEach((entry) => {
           ;(n as Record<string, unknown>)[entry.key] = computeProjectionValue(i, entry.computed)
         })
+        pathKeys.forEach((entry) => {
+          ;(n as Record<string, unknown>)[entry.key] = get(i, entry.path)
+        })
         return n as M
       })
     }
+
     const skip = f?.skip
     const limit = f?.limit
     const ords = Option.map(Option.fromNullishOr(f.order), (_) =>
@@ -223,7 +294,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       c = Array.sortBy(...ords.value)(c)
     }
     if (!skip && limit === 1) {
-      return select(
+      return selectPerRow(
         Array.findFirst(c, f.filter ? codeFilter(f.filter) : (_) => Option.some(_)).pipe(
           Option.map(Array.make),
           Option.getOrElse(
@@ -240,7 +311,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       r = Array.take(r, limit)
     }
 
-    return select(r)
+    return selectPerRow(r)
   })
 }
 

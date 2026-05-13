@@ -184,6 +184,37 @@ export type ComputedProjectionExpression =
     readonly path: string
   }
 
+/**
+ * An expression that aggregates values across documents (for use with {@link aggregate}).
+ * `agg-field` references a document field to group by; other tags are aggregate functions.
+ */
+export type AggregateExpression =
+  | {
+    readonly _tag: "agg-field"
+    readonly path: string
+  }
+  | {
+    readonly _tag: "agg-count"
+  }
+  | {
+    readonly _tag: "agg-count-when"
+    readonly operation: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "agg-sum"
+    readonly field: string
+  }
+  | {
+    readonly _tag: "agg-min"
+    readonly field: string
+  }
+  | {
+    readonly _tag: "agg-max"
+    readonly field: string
+  }
+
+export type AggregateMap = Readonly<Record<string, AggregateExpression>>
+
 export type ComputedProjectionMap = Readonly<Record<string, ComputedProjectionExpression>>
 export type Q<TFieldValues extends FieldValues> =
   | Initial<TFieldValues>
@@ -298,8 +329,9 @@ export class Project<A, TFieldValues extends FieldValues, R, TType extends "one"
   extends Data.TaggedClass("project")<{
     current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues, TType>
     schema: S.Codec<A, TFieldValues, R>
-    mode: "collect" | "project" | "transform"
+    mode: "collect" | "project" | "transform" | "aggregate"
     computed?: ComputedProjectionMap
+    aggregateMap?: AggregateMap
   }>
   implements QueryProjection<TFieldValues, A, R>
 {
@@ -697,6 +729,68 @@ export const projectComputed: {
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 } = (schema: any, computedProjection: ComputedProjectionMap, mode = "project") => (current: any) =>
   new Project({ current, schema, mode, computed: computedProjection } as any)
+
+/**
+ * DSL helpers for building aggregate expressions used with {@link aggregate}.
+ *
+ * - `agg.field(path)` — references a document field for GROUP BY (with optional output alias)
+ * - `agg.count()` — COUNT(*) across all rows in the group
+ * - `agg.countWhen(op)` — COUNT of rows matching the filter operation
+ * - `agg.sum(field)` — SUM of a numeric document field
+ * - `agg.min(field)` / `agg.max(field)` — MIN/MAX of a document field
+ */
+export const agg = {
+  field: (path: string): AggregateExpression => ({ _tag: "agg-field", path }),
+  count: (): AggregateExpression => ({ _tag: "agg-count" }),
+  countWhen: (operation: ComputedProjectionOperation): AggregateExpression => ({
+    _tag: "agg-count-when",
+    operation
+  }),
+  sum: (field: string): AggregateExpression => ({ _tag: "agg-sum", field }),
+  min: (field: string): AggregateExpression => ({ _tag: "agg-min", field }),
+  max: (field: string): AggregateExpression => ({ _tag: "agg-max", field })
+} as const
+
+/**
+ * Attach an aggregate projection to a query, performing GROUP BY + aggregate functions at the
+ * database level instead of fetching all rows and grouping in memory.
+ *
+ * The `aggregateMap` maps each output field name to either:
+ * - `agg.field(path)` — a group-by field (document path → output alias)
+ * - `agg.count()` / `agg.countWhen(op)` / `agg.sum(f)` / `agg.min(f)` / `agg.max(f)` — an aggregate
+ *
+ * The output is decoded directly with `schema` (no PM reverse-mapping, no etag tracking).
+ * Decode failures surface as `S.SchemaError`.
+ *
+ * @example
+ * ```ts
+ * repo.query(
+ *   where("status", "active"),
+ *   aggregate(
+ *     S.Struct({ city: S.String, count: S.Number }),
+ *     {
+ *       city: agg.field("address.city"),
+ *       count: agg.countWhen((q) => q.pipe(where("active", true)))
+ *     }
+ *   )
+ * )
+ * ```
+ */
+export const aggregate: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    aggregateMap: AggregateMap
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+} = (schema: any, aggregateMap: AggregateMap) => (current: any) =>
+  new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
 
 type GetArV<T> = T extends readonly (infer R)[] ? R : never
 

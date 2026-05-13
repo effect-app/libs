@@ -4,7 +4,7 @@ import * as Effect from "effect-app/Effect"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
-import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {
@@ -164,6 +164,12 @@ export function buildWhereSQLQuery(
     } | {
       key: string
       computed: ComputedProjectionIrExpression
+    } | {
+      key: string
+      path: string
+    } | {
+      key: string
+      aggregate: AggregateIrExpression
     }
   >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
@@ -497,6 +503,30 @@ export function buildWhereSQLQuery(
     }
   }
 
+  const aggregateSelectExpr = (key: string, agg: AggregateIrExpression): string => {
+    switch (agg._tag) {
+      case "agg-count":
+        return `COUNT(1) AS "${key}"`
+      case "agg-count-when": {
+        if (agg.filter.length === 0) return `COUNT(1) AS "${key}"`
+        const cond = print([{ t: "where-scope", result: agg.filter, relation: "some" }], null, false)
+        return `COUNT(CASE WHEN ${cond} THEN 1 END) AS "${key}"`
+      }
+      case "agg-sum":
+        return `COALESCE(SUM(${fieldExpr(agg.field)}), 0) AS "${key}"`
+      case "agg-min":
+        return `MIN(${fieldExpr(agg.field)}) AS "${key}"`
+      case "agg-max":
+        return `MAX(${fieldExpr(agg.field)}) AS "${key}"`
+      default:
+        return assertUnreachable(agg)
+    }
+  }
+
+  const hasAggregates = select
+    ? select.some((s) => typeof s === "object" && s !== null && "aggregate" in s)
+    : false
+
   const getSelectExpr = (): string => {
     if (!select) return "id, _etag, data"
     const fields = select.map((s) => {
@@ -507,6 +537,13 @@ export function buildWhereSQLQuery(
       }
       if ("computed" in s) {
         return computedSelectExpr(s.key, s.computed)
+      }
+      if ("aggregate" in s) {
+        return aggregateSelectExpr(s.key, s.aggregate)
+      }
+      if ("path" in s) {
+        // Group-by fields: extract as scalar (not JSON-encoded) so grouping works and values compare as plain strings/numbers
+        return `${fieldExpr(dottedToJsonPath(s.path))} AS "${s.key}"`
       }
       return `${dialect.jsonExtractJson(s.key)} AS "${s.key}"`
     })
@@ -531,15 +568,36 @@ export function buildWhereSQLQuery(
     ? `WHERE ${userWhere}`
     : ""
 
+  const groupByClause = hasAggregates && select
+    ? (() => {
+      const groupByExprs = select
+        .filter((s): s is string | { key: string; path: string } =>
+          typeof s === "string" || (typeof s === "object" && s !== null && "path" in s)
+        )
+        .map((s) => typeof s === "string" ? fieldExpr(s) : fieldExpr(dottedToJsonPath(s.path)))
+      return groupByExprs.length > 0 ? `GROUP BY ${groupByExprs.join(", ")}` : ""
+    })()
+    : ""
+
   const orderClause = order
-    ? `ORDER BY ${order.map((_) => `${fieldExpr(_.key)} ${_.direction}`).join(", ")}`
+    ? `ORDER BY ${
+      order
+        .map((_) =>
+          hasAggregates
+            ? `"${_.key}" ${_.direction}`
+            : `${fieldExpr(_.key)} ${_.direction}`
+        )
+        .join(", ")
+    }`
     : ""
 
   const limitClause = limit !== undefined || skip !== undefined
     ? `LIMIT ${addParam(limit ?? 999999)} OFFSET ${addParam(skip ?? 0)}`
     : ""
 
-  const sql = `SELECT ${selectExpr} FROM "${tableName}" ${whereClause} ${orderClause} ${limitClause}`.trim()
+  const sql = `SELECT ${selectExpr} FROM "${tableName}" ${whereClause} ${groupByClause} ${orderClause} ${limitClause}`
+    .replace(/\s+/g, " ")
+    .trim()
 
   return { sql, params }
 }

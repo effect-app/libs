@@ -1877,3 +1877,85 @@ it("codeFilter: order + skip + limit applied after filter", () => {
   )
   expect(runCF(q)).toEqual(["2", "1"])
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// memFilter: aggregate (GROUP BY) support
+// ─────────────────────────────────────────────────────────────────────────────
+
+it("memFilter: agg-count-when groups rows and counts conditionally", () => {
+  type Row = { city: string; status: string }
+  const rows: Row[] = [
+    { city: "NYC", status: "active" },
+    { city: "NYC", status: "inactive" },
+    { city: "NYC", status: "active" },
+    { city: "LA", status: "active" }
+  ]
+  const result = memFilter<Row>({
+    t: {} as Row,
+    select: [
+      { key: "city", path: "city" },
+      {
+        key: "activeCount",
+        aggregate: {
+          _tag: "agg-count-when",
+          filter: [{ t: "where", path: "status", op: "eq", value: "active" }]
+        }
+      },
+      { key: "total", aggregate: { _tag: "agg-count" } }
+    ] as any
+  })(rows as any) as any[]
+
+  expect(result.length).toBe(2)
+  const nyc = result.find((r: any) => r.city === "NYC")!
+  expect(nyc.activeCount).toBe(2)
+  expect(nyc.total).toBe(3)
+  const la = result.find((r: any) => r.city === "LA")!
+  expect(la.activeCount).toBe(1)
+  expect(la.total).toBe(1)
+})
+
+it("memFilter: agg-sum / agg-min / agg-max aggregate numerics", () => {
+  type Row = { dept: string; salary: number }
+  const rows: Row[] = [
+    { dept: "eng", salary: 100 },
+    { dept: "eng", salary: 200 },
+    { dept: "hr", salary: 50 }
+  ]
+  const result = memFilter<Row>({
+    t: {} as Row,
+    select: [
+      { key: "dept", path: "dept" },
+      { key: "total", aggregate: { _tag: "agg-sum", field: "salary" } },
+      { key: "min", aggregate: { _tag: "agg-min", field: "salary" } },
+      { key: "max", aggregate: { _tag: "agg-max", field: "salary" } }
+    ] as any
+  })(rows as any) as any[]
+
+  expect(result.length).toBe(2)
+  const eng = result.find((r: any) => r.dept === "eng")!
+  expect(eng.total).toBe(300)
+  expect(eng.min).toBe(100)
+  expect(eng.max).toBe(200)
+  const hr = result.find((r: any) => r.dept === "hr")!
+  expect(hr.total).toBe(50)
+})
+
+it("memFilter: aggregate with nested path grouping", () => {
+  type Row = { address: { city: string }; value: number }
+  const rows: Row[] = [
+    { address: { city: "NYC" }, value: 10 },
+    { address: { city: "NYC" }, value: 20 },
+    { address: { city: "LA" }, value: 5 }
+  ]
+  const result = memFilter<Row>({
+    t: {} as Row,
+    select: [
+      { key: "city", path: "address.city" },
+      { key: "count", aggregate: { _tag: "agg-count" } }
+    ] as any
+  })(rows as any) as any[]
+
+  expect(result.length).toBe(2)
+  expect(result.find((r: any) => r.city === "NYC")!.count).toBe(2)
+  expect(result.find((r: any) => r.city === "LA")!.count).toBe(1)
+})

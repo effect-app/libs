@@ -13,6 +13,17 @@ import type { FieldValues } from "../filter/types.js"
 import type { FieldPath } from "../filter/types/path/eager.js"
 import { make, type Q, type QAll } from "../query/dsl.js"
 
+export type AggregateIrExpression =
+  | { readonly _tag: "agg-count" }
+  | { readonly _tag: "agg-count-when"; readonly filter: readonly FilterResult[] }
+  | { readonly _tag: "agg-sum"; readonly field: string }
+  | { readonly _tag: "agg-min"; readonly field: string }
+  | { readonly _tag: "agg-max"; readonly field: string }
+
+export type AggregateIrItem =
+  | AggregateIrExpression
+  | { readonly _tag: "agg-field"; readonly path: string }
+
 export type ComputedProjectionMathIrExpression =
   | {
     readonly _tag: "field"
@@ -100,8 +111,9 @@ type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   skip: number | undefined
   order: { key: FieldPath<TFieldValues>; direction: "ASC" | "DESC" }[]
   ttype: "one" | "many" | "count" | undefined
-  mode: "collect" | "project" | "transform" | undefined
+  mode: "collect" | "project" | "transform" | "aggregate" | undefined
   computed: Record<string, ComputedProjectionIrExpression> | undefined
+  aggregateMap: Record<string, AggregateIrItem> | undefined
 }
 
 const interpret = <
@@ -120,7 +132,8 @@ const interpret = <
     order: [],
     ttype: undefined,
     mode: undefined,
-    computed: undefined
+    computed: undefined,
+    aggregateMap: undefined
   }
 
   const upd = (
@@ -134,6 +147,7 @@ const interpret = <
     if (v.schema !== undefined) data.schema = v.schema
     if (v.mode !== undefined) data.mode = v.mode
     if (v.computed !== undefined) data.computed = v.computed
+    if (v.aggregateMap !== undefined) data.aggregateMap = v.aggregateMap
   }
 
   const applyPath = (path: string) => (_: FilterResult): FilterResult =>
@@ -223,6 +237,31 @@ const interpret = <
       },
       project: (v) => {
         upd(interpret(v.current))
+        if (v.mode === "aggregate" && v.aggregateMap) {
+          data.schema = v.schema
+          data.mode = "aggregate"
+          data.aggregateMap = Object.fromEntries(
+            Object.entries(v.aggregateMap).map(([key, expression]) => {
+              switch (expression._tag) {
+                case "agg-field":
+                  return [key, { _tag: "agg-field" as const, path: expression.path }]
+                case "agg-count":
+                  return [key, { _tag: "agg-count" as const }]
+                case "agg-count-when": {
+                  const filter = interpret(expression.operation(make())).filter
+                  return [key, { _tag: "agg-count-when" as const, filter }]
+                }
+                case "agg-sum":
+                  return [key, { _tag: "agg-sum" as const, field: expression.field }]
+                case "agg-min":
+                  return [key, { _tag: "agg-min" as const, field: expression.field }]
+                case "agg-max":
+                  return [key, { _tag: "agg-max" as const, field: expression.field }]
+              }
+            })
+          )
+          return
+        }
         if (v.computed && v.mode === "transform") {
           throw new Error("Computed projections require mode 'project' or 'collect', not 'transform'")
         }
@@ -329,6 +368,29 @@ export const toFilter = <
 ) => {
   // TODO: Native interpreter for each db adapter, instead of the intermediate "new-kid" format
   const a = interpret(q)
+
+  // Aggregate mode: build select entirely from aggregateMap (no schema-driven field list)
+  if (a.mode === "aggregate" && a.aggregateMap) {
+    const aggSelect = Object.entries(a.aggregateMap).map(([key, item]) => {
+      if (item._tag === "agg-field") {
+        return { key, path: item.path }
+      }
+      return { key, aggregate: item }
+    })
+    return dropUndefinedT({
+      t: null as unknown as TFieldValues,
+      limit: a.limit,
+      skip: a.skip,
+      select: Option.getOrUndefined(toNonEmptyArray(aggSelect)) as any,
+      schema: a.schema,
+      computed: undefined,
+      order: Option.getOrUndefined(toNonEmptyArray(a.order)),
+      ttype: a.ttype,
+      mode: "aggregate" as const,
+      filter: a.filter.length ? a.filter : undefined
+    })
+  }
+
   const schema = a.schema
   let select: (keyof TFieldValues | { key: string; subKeys: string[] } | {
     key: string

@@ -6,7 +6,7 @@ import * as Effect from "effect-app/Effect"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
-import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
@@ -50,6 +50,12 @@ export function buildWhereCosmosQuery3(
     } | {
       key: string
       computed: ComputedProjectionIrExpression
+    } | {
+      key: string
+      path: string
+    } | {
+      key: string
+      aggregate: AggregateIrExpression
     }
   >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
@@ -293,7 +299,43 @@ export function buildWhereCosmosQuery3(
       typeof _ === "object" && "computed" in _ && "filter" in _.computed ? getValues(_.computed.filter) : []
     )
     : []
-  const values = [...computedFilters, ...getValues(filter)]
+  const aggregateFilters = select
+    ? select.flatMap((_) =>
+      typeof _ === "object" && "aggregate" in _ && "filter" in _.aggregate ? getValues(_.aggregate.filter) : []
+    )
+    : []
+  const values = [...computedFilters, ...aggregateFilters, ...getValues(filter)]
+
+  const hasAggregates = select
+    ? select.some((s) => typeof s === "object" && s !== null && "aggregate" in s)
+    : false
+
+  const aggregateSelectExpr = (key: string, agg: AggregateIrExpression): string => {
+    switch (agg._tag) {
+      case "agg-count":
+        return `COUNT(1) AS ${key}`
+      case "agg-count-when": {
+        if (agg.filter.length === 0) return `COUNT(1) AS ${key}`
+        const cond = print(agg.filter, null, false)
+        // Cosmos supports SUM(IIF(cond, 1, 0)) as a conditional count
+        return `SUM(IIF(${cond}, 1, 0)) AS ${key}`
+      }
+      case "agg-sum": {
+        const fieldRef = dottedToAccess(`f.${agg.field}`)
+        return `SUM(${fieldRef}) AS ${key}`
+      }
+      case "agg-min": {
+        const fieldRef = dottedToAccess(`f.${agg.field}`)
+        return `MIN(${fieldRef}) AS ${key}`
+      }
+      case "agg-max": {
+        const fieldRef = dottedToAccess(`f.${agg.field}`)
+        return `MAX(${fieldRef}) AS ${key}`
+      }
+      default:
+        return assertUnreachable(agg)
+    }
+  }
 
   const computedSelectExpr = (key: string, computed: ComputedProjectionIrExpression) => {
     const relationPath = computed.path
@@ -378,28 +420,47 @@ export function buildWhereCosmosQuery3(
       }
     }
   }
+
+  const buildSelectList = (): string => {
+    if (!select) return "f"
+    return select
+      .map((s) => {
+        if (typeof s === "string") {
+          return dottedToAccess(s === idKey ? "f.id" : `f.${s}`)
+        }
+        if ("computed" in s) return computedSelectExpr(s.key, s.computed)
+        if ("aggregate" in s) return aggregateSelectExpr(s.key, s.aggregate)
+        if ("path" in s) return `${dottedToAccess(`f.${s.path}`)} AS ${s.key}`
+        // subKeys
+        return `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
+                FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
+      })
+      .join(", ")
+  }
+
+  const groupByClause = hasAggregates && select
+    ? (() => {
+      const groupByExprs = select
+        .filter((s): s is { key: string; path: string } =>
+          typeof s === "object" && s !== null && "path" in s && !("aggregate" in s)
+        )
+        .map((s) => dottedToAccess(`f.${s.path}`))
+      return groupByExprs.length > 0 ? `GROUP BY ${groupByExprs.join(", ")}` : ""
+    })()
+    : ""
+
+  const orderExpr = (key: string) => hasAggregates ? key : dottedToAccess(`f.${key}`)
+
   // with joins, you should use DISTINCT
   // or you can end up with duplicates
   return {
     query: `
-    SELECT ${
-      select
-        ? select
-          .map((s) =>
-            typeof s === "string"
-              ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
-              : "computed" in s
-              ? computedSelectExpr(s.key, s.computed)
-              : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
-                FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
-          )
-          .join(", ")
-        : "f"
-    }
+    SELECT ${buildSelectList()}
     FROM ${name} f
 
     ${filter.length ? `WHERE (${print(filter, null, false)})` : ""}
-    ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
+    ${groupByClause}
+    ${order ? `ORDER BY ${order.map((_) => `${orderExpr(_.key)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: values
       .flatMap((x, i) =>

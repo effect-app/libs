@@ -333,10 +333,28 @@ export function makeRepoInternal<
           } = (<A, R, EncodedRefined extends Encoded = Encoded>(q: Q.QAll<Encoded, EncodedRefined, A, R>) => {
             const a = Q.toFilter(q, schema)
             // Mode dispatch — see `Q.project` JSDoc for the contract:
+            //   aggregate: GROUP BY + aggregate functions at DB level; decode raw rows with schema; SchemaError surfaces.
             //   project  : decode raw encoded rows with schema; no PM reverse-mapping; SchemaError surfaces.
             //   collect  : same as project, but schema yields Option and None rows are dropped.
             //   transform: PM reverse-map (re-inject _etag/PM state from cms cache) then decode; orDie.
-            const eff = a.mode === "project"
+            const eff = a.mode === "aggregate"
+              ? store
+                // `a.select` contains `{ key, aggregate }` items not expressible in FilterFunc<Encoded, U>'s
+                // `U extends keyof Encoded` generic. Cast is unavoidable until FilterFunc supports aggregate mode.
+                .filter(a as any)
+                // Decode raw aggregate rows directly — no PM reverse-mapping, no id/_etag needed.
+                .pipe(
+                  Effect.andThen(
+                    flow(
+                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema)),
+                      provideRctx,
+                      Effect.withSpan("parseMany", {
+                        attributes: { "app.entity": name, "app.query.mode": "aggregate" }
+                      })
+                    )
+                  )
+                )
+              : a.mode === "project"
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(

@@ -339,6 +339,8 @@ export function makeRepoInternal<
             //   transform: PM reverse-map (re-inject _etag/PM state from cms cache) then decode; orDie.
             const eff = a.mode === "aggregate"
               ? store
+                // `a.select` contains `{ key, aggregate }` items not expressible in FilterFunc<Encoded, U>'s
+                // `U extends keyof Encoded` generic. Cast is unavoidable until FilterFunc supports aggregate mode.
                 .filter(a as any)
                 // Decode raw aggregate rows directly — no PM reverse-mapping, no id/_etag needed.
                 .pipe(

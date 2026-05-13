@@ -765,12 +765,12 @@ export const agg = {
  * @example
  * ```ts
  * repo.query(
- *   Q.where("status", "active"),
- *   Q.aggregate(
+ *   where("status", "active"),
+ *   aggregate(
  *     S.Struct({ city: S.String, count: S.Number }),
  *     {
- *       city: Q.agg.field("address.city"),
- *       count: Q.agg.countWhen((q) => q.pipe(Q.where("active", true)))
+ *       city: agg.field("address.city"),
+ *       count: agg.countWhen((q) => q.pipe(where("active", true)))
  *     }
  *   )
  * )

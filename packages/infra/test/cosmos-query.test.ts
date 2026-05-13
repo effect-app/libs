@@ -93,3 +93,67 @@ describe("cosmos query projection: relation-every parameter binding", () => {
     expect(refs).toEqual(["@v0", "@v1", "@v2", "@v3"])
   })
 })
+
+describe("cosmos query: aggregate (GROUP BY + agg functions)", () => {
+  it("generates GROUP BY and SUM(IIF(...)) for agg-count-when", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [],
+      "Orders",
+      {},
+      [
+        { key: "city", path: "address.city" },
+        {
+          key: "activeCount",
+          aggregate: {
+            _tag: "agg-count-when",
+            filter: [{ t: "where", path: "status", op: "eq", value: "active" }]
+          }
+        },
+        { key: "total", aggregate: { _tag: "agg-count" } }
+      ] as any
+    )
+
+    expect(result.query).toContain("GROUP BY")
+    expect(result.query).toContain("SUM(IIF(")
+    expect(result.query).toContain("COUNT(1) AS total")
+    expect(result.query).toContain("AS city")
+    expect(result.parameters[0]!.value).toBe("active")
+  })
+
+  it("generates agg-sum / agg-min / agg-max expressions", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [],
+      "Orders",
+      {},
+      [
+        { key: "dept", path: "dept" },
+        { key: "totalSalary", aggregate: { _tag: "agg-sum", field: "salary" } },
+        { key: "minSalary", aggregate: { _tag: "agg-min", field: "salary" } },
+        { key: "maxSalary", aggregate: { _tag: "agg-max", field: "salary" } }
+      ] as any
+    )
+
+    expect(result.query).toContain(`SUM(f["salary"]) AS totalSalary`)
+    expect(result.query).toContain(`MIN(f["salary"]) AS minSalary`)
+    expect(result.query).toContain(`MAX(f["salary"]) AS maxSalary`)
+    expect(result.query).toMatch(/GROUP BY f(?:\.dept|\["dept"\])/)
+  })
+
+  it("generates correct GROUP BY for nested path field", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [],
+      "Orders",
+      {},
+      [
+        { key: "city", path: "address.city" },
+        { key: "count", aggregate: { _tag: "agg-count" } }
+      ] as any
+    )
+
+    // Must GROUP BY the nested path in Cosmos access notation
+    expect(result.query).toMatch(/GROUP BY f(?:\.address\.city|\["address"\]\["city"\])/)
+  })
+})

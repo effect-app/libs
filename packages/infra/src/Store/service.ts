@@ -10,7 +10,7 @@ import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import type { FieldPath } from "../Model/filter/types/path/index.js"
-import type { ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
 
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
@@ -70,6 +70,12 @@ export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded
       U | { key: string; subKeys: readonly string[] } | {
         key: string
         computed: ComputedProjectionIrExpression
+      } | {
+        key: string
+        path: string
+      } | {
+        key: string
+        aggregate: AggregateIrExpression
       }
     >
     | undefined

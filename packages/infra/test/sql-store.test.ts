@@ -1157,6 +1157,125 @@ describe("SQL Store (SQLite integration)", () => {
       const names = results.map((r) => (JSON.parse((r as any).data) as any).name).sort()
       expect(names).toEqual(["Alice", "Bob"])
     }))
+
+  it("aggregate: agg-count-when with GROUP BY on aliased path field (SQLite)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "test_agg" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      const rows = [
+        { city: "NYC", state: "active" },
+        { city: "NYC", state: "inactive" },
+        { city: "NYC", state: "active" },
+        { city: "LA", state: "active" }
+      ]
+      const insert = db.prepare(`INSERT INTO "test_agg" (id, _etag, data) VALUES (?, ?, ?)`)
+      rows.forEach((r, i) => insert.run(String(i + 1), `e${i + 1}`, JSON.stringify(r)))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_agg",
+        {},
+        [
+          { key: "city", path: "city" },
+          {
+            key: "activeCount",
+            aggregate: {
+              _tag: "agg-count-when",
+              filter: [{ t: "where", path: "state", op: "eq", value: "active" }]
+            }
+          },
+          { key: "total", aggregate: { _tag: "agg-count" } }
+        ] as any,
+        [{ key: "city", direction: "ASC" }] as any
+      )
+
+      expect(q.sql).toContain("GROUP BY")
+      expect(q.sql).toContain("COUNT(CASE WHEN")
+
+      const result = query(db, q.sql, q.params) as Array<Record<string, unknown>>
+      expect(result.length).toBe(2)
+
+      const la = result.find((r) => r["city"] === "LA")!
+      expect(la["activeCount"]).toBe(1)
+      expect(la["total"]).toBe(1)
+
+      const nyc = result.find((r) => r["city"] === "NYC")!
+      expect(nyc["activeCount"]).toBe(2)
+      expect(nyc["total"]).toBe(3)
+    }))
+
+  it("aggregate: agg-sum and agg-min / agg-max (SQLite)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "test_agg2" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      const rows = [
+        { dept: "eng", salary: 100 },
+        { dept: "eng", salary: 200 },
+        { dept: "hr", salary: 50 }
+      ]
+      const insert = db.prepare(`INSERT INTO "test_agg2" (id, _etag, data) VALUES (?, ?, ?)`)
+      rows.forEach((r, i) => insert.run(String(i + 1), `e${i + 1}`, JSON.stringify(r)))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_agg2",
+        {},
+        [
+          { key: "dept", path: "dept" },
+          { key: "totalSalary", aggregate: { _tag: "agg-sum", field: "salary" } },
+          { key: "minSalary", aggregate: { _tag: "agg-min", field: "salary" } },
+          { key: "maxSalary", aggregate: { _tag: "agg-max", field: "salary" } }
+        ] as any,
+        [{ key: "dept", direction: "ASC" }] as any
+      )
+
+      const result = query(db, q.sql, q.params) as Array<Record<string, unknown>>
+      expect(result.length).toBe(2)
+
+      const eng = result.find((r) => r["dept"] === "eng")!
+      expect(eng["totalSalary"]).toBeCloseTo(300)
+      expect(eng["minSalary"]).toBeCloseTo(100)
+      expect(eng["maxSalary"]).toBeCloseTo(200)
+
+      const hr = result.find((r) => r["dept"] === "hr")!
+      expect(hr["totalSalary"]).toBeCloseTo(50)
+    }))
+
+  it("aggregate: nested path field grouping (SQLite)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "test_agg3" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      const rows = [
+        { address: { city: "NYC" }, status: "open" },
+        { address: { city: "NYC" }, status: "closed" },
+        { address: { city: "LA" }, status: "open" }
+      ]
+      const insert = db.prepare(`INSERT INTO "test_agg3" (id, _etag, data) VALUES (?, ?, ?)`)
+      rows.forEach((r, i) => insert.run(String(i + 1), `e${i + 1}`, JSON.stringify(r)))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_agg3",
+        {},
+        [
+          { key: "city", path: "address.city" },
+          { key: "total", aggregate: { _tag: "agg-count" } }
+        ] as any,
+        [{ key: "city", direction: "ASC" }] as any
+      )
+
+      expect(q.sql).toContain("GROUP BY")
+
+      const result = query(db, q.sql, q.params) as Array<Record<string, unknown>>
+      expect(result.length).toBe(2)
+      const la = result.find((r) => r["city"] === "LA")!
+      expect(la["total"]).toBe(1)
+      const nyc = result.find((r) => r["city"] === "NYC")!
+      expect(nyc["total"]).toBe(2)
+    }))
 })
 
 // --- boolean WHERE clause tests (regression: where("x", true) must work per dialect) ---

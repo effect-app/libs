@@ -187,6 +187,7 @@
     "project-encoded-type-constraint",
     "provide-dual",
     "pure-usesync-cleanup",
+    "query-aggregate-support",
     "query-optional-mode",
     "quick-seals-relate",
     "quick-wolves-yawn",

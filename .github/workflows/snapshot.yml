@@ -94,6 +94,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Exit Changesets pre mode for snapshots
+        shell: bash
+        run: |
+          if [ -f .changeset/pre.json ]; then
+            pnpm changeset pre exit
+          fi
+
       - name: Create snapshot versions
         run: pnpm changeset version --snapshot ${{ steps.tags.outputs.snapshot_id }}
 

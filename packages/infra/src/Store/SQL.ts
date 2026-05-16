@@ -73,7 +73,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
-          : storeId.asEffect().pipe(Effect.map((namespace) => {
+          : storeId.pipe(Effect.map((namespace) => {
             if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
               throw new Error(`Namespace ${namespace} not allowed!`)
             }
@@ -397,7 +397,7 @@ function makeSQLiteStorePerNs(
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
-        : storeId.asEffect().pipe(Effect.map((namespace) => {
+        : storeId.pipe(Effect.map((namespace) => {
           if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
             throw new Error(`Namespace ${namespace} not allowed!`)
           }
@@ -721,7 +721,7 @@ export function SQLiteStoreLayer(
         const storeMaker = makeSQLiteStorePerNs(withNsSql, cfg)
 
         const withTransaction: WithNsTransactionFn = (effect) =>
-          storeId.asEffect().pipe(
+          storeId.pipe(
             Effect.flatMap((ns) => withNsSql(ns, (sql) => sql.withTransaction(effect).pipe(Effect.orDie)))
           )
 

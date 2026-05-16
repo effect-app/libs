@@ -281,7 +281,7 @@ export declare namespace Commander {
 
   export type Gen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     <
-      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       AEff,
       Arg = void
     >(
@@ -290,17 +290,17 @@ export declare namespace Commander {
       Arg,
       AEff,
       [Eff] extends [never] ? never
-        : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+        : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
         : never,
       [Eff] extends [never] ? never
-        : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+        : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
         : never,
       Id,
       I18nKey,
       State
     >
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       Arg = void
@@ -310,10 +310,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -321,7 +321,7 @@ export declare namespace Commander {
       ) => A
     ): CommandOutHelper<Arg, A, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
@@ -332,10 +332,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -348,7 +348,7 @@ export declare namespace Commander {
       ) => B
     ): CommandOutHelper<Arg, B, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -360,10 +360,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -381,7 +381,7 @@ export declare namespace Commander {
       ) => C
     ): CommandOutHelper<Arg, C, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -394,10 +394,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -420,7 +420,7 @@ export declare namespace Commander {
       ) => D
     ): CommandOutHelper<Arg, D, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -434,10 +434,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -465,7 +465,7 @@ export declare namespace Commander {
       ) => E
     ): CommandOutHelper<Arg, E, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -480,10 +480,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -516,7 +516,7 @@ export declare namespace Commander {
       ) => F
     ): CommandOutHelper<Arg, F, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -532,10 +532,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -573,7 +573,7 @@ export declare namespace Commander {
       ) => G
     ): CommandOutHelper<Arg, G, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -590,10 +590,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -636,7 +636,7 @@ export declare namespace Commander {
       ) => H
     ): CommandOutHelper<Arg, H, Id, I18nKey, State>
     <
-      Eff extends Effect.Yieldable<any, any, any, any>,
+      Eff extends Effect.Effect<any, any, any>,
       AEff,
       A,
       B,
@@ -654,10 +654,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: ArgForCombinator<Arg>,
@@ -1737,7 +1737,7 @@ export declare namespace Commander {
    */
   export type StreamGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     <
-      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       SA,
       SE,
       SR,
@@ -1752,18 +1752,18 @@ export declare namespace Commander {
       SA,
       | SE
       | ([Eff] extends [never] ? never
-        : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+        : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
         : never),
       | SR
       | ([Eff] extends [never] ? never
-        : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+        : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
         : never),
       Id,
       I18nKey,
       State
     >
     <
-      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       SA,
       SE,
       SR,
@@ -1778,10 +1778,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           Stream.Stream<SA, SE, SR>,
           ([Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
             : never),
           ([Eff] extends [never] ? never
-            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
             : never)
         >,
         arg: ArgForCombinator<Arg>,

@@ -101,11 +101,10 @@ const make = Effect.gen(function*() {
 export class RequestFiberSet extends Context.Service<RequestFiberSet>()("RequestFiberSet", { make }) {
   static readonly Live = Layer.effect(this, this.make)
   static readonly register = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.register(self)))
-  static readonly run = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.run(self)))
+    this.pipe(Effect.andThen((_) => _.register(self)))
+  static readonly run = <A, E, R>(self: Effect.Effect<A, E, R>) => this.pipe(Effect.andThen((_) => _.run(self)))
   static readonly forkDaemonReport = <R, E, A>(self: Effect.Effect<A, E, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
+    this.pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
   static readonly forkDaemonReportUnexpected = <R, E, A>(self: Effect.Effect<A, E, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReportUnexpected(self)))
+    this.pipe(Effect.andThen((_) => _.forkDaemonReportUnexpected(self)))
 }

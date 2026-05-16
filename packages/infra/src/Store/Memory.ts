@@ -560,7 +560,7 @@ export const makeMemoryStore = () => ({
       }))
     const getStore = !config?.allowNamespace
       ? Effect.succeed(primary)
-      : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
+      : storeId.pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
     const s: Store<IdKey, Encoded> = {
       seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
       all: Effect.flatMap(getStore, (_) => _.all),

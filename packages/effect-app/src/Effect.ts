@@ -153,8 +153,7 @@ export function allLower<T extends Record<string, Context.Service<any, any> | Ef
   return Effect.all(
     typedKeysOf(services).reduce((prev, cur) => {
       const svc = services[cur]!
-      prev[((cur as string)[0]!.toLowerCase() + (cur as string).slice(1)) as unknown as LowerFirst<typeof cur>] =
-        "asEffect" in svc ? svc.asEffect() : svc
+      prev[((cur as string)[0]!.toLowerCase() + (cur as string).slice(1)) as unknown as LowerFirst<typeof cur>] = svc
       return prev
     }, {} as any),
     { concurrency: "inherit" }

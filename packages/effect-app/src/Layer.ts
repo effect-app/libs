@@ -1,6 +1,5 @@
 import type * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
-import { type Yieldable } from "effect/Effect"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
@@ -16,7 +15,7 @@ type MakeEff<S, E, R> = {
   readonly make: Effect.Effect<S, E, R>
 }
 type MakeGen<S, E = never, R = never> = {
-  readonly make: () => Generator<Yieldable<any, any, E, R>, S>
+  readonly make: () => Generator<Effect.Effect<any, E, R>, S>
 }
 type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>

@@ -65,7 +65,7 @@ export const HttpClientLayer = (config: ApiConfig) =>
             HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({}))))
           ),
           HttpClient.mapRequestEffect((req) =>
-            Effect.map(RequestName.asEffect(), (ctx) =>
+            Effect.map(RequestName, (ctx) =>
               flow(
                 HttpClientRequest.appendUrlParam("action", ctx.requestName),
                 HttpClientRequest.appendUrl("/" + ctx.moduleName)

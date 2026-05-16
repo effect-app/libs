@@ -12,7 +12,7 @@ export class CosmosClient extends Context.Service<CosmosClient, {
   readonly db: ReturnType<InstanceType<typeof ComosClient_>["database"]>
 }>()("@services/CosmosClient") {}
 
-export const db = CosmosClient.asEffect().pipe(Effect.map((_) => _.db))
+export const db = CosmosClient.pipe(Effect.map((_) => _.db))
 
 export const CosmosClientLayer = (cosmosUrl: string, dbName: string) =>
   Layer.effect(CosmosClient, makeCosmosClient(cosmosUrl, dbName))

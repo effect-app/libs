@@ -67,13 +67,12 @@ const make = Effect.gen(function*() {
  */
 export class MainFiberSet extends Context.Service<MainFiberSet>()("MainFiberSet", { make }) {
   static readonly Live = Layer.effect(this, this.make)
-  static readonly JoinLive = this.asEffect().pipe(
+  static readonly JoinLive = this.pipe(
     Effect.andThen((_) => _.join),
     Layer.effectDiscard,
     Layer.provide(this.Live)
   )
-  static readonly run = <A, R>(self: Effect.Effect<A, never, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.run(self)))
+  static readonly run = <A, R>(self: Effect.Effect<A, never, R>) => this.pipe(Effect.andThen((_) => _.run(self)))
   static readonly forkDaemonReport = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
+    this.pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
 }

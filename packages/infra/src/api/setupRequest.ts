@@ -19,8 +19,8 @@ const withSqlTransaction = <R, E, A>(self: Effect.Effect<A, E, R>): Effect.Effec
 export const getRequestContext = Effect
   .all({
     span: Effect.currentSpan.pipe(Effect.orDie),
-    locale: LocaleRef.asEffect(),
-    namespace: storeId.asEffect()
+    locale: LocaleRef,
+    namespace: storeId
   })
   .pipe(
     Effect.map(({ locale, namespace, span }) =>
@@ -34,8 +34,8 @@ export const getRequestContext = Effect
   )
 
 export const getRC = Effect.all({
-  locale: LocaleRef.asEffect(),
-  namespace: storeId.asEffect()
+  locale: LocaleRef,
+  namespace: storeId
 })
 
 const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(f: Effect.Effect<A, E, R>) =>

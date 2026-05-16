@@ -8,7 +8,6 @@ import type * as Scope from "effect/Scope"
 
 import { type HttpRouter } from "effect-app/http"
 import { type EffectGenUtils } from "effect-app/utils/gen"
-import { type Yieldable } from "effect/Effect"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
 
 export interface ContextProviderId {
@@ -43,7 +42,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
       > // & { _tag: infer _3 }
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]
-      : [_YW] extends [Yieldable<any, infer _2, never, infer _R>] ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
+      : [_YW] extends [Effect.Effect<any, never, infer _R>] ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
         : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
           "_tag"
         ]}'s returned effect can have`
@@ -102,7 +101,7 @@ export const ContextProvider = <
     effect: Effect.Effect<
       | Effect.Effect<ContextProviderA, never, ContextProviderR>
       | (() => Generator<
-        Yieldable<any, any, never, ContextProviderR>,
+        Effect.Effect<any, never, ContextProviderR>,
         ContextProviderA
       >),
       MakeContextProviderE,

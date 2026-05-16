@@ -21,7 +21,7 @@ export class ContextMapContainer extends Context.Reference("ContextMapContainer"
 
 export class ContextMapNotStartedError extends Data.TaggedError("ContextMapNotStartedError") {}
 
-export const getContextMap = ContextMapContainer.asEffect().pipe(
+export const getContextMap = ContextMapContainer.pipe(
   Effect.filterOrFail((_) => _ !== "root", () => new ContextMapNotStartedError())
 )
 

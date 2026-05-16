@@ -56,7 +56,6 @@ const concurrencySetting = Effect.runSync(
   Config
     .literal("unbounded", "SCHEMA_CONCURRENCY")
     .pipe(Config.orElse(() => Config.number("SCHEMA_CONCURRENCY")), Config.option)
-    .asEffect()
 )
 
 export const DefaultParseOptions: SchemaAST.ParseOptions = {

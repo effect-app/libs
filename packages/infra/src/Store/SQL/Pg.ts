@@ -57,7 +57,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
-        : storeId.asEffect().pipe(Effect.map((namespace) => {
+        : storeId.pipe(Effect.map((namespace) => {
           if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
             throw new Error(`Namespace ${namespace} not allowed!`)
           }

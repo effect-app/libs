@@ -6,13 +6,10 @@ import type * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
 import type * as Types from "effect/Types"
-import { type Yieldable } from "./Effect.js"
 
 export * from "effect/Context"
 
-export interface Opaque<Self extends object, in out Shape extends object>
-  extends CTX.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
-{
+export interface Opaque<Self extends object, in out Shape extends object> extends CTX.Key<Self, Self> {
   of(this: void, self: Shape): Self
   context(self: Shape): CTX.Context<Self>
   // a version that leverages the Shape -> Self conversion

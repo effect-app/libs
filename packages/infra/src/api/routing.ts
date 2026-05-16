@@ -13,7 +13,6 @@ import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "
 import * as S from "effect-app/Schema"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
-import { type Yieldable } from "effect/Effect"
 import * as Predicate from "effect/Predicate"
 import * as Ref from "effect/Ref"
 import type * as Scope from "effect/Scope"
@@ -269,8 +268,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
-      Yieldable<
-        any,
+      Effect.Effect<
         any,
         S.Schema.Type<GetFailure<Action>> | S.SchemaError,
         // the actual implementation of the handler may just require the dynamic context provided by the middleware
@@ -384,13 +382,13 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
               ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>
+                Effect.Effect<any, any, infer R>
               > ? R
               : never
               : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>
+                Effect.Effect<any, any, infer R>
               > ? R
               : never,
             | SafeGetEffectContext<ResourceRequestContextMap, Resource[K]["config"]>
@@ -419,7 +417,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
         match: any
       ) =>
         | Effect.Effect<THandlers, MakeE, MakeR>
-        | Generator<Yieldable<any, any, MakeE, MakeR>, THandlers>
+        | Generator<Effect.Effect<any, MakeE, MakeR>, THandlers>
     ) => {
       const dependenciesL = (dependencies ? Layer.mergeAll(...dependencies as any) : Layer.empty) as Layer.Layer<
         LayerUtils.GetLayersSuccess<MakeDependencies>,
@@ -648,8 +646,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
         const Make extends {
           dependencies?: ReadonlyArray<Layer.Any>
           effect: (match: typeof router3) => Generator<
-            Yieldable<
-              any,
+            Effect.Effect<
               any,
               any,
               any
@@ -684,7 +681,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
           dependencies?: ReadonlyArray<Layer.Any>
           // v4: generators yield Yieldable with asEffect()
           effect: (match: typeof router3) => Generator<
-            Yieldable<any, any, any, any>,
+            Effect.Effect<any, any, any>,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> }
           >
         }
@@ -744,17 +741,17 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
 export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, infer E, any> } ? E
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, never, any> } ? never
   : */
-  // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, never, any>> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, infer E, any>> } ? E
+  // v4: generators yield Effect values
+  Make extends { readonly effect: (_: any) => Generator<Effect.Effect<any, never, any>, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Effect.Effect<any, infer E, any>, any> } ? E
     : never
 
 export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, any, infer R> } ? R
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, any, never> } ? never
   : */
-  // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any>> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, infer R>> } ? R
+  // v4: generators yield Effect values
+  Make extends { readonly effect: (_: any) => Generator<Effect.Effect<any, any, never>, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Effect.Effect<any, any, infer R>, any> } ? R
     : never
 
 export type MakeHandlers<Make, _Handlers extends Record<string, any>> = /*Make extends

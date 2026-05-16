@@ -9,7 +9,6 @@ on:
 
 env:
   CI: true
-  VERSION_BUMP_COMMIT_MESSAGE: "chore: update versions"
 
 concurrency:
   group: snapshot-${{ github.ref }}
@@ -29,7 +28,7 @@ jobs:
     name: Publish Snapshot
     needs: [ci]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, env.VERSION_BUMP_COMMIT_MESSAGE)) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'chore: update versions')) ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
       github.event_name == 'workflow_dispatch'
     timeout-minutes: 20

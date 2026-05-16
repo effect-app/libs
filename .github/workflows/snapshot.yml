@@ -21,6 +21,8 @@ permissions:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+    with:
+      run_build: false
 
   snapshot:
     name: Publish Snapshot

@@ -476,8 +476,8 @@ describe("JSON Schema", () => {
     })
   })
 
-  test("DateRelaxed has format date-time", () => {
-    const doc = S.toJsonSchemaDocument(S.DateRelaxed)
+  test("DateValid has format date-time", () => {
+    const doc = S.toJsonSchemaDocument(S.DateValid)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
       schema: { "$ref": "#/$defs/Date" },

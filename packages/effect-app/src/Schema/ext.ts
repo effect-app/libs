@@ -111,8 +111,8 @@ export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
  */
 export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, SchemaTransformation.dateFromString))
 
-/** Like the default Schema `Date` but from String, with default helpers. Does NOT validate that the date is valid (not `Invalid Date`). Prefer `Date` unless you need relaxed parsing. */
-export const DateRelaxed = Object.assign(DateFromString, {
+/** Like the default Schema `Date` but from String, with default helpers. */
+export const Date = Object.assign(DateFromString, {
   /**
    * Construction-only default `new Date()`. Applied only when the field is
    * omitted from `.make(...)` input. NOT applied during decode — cannot be
@@ -129,8 +129,8 @@ export const DateRelaxed = Object.assign(DateFromString, {
   withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
 })
 
-/** Like the default Schema `DateValid` but from String, with default helpers. Validates that the parsed date is not `Invalid Date`. */
-export const Date = Object.assign(DateRelaxed.check(isDateValid()), {
+/** Like the default Schema `DateValid` but from String, with default helpers. */
+export const DateValid = Object.assign(Date.check(isDateValid()), {
   /**
    * Construction-only default `new Date()`. Applied only when the field is
    * omitted from `.make(...)` input. NOT applied during decode — cannot be
@@ -491,9 +491,9 @@ export type WithDefaults<Self extends S.Top> = (
 // export type UnionToIntersection3<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I
 //   : never
 
-/** Union of upstream `S.DateValid` (Date instance) and local `DateRelaxed` (from string), with default helpers. */
+/** Union of `DateValid` and `Date`, with default helpers. */
 export const inputDate = extendM(
-  S.Union([S.DateValid, DateRelaxed]),
+  S.Union([S.DateValid, Date]),
   (s) => ({
     /**
      * Construction-only default `new Date()`. Applied only when the field is

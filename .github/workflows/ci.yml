@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      run_build:
+        required: false
+        type: boolean
+        default: true
 
 env:
   CI: true
@@ -55,6 +60,7 @@ jobs:
 
   build:
     name: Build
+    if: ${{ github.event_name != 'workflow_call' || inputs.run_build }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

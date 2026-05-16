@@ -1,0 +1,180 @@
+name: Snapshot
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CI: true
+
+concurrency:
+  group: snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  snapshot:
+    name: Publish Snapshot
+    needs: [ci]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'chore: update versions')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Determine snapshot tags
+        id: tags
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            DIST_TAG="pr-${{ github.event.pull_request.number }}"
+            SNAPSHOT_ID="pr-${{ github.event.pull_request.number }}"
+          else
+            DIST_TAG="snapshot"
+            SNAPSHOT_ID="snapshot"
+          fi
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "snapshot_id=$SNAPSHOT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure npm token is available
+        shell: bash
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN is required to publish snapshots" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create snapshot versions
+        run: pnpm changeset version --snapshot ${{ steps.tags.outputs.snapshot_id }}
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish snapshots
+        run: pnpm --config.node-linker=hoisted -r publish --access=public --no-git-checks --tag ${{ steps.tags.outputs.dist_tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Write snapshot usage summary
+        id: usage
+        shell: bash
+        run: |
+          CURRENT_TAG="${{ steps.tags.outputs.dist_tag }}"
+          MAIN_CMD="pnpm add effect-app@snapshot @effect-app/infra@snapshot @effect-app/vue@snapshot @effect-app/vue-components@snapshot @effect-app/cli@snapshot"
+          PR_CMD="pnpm add effect-app@pr-<number> @effect-app/infra@pr-<number> @effect-app/vue@pr-<number> @effect-app/vue-components@pr-<number> @effect-app/cli@pr-<number>"
+          CURRENT_CMD="pnpm add effect-app@${CURRENT_TAG} @effect-app/infra@${CURRENT_TAG} @effect-app/vue@${CURRENT_TAG} @effect-app/vue-components@${CURRENT_TAG} @effect-app/cli@${CURRENT_TAG}"
+
+          {
+            echo "## Snapshot publish complete"
+            echo
+            echo "- Dist-tag: \`${CURRENT_TAG}\`"
+            echo
+            echo "### Install main snapshot"
+            echo "\`\`\`bash"
+            echo "$MAIN_CMD"
+            echo "\`\`\`"
+            echo
+            echo "### Install PR snapshot"
+            echo "\`\`\`bash"
+            echo "$PR_CMD"
+            echo "\`\`\`"
+            echo
+            echo "### Install current build"
+            echo "\`\`\`bash"
+            echo "$CURRENT_CMD"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "main_cmd<<EOF"
+            echo "$MAIN_CMD"
+            echo "EOF"
+            echo "pr_cmd<<EOF"
+            echo "$PR_CMD"
+            echo "EOF"
+            echo "current_cmd<<EOF"
+            echo "$CURRENT_CMD"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment snapshot usage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '✅ Snapshot packages published.',
+              '',
+              `Dist-tag: \`${{ steps.tags.outputs.dist_tag }}\``,
+              '',
+              'Install this PR snapshot:',
+              '```bash',
+              `${{ steps.usage.outputs.current_cmd }}`,
+              '```',
+              '',
+              'Install main snapshot:',
+              '```bash',
+              `${{ steps.usage.outputs.main_cmd }}`,
+              '```',
+              '',
+              'PR tag pattern:',
+              '```bash',
+              `${{ steps.usage.outputs.pr_cmd }}`,
+              '```'
+            ].join('\n')
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            })

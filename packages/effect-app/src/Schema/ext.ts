@@ -112,13 +112,13 @@ export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
 export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, SchemaTransformation.dateFromString))
 
 /** Like the default Schema `Date` but from String, with default helpers. */
-export const Date = Object.assign(DateFromString, {
+export const Date = extendM(DateFromString, (s) => ({
   /**
    * Construction-only default `new Date()`. Applied only when the field is
    * omitted from `.make(...)` input. NOT applied during decode — cannot be
    * used to JIT-migrate database fields. See file-level note.
    */
-  withConstructorDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
   /**
    * Decode-time default `new Date()`. **Discouraged for persisted data:** a
    * missing field may be data corruption, not an old-shape document; silently
@@ -126,8 +126,8 @@ export const Date = Object.assign(DateFromString, {
    * preferably versioned migration over a decode-time fallback. See
    * file-level note.
    */
-  withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
-})
+  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
+}))
 
 const DateValidString = S.String.annotate({
   identifier: "Date",
@@ -142,25 +142,22 @@ const DateValidFromString = DateValidString
   .check(isDateValid())
 
 /** Like the default Schema `DateValid` but from String, with default helpers. */
-export const DateValid = Object.assign(
-  DateValidFromString,
-  {
-    /**
-     * Construction-only default `new Date()`. Applied only when the field is
-     * omitted from `.make(...)` input. NOT applied during decode — cannot be
-     * used to JIT-migrate database fields. See file-level note.
-     */
-    withConstructorDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
-    /**
-     * Decode-time default `new Date()`. **Discouraged for persisted data:** a
-     * missing field may be data corruption, not an old-shape document; silently
-     * substituting `new Date()` hides the problem. Prefer an explicit,
-     * preferably versioned migration over a decode-time fallback. See
-     * file-level note.
-     */
-    withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
-  }
-)
+export const DateValid = extendM(DateValidFromString, (s) => ({
+  /**
+   * Construction-only default `new Date()`. Applied only when the field is
+   * omitted from `.make(...)` input. NOT applied during decode — cannot be
+   * used to JIT-migrate database fields. See file-level note.
+   */
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  /**
+   * Decode-time default `new Date()`. **Discouraged for persisted data:** a
+   * missing field may be data corruption, not an old-shape document; silently
+   * substituting `new Date()` hides the problem. Prefer an explicit,
+   * preferably versioned migration over a decode-time fallback. See
+   * file-level note.
+   */
+  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
+}))
 
 /** Like the default Schema `Boolean` but with default helpers. */
 export const Boolean = Object.assign(S.Boolean, {

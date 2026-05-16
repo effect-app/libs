@@ -18,7 +18,7 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-sqlite-node": "4.0.0-beta.66",
+    "@effect/sql-sqlite-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66",
     "@sentry/node": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
     "@types/better-sqlite3": "^7.6.13",

@@ -68,31 +68,17 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            DIST_TAG="pr-${{ github.event.pull_request.number }}"
             SNAPSHOT_ID="pr-${{ github.event.pull_request.number }}"
           else
-            DIST_TAG="snapshot"
             SNAPSHOT_ID="snapshot"
           fi
-          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
           echo "snapshot_id=$SNAPSHOT_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Ensure npm token is available
-        shell: bash
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN is required to publish snapshots" >&2
-            exit 1
-          fi
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Exit Changesets pre mode for snapshots
         shell: bash
@@ -107,93 +93,46 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Publish snapshots (hoisted linker to match release publish behavior)
-        run: pnpm --config.node-linker=hoisted -r publish --access=public --no-git-checks --tag ${{ steps.tags.outputs.dist_tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish snapshots to pkg.pr.new
+        id: publish
+        run: pnpm exec pkg-pr-new publish ./packages/*
 
       - name: Write snapshot usage summary
         id: usage
         shell: bash
         run: |
-          CURRENT_TAG="${{ steps.tags.outputs.dist_tag }}"
-          PACKAGES=(effect-app @effect-app/infra @effect-app/vue @effect-app/vue-components @effect-app/cli)
-          join_install_cmd() {
-            local tag="$1"
-            local result="pnpm add"
-            local pkg
-            for pkg in "${PACKAGES[@]}"; do
-              result="$result $pkg@$tag"
-            done
-            echo "$result"
-          }
-          MAIN_CMD="$(join_install_cmd snapshot)"
-          PR_CMD="$(join_install_cmd 'pr-<number>')"
-          CURRENT_CMD="$(join_install_cmd "$CURRENT_TAG")"
+          PACKAGE_LOCATORS="${{ steps.publish.outputs.packages }}"
+          PACKAGE_URLS="${{ steps.publish.outputs.urls }}"
+          PUBLISHED_SHA="${{ steps.publish.outputs.sha }}"
+          if [ -z "$PACKAGE_LOCATORS" ] || [ -z "$PACKAGE_URLS" ] || [ -z "$PUBLISHED_SHA" ]; then
+            echo "pkg-pr-new did not return expected outputs (packages/urls/sha)" >&2
+            exit 1
+          fi
 
           {
             echo "## Snapshot publish complete"
             echo
-            echo "- Dist-tag: \`${CURRENT_TAG}\`"
+            echo "- SHA: \`${PUBLISHED_SHA}\`"
             echo
-            echo "### Install main snapshot"
+            echo "Published via pkg.pr.new."
+            echo
+            echo "### Install package locators"
             echo "\`\`\`bash"
-            echo "$MAIN_CMD"
+            echo "$PACKAGE_LOCATORS"
             echo "\`\`\`"
             echo
-            echo "### Install PR snapshot"
-            echo "\`\`\`bash"
-            echo "$PR_CMD"
-            echo "\`\`\`"
-            echo
-            echo "### Install current build"
-            echo "\`\`\`bash"
-            echo "$CURRENT_CMD"
+            echo "### Package URLs"
+            echo "\`\`\`text"
+            echo "$PACKAGE_URLS"
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
           {
-            echo "main_cmd<<EOF"
-            echo "$MAIN_CMD"
+            echo "package_locators<<EOF"
+            echo "$PACKAGE_LOCATORS"
             echo "EOF"
-            echo "pr_cmd<<EOF"
-            echo "$PR_CMD"
+            echo "package_urls<<EOF"
+            echo "$PACKAGE_URLS"
             echo "EOF"
-            echo "current_cmd<<EOF"
-            echo "$CURRENT_CMD"
-            echo "EOF"
+            echo "published_sha=$PUBLISHED_SHA"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Comment snapshot usage on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = [
-              '✅ Snapshot packages published.',
-              '',
-              `Dist-tag: \`${{ steps.tags.outputs.dist_tag }}\``,
-              '',
-              'Install this PR snapshot:',
-              '```bash',
-              `${{ steps.usage.outputs.current_cmd }}`,
-              '```',
-              '',
-              'Install main snapshot:',
-              '```bash',
-              `${{ steps.usage.outputs.main_cmd }}`,
-              '```',
-              '',
-              'PR tag pattern:',
-              '```bash',
-              `${{ steps.usage.outputs.pr_cmd }}`,
-              '```'
-            ].join('\n')
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            })

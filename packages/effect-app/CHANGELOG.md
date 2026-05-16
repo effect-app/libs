@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.231
+
+### Patch Changes
+
+- 7ca66ce: Update to effect 4.0.0-beta.66. Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+
 ## 4.0.0-beta.230
 
 ## 4.0.0-beta.229

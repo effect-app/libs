@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.231
+
+### Patch Changes
+
+- 7ca66ce: Update to effect 4.0.0-beta.66. Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- Updated dependencies [7ca66ce]
+  - effect-app@4.0.0-beta.231
+
 ## 4.0.0-beta.230
 
 ### Patch Changes

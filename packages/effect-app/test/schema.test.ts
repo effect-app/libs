@@ -461,22 +461,22 @@ describe("JSON Schema", () => {
     })
   })
 
-  test("Date has format date-time and description", () => {
+  test("Date has identifier DateOrInvalid and ISO 8601 description", () => {
     const doc = S.toJsonSchemaDocument(S.Date)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/Date" },
+      schema: { "$ref": "#/$defs/DateOrInvalid" },
       definitions: {
-        Date: {
+        DateOrInvalid: {
           type: "string",
-          description: "a string in ISO 8601 format that will be decoded as a Date",
+          description: "an ISO 8601 date string that will be decoded as a Date (may be invalid)",
           format: "date-time"
         }
       }
     })
   })
 
-  test("DateValid has format date-time", () => {
+  test("DateValid has identifier Date and ISO 8601 description", () => {
     const doc = S.toJsonSchemaDocument(S.DateValid)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
@@ -484,7 +484,7 @@ describe("JSON Schema", () => {
       definitions: {
         Date: {
           type: "string",
-          description: "a string in ISO 8601 format that will be decoded as a Date",
+          description: "a valid ISO 8601 date string that will be decoded as a Date",
           format: "date-time"
         }
       }

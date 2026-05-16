@@ -9,6 +9,7 @@ on:
 
 env:
   CI: true
+  VERSION_BUMP_COMMIT_MESSAGE: "chore: update versions"
 
 concurrency:
   group: snapshot-${{ github.ref }}
@@ -28,7 +29,7 @@ jobs:
     name: Publish Snapshot
     needs: [ci]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'chore: update versions')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, env.VERSION_BUMP_COMMIT_MESSAGE)) ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
       github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
@@ -100,7 +101,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Publish snapshots
+      - name: Publish snapshots (hoisted linker to match release publish behavior)
         run: pnpm --config.node-linker=hoisted -r publish --access=public --no-git-checks --tag ${{ steps.tags.outputs.dist_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -111,9 +112,19 @@ jobs:
         shell: bash
         run: |
           CURRENT_TAG="${{ steps.tags.outputs.dist_tag }}"
-          MAIN_CMD="pnpm add effect-app@snapshot @effect-app/infra@snapshot @effect-app/vue@snapshot @effect-app/vue-components@snapshot @effect-app/cli@snapshot"
-          PR_CMD="pnpm add effect-app@pr-<number> @effect-app/infra@pr-<number> @effect-app/vue@pr-<number> @effect-app/vue-components@pr-<number> @effect-app/cli@pr-<number>"
-          CURRENT_CMD="pnpm add effect-app@${CURRENT_TAG} @effect-app/infra@${CURRENT_TAG} @effect-app/vue@${CURRENT_TAG} @effect-app/vue-components@${CURRENT_TAG} @effect-app/cli@${CURRENT_TAG}"
+          PACKAGES=(effect-app @effect-app/infra @effect-app/vue @effect-app/vue-components @effect-app/cli)
+          join_install_cmd() {
+            local tag="$1"
+            local result="pnpm add"
+            local pkg
+            for pkg in "${PACKAGES[@]}"; do
+              result="$result $pkg@$tag"
+            done
+            echo "$result"
+          }
+          MAIN_CMD="$(join_install_cmd snapshot)"
+          PR_CMD="$(join_install_cmd 'pr-<number>')"
+          CURRENT_CMD="$(join_install_cmd "$CURRENT_TAG")"
 
           {
             echo "## Snapshot publish complete"

@@ -832,7 +832,11 @@ export const makeClient = <RT_, RTHooks>(
               fn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
               mutate: StreamMutation2WithExtensions<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
             })
-          & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
+          & {
+            Input: typeof client[Key] extends RequestStreamHandlerWithInput<infer I, any, any, any, any, any, any> ? I
+              : typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I
+              : never
+          }
       }
     )
     return Object.assign(extended, {

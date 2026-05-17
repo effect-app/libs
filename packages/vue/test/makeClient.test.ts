@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
+import type { HandlerInput } from "effect-app/client/clientFor"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
 import type { CommandFromRequest } from "../src/makeClient.js"
@@ -168,6 +169,40 @@ it("clientFor handler shape — props variants", () => {
   client.DoMixed.handler({ id: "x", name: "y" })
   // @ts-expect-error id required
   client.DoMixed.handler({ name: "y" })
+})
+
+it("client[Key].Input — extracted input type per props variant", () => {
+  const { clientFor } = useClient()
+  const client = clientFor(
+    Something,
+    undefined,
+    somethingInvalidationResources
+  )
+
+  // Input mirrors HandlerInput<typeof Request> — the same type the handler accepts.
+  expectTypeOf(client.GetSomething2.Input).toEqualTypeOf<HandlerInput<typeof Something.GetSomething2>>()
+  expectTypeOf(client.GetSomething3.Input).toEqualTypeOf<HandlerInput<typeof Something.GetSomething3>>()
+  // GetSomething4: no fields → void
+  expectTypeOf(client.GetSomething4.Input).toBeVoid()
+  expectTypeOf(client.GetSomething4.Input).toEqualTypeOf<HandlerInput<typeof Something.GetSomething4>>()
+
+  // commands — props variants
+  expectTypeOf(client.DoNoProps.Input).toBeVoid()
+  expectTypeOf(client.DoNoProps.Input).toEqualTypeOf<HandlerInput<typeof Something.DoNoProps>>()
+  expectTypeOf(client.DoOptionalOnly.Input).toEqualTypeOf<HandlerInput<typeof Something.DoOptionalOnly>>()
+  expectTypeOf(client.DoRequiredOnly.Input).toEqualTypeOf<HandlerInput<typeof Something.DoRequiredOnly>>()
+  expectTypeOf(client.DoMixed.Input).toEqualTypeOf<HandlerInput<typeof Something.DoMixed>>()
+  expectTypeOf(client.DoSomething.Input).toEqualTypeOf<HandlerInput<typeof Something.DoSomething>>()
+
+  // Sanity: a non-trivial handler Input matches the handler's parameter type
+  type HandlerArg = Parameters<typeof client.DoMixed.handler>[0]
+  expectTypeOf<typeof client.DoMixed.Input>().toEqualTypeOf<HandlerArg>()
+
+  // Stream handlers — Input now extracts via RequestStreamHandlerWithInput fallback.
+  expectTypeOf(client.StreamWithoutFinal.Input).toEqualTypeOf<
+    { readonly id: string; readonly _tag?: "StreamWithoutFinal" }
+  >()
+  expectTypeOf(client.StreamWithFinal.Input).toEqualTypeOf<{ readonly id: string; readonly _tag?: "StreamWithFinal" }>()
 })
 
 it("CommandFromRequest input shape — props variants", () => {

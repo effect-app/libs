@@ -1,8 +1,8 @@
 <template>
   <slot
-    v-if="state"
-    :name="`${name ? `${name}.` : ''}${state}`"
-    v-bind="{ field, state }"
+    v-if="tag"
+    :name="`${name ? `${name}.` : ''}${tag}`"
+    v-bind="{ field, tag }"
   />
 </template>
 
@@ -17,7 +17,7 @@ import { type OmegaFieldInternalApi } from "./InputProps"
 import { type useOmegaForm } from "./useOmegaForm"
 
 const props = defineProps<{
-  state: DeepValue<From, Name>
+  tag: string | null
   field: OmegaFieldInternalApi<From, Name>
   name?: DeepKeys<From>
   form: ReturnType<typeof useOmegaForm<From, To>>
@@ -26,7 +26,7 @@ const props = defineProps<{
 const values = props.form.useStore(({ values }) => values)
 
 // Watch for _tag changes
-watch(() => props.state, (newTag, oldTag) => {
+watch(() => props.tag, (newTag, oldTag) => {
   if (newTag === null) {
     props.field.setValue(null as DeepValue<From, Name>)
   }

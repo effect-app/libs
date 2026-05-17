@@ -1,5 +1,20 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.232
+
+### Minor Changes
+
+- 5b507ae: chore: update @tanstack/vue-form to version 1.32.0 and refactor OmegaTaggedUnion component to use 'tag' instead of 'state'
+
+### Patch Changes
+
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+- Updated dependencies [1176240]
+- Updated dependencies [0263827]
+  - effect-app@4.0.0-beta.232
+  - @effect-app/vue@4.0.0-beta.232
+
 ## 4.0.0-beta.231
 
 ### Patch Changes

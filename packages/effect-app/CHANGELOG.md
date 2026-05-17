@@ -1,5 +1,20 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.232
+
+### Patch Changes
+
+- 0263827: Fix `Date` / `DateValid` default helpers to pipe from their own schema.
+
+  `withConstructorDefault` and `withDecodingDefaultType` on `DateValid` previously piped from `DateFromString`, dropping the `isDateValid()` check (and, after the recent identifier split, the `DateValid` annotations) from the resulting defaulted schema. Both `Date` and `DateValid` now use `extendM` so the helpers attach to the underlying schema (`DateFromString` / `DateValidFromString`).
+
+- 0263827: Distinguish `Date` and `DateValid` in JSON Schema output.
+
+  - `Date` now emits identifier `DateOrInvalid` with description noting the value may be invalid.
+  - `DateValid` now emits its own annotated string (identifier `Date`) with description stating a valid ISO 8601 date is required.
+
+- 0263827: Update to effect `pkg.pr.new` snapshot at `a42ef66` (4.0.0-beta.66). Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+
 ## 4.0.0-beta.231
 
 ### Patch Changes

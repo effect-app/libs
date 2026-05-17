@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 4.0.0-beta.232
+
+### Patch Changes
+
+- 1176240: Fix `client[Key].Input` resolving to `never` for stream request handlers. The extractor only matched `RequestHandlerWithInput`, so any `RequestStreamHandlerWithInput` entry fell through to the `never` branch. Added a parallel `RequestStreamHandlerWithInput` extract so stream Inputs surface the handler's input type.
+- 0263827: Update to effect `pkg.pr.new` snapshot at `a42ef66` (4.0.0-beta.66). Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+  - effect-app@4.0.0-beta.232
+
 ## 4.0.0-beta.231
 
 ### Patch Changes

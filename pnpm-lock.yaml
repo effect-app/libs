@@ -539,8 +539,8 @@ importers:
         specifier: ^1.9.1
         version: 1.9.1
       '@tanstack/vue-form':
-        specifier: ^1.23.5
-        version: 1.27.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^1.32.0
+        version: 1.32.0(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
         specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
         version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
@@ -1048,7 +1048,7 @@ packages:
       effect: ^4.0.0-beta.66
 
   '@effect/platform-node-shared@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66':
-    resolution: {integrity: sha512-Zsz7f5F6Hbgd5QJ2GiGpo7joQHDs87Z8fF2494S4VVRukZCLPopnB2ENCsnPFwTmR6kLgX/rNaych7lDBIzP3g==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66}
+    resolution: {tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66}
     version: 4.0.0-beta.66
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -2559,12 +2559,13 @@ packages:
       storybook: ^10.3.6
       vue: ^3.5.34
 
-  '@tanstack/devtools-event-client@0.4.0':
-    resolution: {integrity: sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw==}
+  '@tanstack/devtools-event-client@0.4.3':
+    resolution: {integrity: sha512-OZI6QyULw0FI0wjgmeYzCIfbgPsOEzwJtCpa69XrfLMtNXLGnz3d/dIabk7frg0TmHo+Ah49w5I4KC7Tufwsvw==}
     engines: {node: '>=18'}
+    hasBin: true
 
-  '@tanstack/form-core@1.27.7':
-    resolution: {integrity: sha512-nvogpyE98fhb0NDw1Bf2YaCH+L7ZIUgEpqO9TkHucDn6zg3ni521boUpv0i8HKIrmmFwDYjWZoCnrgY4HYWTkw==}
+  '@tanstack/form-core@1.32.0':
+    resolution: {integrity: sha512-Tn5VRDSjyqjmaet2tJMuEWDRFyrCaon03vxXPlSSaiSs6C/N7lCIwGCXJbZXEUq1kTj8jYN9qyXHbsz4LQHcow==}
 
   '@tanstack/match-sorter-utils@8.19.4':
     resolution: {integrity: sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==}
@@ -2577,11 +2578,11 @@ packages:
   '@tanstack/query-core@5.96.2':
     resolution: {integrity: sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA==}
 
-  '@tanstack/store@0.7.7':
-    resolution: {integrity: sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==}
+  '@tanstack/store@0.9.3':
+    resolution: {integrity: sha512-8reSzl/qGWGGVKhBoxXPMWzATSbZLZFWhwBAFO9NAyp0TxzfBP0mIrGb8CP8KrQTmvzXlR/vFPPUrHTLBGyFyw==}
 
-  '@tanstack/vue-form@1.27.7':
-    resolution: {integrity: sha512-wET2d3R/9GYGgBHMwWnKlHuGczpyTNm7bfkJyZahVDLLm7tI/6HBT970lBN44obvD4Ayu/FX0jF0ARI5JGJgpA==}
+  '@tanstack/vue-form@1.32.0':
+    resolution: {integrity: sha512-1GR01rtX2DTG46dyMo0I63fLBoAA+m3CPUOx/2WH2lFN82dHEenWGRfoX5d7OtX31HKPG2+ElQ1InahThHb8Cw==}
     peerDependencies:
       vue: ^3.5.34
 
@@ -2594,8 +2595,8 @@ packages:
       '@vue/composition-api':
         optional: true
 
-  '@tanstack/vue-store@0.7.7':
-    resolution: {integrity: sha512-6iv1Odmreff6TgEjQN11xoddsCnpn+/ul7MZ2DadHT3/RSY1YdoFafK8lCa889MEFi/5K0zAhf8psIkgTrRa9A==}
+  '@tanstack/vue-store@0.9.3':
+    resolution: {integrity: sha512-YZb5SAR3f2kLt58Ip6gig2+z8vRAfSkJK30Bq7enZ7cG4epyygmRsbrrDMxvmoYSJu33CY5uJ6MvI74KGP0ZvQ==}
     peerDependencies:
       '@vue/composition-api': ^1.2.1
       vue: ^3.5.34
@@ -8551,13 +8552,13 @@ snapshots:
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-component-type-helpers: 3.2.9
 
-  '@tanstack/devtools-event-client@0.4.0': {}
+  '@tanstack/devtools-event-client@0.4.3': {}
 
-  '@tanstack/form-core@1.27.7':
+  '@tanstack/form-core@1.32.0':
     dependencies:
-      '@tanstack/devtools-event-client': 0.4.0
+      '@tanstack/devtools-event-client': 0.4.3
       '@tanstack/pacer-lite': 0.1.1
-      '@tanstack/store': 0.7.7
+      '@tanstack/store': 0.9.3
 
   '@tanstack/match-sorter-utils@8.19.4':
     dependencies:
@@ -8567,12 +8568,12 @@ snapshots:
 
   '@tanstack/query-core@5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)': {}
 
-  '@tanstack/store@0.7.7': {}
+  '@tanstack/store@0.9.3': {}
 
-  '@tanstack/vue-form@1.27.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@tanstack/vue-form@1.32.0(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      '@tanstack/form-core': 1.27.7
-      '@tanstack/vue-store': 0.7.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      '@tanstack/form-core': 1.32.0
+      '@tanstack/vue-store': 0.9.3(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -8585,9 +8586,9 @@ snapshots:
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-demi: 0.14.10(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 
-  '@tanstack/vue-store@0.7.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@tanstack/vue-store@0.9.3(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      '@tanstack/store': 0.7.7
+      '@tanstack/store': 0.9.3
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-demi: 0.14.10(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 

@@ -75,9 +75,15 @@ provide("getMetaFromArray", getMetaFromArray)
         />
       </slot>
       <slot />
+      <!--
+        Drive the branch off `currentTag`: the tag is read from the form store
+        (the canonical state), the same single source of truth that feeds
+        `getMetaFromArray` above — rather than the `Field` slot's `state`,
+        which is only a projection of it.
+      -->
       <OmegaTaggedUnionInternal
         :field="inputProps.field as any"
-        :state="inputProps.state.value"
+        :tag="currentTag"
         :name="name"
         :form="form"
       >
@@ -92,7 +98,7 @@ provide("getMetaFromArray", getMetaFromArray)
         </template>
       </OmegaTaggedUnionInternal>
       <slot
-        v-if="inputProps.state.value"
+        v-if="currentTag"
         name="OmegaCommon"
       />
     </template>

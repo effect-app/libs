@@ -3,10 +3,11 @@
     :is="form.Field"
     :name="name"
   >
-    <template #default="{ field, state }">
+    <!-- `field.state` is reactive; the Field slot's `state` prop is a stale snapshot since @tanstack/vue-form 1.32 -->
+    <template #default="{ field }">
       <slot
         name="pre-array"
-        v-bind="{ field, state }"
+        v-bind="{ field, state: field.state }"
       />
       <component
         :is="form.Field"
@@ -14,11 +15,11 @@
         :key="`${name}[${Number(i)}]`"
         :name="`${name}[${Number(i)}]` as DeepKeys<From>"
       >
-        <template #default="{ field: subField, state: subState }">
+        <template #default="{ field: subField }">
           <slot
             v-bind="{
               subField,
-              subState,
+              subState: subField.state,
               index: Number(i),
               field
             }"
@@ -27,7 +28,7 @@
       </component>
       <slot
         name="post-array"
-        v-bind="{ field, state }"
+        v-bind="{ field, state: field.state }"
       />
       <!-- TODO: legacy slot, remove this slot -->
       <slot

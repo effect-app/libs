@@ -43,7 +43,7 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
     inputClass: string | undefined | null
   }
   field: OmegaFieldInternalApi<From, TName>
-  /** be sure to use this state and not `field.state` as it is not reactive */
+  /** reactive field state, sourced from `field.state` (the Field slot's own `state` prop is a stale snapshot since @tanstack/vue-form 1.32) */
   state: OmegaFieldInternalApi<From, TName>["state"]
 }
 

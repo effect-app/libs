@@ -4,12 +4,18 @@
     :name="name"
     :validators="validators"
   >
-    <template #default="{ field, state }">
+    <!--
+      Read `state` from `field.state`, not the Field slot's `state` prop.
+      Since @tanstack/vue-form 1.32 the slot `state` is a one-time snapshot
+      taken when the field mounts and never updates, whereas `field.state`
+      is a reactive getter backed by the field store.
+    -->
+    <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
         v-bind="{ ...$attrs, ...$props, inputClass: computedClass }"
         :field="field as any"
-        :state="state"
+        :state="field.state"
         :register="form.registerField"
         :label="label ?? errori18n(propsName)"
         :meta="meta"

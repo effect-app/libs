@@ -13,6 +13,7 @@ import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import CustomLabelSlotComponent from "./OmegaForm/CustomLabelSlot.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import DecodeTransformFallbackComponent from "./OmegaForm/DecodeTransformFallback.vue"
+import OfferFormComponent from "./OmegaForm/OfferForm.vue"
 import DefaultsComponent from "./OmegaForm/Defaults.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
@@ -346,6 +347,21 @@ export const Redacted: Story = {
     components: { RedactedComponent },
     template: "<RedactedComponent />"
   })
+}
+
+export const OfferForm: Story = {
+  render: () => ({
+    components: { OfferFormComponent },
+    template: "<OfferFormComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Offer form with title and number fields. The save callback only fires on blur when both fields are non-empty."
+      }
+    }
+  }
 }
 
 export const DecodeTransformFallback: Story = {

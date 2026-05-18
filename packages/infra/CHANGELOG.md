@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.233
+
+### Patch Changes
+
+- 57a1862: Update to effect 4.0.0-beta.67. Switch deps from `pkg.pr.new` snapshot back to npm beta tag.
+- Updated dependencies [57a1862]
+  - effect-app@4.0.0-beta.233
+
 ## 4.0.0-beta.232
 
 ### Patch Changes

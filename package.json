@@ -10,15 +10,6 @@
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.3": "patches/typescript.patch",
       "@sendgrid/mail": "patches/@sendgrid__mail.patch"
-    },
-    "overrides": {
-      "effect": "https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66",
-      "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66",
-      "@effect/platform-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66",
-      "@effect/platform-node-shared": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66",
-      "@effect/platform-browser": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66",
-      "@effect/sql-sqlite-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66",
-      "@effect/atom-vue": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66"
     }
   },
   "engines": {
@@ -74,8 +65,8 @@
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.85.1",
-    "@effect/platform-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66",
-    "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66",
+    "@effect/platform-node": "4.0.0-beta.67",
+    "@effect/vitest": "4.0.0-beta.67",
     "@tsconfig/strictest": "^2.0.8",
     "@types/lodash": "^4.17.24",
     "@types/node": "25.6.0",
@@ -86,7 +77,7 @@
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^9.2.1",
     "dprint": "^0.54.0",
-    "effect": "https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66",
+    "effect": "4.0.0-beta.67",
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.21.0",
     "eslint": "^10.3.0",

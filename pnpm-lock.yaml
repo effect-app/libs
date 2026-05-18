@@ -8,13 +8,6 @@ overrides:
   date-fns: ^4.1.0
   fast-check: ^4.7.0
   vue: ^3.5.34
-  effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-  '@effect/vitest': https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66
-  '@effect/platform-node': https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66
-  '@effect/platform-node-shared': https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66
-  '@effect/platform-browser': https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66
-  '@effect/sql-sqlite-node': https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66
-  '@effect/atom-vue': https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66
 
 patchedDependencies:
   '@sendgrid/mail':
@@ -66,11 +59,11 @@ importers:
         specifier: 0.85.1
         version: 0.85.1
       '@effect/platform-node':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(ioredis@5.9.3)
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(ioredis@5.9.3)
       '@effect/vitest':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
@@ -102,8 +95,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -171,11 +164,11 @@ importers:
   packages/cli:
     dependencies:
       '@effect/platform-node':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(ioredis@5.9.3)
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(ioredis@5.9.3)
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67
       js-yaml:
         specifier: 4.1.1
         version: 4.1.1
@@ -211,8 +204,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -363,8 +356,8 @@ importers:
   packages/infra:
     dependencies:
       '@effect/vitest':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -381,8 +374,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -412,8 +405,8 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5
       '@effect/sql-sqlite-node':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)
       '@sentry/node':
         specifier: 10.51.0
         version: 10.51.0
@@ -463,11 +456,11 @@ importers:
   packages/vue:
     dependencies:
       '@effect/atom-vue':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       '@effect/platform-browser':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)
       '@formatjs/intl':
         specifier: ^4.1.9
         version: 4.1.9
@@ -487,8 +480,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -500,8 +493,8 @@ importers:
         version: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       '@effect/vitest':
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
+        specifier: 4.0.0-beta.67
+        version: 4.0.0-beta.67(effect@4.0.0-beta.67)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))
       '@formatjs/icu-messageformat-parser':
         specifier: ^3.5.7
         version: 3.5.7
@@ -539,11 +532,11 @@ importers:
         specifier: ^1.9.1
         version: 1.9.1
       '@tanstack/vue-form':
-        specifier: ^1.23.5
-        version: 1.27.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^1.32.0
+        version: 1.32.0(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
-        version: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+        specifier: ^4.0.0-beta.66
+        version: 4.0.0-beta.67
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -1030,49 +1023,43 @@ packages:
     resolution: {integrity: sha512-RGFOeTNSbgw2VbCp+lbQtK0Y2KDckTWirQL7dCAhrdqbxB2ZutDqJTbU/gj+6C1pk36M6FTWeGsDeRD2nlxO8w==}
     hasBin: true
 
-  '@effect/atom-vue@https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66':
-    resolution: {integrity: sha512-koCZUfI7LhdhTGJiwQcrCoizKOsYHP7iOk04x+rpwplQCQNdpWfuQ8mLYcUywuf8HK95XDS4KxfEmhLXZEa3jA==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/atom-vue@4.0.0-beta.67':
+    resolution: {integrity: sha512-jvz3xJFUE/6jmzbPq4UcAoIWqKEN1uRSkALgdaR4N27tLqZwKWO/e9XYhkzLKRzKjV3oJnZV/p+GQ4+kO6q7GA==}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
       vue: ^3.5.34
 
   '@effect/language-service@0.85.1':
     resolution: {integrity: sha512-EXnJjIy6zQ3nUO/MZ+ynWUb8B895KZPotd1++oTs9JjDkplwM7cb6zo8Zq2zU6piwq+KflO7amXbEfj1UMpHkw==}
     hasBin: true
 
-  '@effect/platform-browser@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66':
-    resolution: {integrity: sha512-3+f+WoL5Oba+l03IAtuS1cwlmcGRNrQF8tzapMDDsI4zIFnznFBEUc8gMQWG8e3dBctNA2K9mbOd7VCRM3CBcA==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/platform-browser@4.0.0-beta.67':
+    resolution: {integrity: sha512-WB8ANPbqyHX8aPimB2gduusgZBpvab47pGRHf7Wk9VtUsWMOos3W08I2QYdWN/k5kdmwfmG6cDlrFo42Es+I/Q==}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
 
-  '@effect/platform-node-shared@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66':
-    resolution: {integrity: sha512-Zsz7f5F6Hbgd5QJ2GiGpo7joQHDs87Z8fF2494S4VVRukZCLPopnB2ENCsnPFwTmR6kLgX/rNaych7lDBIzP3g==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/platform-node-shared@4.0.0-beta.67':
+    resolution: {integrity: sha512-h7KyCoD5AMhD4ec0hY3FKuguo1Wsec2B79poifn5+Vd+c1I8pX7urh8cLaIwkrABp2shUQNYEYUAFocSND8LVQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
 
-  '@effect/platform-node@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66':
-    resolution: {integrity: sha512-Q/6/JLr4J9dCSmWwq8NkletQpCl7if009K8ZMuy+2g6Sqc0lsA9D+wT07ftx+bskKGzX1TBnNANS2YuenVGMdg==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/platform-node@4.0.0-beta.67':
+    resolution: {integrity: sha512-GbfCE88/jMDlryiCzJg6NdmK2JxrQjN34iLyKFmUXqqSC64GVJyBCx1tpZkvhwQlQelWkcuDvm45kuq8hyuUMw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
       ioredis: ^5.7.0
 
-  '@effect/sql-sqlite-node@https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66':
-    resolution: {integrity: sha512-erErwyFhFnHRq9ATGm3sqXcIUnqzeWCizyHU2mkp36rei6gHbJtNe6PVo7ZPWxGq4J+l6Bszr5487aw80fCzoA==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/sql-sqlite-node@4.0.0-beta.67':
+    resolution: {integrity: sha512-W1DT1Uh/Y1S+xVm99Dg0MJGmugN5KOd4qMNL8opba7M9vyaBV6tZlhxgkp6dCOgz7SwtXo9qBbj6c2tTNDfXYw==}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
 
-  '@effect/vitest@https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66':
-    resolution: {integrity: sha512-KlSIHSjVUT+4hxxgNFhfrWDx4qiXstkK600TO5yN5BQvVapeyM3A/cf7BXzXwXFYu6ut65qBCo1+lBFkP0AFBA==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66}
-    version: 4.0.0-beta.66
+  '@effect/vitest@4.0.0-beta.67':
+    resolution: {integrity: sha512-+VBKCcyKY7wfMP5TivONEWExdVF3aR/jhF2+at7hTN5qMBFDX3EsHSfKrRG6R55OBGPXWiYshHZ/raleR2PKjw==}
     peerDependencies:
-      effect: ^4.0.0-beta.66
+      effect: ^4.0.0-beta.67
       vitest: ^3.0.0 || ^4.0.0
 
   '@emnapi/core@1.10.0':
@@ -2559,12 +2546,13 @@ packages:
       storybook: ^10.3.6
       vue: ^3.5.34
 
-  '@tanstack/devtools-event-client@0.4.0':
-    resolution: {integrity: sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw==}
+  '@tanstack/devtools-event-client@0.4.3':
+    resolution: {integrity: sha512-OZI6QyULw0FI0wjgmeYzCIfbgPsOEzwJtCpa69XrfLMtNXLGnz3d/dIabk7frg0TmHo+Ah49w5I4KC7Tufwsvw==}
     engines: {node: '>=18'}
+    hasBin: true
 
-  '@tanstack/form-core@1.27.7':
-    resolution: {integrity: sha512-nvogpyE98fhb0NDw1Bf2YaCH+L7ZIUgEpqO9TkHucDn6zg3ni521boUpv0i8HKIrmmFwDYjWZoCnrgY4HYWTkw==}
+  '@tanstack/form-core@1.32.0':
+    resolution: {integrity: sha512-Tn5VRDSjyqjmaet2tJMuEWDRFyrCaon03vxXPlSSaiSs6C/N7lCIwGCXJbZXEUq1kTj8jYN9qyXHbsz4LQHcow==}
 
   '@tanstack/match-sorter-utils@8.19.4':
     resolution: {integrity: sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==}
@@ -2577,11 +2565,11 @@ packages:
   '@tanstack/query-core@5.96.2':
     resolution: {integrity: sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA==}
 
-  '@tanstack/store@0.7.7':
-    resolution: {integrity: sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==}
+  '@tanstack/store@0.9.3':
+    resolution: {integrity: sha512-8reSzl/qGWGGVKhBoxXPMWzATSbZLZFWhwBAFO9NAyp0TxzfBP0mIrGb8CP8KrQTmvzXlR/vFPPUrHTLBGyFyw==}
 
-  '@tanstack/vue-form@1.27.7':
-    resolution: {integrity: sha512-wET2d3R/9GYGgBHMwWnKlHuGczpyTNm7bfkJyZahVDLLm7tI/6HBT970lBN44obvD4Ayu/FX0jF0ARI5JGJgpA==}
+  '@tanstack/vue-form@1.32.0':
+    resolution: {integrity: sha512-1GR01rtX2DTG46dyMo0I63fLBoAA+m3CPUOx/2WH2lFN82dHEenWGRfoX5d7OtX31HKPG2+ElQ1InahThHb8Cw==}
     peerDependencies:
       vue: ^3.5.34
 
@@ -2594,8 +2582,8 @@ packages:
       '@vue/composition-api':
         optional: true
 
-  '@tanstack/vue-store@0.7.7':
-    resolution: {integrity: sha512-6iv1Odmreff6TgEjQN11xoddsCnpn+/ul7MZ2DadHT3/RSY1YdoFafK8lCa889MEFi/5K0zAhf8psIkgTrRa9A==}
+  '@tanstack/vue-store@0.9.3':
+    resolution: {integrity: sha512-YZb5SAR3f2kLt58Ip6gig2+z8vRAfSkJK30Bq7enZ7cG4epyygmRsbrrDMxvmoYSJu33CY5uJ6MvI74KGP0ZvQ==}
     peerDependencies:
       '@vue/composition-api': ^1.2.1
       vue: ^3.5.34
@@ -3869,9 +3857,8 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66:
-    resolution: {integrity: sha512-w2T04Dxcf/R0P/7B9vTqGb3ewzPupkcjzHAJwRaGw9qFYC8TTe7yrAy1UfDfZoRx5wqZcHvl+pC4FaeNEAY2NA==, tarball: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66}
-    version: 4.0.0-beta.66
+  effect@4.0.0-beta.67:
+    resolution: {integrity: sha512-cQ1pVkbmB45VnFffQcmXuIuAT6b+t74JPKeJRqv6qT6MhilYQbLccrBu//jrxtlWpILfIzz09+s1QQrhOFmFKQ==}
 
   electron-to-chromium@1.5.267:
     resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
@@ -7326,8 +7313,8 @@ snapshots:
 
   '@effect-app/cli@2.1.0-beta.20(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node': https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(ioredis@5.9.3)
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      '@effect/platform-node': 4.0.0-beta.67(effect@4.0.0-beta.67)(ioredis@5.9.3)
+      effect: 4.0.0-beta.67
       js-yaml: 4.1.1
       node-watch: 0.7.4
     transitivePeerDependencies:
@@ -7335,31 +7322,31 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  '@effect/atom-vue@https://pkg.pr.new/Effect-TS/effect-smol/@effect/atom-vue@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@effect/atom-vue@4.0.0-beta.67(effect@4.0.0-beta.67)(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      effect: 4.0.0-beta.67
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   '@effect/language-service@0.85.1': {}
 
-  '@effect/platform-browser@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-browser@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)':
+  '@effect/platform-browser@4.0.0-beta.67(effect@4.0.0-beta.67)':
     dependencies:
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      effect: 4.0.0-beta.67
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)':
+  '@effect/platform-node-shared@4.0.0-beta.67(effect@4.0.0-beta.67)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      effect: 4.0.0-beta.67
       ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(ioredis@5.9.3)':
+  '@effect/platform-node@4.0.0-beta.67(effect@4.0.0-beta.67)(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node-shared@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      '@effect/platform-node-shared': 4.0.0-beta.67(effect@4.0.0-beta.67)
+      effect: 4.0.0-beta.67
       ioredis: 5.9.3
       mime: 4.1.0
       undici: 8.3.0
@@ -7367,14 +7354,14 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/sql-sqlite-node@https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-node@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)':
+  '@effect/sql-sqlite-node@4.0.0-beta.67(effect@4.0.0-beta.67)':
     dependencies:
       better-sqlite3: 12.9.0
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      effect: 4.0.0-beta.67
 
-  '@effect/vitest@https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@a42ef66(effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))':
+  '@effect/vitest@4.0.0-beta.67(effect@4.0.0-beta.67)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0)))':
     dependencies:
-      effect: https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66
+      effect: 4.0.0-beta.67
       vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.9.0))
 
   '@emnapi/core@1.10.0':
@@ -8551,13 +8538,13 @@ snapshots:
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-component-type-helpers: 3.2.9
 
-  '@tanstack/devtools-event-client@0.4.0': {}
+  '@tanstack/devtools-event-client@0.4.3': {}
 
-  '@tanstack/form-core@1.27.7':
+  '@tanstack/form-core@1.32.0':
     dependencies:
-      '@tanstack/devtools-event-client': 0.4.0
+      '@tanstack/devtools-event-client': 0.4.3
       '@tanstack/pacer-lite': 0.1.1
-      '@tanstack/store': 0.7.7
+      '@tanstack/store': 0.9.3
 
   '@tanstack/match-sorter-utils@8.19.4':
     dependencies:
@@ -8567,12 +8554,12 @@ snapshots:
 
   '@tanstack/query-core@5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)': {}
 
-  '@tanstack/store@0.7.7': {}
+  '@tanstack/store@0.9.3': {}
 
-  '@tanstack/vue-form@1.27.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@tanstack/vue-form@1.32.0(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      '@tanstack/form-core': 1.27.7
-      '@tanstack/vue-store': 0.7.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      '@tanstack/form-core': 1.32.0
+      '@tanstack/vue-store': 0.9.3(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -8585,9 +8572,9 @@ snapshots:
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-demi: 0.14.10(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 
-  '@tanstack/vue-store@0.7.7(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@tanstack/vue-store@0.9.3(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      '@tanstack/store': 0.7.7
+      '@tanstack/store': 0.9.3
       vue: 3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-demi: 0.14.10(vue@3.5.34(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 
@@ -10090,7 +10077,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@https://pkg.pr.new/Effect-TS/effect-smol/effect@a42ef66:
+  effect@4.0.0-beta.67:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.7.0

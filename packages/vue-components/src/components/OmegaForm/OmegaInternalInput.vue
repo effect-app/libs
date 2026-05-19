@@ -145,6 +145,12 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   } else {
     props.field.handleChange(value)
   }
+
+  // A change here may have materialised a nullable struct (this field is one
+  // of its children); backfill the untouched siblings so the live `values`
+  // matches what validation and decoding see.
+  const form = props.field.form as { normalizeNullableStructs?: () => void }
+  form.normalizeNullableStructs?.()
 }
 
 // Note: Default value normalization (converting empty strings to null/undefined for nullable fields)

@@ -295,6 +295,12 @@ export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   unionMeta: Record<string, MetaRecord<From>>
   clear: () => void
+  /**
+   * Backfills the untouched children of any materialised nullable struct with
+   * their schema default (or `null`), so the live `values` matches what
+   * validation and decoding see. Called after a field change.
+   */
+  normalizeNullableStructs: () => void
   i18nNamespace?: string
   ignorePreventCloseEvents?: boolean
   registerField: (

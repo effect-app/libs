@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
 import * as Context from "effect-app/Context"
 import * as S from "effect-app/Schema"
 import { type InjectionKey, watch } from "vue"
 import { eHoc, makeFieldMap } from "./errors"
 import { fHoc } from "./hocs"
-import { generateMetaFromSchema } from "./meta/createMeta"
-import { defaultsValueFromSchema } from "./meta/defaults"
+import { generateMetaFromSchema, unwrapDeclaration } from "./meta/createMeta"
+import { defaultsValueFromSchema, fillNestedDefaults } from "./meta/defaults"
 import { toFormSchema } from "./meta/redacted"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
@@ -51,11 +51,29 @@ export const useOmegaForm = <
   // (select) and literal-array (multiple) AST nodes with a localized
   // `message` so the formatter picks them up via `findMessage`.
   const localizedSchema = annotateLiteralUnionMessages(formCompatibleSchema, trans)
-  const standardSchema = toLocalizedStandardSchemaV1(
+
+  // A nullable struct (`S.NullOr(S.Struct(...))`) has no slot in the form
+  // value until a child is filled. Once it materialises, its untouched
+  // children are still `undefined` — which strict `S.NullOr(...)` children
+  // reject. Deep-fill those children with their defaults before both
+  // validation and decoding so they validate as `null` (or their default).
+  const formAst = unwrapDeclaration(formCompatibleSchema.ast)
+  const normalizeFormValue = (value: unknown) => fillNestedDefaults(formAst, value)
+
+  const baseStandardSchema = toLocalizedStandardSchemaV1(
     localizedSchema as any,
     trans
   )
-  const decode = S.decodeUnknownEffectConcurrently(formCompatibleSchema)
+  const standardSchema: typeof baseStandardSchema = {
+    ...baseStandardSchema,
+    "~standard": {
+      ...baseStandardSchema["~standard"],
+      validate: (value) => baseStandardSchema["~standard"].validate(normalizeFormValue(value))
+    }
+  }
+
+  const baseDecode = S.decodeUnknownEffectConcurrently(formCompatibleSchema)
+  const decode = (value: From) => baseDecode(normalizeFormValue(value))
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 
@@ -100,6 +118,27 @@ export const useOmegaForm = <
   }) satisfies OmegaFormApi<To, From>
   formHolder.form = form
 
+  // Keep the live form state consistent with the schema: when a nullable
+  // struct materialises (a child got a value), backfill its untouched
+  // children so `values` reflects what is validated and submitted. Called
+  // from the field change handler — the only point a struct can materialise.
+  const normalizeNullableStructs = () => {
+    const current = form.state.values
+    const filled = fillNestedDefaults(formAst, current)
+    if (filled === current || !filled || typeof filled !== "object") return
+    const currentRecord = current as Partial<Record<Extract<keyof From, string>, unknown>>
+    const filledRecord = filled as Partial<Record<Extract<keyof From, string>, unknown>>
+    for (const key of Object.keys(filledRecord) as Array<Extract<keyof From, string>>) {
+      if (filledRecord[key] !== currentRecord[key]) {
+        const field = key as DeepKeys<From>
+        form.setFieldValue(field, filledRecord[key] as DeepValue<From, typeof field>, {
+          dontUpdateMeta: true,
+          dontValidate: true
+        })
+      }
+    }
+  }
+
   const clear = () => {
     Object.keys(meta).forEach((key: any) => {
       form.setFieldValue(key, undefined as any)
@@ -134,6 +173,7 @@ export const useOmegaForm = <
     meta,
     unionMeta,
     clear,
+    normalizeNullableStructs,
     handleSubmit,
     // /** @experimental */
     handleSubmitEffect,

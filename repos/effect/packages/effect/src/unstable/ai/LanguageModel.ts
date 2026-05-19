@@ -8,7 +8,8 @@
  * unified API that can be implemented by different AI providers while
  * maintaining type safety and effect management.
  *
- * @example
+ * **Example** (Generating text)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -25,7 +26,8 @@
  * })
  * ```
  *
- * @example
+ * **Example** (Generating structured output)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -86,7 +88,8 @@ import * as Toolkit from "./Toolkit.ts"
  * application, enabling text generation, streaming, and structured output
  * capabilities.
  *
- * @example
+ * **Example** (Accessing the language model service)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -100,8 +103,8 @@ import * as Toolkit from "./Toolkit.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class LanguageModel extends Context.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
@@ -113,8 +116,8 @@ export class LanguageModel extends Context.Service<LanguageModel, Service>()(
  * Defines the contract that all language model implementations must fulfill,
  * providing text generation, structured output, and streaming capabilities.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Service {
   /**
@@ -225,8 +228,8 @@ export interface Service {
  * schemas they accept. A `CodecTransformer` rewrites a codec's encoded side to
  * satisfy those constraints while preserving the decoded type.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => {
   readonly codec: Schema.Codec<T, unknown, RD, RE>
@@ -237,16 +240,16 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * The default codec transformer that passes schemas through without
  * provider-specific rewrites.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export const defaultCodecTransformer: CodecTransformer = InternalCodecTransformer.defaultCodecTransformer
 
 /**
  * Configuration options for text generation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
   /**
@@ -305,8 +308,8 @@ type GenerateTextOptionsWithoutToolkit = Omit<GenerateTextOptions<{}>, "toolkit"
 /**
  * Configuration options for structured object generation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface GenerateObjectOptions<
   Tools extends Record<string, Tool.Any>,
@@ -339,8 +342,8 @@ export interface GenerateObjectOptions<
  *   `"required"`, the model **must** call one tool from the allowed subset of
  *   tools.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToolChoice<ToolName extends string> =
   | "auto"
@@ -361,7 +364,8 @@ export type ToolChoice<ToolName extends string> =
  * extracting different types of response parts like text, tool calls, and usage
  * information.
  *
- * @example
+ * **Example** (Inspecting a text response)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -379,8 +383,8 @@ export type ToolChoice<ToolName extends string> =
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
   readonly content: Array<Response.Part<Tools>>
@@ -471,7 +475,8 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
 /**
  * Response class for structured object generation operations.
  *
- * @example
+ * **Example** (Inspecting an object response)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -494,8 +499,8 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class GenerateObjectResponse<
   Tools extends Record<string, Tool.Any>,
@@ -519,8 +524,8 @@ export class GenerateObjectResponse<
 /**
  * The supported toolkit option shapes for language model operations.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ToolkitOption<
   Tools extends Record<string, Tool.Any>,
@@ -528,8 +533,7 @@ export type ToolkitOption<
   R = any
 > = Tools extends any ? (
     | Toolkit.WithHandler<Tools>
-    | Effect.Yieldable<
-      Toolkit.Toolkit<Tools>,
+    | Effect.Effect<
       Toolkit.WithHandler<Tools>,
       E,
       R
@@ -544,8 +548,8 @@ export type ToolkitOption<
  * intended for call-site assignability, while `ToolkitOption` remains the
  * distributive helper used for extraction and inference.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ToolkitInput<
   Tools extends Record<string, Tool.Any>,
@@ -554,27 +558,25 @@ export type ToolkitInput<
 > =
   | ToolkitOption<Tools, E, R>
   | Toolkit.WithHandler<Tools>
-  | Effect.Yieldable<
-    Toolkit.Toolkit<Tools>,
+  | Effect.Effect<
     Toolkit.WithHandler<Tools>,
     E,
     R
   >
 
 type ExtractToolsFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ? Tools
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
+  : ToolkitValue extends Effect.Effect<
     Toolkit.WithHandler<infer _Tools>,
     infer _E,
     infer _R
-  > ? Tools
+  > ? _Tools
   : never
 
 /**
  * Utility type that extracts the toolset from LanguageModel options.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractTools<Options> = Options extends {
   readonly toolkit: infer ToolkitValue
@@ -585,20 +587,18 @@ type ExtractErrorFromToolkitOption<ToolkitValue, DisableToolCallResolution exten
   Toolkit.WithHandler<infer Tools> ?
     | AiError.AiError
     | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
+  : ToolkitValue extends Effect.Effect<
     Toolkit.WithHandler<infer _Tools>,
     infer E,
     infer _R
-  > ? AiError.AiError | E | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
+  > ? AiError.AiError | E | (DisableToolCallResolution extends true ? never : Tool.HandlerError<_Tools[keyof _Tools]>)
   : AiError.AiError
 
 type ExtractServicesFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ?
     | Tool.HandlerServices<Tools[keyof Tools]>
     | Tool.ResultDecodingServices<Tools[keyof Tools]>
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
-    Toolkit.WithHandler<infer _Tools>,
+  : ToolkitValue extends Effect.Effect<
+    Toolkit.WithHandler<infer Tools>,
     infer _E,
     infer R
   > ?
@@ -607,16 +607,14 @@ type ExtractServicesFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolk
       | R
   : never
 
-type ExtractToolkitResolutionError<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
-  Toolkit.Toolkit<infer _Tools>,
+type ExtractToolkitResolutionError<ToolkitValue> = ToolkitValue extends Effect.Effect<
   Toolkit.WithHandler<infer _Tools>,
   infer E,
   infer _R
 > ? E
   : never
 
-type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
-  Toolkit.Toolkit<infer _Tools>,
+type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effect.Effect<
   Toolkit.WithHandler<infer _Tools>,
   infer _E,
   infer R
@@ -629,8 +627,8 @@ type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effec
  * Automatically infers the possible error types based on toolkit configuration
  * and tool call resolution settings.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractError<Options> = Options extends {
   readonly disableToolCallResolution: true
@@ -649,8 +647,8 @@ export type ExtractError<Options> = Options extends {
  *
  * Automatically infers the required services based on the toolkit configuration.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractServices<Options> = Options extends {
   readonly disableToolCallResolution: true
@@ -672,8 +670,8 @@ export type ExtractServices<Options> = Options extends {
  * underlying provider implementation, regardless of the specific provider being
  * used.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ProviderOptions {
   /**
@@ -747,8 +745,8 @@ export interface ProviderOptions {
  * This constructor takes provider-specific implementations for text generation
  * and streaming text generation and returns a LanguageModel service.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: (params: {
   /**
@@ -1602,7 +1600,8 @@ export const make: (params: {
 /**
  * Generate text using a language model.
  *
- * @example
+ * **Example** (Generating text with options)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1620,8 +1619,8 @@ export const make: (params: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category text generation
+ * @since 4.0.0
  */
 export const generateText: {
   // No toolkit: force `{}` instead of falling back to `Record<string, Tool.Any>`.
@@ -1670,7 +1669,8 @@ export const generateText: {
 /**
  * Generate a structured object from a schema using a language model.
  *
- * @example
+ * **Example** (Generating an object)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1696,8 +1696,8 @@ export const generateText: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category object generation
+ * @since 4.0.0
  */
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
@@ -1724,7 +1724,8 @@ export const generateObject = <
  * Returns a stream of response parts that are emitted as soon as they are
  * available from the model, enabling real-time text generation experiences.
  *
- * @example
+ * **Example** (Streaming text deltas)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1739,8 +1740,8 @@ export const generateObject = <
  * }))
  * ```
  *
- * @since 4.0.0
  * @category text generation
+ * @since 4.0.0
  */
 export const streamText: {
   // No toolkit: force `{}` instead of falling back to `Record<string, Tool.Any>`.
@@ -2163,8 +2164,8 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
   toolkit: ToolkitInput<Tools, E, R>
 ): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
-  ("asEffect" in toolkit
-    ? toolkit.asEffect()
+  (Effect.isEffect(toolkit)
+    ? toolkit
     : Effect.succeed(toolkit as unknown as Toolkit.WithHandler<Tools>)) as any
 
 /** @internal */

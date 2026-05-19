@@ -34,3 +34,9 @@ scratchpad/**/*
 
 # Claude Code
 .claude/
+
+# Codex
+.agents/
+
+# OpenCode local tooling
+.opencode/

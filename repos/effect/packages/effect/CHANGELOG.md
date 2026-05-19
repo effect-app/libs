@@ -1,5 +1,127 @@
 # effect
 
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- [#2185](https://github.com/Effect-TS/effect-smol/pull/2185) [`a42ef66`](https://github.com/Effect-TS/effect-smol/commit/a42ef6632abbddfa820995ae310ccc84ae8d9b6f) Thanks @lloydrichards! - add rows to Terminal
+
+- [#2111](https://github.com/Effect-TS/effect-smol/pull/2111) [`35594f8`](https://github.com/Effect-TS/effect-smol/commit/35594f811cafe471acd490114b103a1f8392c8d8) Thanks @thiagofelix! - Fix `EntityProxyServer.layerHttpApi` using `path.entityId` instead of `params.entityId`
+
+- [#2201](https://github.com/Effect-TS/effect-smol/pull/2201) [`8bddd62`](https://github.com/Effect-TS/effect-smol/commit/8bddd628cb623f9533d345082583ff51cead6836) Thanks @sjh9714! - Fix `MutableList.filter` and `MutableList.remove` length updates.
+
+- [#2181](https://github.com/Effect-TS/effect-smol/pull/2181) [`4be4c8d`](https://github.com/Effect-TS/effect-smol/commit/4be4c8d60862aa963869ee2ed9ffa048ffac0527) Thanks @zeyuri! - Fix workflow proxy RPC handlers to provide the context expected by RpcServer.
+
+- [#2177](https://github.com/Effect-TS/effect-smol/pull/2177) [`0c9d3ab`](https://github.com/Effect-TS/effect-smol/commit/0c9d3ab43eb721a370ed8306260cbac218c27e87) Thanks @mikearnaldi! - Add forked memo maps so nested layer scopes can reuse parent allocations without leaking sibling-local layers. Update `@effect/vitest` to fork memo maps for nested `it.layer` suites, isolating sibling setup while preserving parent sharing.
+
+- [#2206](https://github.com/Effect-TS/effect-smol/pull/2206) [`b156acc`](https://github.com/Effect-TS/effect-smol/commit/b156accd2691b4a051f823affdece7c39923ce85) Thanks @tim-smart! - add `availableShardGroups` to ShardingConfig, to ensure advisory locks do not conflict
+
+- [#2184](https://github.com/Effect-TS/effect-smol/pull/2184) [`d16c034`](https://github.com/Effect-TS/effect-smol/commit/d16c03434ee3e6dcd3bfc82b65d99e881d89025b) Thanks @gcanti! - Restore support for passing schema parse options when creating decode and encode helpers, closes [#2174](https://github.com/Effect-TS/effect-smol/issues/2174).
+
+- [#2176](https://github.com/Effect-TS/effect-smol/pull/2176) [`b559d68`](https://github.com/Effect-TS/effect-smol/commit/b559d68845f848a10153395778f035682d399075) Thanks @patroza! - Allow Schema decoding defaults to require Effect services.
+
+  The `Effect` passed to `Schema.withDecodingDefault`, `Schema.withDecodingDefaultKey`, `Schema.withDecodingDefaultType`, and `Schema.withDecodingDefaultTypeKey` now accepts a context `R` in its third type parameter. The required services are propagated into the resulting schema's `DecodingServices`. `SchemaGetter.withDefault` is widened in the same way.
+
+- [#2113](https://github.com/Effect-TS/effect-smol/pull/2113) [`a3de5d9`](https://github.com/Effect-TS/effect-smol/commit/a3de5d9215e5cc4a62e2666efbd7c1bf595eb84f) Thanks @patroza! - Allow Schema constructor and decoding defaults to fail with `SchemaError`.
+
+  The `Effect` passed to `Schema.withConstructorDefault`, `Schema.withDecodingDefault`, `Schema.withDecodingDefaultKey`, `Schema.withDecodingDefaultType`, and `Schema.withDecodingDefaultTypeKey` now accepts `SchemaError` in its error channel. When a default fails, the parser unwraps the underlying `SchemaIssue.Issue` and propagates it as a parse failure with the surrounding path attached. This makes it easy to use another schema's `makeEffect` / `decode*` as the default value.
+
+- [#2172](https://github.com/Effect-TS/effect-smol/pull/2172) [`7e6c12e`](https://github.com/Effect-TS/effect-smol/commit/7e6c12ec9b3a5945f6c26e272cc8f6390541ad3e) Thanks @gcanti! - Rename `SchemaParser.makeUnsafe` to `SchemaParser.make`.
+
+- [#2167](https://github.com/Effect-TS/effect-smol/pull/2167) [`098167a`](https://github.com/Effect-TS/effect-smol/commit/098167a220fe07da6f14455818733ab1b269c9dd) Thanks @tim-smart! - update dependencies
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- [#2163](https://github.com/Effect-TS/effect-smol/pull/2163) [`ca2498e`](https://github.com/Effect-TS/effect-smol/commit/ca2498e702ac2d83fb7187707b7eb069bdb261a2) Thanks @tim-smart! - remove Effect.Yieldable
+
+- [#2161](https://github.com/Effect-TS/effect-smol/pull/2161) [`cd7d1fb`](https://github.com/Effect-TS/effect-smol/commit/cd7d1fba7e2e2c5ac3ad64e1be433440a5bda436) Thanks @wking-io! - Fix request ID tracking in the RPC server HTTP protocol finalizer.
+
+- [#2158](https://github.com/Effect-TS/effect-smol/pull/2158) [`19a7033`](https://github.com/Effect-TS/effect-smol/commit/19a703367ec817cffc41d152da9b594827408e2b) Thanks @ColaFanta! - Change `Type_<>` implementation, from using `Exclude<F, O | M>` type util to `keyof F as xx`, this implementation keeps IDE provenance link. This enables clicking "Go to definition (F12)" in VSCode on an object made from Schema Struct jumps to the correct Struct field definition.
+
+- [#2153](https://github.com/Effect-TS/effect-smol/pull/2153) [`33d26b4`](https://github.com/Effect-TS/effect-smol/commit/33d26b4210b2e974f146a71e7eed962f8ce00900) Thanks @Gabrola! - Allow `HttpApiTest.groups` to accept an optional `baseUrl` override while preserving the existing default of `"http://localhost:3000"`.
+
+- [#2160](https://github.com/Effect-TS/effect-smol/pull/2160) [`856766b`](https://github.com/Effect-TS/effect-smol/commit/856766b2c506aaed6d2df1d63bf3a5b1b062e1d4) Thanks @tim-smart! - Remove the auto-incrementing suffix from HTTP server logger log span names.
+
+- [#2164](https://github.com/Effect-TS/effect-smol/pull/2164) [`079c7df`](https://github.com/Effect-TS/effect-smol/commit/079c7df82559bb9ce10a86dffb85d25e6ce07dc3) Thanks @tim-smart! - Add the unstable workflow DurableQueue module.
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- [#2148](https://github.com/Effect-TS/effect-smol/pull/2148) [`6f11454`](https://github.com/Effect-TS/effect-smol/commit/6f11454a9b6c3bd00f6b35fd7af14a2f2d63a0a2) Thanks @tim-smart! - Add `UniqueViolation` as a new SQL error reason. Supported unique constraint violations now classify as `UniqueViolation` instead of the broader `ConstraintError` reason.
+
+  This covers PostgreSQL, PGlite, MySQL, MSSQL, and the shared SQLite classification used by the SQLite-family clients. `UniqueViolation.constraint` contains the best available constraint, index, or key identifier and falls back to exactly `"unknown"` when no reliable identifier is available.
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- [#2137](https://github.com/Effect-TS/effect-smol/pull/2137) [`7d4877a`](https://github.com/Effect-TS/effect-smol/commit/7d4877a1929cdb690280ea254326c04f2ec97ea5) Thanks @tim-smart! - Add optional soft delete column support to SqlModel repositories and resolvers.
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- [#2136](https://github.com/Effect-TS/effect-smol/pull/2136) [`7f927ff`](https://github.com/Effect-TS/effect-smol/commit/7f927ffb7a9801dcfc4096c29e369d13d65cd0ac) Thanks @tim-smart! - add HttpApiTest module
+
+- [#2123](https://github.com/Effect-TS/effect-smol/pull/2123) [`a696b3e`](https://github.com/Effect-TS/effect-smol/commit/a696b3e83a8504cdbe261a18c10a1cc0619ae102) Thanks @lewxdev! - add `Effect.acquireDisposable`
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- [#2131](https://github.com/Effect-TS/effect-smol/pull/2131) [`4ab4b90`](https://github.com/Effect-TS/effect-smol/commit/4ab4b9007dc27a52ffabc6fcb37c96eeec795bf7) Thanks @tim-smart! - Allow Kubernetes pod condition `lastTransitionTime` values to be null in K8sHttpClient schemas.
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- [#2130](https://github.com/Effect-TS/effect-smol/pull/2130) [`50790af`](https://github.com/Effect-TS/effect-smol/commit/50790af9b190c38d10fb0723837d49b66432638f) Thanks @tim-smart! - Record fiber runtime start metrics when fibers are constructed so yielded fibers are only counted once.
+
+- [#2120](https://github.com/Effect-TS/effect-smol/pull/2120) [`71f7c3d`](https://github.com/Effect-TS/effect-smol/commit/71f7c3df997deda92c84146d569696dab3bd645c) Thanks @tim-smart! - Port `Effect.firstSuccessOf` from Effect v3.
+
+- [#2122](https://github.com/Effect-TS/effect-smol/pull/2122) [`aae8797`](https://github.com/Effect-TS/effect-smol/commit/aae8797b9cb383be0c182dd58d03d787c354238b) Thanks @tim-smart! - fix empty body decoding in HttpApiBuilder
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- [#2115](https://github.com/Effect-TS/effect-smol/pull/2115) [`f69d567`](https://github.com/Effect-TS/effect-smol/commit/f69d5675dcff9f4137295752baf066b7153fdc09) Thanks @tim-smart! - add Rpc.custom
+
+- [#2119](https://github.com/Effect-TS/effect-smol/pull/2119) [`7909c95`](https://github.com/Effect-TS/effect-smol/commit/7909c954b8f6244a35a4b429f8dd0dff45dad620) Thanks @gcanti! - Remove `Inspectable.stringifyCircular` and fix `Formatter.formatJson` so shared object references are preserved while only circular references are omitted.
+
+- [`bbb4dcc`](https://github.com/Effect-TS/effect-smol/commit/bbb4dcc6c406b83a416b4ad3541cc02037c420e4) Thanks @tim-smart! - allow using Duration.Input with accessors
+
+- [#2117](https://github.com/Effect-TS/effect-smol/pull/2117) [`7af2207`](https://github.com/Effect-TS/effect-smol/commit/7af2207901eabf3132c1b7010a69b3899c06fbbe) Thanks @gcanti! - Add `Schema.DurationFromString` and `SchemaTransformation.durationFromString`, support `"Infinity"` and `"-Infinity"` in `Duration.fromInput`, and simplify config duration parsing around the shared schema codec, closes [#2092](https://github.com/Effect-TS/effect-smol/issues/2092).
+
+- [#2116](https://github.com/Effect-TS/effect-smol/pull/2116) [`848b40a`](https://github.com/Effect-TS/effect-smol/commit/848b40a4bd4bf54a5098617d50c33c88eee8270a) Thanks @gcanti! - Add a `Config.literals` convenience constructor for `Schema.Literals`, closes [#2091](https://github.com/Effect-TS/effect-smol/issues/2091).
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- [#2106](https://github.com/Effect-TS/effect-smol/pull/2106) [`56837ea`](https://github.com/Effect-TS/effect-smol/commit/56837ea2a338395b35550641374e9e589bd8b71d) Thanks @IMax153! - Fix entity proxy RPC handlers to provide the context expected by RpcServer.
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- [#2097](https://github.com/Effect-TS/effect-smol/pull/2097) [`11993d4`](https://github.com/Effect-TS/effect-smol/commit/11993d4934c66f5dc611b8bbf553f01d501ef8f7) Thanks @Leka74! - Add an exhaustive finalizer to the AsyncResult builder.
+
+- [#2098](https://github.com/Effect-TS/effect-smol/pull/2098) [`96c8b22`](https://github.com/Effect-TS/effect-smol/commit/96c8b22c2057ccddbf10ed269d7697f22119b3ec) Thanks @tim-smart! - generate binary arrays from streams with less copying
+
+- [#2098](https://github.com/Effect-TS/effect-smol/pull/2098) [`96c8b22`](https://github.com/Effect-TS/effect-smol/commit/96c8b22c2057ccddbf10ed269d7697f22119b3ec) Thanks @tim-smart! - improve http body consumption
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- [#2085](https://github.com/Effect-TS/effect-smol/pull/2085) [`a971f5c`](https://github.com/Effect-TS/effect-smol/commit/a971f5cbd92dfe4274420bf0966595eb35531060) Thanks @tim-smart! - add Effect.abortSignal
+
+- [#2088](https://github.com/Effect-TS/effect-smol/pull/2088) [`8e110c5`](https://github.com/Effect-TS/effect-smol/commit/8e110c5f02a429ccc43a91df8678e402138c0851) Thanks @tim-smart! - ensure each sql client gets a unique transaction service
+
 ## 4.0.0-beta.56
 
 ## 4.0.0-beta.55

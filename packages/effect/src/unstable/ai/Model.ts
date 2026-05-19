@@ -6,7 +6,8 @@
  * functionality with provider identification, allowing for seamless switching
  * between different AI service providers while maintaining type safety.
  *
- * @example
+ * **Example** (Creating a provider-specific model)
+ *
  * ```ts
  * import type { Layer } from "effect"
  * import { Effect } from "effect"
@@ -31,7 +32,7 @@
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
+import { PipeInspectableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
 
 const TypeId = "~effect/ai/Model" as const
@@ -50,24 +51,27 @@ const TypeId = "~effect/ai/Model" as const
  * @template Provides - Services that this model provides.
  * @template Requires - Services that this model requires.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Model<in out Provider, in out Provides, in out Requires>
-  extends
-    Layer.Layer<Provides | ProviderName | ModelName, never, Requires>,
-    Effect.Yieldable<
-      Model<Provider, Provides, Requires>,
-      Layer.Layer<Provides | ProviderName | ModelName>,
-      never,
-      Requires
-    >
+  extends Layer.Layer<Provides | ProviderName | ModelName, never, Requires>
 {
   readonly [TypeId]: typeof TypeId
+
   /**
    * The provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
    */
   readonly provider: Provider
+
+  /**
+   * Returns a `Layer` with the requirements satisfied, using the current context.
+   */
+  readonly captureRequirements: Effect.Effect<
+    Layer.Layer<Provides | ProviderName | ModelName>,
+    never,
+    Requires
+  >
 }
 
 /**
@@ -77,8 +81,8 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  * access the name of the provider that is currently in use within a given
  * Effect program.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class ProviderName extends Context.Service<ProviderName, string>()(
   "effect/unstable/ai/Model/ProviderName"
@@ -91,15 +95,14 @@ export class ProviderName extends Context.Service<ProviderName, string>()(
  * access the name of the model that is currently in use within a given Effect
  * program.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class ModelName extends Context.Service<ModelName, string>()(
   "effect/unstable/ai/Model/ModelName"
 ) {}
 
 const Proto = {
-  ...YieldableProto,
   ...PipeInspectableProto,
   [TypeId]: TypeId,
   ["~effect/Layer"]: {
@@ -107,9 +110,10 @@ const Proto = {
     _E: identity,
     _RIn: identity
   },
-  asEffect(this: Model<any, any, any>) {
+  get captureRequirements() {
+    const self = this as any as Model<any, any, any>
     return Effect.contextWith((context: Context.Context<never>) =>
-      Effect.succeed(Layer.provide(this, Layer.succeedContext(context)))
+      Effect.succeed(Layer.provide(self, Layer.succeedContext(context)))
     )
   },
   toJSON(this: Model<any, any, any>): unknown {
@@ -123,7 +127,8 @@ const Proto = {
 /**
  * Creates a Model from a provider name and a Layer that constructs AI services.
  *
- * @example
+ * **Example** (Providing model metadata)
+ *
  * ```ts
  * import type { Layer } from "effect"
  * import { Effect } from "effect"
@@ -149,8 +154,8 @@ const Proto = {
  * // Will log: "Generating with: amazon-bedrock/claude-3-5-haiku"
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Provider extends string, const Name extends string, Provides, Requires>(
   /**

@@ -68,7 +68,6 @@
  * @since 4.0.0
  */
 
-import type { Yieldable } from "./Effect.ts"
 import * as Equivalence from "./Equivalence.ts"
 import type { LazyArg } from "./Function.ts"
 import { constNull, constUndefined, dual, identity } from "./Function.ts"
@@ -154,7 +153,7 @@ export type Result<A, E = never> = Success<A, E> | Failure<A, E>
  * @category Models
  * @since 4.0.0
  */
-export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Failure<out A, out E> extends Pipeable, Inspectable {
   readonly _tag: "Failure"
   readonly _op: "Failure"
   readonly failure: E
@@ -162,9 +161,23 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
+  [Symbol.iterator](): ResultIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore
+}
+
+/**
+ * Iterator protocol used to yield a `Result` inside {@link gen}, returning the
+ * success value type back to the generator.
+ *
+ * @category Generators
+ * @since 4.0.0
+ */
+export interface ResultIterator<T extends Result<any, any>> {
+  next(
+    ...args: ReadonlyArray<any>
+  ): IteratorResult<T, Result.Success<T>>
 }
 
 /**
@@ -194,7 +207,7 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
  * @category Models
  * @since 4.0.0
  */
-export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Success<out A, out E> extends Pipeable, Inspectable {
   readonly _tag: "Success"
   readonly _op: "Success"
   readonly success: A
@@ -202,6 +215,7 @@ export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
+  [Symbol.iterator](): ResultIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore
@@ -263,22 +277,21 @@ export interface ResultTypeLambda extends TypeLambda {
  * type E = Result.Result.Failure<R>
  * ```
  *
- * @category Type Level
  * @since 4.0.0
  */
 export declare namespace Result {
   /**
    * Extracts the failure type `E` from `Result<A, E>`.
    *
-   * @since 4.0.0
    * @category Type Level
+   * @since 4.0.0
    */
   export type Failure<T extends Result<any, any>> = [T] extends [Result<infer _A, infer _E>] ? _E : never
   /**
    * Extracts the success type `A` from `Result<A, E>`.
    *
-   * @since 4.0.0
    * @category Type Level
+   * @since 4.0.0
    */
   export type Success<T extends Result<any, any>> = [T] extends [Result<infer _A, infer _E>] ? _A : never
 }
@@ -375,10 +388,10 @@ export {
 }
 
 /**
- * A pre-built `Result<void>` holding `undefined` as its failure value.
+ * A pre-built failed `Result` whose failure value is `undefined`.
  *
- * - Use when you need a `Result` that represents "failed with no meaningful value"
- * - Equivalent to `Result.fail(undefined)` but avoids an extra allocation
+ * This is equivalent to `Result.fail(undefined)` with type
+ * `Result<never, void>`, but avoids allocating a new `Failure` wrapper.
  *
  * @see {@link fail}
  *
@@ -938,8 +951,8 @@ export const liftPredicate: {
  * @see {@link liftPredicate} to create a `Result` from a raw value with a predicate
  * @see {@link flatMap} for general conditional chaining
  *
- * @since 4.0.0
  * @category Filtering
+ * @since 4.0.0
  */
 export const filterOrFail: {
   <A, B extends A, E2>(
@@ -1593,8 +1606,8 @@ export {
  *
  * @see {@link transposeMapOption} to map and transpose in one step
  *
- * @since 3.14.0
  * @category Transposing
+ * @since 3.14.0
  */
 export const transposeOption = <A = never, E = never>(
   self: Option<Result<A, E>>
@@ -1629,8 +1642,8 @@ export const transposeOption = <A = never, E = never>(
  *
  * @see {@link transposeOption} when the Option already contains a Result
  *
- * @since 3.15.0
  * @category Transposing
+ * @since 3.15.0
  */
 export const transposeMapOption = dual<
   <A, B, E = never>(

@@ -14,11 +14,11 @@ import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
-export * from "./utils/effectify.js"
-export * from "./utils/extend.js"
-export * from "./utils/gen.js"
-export * from "./utils/logger.js"
-export * from "./utils/logLevel.js"
+export * from "./utils/effectify.ts"
+export * from "./utils/extend.ts"
+export * from "./utils/gen.ts"
+export * from "./utils/logger.ts"
+export * from "./utils/logLevel.ts"
 // codegen:end
 
 export * from "effect/Utils"

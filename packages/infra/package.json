@@ -18,7 +18,7 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-sqlite-node": "4.0.0-beta.67",
+    "@effect/sql-sqlite-node": "4.0.0-beta.68",
     "@sentry/node": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
     "@types/better-sqlite3": "^7.6.13",
@@ -38,12 +38,12 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/vitest": "^4.0.0-beta.66",
+    "@effect/vitest": "^4.0.0-beta.68",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
-    "effect": "^4.0.0-beta.66",
+    "effect": "^4.0.0-beta.68",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0"

@@ -1,5 +1,15 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.18
+
+### Minor Changes
+
+- 34ab818: Add `importExtension` option to the `barrel` preset to control the file extension emitted on generated imports/exports (defaults to `.js`). Configurable per block, globally via the oxlint rule option `["error", { barrel: { importExtension: ".ts" } }]`, or via `codegen.config.json` (CLI also accepts `--config <path>`). Resolution order: preset default → global defaults → per-block options.
+
+### Patch Changes
+
+- ccd4845: set default barrel ext to .ts
+
 ## 2.0.0-beta.17
 
 ### Patch Changes

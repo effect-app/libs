@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.22
+
+### Patch Changes
+
+- 6cfd83d: update effect to latest beta
+
 ## 2.1.0-beta.21
 
 ### Patch Changes

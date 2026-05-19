@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.235
+
+### Patch Changes
+
+- ba4bdc3: improve: support .ts extension
+- 6cfd83d: update effect to latest beta
+
 ## 4.0.0-beta.234
 
 ## 4.0.0-beta.233

@@ -1,1 +1,1 @@
-{"version":3,"file":"codegen.d.ts","sourceRoot":"","sources":["../../../src/oxlint/rules/codegen.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAA;AAyBpD,QAAA,MAAM,WAAW,EAAE,UA4DlB,CAAA;eAEc,WAAW"}
+{"version":3,"file":"codegen.d.ts","sourceRoot":"","sources":["../../../src/oxlint/rules/codegen.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAA;AA0BpD,QAAA,MAAM,WAAW,EAAE,UA6DlB,CAAA;eAEc,WAAW"}

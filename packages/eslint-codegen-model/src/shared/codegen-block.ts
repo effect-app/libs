@@ -68,6 +68,15 @@ export function indentBlock(content: string, indent: string): string {
     .join("\n")
 }
 
+export type CodegenDefaults = Partial<Record<string, Record<string, unknown>>>
+
+export function applyDefaults(options: BlockOptions, defaults?: CodegenDefaults): BlockOptions {
+  if (!defaults) return options
+  const presetDefaults = defaults[options.preset]
+  if (!presetDefaults) return options
+  return { ...presetDefaults, ...options, preset: options.preset }
+}
+
 export function renderPreset(options: BlockOptions, meta: CodegenMeta, fullSource?: string): string {
   const { preset, ...rest } = options
   switch (preset) {

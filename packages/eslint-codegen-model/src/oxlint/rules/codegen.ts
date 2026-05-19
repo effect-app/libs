@@ -1,12 +1,13 @@
 // @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
 import type { CreateRule } from "oxlint/plugins-dev"
-import { type BlockOptions, blockRe, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.js"
+import { applyDefaults, type BlockOptions, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.js"
 
 type RuleContext = {
   sourceCode: {
     getText: () => string
   }
   physicalFilename: string
+  options: ReadonlyArray<unknown>
   report: (diagnostic: {
     node: RuleNode
     message: string
@@ -33,6 +34,7 @@ const codegenRule: CreateRule = {
     }
   },
   create(context: RuleContext) {
+    const defaults = (context.options[0] ?? undefined) as CodegenDefaults | undefined
     return {
       Program(program: RuleNode) {
         const source = context.sourceCode.getText()
@@ -49,7 +51,7 @@ const codegenRule: CreateRule = {
 
           let options: BlockOptions
           try {
-            options = parseBlockOptions(rawOptions)
+            options = applyDefaults(parseBlockOptions(rawOptions), defaults)
           } catch {
             continue
           }

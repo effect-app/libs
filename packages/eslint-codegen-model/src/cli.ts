@@ -4,15 +4,31 @@ import * as path from "node:path"
 
 import glob from "glob"
 
-import { blockRe, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
+import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 
-function updateFile(filePath: string, source: string): boolean {
+const CONFIG_FILENAMES = ["codegen.config.json"]
+
+function loadConfig(cwd: string, explicit?: string): CodegenDefaults | undefined {
+  const candidates = explicit ? [path.resolve(cwd, explicit)] : CONFIG_FILENAMES.map((f) => path.join(cwd, f))
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      const parsed = JSON.parse(fs.readFileSync(candidate, "utf8"))
+      return parsed as CodegenDefaults
+    }
+  }
+  if (explicit) {
+    throw new Error(`Config not found: ${explicit}`)
+  }
+  return undefined
+}
+
+function updateFile(filePath: string, source: string, defaults?: CodegenDefaults): boolean {
   let changed = false
 
   const next = source.replace(
     blockRe,
     (_match, indent: string, rawOptions: string, body: string, endIndent: string) => {
-      const options = parseBlockOptions(rawOptions)
+      const options = applyDefaults(parseBlockOptions(rawOptions), defaults)
       const existingContent = trimTrailingNewline(body)
       const generatedContent = trimTrailingNewline(
         normaliseGeneratedContent(
@@ -40,8 +56,9 @@ function updateFile(filePath: string, source: string): boolean {
   return changed
 }
 
-function parseArgs(args: ReadonlyArray<string>): { files: Array<string>; help: boolean } {
+function parseArgs(args: ReadonlyArray<string>): { files: Array<string>; help: boolean; config?: string } {
   const files: Array<string> = []
+  let config: string | undefined
 
   for (let index = 0; index < args.length; index++) {
     const part = args[index]!
@@ -57,10 +74,19 @@ function parseArgs(args: ReadonlyArray<string>): { files: Array<string>; help: b
       index++
       continue
     }
+    if (part === "--config") {
+      const next = args[index + 1]
+      if (!next) {
+        throw new Error("Missing value for --config")
+      }
+      config = next
+      index++
+      continue
+    }
     throw new Error(`Unknown argument: ${part}`)
   }
 
-  return { files, help: false }
+  return config === undefined ? { files, help: false } : { files, help: false, config }
 }
 
 function defaultFiles(): Array<string> {
@@ -79,14 +105,16 @@ function defaultFiles(): Array<string> {
 }
 
 function run() {
-  const { files, help } = parseArgs(process.argv.slice(2))
+  const { files, help, config } = parseArgs(process.argv.slice(2))
 
   if (help) {
-    console.log("Usage: effect-app-codegen [--file <path>]...")
+    console.log("Usage: effect-app-codegen [--file <path>]... [--config <path>]")
     console.log("Runs codegen blocks in the given files, or scans the current working tree when omitted.")
+    console.log(`Loads ${CONFIG_FILENAMES.join(", ")} from cwd when present; --config overrides.`)
     return
   }
 
+  const defaults = loadConfig(process.cwd(), config)
   const targetFiles = files.length > 0 ? files : defaultFiles()
   const updated: Array<string> = []
   const untouched: Array<string> = []
@@ -101,7 +129,7 @@ function run() {
       continue
     }
 
-    if (updateFile(filePath, source)) {
+    if (updateFile(filePath, source, defaults)) {
       updated.push(path.relative(process.cwd(), filePath))
     } else {
       untouched.push(path.relative(process.cwd(), filePath))

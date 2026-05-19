@@ -57,6 +57,10 @@ function toPascalCase(s: string): string {
  * If specified, matching modules will be bundled into a const or default export based on this name. If set
  * to `{name: someName, keys: path}` the relative file paths will be used as keys. Otherwise the file paths
  * will be camel-cased to make them valid js identifiers.
+ * @param importExtension
+ * [optional] Extension used on the emitted import/export specifiers. Defaults to `.js`. Set to `.ts` (or
+ * empty string) to emit unsuffixed/TS specifiers. Configurable per block, or globally via the rule option
+ * `{ barrel: { importExtension: ".ts" } }` / `codegen.config.json`.
  */
 export const barrel: PresetFn<{
   include?: string
@@ -68,10 +72,12 @@ export const barrel: PresetFn<{
     | { as: "PascalCase"; postfix?: string }
   nodir?: boolean
   modulegen?: boolean
+  importExtension?: string
 }> = ({ meta, options: opts }) => {
   const cwd = path.dirname(meta.filename)
   const nodir = opts.nodir ?? true
   const modulegen = opts.modulegen ?? false
+  const importExt = opts.importExtension ?? ".js"
 
   const ext = meta.filename.split(".").slice(-1)[0]
   const pattern = opts.include || `*.${ext}`
@@ -106,11 +112,11 @@ export const barrel: PresetFn<{
           (f) =>
             `export * as ${toPascalCase(last(f.split("/"))!)}${
               "postfix" in exportOpt ? exportOpt.postfix : ""
-            } from "${f}.js"`
+            } from "${f}${importExt}"`
         )
         .join("\n")
     } else {
-      expectedContent = relativeFiles.map((f) => `export * from "${f}.js"`).join("\n")
+      expectedContent = relativeFiles.map((f) => `export * from "${f}${importExt}"`).join("\n")
     }
   } else {
     const importPrefix = opts.import === "default" ? "" : "* as "
@@ -135,7 +141,7 @@ export const barrel: PresetFn<{
     )
 
     const imports = withIdentifiers
-      .map((i) => `import ${importPrefix}${i.identifier} from "${i.file}.js"`)
+      .map((i) => `import ${importPrefix}${i.identifier} from "${i.file}${importExt}"`)
       .join("\n")
 
     const exportOpt = opts.export

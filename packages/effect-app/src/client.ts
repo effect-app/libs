@@ -1,7 +1,7 @@
 // codegen:start {preset: barrel, include: ./client/*.ts}
-export * from "./client/apiClientFactory.js"
-export * from "./client/clientFor.js"
-export * from "./client/errors.js"
-export * from "./client/InvalidationKeys.js"
-export * from "./client/makeClient.js"
+export * from "./client/apiClientFactory.ts"
+export * from "./client/clientFor.ts"
+export * from "./client/errors.ts"
+export * from "./client/InvalidationKeys.ts"
+export * from "./client/makeClient.ts"
 // codegen:end

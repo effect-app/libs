@@ -48,16 +48,16 @@ function toPascalCase(s) {
  * to `{name: someName, keys: path}` the relative file paths will be used as keys. Otherwise the file paths
  * will be camel-cased to make them valid js identifiers.
  * @param importExtension
- * [optional] Extension used on the emitted import/export specifiers. Defaults to `.js`. Set to `.ts` (or
+ * [optional] Extension used on the emitted import/export specifiers. Defaults to `.ts`. Set to `.js` (or
  * empty string) to emit unsuffixed/TS specifiers. Configurable per block, or globally via the rule option
- * `{ barrel: { importExtension: ".ts" } }` / `codegen.config.json`.
+ * `{ barrel: { importExtension: ".js" } }` / `codegen.config.json`.
  */
 export const barrel = ({ meta, options: opts }) => {
     var _a, _b, _c;
     const cwd = path.dirname(meta.filename);
     const nodir = (_a = opts.nodir) !== null && _a !== void 0 ? _a : true;
     const modulegen = (_b = opts.modulegen) !== null && _b !== void 0 ? _b : false;
-    const importExt = (_c = opts.importExtension) !== null && _c !== void 0 ? _c : ".js";
+    const importExt = (_c = opts.importExtension) !== null && _c !== void 0 ? _c : ".ts";
     const ext = meta.filename.split(".").slice(-1)[0];
     const pattern = opts.include || `*.${ext}`;
     const relativeFiles = glob

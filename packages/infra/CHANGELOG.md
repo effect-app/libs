@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.239
+
+### Patch Changes
+
+- bb3f51d: Fix ContextMap finalizer running mid-stream on SSE responses. SSE handler now binds ContextMapContainer to the request scope via a shared `provideOnRequestScope` helper (also used by `RequestContextMiddleware`), so finalizers only run after the response body is fully drained. Adds `setupStreamingRequestContextFromCurrent` for use by streaming HTTP handlers.
+  - effect-app@4.0.0-beta.239
+
 ## 4.0.0-beta.238
 
 ### Patch Changes

@@ -272,6 +272,7 @@
     "sql-store-adapter",
     "sql-transaction-middleware",
     "sqlite-per-namespace-layermap",
+    "sse-context-map-scope",
     "sse-filter-namespace-by-storeid",
     "stale-actors-remain",
     "stale-emus-see",

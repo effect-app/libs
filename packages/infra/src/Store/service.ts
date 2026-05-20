@@ -188,6 +188,7 @@ export const makeContextMap = () => {
   const sem = Semaphore.makeUnsafe(1)
 
   return {
+    createdAt: new Date(),
     get: getEtag,
     set: setEtag,
     getOrCreateStore: <T>(key: symbol, make: () => T): T => {
@@ -205,11 +206,18 @@ export const makeContextMap = () => {
         const v = yield* make
         store.set(key, v)
         return v
-      })))
+      }))),
+    clear: () => {
+      etags.clear()
+      store.clear()
+    }
   }
 }
 
-const makeMap = Effect.sync(() => makeContextMap())
+const makeMap = Effect.acquireRelease(
+  Effect.sync(() => makeContextMap()),
+  (m) => Effect.sync(() => m.clear())
+)
 
 export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
 }

@@ -91,6 +91,7 @@
     "five-trams-repeat",
     "fix-class-type-export",
     "fix-client-input-stream",
+    "fix-contextmap-leak",
     "fix-is-generator-function",
     "fix-json-schema-annotations",
     "fix-jsonschema-postprocess",

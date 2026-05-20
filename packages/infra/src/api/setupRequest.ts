@@ -67,7 +67,11 @@ export const provideOnRequestScope =
   <ROut, E2, RIn>(layer: Layer.Layer<ROut, E2, RIn>) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
     Effect.gen(function*() {
       const requestScope = yield* Effect.scope
-      const ctx = yield* Layer.buildWithScope(layer, requestScope)
+      // Fresh MemoMap per request: `Layer.buildWithScope` would otherwise reuse
+      // the ambient MemoMap living on the HTTP server fiber, sharing the built
+      // value (e.g. ContextMap) across every request handled by that server.
+      const memoMap = yield* Layer.makeMemoMap
+      const ctx = yield* Layer.buildWithMemoMap(layer, memoMap, requestScope)
       return yield* Effect.provide(self, ctx)
     })
 

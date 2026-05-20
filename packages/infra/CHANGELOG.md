@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.238
+
+### Patch Changes
+
+- b63f10f: fix: nasty request scope bug
+  - effect-app@4.0.0-beta.238
+
 ## 4.0.0-beta.237
 
 ### Patch Changes

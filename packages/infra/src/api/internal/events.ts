@@ -7,7 +7,7 @@ import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import { reportError } from "../../errorReporter.js"
 import { storeId } from "../../Store/Memory.js"
-import { setupRequestContextFromCurrent } from "../setupRequest.js"
+import { setupStreamingRequestContextFromCurrent } from "../setupRequest.js"
 
 // Tell the client to retry every 10 seconds if connectivity is lost
 const setRetry = Stream.succeed("retry: 10000")
@@ -74,4 +74,4 @@ export const makeSSE = <A extends { id: any }, SI, SRD, SRE>(
       )
       return res
     })
-    .pipe(Effect.tapCause(reportError("Request")), setupRequestContextFromCurrent("events"))
+    .pipe(Effect.tapCause(reportError("Request")), setupStreamingRequestContextFromCurrent("events"))

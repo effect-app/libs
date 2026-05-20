@@ -59,6 +59,18 @@ export interface SetupRequestOptions {
   readonly withTransaction?: boolean
 }
 
+// Build `layer` against the ambient (request) scope rather than a sub-scope of the
+// returned Effect. Required when the returned value is a streaming HttpServerResponse:
+// the response body keeps producing chunks (and using layer-provided state) after the
+// Effect returns, so a sub-scope would close too early and run finalizers mid-stream.
+export const provideOnRequestScope =
+  <ROut, E2, RIn>(layer: Layer.Layer<ROut, E2, RIn>) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    Effect.gen(function*() {
+      const requestScope = yield* Effect.scope
+      const ctx = yield* Layer.buildWithScope(layer, requestScope)
+      return yield* Effect.provide(self, ctx)
+    })
+
 export const setupRequestContextFromCurrent =
   (name = "request", options?: Tracer.SpanOptions & SetupRequestOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     self
@@ -67,6 +79,18 @@ export const setupRequestContextFromCurrent =
         withRequestSpan(name, options),
         Effect.provide(ContextMapContainer.layer, { local: true })
       )
+
+// Streaming variant: binds ContextMapContainer to the ambient (request) scope so its
+// finalizer (clear()) runs only after the response body is fully drained, not when the
+// outer Effect returns its HttpServerResponse value. Use for handlers that return a
+// streaming HttpServerResponse (e.g. SSE) — see RequestContextMiddleware for context.
+export const setupStreamingRequestContextFromCurrent =
+  (name = "request", options?: Tracer.SpanOptions & SetupRequestOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
+    self.pipe(
+      options?.withTransaction === true ? withSqlTransaction : (_) => _,
+      withRequestSpan(name, options),
+      provideOnRequestScope(ContextMapContainer.layer)
+    )
 
 // TODO: consider integrating Effect.withParentSpan
 export function setupRequestContext<R, E, A>(

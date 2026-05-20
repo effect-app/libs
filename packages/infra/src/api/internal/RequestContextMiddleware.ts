@@ -5,6 +5,7 @@ import { NonEmptyString255 } from "effect-app/Schema"
 import { Locale, LocaleRef, RequestContext, spanAttributes } from "../../RequestContext.js"
 import { ContextMapContainer } from "../../Store/ContextMapContainer.js"
 import { storeId } from "../../Store/Memory.js"
+import { provideOnRequestScope } from "../setupRequest.js"
 
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
   HttpMiddleware.make((app) =>
@@ -40,17 +41,15 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
         Layer.succeed(LocaleRef, requestContext.locale),
         Layer.succeed(storeId, requestContext.namespace)
       )
-      // Build layer against the request scope so ContextMap's finalizer (clear())
-      // runs only after the response body is fully drained — not when `app` returns
-      // its HttpServerResponse value. Streaming RPC responses keep producing chunks
-      // (and using ContextMap-cached etags) after `app` returns; a sub-scope from
+      // Bind layer to the request scope so ContextMap's finalizer (clear()) runs only
+      // after the response body is fully drained — not when `app` returns its
+      // HttpServerResponse value. Streaming RPC responses keep producing chunks (and
+      // using ContextMap-cached etags) after `app` returns; a sub-scope from
       // `Effect.provide(layer)` would close too early and wipe etags mid-stream,
       // causing spurious OptimisticConcurrencyException on later writes.
-      const requestScope = yield* Effect.scope
-      const ctx = yield* Layer.buildWithScope(layer, requestScope)
       const res = yield* app.pipe(
         Effect.withLogSpan(requestContext.name),
-        Effect.provide(ctx)
+        provideOnRequestScope(layer)
       )
 
       // TODO: how to set also on errors?

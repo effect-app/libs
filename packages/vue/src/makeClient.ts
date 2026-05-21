@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { ExtractModuleName, HandlerInput, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
@@ -19,7 +19,7 @@ import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic, type Progress } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
-import { makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
+import { type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
 import { type Toast } from "./toast.js"
@@ -915,10 +915,7 @@ export type QueryInvalidation<M> = {
     name: string,
     input?: unknown,
     output?: Exit.Exit<unknown, unknown>
-  ) => {
-    filters?: InvalidateQueryFilters | undefined
-    options?: InvalidateOptions | undefined
-  }[]
+  ) => InvalidationEntry[]
 }
 
 export type ToCamel<S extends string | number | symbol> = S extends string

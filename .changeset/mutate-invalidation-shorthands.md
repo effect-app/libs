@@ -2,9 +2,9 @@
 "@effect-app/vue": patch
 ---
 
-`queryInvalidation` accept shorthand entries.
+`queryInvalidation` accept shorthand entries (per-mutation, Command, and client-level `QueryInvalidation<M>` maps).
 
-Each entry returned from `queryInvalidation` may now be:
+Each entry returned may now be:
 
 - a raw query key (`string[]`)
 - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`

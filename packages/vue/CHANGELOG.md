@@ -1,5 +1,34 @@
 # @effect-app/vue
 
+## 4.0.0-beta.241
+
+### Patch Changes
+
+- 2aa8e5e: `queryInvalidation` accept shorthand entries (per-mutation, Command, and client-level `QueryInvalidation<M>` maps).
+
+  Each entry returned may now be:
+
+  - a raw query key (`string[]`)
+  - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`
+  - the existing `{ filters, options }` raw tanstack-query invalidation
+
+  ```ts
+  queryInvalidation: (queryKey) => [queryKey, GetMe, PackListIndex];
+  ```
+
+  equivalent to:
+
+  ```ts
+  queryInvalidation: (queryKey) => [
+    { filters: { queryKey } },
+    { filters: { queryKey: makeQueryKey(GetMe) } },
+    { filters: { queryKey: makeQueryKey(PackListIndex) } },
+  ];
+  ```
+
+- Updated dependencies [b035b1c]
+  - effect-app@4.0.0-beta.241
+
 ## 4.0.0-beta.240
 
 ### Patch Changes

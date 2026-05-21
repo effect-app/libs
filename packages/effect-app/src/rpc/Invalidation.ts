@@ -18,6 +18,17 @@ const normalizeKey = (input: InvalidationKeyInput): InvalidationKey => {
   return makeQueryKey(handler.options ? { id: handler.id, options: handler.options } : { id: handler.id })
 }
 
+// Disambiguates `add` overloads: a `string[]` means a single key; an array
+// containing arrays-or-objects means a batch of inputs.
+const isBatch = (
+  input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
+): input is ReadonlyArray<InvalidationKeyInput> =>
+  Array.isArray(input) && input.length > 0 && typeof input[0] !== "string"
+
+const normalizeInputs = (
+  input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
+): ReadonlyArray<InvalidationKey> => isBatch(input) ? input.map(normalizeKey) : [normalizeKey(input)]
+
 /**
  * A single segment within an `InvalidationKey` array.
  * Accepts any JSON-compatible value: string, number, boolean, null,
@@ -122,7 +133,9 @@ export type Invalidates = typeof Invalidates
 
 /** The shape of the per-request service that accumulates invalidation keys. */
 export interface InvalidationSetService {
-  readonly add: (key: InvalidationKeyInput) => Effect.Effect<void>
+  readonly add: (
+    input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
+  ) => Effect.Effect<void>
   readonly get: Effect.Effect<ReadonlyArray<InvalidationKey>>
   /**
    * V3: Reads all currently accumulated keys and resets the bucket to empty.
@@ -137,12 +150,12 @@ export interface InvalidationSetService {
  * Provided by `InvalidationMiddlewareLive` for every RPC call; has a no-op default so it is
  * safe to use even when the HTTP middleware is absent (tests, workers, etc.).
  *
- * Use `InvalidationSet.use(_ => _.add(key))` (or `.useSync` for non-Effect callbacks) as a
- * shorthand instead of yielding the service manually.
+ * Use `InvalidationSet.add(key)` as a shorthand to skip `.use(_ => _.add(key))`. The
+ * underlying service is still available via `.use` / `.useSync` for advanced cases.
  *
  * `add` accepts an RPC handler directly (e.g. `UserRsc.GetMe`) — its query key is derived via
  * `makeQueryKey` so keys stay in sync with the actual query definitions. Raw `InvalidationKey`
- * arrays are also accepted.
+ * arrays and arrays of either form are also accepted.
  *
  * ```ts
  * import * as Effect from "effect/Effect"
@@ -153,12 +166,12 @@ export interface InvalidationSetService {
  * const handler = Effect.fnUntraced(function*(req: UpdateCartRequest) {
  *   const cart = yield* CartRepo.save(req.cart)
  *
- *   // Stage 1 – unconditional: always invalidate after saving
- *   yield* Invalidation.InvalidationSet.use(_ => _.add(UserRsc.GetMe))
+ *   // single handler
+ *   yield* Invalidation.InvalidationSet.add(UserRsc.GetMe)
  *
- *   // Stage 2 – conditional: only if the cart changed state
+ *   // batch
  *   if (cart.isCheckedOut) {
- *     yield* Invalidation.InvalidationSet.use(_ => _.add(CartRsc.GetCartStats))
+ *     yield* Invalidation.InvalidationSet.add([CartRsc.GetCartStats, UserRsc.GetMe])
  *   }
  *
  *   return cart
@@ -169,21 +182,29 @@ export interface InvalidationSetService {
  * the annotation pre-populates the set before the handler runs; dynamic additions accumulate
  * throughout the handler. All keys are included in the command response metadata.
  */
-export const InvalidationSet = Context.Reference<InvalidationSetService>(
+const InvalidationSetRef = Context.Reference<InvalidationSetService>(
   "effect-app/rpc/InvalidationSet",
   {
     defaultValue: () => ({
-      add: (_key: InvalidationKeyInput) => Effect.void,
+      add: (_input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>) => Effect.void,
       get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
       drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
     })
   }
 )
-export type InvalidationSet = typeof InvalidationSet
+export const InvalidationSet = Object.assign(InvalidationSetRef, {
+  /**
+   * Shortcut for `InvalidationSet.use(_ => _.add(input))`. Accepts a single
+   * `InvalidationKeyInput` or an array of them.
+   */
+  add: (input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>) =>
+    InvalidationSetRef.use((_) => _.add(input))
+})
+export type InvalidationSet = typeof InvalidationSetRef
 
 /** Creates a fresh `InvalidationSet` implementation backed by a `Ref`. */
 export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>): InvalidationSetService => ({
-  add: (input) => Ref.update(ref, (keys) => [...keys, normalizeKey(input)]),
+  add: (input) => Ref.update(ref, (keys) => [...keys, ...normalizeInputs(input)]),
   get: Ref.get(ref),
   drain: Ref.getAndSet(ref, [])
 })

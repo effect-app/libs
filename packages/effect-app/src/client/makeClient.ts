@@ -3,6 +3,7 @@ import * as SchemaTransformation from "effect/SchemaTransformation"
 import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
+import type { ClientForOptions } from "./clientFor.js"
 
 /**
  * Minimal structural shape for an rpc-client middleware tag.
@@ -54,16 +55,23 @@ type InvalidationResources = Record<string, Record<string, unknown>>
  *  - a raw query key (`ReadonlyArray<string>`)
  *  - an RPC handler object (`{ id, options? }`) — query key derived from `id`
  *  - the raw `{ filters, options }` tanstack-query shape
+ *
+ * `Filters` / `Options` are widened to `Record<string, unknown>` by default so
+ * the effect-app core has no dependency on `@tanstack/vue-query`. The vue
+ * adapter narrows them via the `InvalidationEntry` alias.
  */
-export type InvalidateQueryInstruction =
+export type InvalidateQueryInstruction<
+  Filters = Record<string, unknown>,
+  Options = Record<string, unknown>
+> =
   | ReadonlyArray<string>
   | {
     readonly id: string
-    readonly options?: Record<string, unknown>
+    readonly options?: ClientForOptions
   }
   | {
-    readonly filters?: Record<string, unknown>
-    readonly options?: Record<string, unknown>
+    readonly filters?: Filters
+    readonly options?: Options
   }
 
 export type InvalidationCallback<Resources, Input = unknown, Success = unknown, Failure = unknown> = (

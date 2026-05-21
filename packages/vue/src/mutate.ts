@@ -3,6 +3,7 @@ import { matchQuery } from "@tanstack/query-core"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
 import { tuple } from "effect-app/Function"
 import * as Option from "effect-app/Option"
@@ -102,18 +103,11 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
 }
 
 /**
- * An entry for `queryInvalidation`. One of:
- *  - a raw query key (`string[]`)
- *  - `{ filters, options }` raw tanstack-query invalidation
- *  - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`
+ * An entry for `queryInvalidation`. Narrowed alias of effect-app's
+ * `InvalidateQueryInstruction` with tanstack-query's `InvalidateQueryFilters`
+ * and `InvalidateOptions` substituted for the structural defaults.
  */
-export type InvalidationEntry =
-  | ReadonlyArray<string>
-  | {
-    filters?: InvalidateQueryFilters | undefined
-    options?: InvalidateOptions | undefined
-  }
-  | { id: string; options?: ClientForOptions | undefined }
+export type InvalidationEntry = InvalidateQueryInstruction<InvalidateQueryFilters, InvalidateOptions>
 
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**

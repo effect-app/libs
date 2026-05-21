@@ -1,5 +1,42 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.242
+
+### Patch Changes
+
+- da83c1f: Align `InvalidationEntry` (vue) with `InvalidateQueryInstruction` (effect-app).
+
+  `InvalidateQueryInstruction` is now parametrized over `Filters` / `Options`
+  (defaulting to `Record<string, unknown>` so the core stays framework-agnostic).
+  `@effect-app/vue` exposes `InvalidationEntry` as a narrowed alias substituting
+  `@tanstack/vue-query`'s `InvalidateQueryFilters` and `InvalidateOptions`. Single
+  source of truth for the union shape across both packages.
+
+- 21017d5: `InvalidationSet.add` accepts arrays and is exposed as a static shortcut.
+
+  - Single item: `yield* InvalidationSet.add(UserRsc.GetMe)`
+  - Batch: `yield* InvalidationSet.add([UserRsc.GetMe, ["custom", "key"]])`
+  - Skips the `.use(_ => _.add(...))` boilerplate.
+
+  Existing `InvalidationSet.use(_ => _.add(...))` form still works; the service
+  identity is preserved via `Object.assign` so `Effect.provideService` and
+  `.use` / `.useSync` continue to operate on the same `Context.Reference`.
+
+- 2495ace: `InvalidationSet.add` accepts RPC handler shorthand.
+
+  Server-side handlers may now pass an RPC handler object directly to
+  `InvalidationSet.add`; its query key is derived via `makeQueryKey`. Raw
+  `InvalidationKey` arrays continue to work.
+
+  ```ts
+  // before
+  yield *
+    Invalidation.InvalidationSet.use((_) => _.add(makeQueryKey(UserRsc.GetMe)));
+
+  // after
+  yield * Invalidation.InvalidationSet.use((_) => _.add(UserRsc.GetMe));
+  ```
+
 ## 4.0.0-beta.241
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @effect-app/vue
 
+## 4.0.0-beta.242
+
+### Patch Changes
+
+- da83c1f: Align `InvalidationEntry` (vue) with `InvalidateQueryInstruction` (effect-app).
+
+  `InvalidateQueryInstruction` is now parametrized over `Filters` / `Options`
+  (defaulting to `Record<string, unknown>` so the core stays framework-agnostic).
+  `@effect-app/vue` exposes `InvalidationEntry` as a narrowed alias substituting
+  `@tanstack/vue-query`'s `InvalidateQueryFilters` and `InvalidateOptions`. Single
+  source of truth for the union shape across both packages.
+
+- Updated dependencies [da83c1f]
+- Updated dependencies [21017d5]
+- Updated dependencies [2495ace]
+  - effect-app@4.0.0-beta.242
+
 ## 4.0.0-beta.241
 
 ### Patch Changes

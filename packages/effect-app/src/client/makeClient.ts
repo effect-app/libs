@@ -49,10 +49,22 @@ type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid
 
 type InvalidationResources = Record<string, Record<string, unknown>>
 
-export type InvalidateQueryInstruction = {
-  readonly filters?: Record<string, unknown>
-  readonly options?: Record<string, unknown>
-}
+/**
+ * An invalidation instruction returned from `invalidatesQueries`. One of:
+ *  - a raw query key (`ReadonlyArray<string>`)
+ *  - an RPC handler object (`{ id, options? }`) — query key derived from `id`
+ *  - the raw `{ filters, options }` tanstack-query shape
+ */
+export type InvalidateQueryInstruction =
+  | ReadonlyArray<string>
+  | {
+    readonly id: string
+    readonly options?: Record<string, unknown>
+  }
+  | {
+    readonly filters?: Record<string, unknown>
+    readonly options?: Record<string, unknown>
+  }
 
 export type InvalidationCallback<Resources, Input = unknown, Success = unknown, Failure = unknown> = (
   queryKey: readonly string[],

@@ -1,8 +1,9 @@
 ---
 "@effect-app/vue": patch
+"effect-app": patch
 ---
 
-`queryInvalidation` accept shorthand entries (per-mutation, Command, and client-level `QueryInvalidation<M>` maps).
+`queryInvalidation` / `invalidatesQueries` accept shorthand entries (per-mutation, Command, client-level `QueryInvalidation<M>` maps, and server-side `Req.Command` `invalidatesQueries` callbacks).
 
 Each entry returned may now be:
 

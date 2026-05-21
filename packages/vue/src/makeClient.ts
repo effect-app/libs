@@ -648,10 +648,12 @@ export const makeClient = <RT_, RTHooks>(
           | undefined
         const fromRequest = fromRequestConfig
           ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-            fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((entry) => ({
-              filters: entry.filters,
-              options: entry.options
-            })))
+            fromRequestConfig(
+              defaultKey,
+              queryResources as never,
+              input as never,
+              output as never
+            ) as InvalidationEntry[])
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
@@ -742,12 +744,12 @@ export const makeClient = <RT_, RTHooks>(
                 | undefined
               const fromRequest = fromRequestConfig
                 ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-                  fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((
-                    entry
-                  ) => ({
-                    filters: entry.filters,
-                    options: entry.options
-                  })))
+                  fromRequestConfig(
+                    defaultKey,
+                    queryResources as never,
+                    input as never,
+                    output as never
+                  ) as InvalidationEntry[])
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               const streamCmd = useCommand()
@@ -773,12 +775,12 @@ export const makeClient = <RT_, RTHooks>(
                   | undefined
                 const fromRequest = fromRequestConfig
                   ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-                    fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((
-                      entry
-                    ) => ({
-                      filters: entry.filters,
-                      options: entry.options
-                    })))
+                    fromRequestConfig(
+                      defaultKey,
+                      queryResources as never,
+                      input as never,
+                      output as never
+                    ) as InvalidationEntry[])
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {

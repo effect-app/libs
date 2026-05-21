@@ -101,15 +101,41 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
+/**
+ * An entry for `queryInvalidation`. One of:
+ *  - a raw query key (`string[]`)
+ *  - `{ filters, options }` raw tanstack-query invalidation
+ *  - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`
+ */
+export type InvalidationEntry =
+  | ReadonlyArray<string>
+  | {
+    filters?: InvalidateQueryFilters | undefined
+    options?: InvalidateOptions | undefined
+  }
+  | { id: string; options?: ClientForOptions | undefined }
+
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
-   * This can be overridden by providing a function that returns an array of filters and options.
+   * This can be overridden by providing a function that returns an array of filters and options,
+   * or RPC handlers directly (their query keys are derived automatically).
+   *
+   * @example
+   * ```ts
+   * queryInvalidation: (queryKey) => [
+   *   { filters: { queryKey } },
+   *   GetMe,
+   *   PackListIndex
+   * ]
+   * ```
    */
-  queryInvalidation?: (defaultKey: string[], name: string, input?: unknown, output?: Exit.Exit<unknown, unknown>) => {
-    filters?: InvalidateQueryFilters | undefined
-    options?: InvalidateOptions | undefined
-  }[]
+  queryInvalidation?: (
+    defaultKey: string[],
+    name: string,
+    input?: unknown,
+    output?: Exit.Exit<unknown, unknown>
+  ) => InvalidationEntry[]
   /**
    * Run an additional Effect after the mutation succeeds. Its output becomes the
    * final result returned to the caller. Query cache is invalidated once on
@@ -228,10 +254,21 @@ const buildInvalidateCache = (
     const queryKey = getQueryKey(self)
 
     if (queryInvalidation) {
-      return queryInvalidation(queryKey, self.id, input, output).map((_) => ({
-        filters: _.filters,
-        options: _.options
-      }))
+      return queryInvalidation(queryKey, self.id, input, output).map((entry): InvalidationTarget => {
+        if (Array.isArray(entry)) {
+          return { filters: { queryKey: entry }, options: undefined }
+        }
+        const obj = entry as Exclude<InvalidationEntry, ReadonlyArray<string>>
+        if ("id" in obj) {
+          return {
+            filters: {
+              queryKey: makeQueryKey(obj.options ? { id: obj.id, options: obj.options } : { id: obj.id })
+            },
+            options: undefined
+          }
+        }
+        return { filters: obj.filters, options: obj.options }
+      })
     }
 
     if (!queryKey) {

@@ -115,6 +115,30 @@ You can run them with `pnpm test-types <filename>`.
 Take a look at the existing `.tst.ts` files for examples of how to write type
 level tests. They use the `tstyche` testing library. -->
 
+## Per-request `Effect.provide(layer)` must isolate its MemoMap
+
+`Effect.provide(self, layer)` resolves its `MemoMap` from the ambient fiber
+context. On an HTTP server, that MemoMap lives on the server fiber and is
+shared by every request that server handles. The first request to build a
+stateful layer (anything using `Layer.effect` / `Effect.acquireRelease`)
+memoizes the resulting value onto the server fiber; every subsequent request
+then receives the *same instance* — including its `clear()` / dispose
+finalizer, which now fires at the wrong time.
+
+When you call `Effect.provide(layer)` (or `Stream.provide(layer)`) inside a
+per-request hot path:
+
+- Pass `{ local: true }` if the layer is pure / stateless or you genuinely
+  want it scoped to *this* effect only, or
+- Build it explicitly against the request scope with a fresh `MemoMap`
+  (`Layer.makeMemoMap` + `Layer.buildWithMemoMap(layer, memoMap, requestScope)`)
+  — see `provideOnRequestScope` in `packages/infra/src/api/setupRequest.ts`.
+
+If neither option is taken and the layer carries state, the state leaks
+across requests. Concrete repro lives in
+`packages/infra/test/rpc-context-map-streaming.test.ts` (the overlapping
+requests case).
+
 ## Changesets
 
 All pull requests must include a changeset. You can create changesets in the

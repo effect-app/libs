@@ -268,7 +268,11 @@ const makeApiClientFactory = Effect
                   const rpcEffect = TheClient
                     .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
                     .pipe(
-                      Effect.provide(layers),
+                      // local: true → isolate to this RPC call. `layers` is pure today
+                      // (RequestName + caller-supplied requestLevelLayers), but the
+                      // flag prevents a stateful caller-supplied layer from leaking
+                      // across RPC calls via the ambient fiber MemoMap.
+                      Effect.provide(layers, { local: true }),
                       Effect.provide(svcs)
                     )
                   return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
@@ -317,7 +321,8 @@ const makeApiClientFactory = Effect
                               )
                               : Stream.fail(err)
                           ),
-                          Stream.provide(layers),
+                          // local: true — see buildEffect above.
+                          Stream.provide(layers, { local: true }),
                           Stream.provide(svcs)
                         )
                       })

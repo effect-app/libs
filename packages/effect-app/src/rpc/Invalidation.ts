@@ -1,8 +1,22 @@
 import * as Ref from "effect/Ref"
 import { Rpc } from "effect/unstable/rpc"
+import { type ClientForOptions, makeQueryKey } from "../client/clientFor.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import * as S from "../Schema.js"
+
+/**
+ * Shorthand for a handler-derived invalidation key.
+ * Accepts an RPC handler object so `add(GetMe)` is equivalent to
+ * `add(makeQueryKey(GetMe))`.
+ */
+export type InvalidationKeyInput = InvalidationKey | { readonly id: string; readonly options?: ClientForOptions }
+
+const normalizeKey = (input: InvalidationKeyInput): InvalidationKey => {
+  if (Array.isArray(input)) return input
+  const handler = input as { id: string; options?: ClientForOptions }
+  return makeQueryKey(handler.options ? { id: handler.id, options: handler.options } : { id: handler.id })
+}
 
 /**
  * A single segment within an `InvalidationKey` array.
@@ -108,7 +122,7 @@ export type Invalidates = typeof Invalidates
 
 /** The shape of the per-request service that accumulates invalidation keys. */
 export interface InvalidationSetService {
-  readonly add: (key: InvalidationKey) => Effect.Effect<void>
+  readonly add: (key: InvalidationKeyInput) => Effect.Effect<void>
   readonly get: Effect.Effect<ReadonlyArray<InvalidationKey>>
   /**
    * V3: Reads all currently accumulated keys and resets the bucket to empty.
@@ -126,11 +140,11 @@ export interface InvalidationSetService {
  * Use `InvalidationSet.use(_ => _.add(key))` (or `.useSync` for non-Effect callbacks) as a
  * shorthand instead of yielding the service manually.
  *
- * Prefer `makeQueryKey` over raw string arrays so invalidation keys stay in sync with the
- * actual query definitions automatically:
+ * `add` accepts an RPC handler directly (e.g. `UserRsc.GetMe`) — its query key is derived via
+ * `makeQueryKey` so keys stay in sync with the actual query definitions. Raw `InvalidationKey`
+ * arrays are also accepted.
  *
  * ```ts
- * import { makeQueryKey } from "effect-app/client"
  * import * as Effect from "effect/Effect"
  * import { Invalidation } from "effect-app/rpc"
  * import * as CartRsc from "../Cart/queries.js"
@@ -140,11 +154,11 @@ export interface InvalidationSetService {
  *   const cart = yield* CartRepo.save(req.cart)
  *
  *   // Stage 1 – unconditional: always invalidate after saving
- *   yield* Invalidation.InvalidationSet.use(_ => _.add(makeQueryKey(UserRsc.GetMe)))
+ *   yield* Invalidation.InvalidationSet.use(_ => _.add(UserRsc.GetMe))
  *
  *   // Stage 2 – conditional: only if the cart changed state
  *   if (cart.isCheckedOut) {
- *     yield* Invalidation.InvalidationSet.use(_ => _.add(makeQueryKey(CartRsc.GetCartStats)))
+ *     yield* Invalidation.InvalidationSet.use(_ => _.add(CartRsc.GetCartStats))
  *   }
  *
  *   return cart
@@ -159,7 +173,7 @@ export const InvalidationSet = Context.Reference<InvalidationSetService>(
   "effect-app/rpc/InvalidationSet",
   {
     defaultValue: () => ({
-      add: (_key: InvalidationKey) => Effect.void,
+      add: (_key: InvalidationKeyInput) => Effect.void,
       get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
       drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
     })
@@ -169,7 +183,7 @@ export type InvalidationSet = typeof InvalidationSet
 
 /** Creates a fresh `InvalidationSet` implementation backed by a `Ref`. */
 export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>): InvalidationSetService => ({
-  add: (key) => Ref.update(ref, (keys) => [...keys, key]),
+  add: (input) => Ref.update(ref, (keys) => [...keys, normalizeKey(input)]),
   get: Ref.get(ref),
   drain: Ref.getAndSet(ref, [])
 })

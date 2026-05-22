@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 4.0.0-beta.243
+
+### Patch Changes
+
+- 8eb6737: Wrap `CUPS` exec failures in tagged `CUPSError` instead of `UnknownException`.
+
+  Retains `command`, `message`, exit `code`, `signal`, `killed`, `stdout`,
+  `stderr`, and original `cause` from the underlying `child_process.exec`
+  rejection so callers can branch on real failure detail.
+
+  - effect-app@4.0.0-beta.243
+
 ## 4.0.0-beta.242
 
 ### Patch Changes

@@ -9,8 +9,8 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.68",
-    "effect": "4.0.0-beta.68",
+    "@effect/platform-node": "4.0.0-beta.70",
+    "effect": "4.0.0-beta.70",
     "js-yaml": "4.1.1",
     "node-watch": "^0.7.4"
   },

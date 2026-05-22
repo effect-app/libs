@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.23
+
+### Patch Changes
+
+- b8b9080: update packages
+
 ## 2.1.0-beta.22
 
 ### Patch Changes

@@ -15,7 +15,7 @@ import type { FieldValues } from "../Model/filter/types.js"
 import type { ComputedProjectionIrExpression } from "../Model/query.js"
 import { annotateDb, type DbSystem } from "../otel.js"
 import { storeId } from "./Memory.js"
-import type { RootLevelFieldColumn } from "./rootLevelFields.js"
+import { omitRootLevelFieldColumnsFromData, type RootLevelFieldColumn } from "./rootLevelFields.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, projectedColumnBackfillExpr, projectedColumnSqlType, quoteIdentifier, type SQLDialect, sqliteDialect } from "./SQL/query.js"
 import { makeETag } from "./utils.js"
@@ -76,14 +76,12 @@ const parseSelectRow = (
   return result
 }
 
-const serializeProjectedValue = (
-  system: DbSystem,
-  column: RootLevelFieldColumn,
-  value: unknown
-) =>
-  column.kind === "boolean" && system === "sqlite" && value !== null && value !== undefined
+const serializeProjectedValue = (system: DbSystem, column: RootLevelFieldColumn, value: unknown) =>
+  column.kind === "json"
+    ? value === undefined ? null : JSON.stringify(value)
+    : column.kind === "boolean" && system === "sqlite" && value !== null && value !== undefined
     ? value === true ? 1 : 0
-    : value
+    : value ?? null
 
 function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: string) {
   return Effect.fnUntraced(
@@ -164,7 +162,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               const newE = makeETag(e)
               const id = newE[idKey] as string
               const { _etag, [idKey]: _id, ...rest } = newE as any
-              const data = JSON.stringify(rest)
+              const data = JSON.stringify(omitRootLevelFieldColumnsFromData(rest, activeRootLevelFieldColumns))
               const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) =>
                 serializeProjectedValue(system, column, rest[column.key])
               )
@@ -503,7 +501,7 @@ function makeSQLiteStorePerNs(
         const newE = makeETag(e)
         const id = newE[idKey] as string
         const { _etag, [idKey]: _id, ...rest } = newE as any
-        const data = JSON.stringify(rest)
+        const data = JSON.stringify(omitRootLevelFieldColumnsFromData(rest, activeRootLevelFieldColumns))
         const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) =>
           serializeProjectedValue("sqlite", column, rest[column.key])
         )

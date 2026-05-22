@@ -158,6 +158,8 @@ const projectedColumnJsonFallbackExpr = (
       return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::double precision`
     case "boolean":
       return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::boolean`
+    case "json":
+      return extractJsonFromSourceExpr(dialect, "data", column.key, true)
     default:
       return assertUnreachable(column.kind)
   }
@@ -187,6 +189,8 @@ export const projectedColumnSqlType = (
       return dialect.jsonColumnType === "JSON" ? "REAL" : "DOUBLE PRECISION"
     case "boolean":
       return dialect.jsonColumnType === "JSON" ? "INTEGER" : "BOOLEAN"
+    case "json":
+      return dialect.jsonColumnType
     default:
       return assertUnreachable(kind)
   }
@@ -201,6 +205,16 @@ export const normalizeProjectedColumnValue = (
   column: RootLevelFieldColumn,
   value: unknown
 ) => {
+  if (column.kind === "json") {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    }
+    return value
+  }
   if (column.kind === "boolean") {
     if (typeof value === "number") {
       return value !== 0
@@ -218,6 +232,137 @@ const dottedToJsonPath = (path: string) =>
     .split(".")
     .filter((p) => p !== "-1")
     .join(".")
+
+const sqliteJsonPathArg = (path: string) => `'${(path.length > 0 ? `$.${path}` : "$").replaceAll("'", "''")}'`
+
+const extractJsonFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  asJson: boolean
+) => {
+  if (dialect.jsonColumnType === "JSON") {
+    const pathArg = sqliteJsonPathArg(path)
+    if (!asJson) {
+      return `json_extract(${sourceExpr}, ${pathArg})`
+    }
+    return `CASE WHEN json_type(${sourceExpr}, ${pathArg}) IS NULL THEN NULL WHEN json_type(${sourceExpr}, ${pathArg}) = 'true' THEN 'true' WHEN json_type(${sourceExpr}, ${pathArg}) = 'false' THEN 'false' ELSE json_quote(json_extract(${sourceExpr}, ${pathArg})) END`
+  }
+
+  const parts: ReadonlyArray<string> = path.length > 0 ? path.split(".") : []
+  if (parts.length === 0) {
+    return asJson ? `(${sourceExpr})` : `(${sourceExpr})#>> '{}'`
+  }
+  if (!asJson) {
+    const last = parts.at(-1)!
+    const parents = parts.slice(0, -1)
+    return `(${sourceExpr})${parents.map((part) => `->'${part}'`).join("")}->>'${last}'`
+  }
+  return `(${sourceExpr})${parts.map((part) => `->'${part}'`).join("")}`
+}
+
+const arrayLengthFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `json_array_length(${sourceExpr}, ${sqliteJsonPathArg(path)})`
+    : `jsonb_array_length(${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)})`
+
+const jsonEachFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  alias: string
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) AS ${alias}`
+    : `jsonb_array_elements(${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)}) AS ${alias}`
+
+const jsonArrayContainsFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholder: string
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value = ${valPlaceholder})`
+    : `${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${valPlaceholder}::jsonb`
+
+const jsonArrayNotContainsFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholder: string
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `NOT EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value = ${valPlaceholder})`
+    : `NOT (${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${valPlaceholder}::jsonb)`
+
+const jsonArrayContainsAnyFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholders: readonly string[]
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value IN (${
+      valPlaceholders.join(", ")
+    }))`
+    : `(${
+      valPlaceholders.map((v) => `${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${v}::jsonb`).join(
+        " OR "
+      )
+    })`
+
+const jsonArrayNotContainsAnyFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholders: readonly string[]
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `NOT EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value IN (${
+      valPlaceholders.join(", ")
+    }))`
+    : `NOT (${
+      valPlaceholders.map((v) => `${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${v}::jsonb`).join(
+        " OR "
+      )
+    })`
+
+const jsonArrayContainsAllFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholders: readonly string[]
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? valPlaceholders
+      .map((v) => `EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value = ${v})`)
+      .join(" AND ")
+    : valPlaceholders.map((v) => `${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${v}::jsonb`).join(
+      " AND "
+    )
+
+const jsonArrayNotContainsAllFromSourceExpr = (
+  dialect: SQLDialect,
+  sourceExpr: string,
+  path: string,
+  valPlaceholders: readonly string[]
+) =>
+  dialect.jsonColumnType === "JSON"
+    ? `NOT (${
+      valPlaceholders
+        .map((v) => `EXISTS(SELECT 1 FROM json_each(${sourceExpr}, ${sqliteJsonPathArg(path)}) WHERE value = ${v})`)
+        .join(" AND ")
+    })`
+    : `NOT (${
+      valPlaceholders.map((v) => `${extractJsonFromSourceExpr(dialect, sourceExpr, path, true)} @> ${v}::jsonb`).join(
+        " AND "
+      )
+    })`
 
 const sqlStringLiteral = (value: string) => `'${value.replaceAll("'", "''")}'`
 
@@ -251,9 +396,28 @@ export function buildWhereSQLQuery(
   const params: unknown[] = []
   let paramIndex = 1
   const projectedColumns = new Map(rootLevelFieldColumns.map((column) => [column.key, column] as const))
+  const projectedJsonColumnForPath = (path: string, relation?: string) => {
+    if (relation) {
+      return
+    }
+    const [topKey, ...subPathParts] = path.split(".")
+    const projected = projectedColumns.get(topKey)
+    if (!projected || projected.kind !== "json") {
+      return
+    }
+    return {
+      sourceExpr: projectedColumnFieldExpr(dialect, projected),
+      subPath: subPathParts.join(".")
+    }
+  }
 
   const addParam = (value: unknown): string => {
     params.push(dialect.serializeScalar(value))
+    return dialect.placeholder(paramIndex++)
+  }
+
+  const addJsonParam = (value: unknown): string => {
+    params.push(dialect.jsonColumnType === "JSON" ? JSON.stringify(value) : JSON.stringify(value))
     return dialect.placeholder(paramIndex++)
   }
 
@@ -271,6 +435,10 @@ export function buildWhereSQLQuery(
     }
     if (path.endsWith(".length")) {
       const arrPath = dottedToJsonPath(path.slice(0, -".length".length))
+      const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+      if (projectedJson) {
+        return arrayLengthFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath)
+      }
       return dialect.arrayLength(arrPath)
     }
     if (isRootLevelPath(path, relation)) {
@@ -278,10 +446,16 @@ export function buildWhereSQLQuery(
       if (projected) {
         const expr = projectedColumnFieldExpr(dialect, projected)
         if (path in defaultValues) {
-          return `COALESCE(${expr}, ${addParam(defaultValues[path])})`
+          return `COALESCE(${expr}, ${
+            projected.kind === "json" ? addJsonParam(defaultValues[path]) : addParam(defaultValues[path])
+          })`
         }
         return expr
       }
+    }
+    const projectedJson = projectedJsonColumnForPath(path, relation)
+    if (projectedJson) {
+      return extractJsonFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, false)
     }
     const jsonPath = dottedToJsonPath(path)
     const expr = dialect.jsonExtract(jsonPath)
@@ -295,6 +469,14 @@ export function buildWhereSQLQuery(
   const statement = (x: FilterR, relation?: string): string => {
     const resolvedPath = x.path === idKey ? "id" : x.path
     const k = fieldExpr(resolvedPath, relation)
+    const projectedRoot = isRootLevelPath(resolvedPath, relation)
+      ? projectedColumns.get(resolvedPath)
+      : undefined
+    const isProjectedJsonRoot = projectedRoot?.kind === "json"
+    const jsonComparisonParam = (value: unknown) => {
+      const placeholder = addJsonParam(value)
+      return dialect.jsonColumnType === "JSON" ? placeholder : `${placeholder}::jsonb`
+    }
 
     switch (x.op) {
       case "in": {
@@ -303,7 +485,7 @@ export function buildWhereSQLQuery(
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
         if (nonNullVals.length > 0) {
-          const placeholders = nonNullVals.map((v) => addParam(v))
+          const placeholders = nonNullVals.map((v) => isProjectedJsonRoot ? jsonComparisonParam(v) : addParam(v))
           parts.push(`${k} IN (${placeholders.join(", ")})`)
         }
         if (hasNull) parts.push(`${k} IS NULL`)
@@ -315,7 +497,7 @@ export function buildWhereSQLQuery(
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
         if (nonNullVals.length > 0) {
-          const placeholders = nonNullVals.map((v) => addParam(v))
+          const placeholders = nonNullVals.map((v) => isProjectedJsonRoot ? jsonComparisonParam(v) : addParam(v))
           parts.push(`${k} NOT IN (${placeholders.join(", ")})`)
         }
         if (hasNull) parts.push(`${k} IS NOT NULL`)
@@ -325,38 +507,66 @@ export function buildWhereSQLQuery(
       case "includes": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const v = addParam(x.value)
-        return dialect.jsonArrayContains(arrPath, v)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayContainsFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, v)
+          : dialect.jsonArrayContains(arrPath, v)
       }
       case "notIncludes": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const v = addParam(x.value)
-        return dialect.jsonArrayNotContains(arrPath, v)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayNotContainsFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, v)
+          : dialect.jsonArrayNotContains(arrPath, v)
       }
 
       case "includes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
-        return dialect.jsonArrayContainsAny(arrPath, placeholders)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayContainsAnyFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, placeholders)
+          : dialect.jsonArrayContainsAny(arrPath, placeholders)
       }
       case "notIncludes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
-        return dialect.jsonArrayNotContainsAny(arrPath, placeholders)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayNotContainsAnyFromSourceExpr(
+            dialect,
+            projectedJson.sourceExpr,
+            projectedJson.subPath,
+            placeholders
+          )
+          : dialect.jsonArrayNotContainsAny(arrPath, placeholders)
       }
 
       case "includes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
-        return dialect.jsonArrayContainsAll(arrPath, placeholders)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayContainsAllFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, placeholders)
+          : dialect.jsonArrayContainsAll(arrPath, placeholders)
       }
       case "notIncludes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
-        return dialect.jsonArrayNotContainsAll(arrPath, placeholders)
+        const projectedJson = projectedJsonColumnForPath(arrPath, relation)
+        return projectedJson
+          ? jsonArrayNotContainsAllFromSourceExpr(
+            dialect,
+            projectedJson.sourceExpr,
+            projectedJson.subPath,
+            placeholders
+          )
+          : dialect.jsonArrayNotContainsAll(arrPath, placeholders)
       }
 
       case "contains": {
@@ -402,13 +612,13 @@ export function buildWhereSQLQuery(
       }
       case "neq": {
         if (x.value === null) return `${k} IS NOT NULL`
-        const v = addParam(x.value)
+        const v = isProjectedJsonRoot ? jsonComparisonParam(x.value) : addParam(x.value)
         return `${k} <> ${v}`
       }
       case undefined:
       case "eq": {
         if (x.value === null) return `${k} IS NULL`
-        const v = addParam(x.value)
+        const v = isProjectedJsonRoot ? jsonComparisonParam(x.value) : addParam(x.value)
         return `${k} = ${v}`
       }
       default:
@@ -420,7 +630,10 @@ export function buildWhereSQLQuery(
     // Optimize tautological/contradictory conditions
     if (every && inner === "1=1") return "1=1"
     if (!every && inner === "1=0") return "1=0"
-    const from = dialect.jsonEachFrom(rel, `_${rel}`)
+    const projectedJson = projectedJsonColumnForPath(rel)
+    const from = projectedJson
+      ? jsonEachFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, `_${rel}`)
+      : dialect.jsonEachFrom(rel, `_${rel}`)
     // ∀x.P(x) ≡ ¬∃x.¬P(x), i.e. NOT EXISTS(... WHERE NOT P)
     return every
       ? `NOT EXISTS(SELECT 1 FROM ${from} WHERE NOT (${inner}))`
@@ -484,7 +697,10 @@ export function buildWhereSQLQuery(
   const computedSelectExpr = (key: string, computed: ComputedProjectionIrExpression): string => {
     const relationPath = dottedToJsonPath(computed.path)
     const relationAlias = `_${computed.path}`
-    const relationFrom = dialect.jsonEachFrom(relationPath, relationAlias)
+    const projectedJson = projectedJsonColumnForPath(relationPath)
+    const relationFrom = projectedJson
+      ? jsonEachFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath, relationAlias)
+      : dialect.jsonEachFrom(relationPath, relationAlias)
     const toNumber = (expr: string) =>
       dialect.jsonColumnType === "JSON" ? `CAST(${expr} AS REAL)` : `(${expr})::numeric`
     const compileExpr = (expression: ComputedProjectionMathIrExpression): string => {
@@ -563,7 +779,11 @@ export function buildWhereSQLQuery(
       }
       case "relation-length": {
         const arrPath = dottedToJsonPath(computed.path)
-        return `${dialect.arrayLength(arrPath)} AS "${key}"`
+        const projectedJson = projectedJsonColumnForPath(arrPath)
+        const expr = projectedJson
+          ? arrayLengthFromSourceExpr(dialect, projectedJson.sourceExpr, projectedJson.subPath)
+          : dialect.arrayLength(arrPath)
+        return `${expr} AS "${key}"`
       }
       case "relation-collect-fields": {
         const branches = computed.fields.map((field) => {
@@ -612,7 +832,12 @@ export function buildWhereSQLQuery(
     : false
 
   const getSelectExpr = (): string => {
-    if (!select) return "id, _etag, data"
+    if (!select) {
+      const projectedSelect = rootLevelFieldColumns.length > 0
+        ? `, ${rootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
+        : ""
+      return `id, _etag, data${projectedSelect}`
+    }
     const fields = select.map((s) => {
       if (typeof s === "string") {
         if (s === idKey || s === "id") return `id`

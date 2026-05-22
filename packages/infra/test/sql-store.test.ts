@@ -17,8 +17,13 @@ const projectedRootLevelFields: readonly RootLevelFieldColumn[] = [
   { key: "flag", columnName: "__root_flag", kind: "boolean" }
 ]
 
+const projectedJsonRootLevelFields: readonly RootLevelFieldColumn[] = [
+  { key: "meta", columnName: "__root_meta", kind: "json" },
+  { key: "items", columnName: "__root_items", kind: "json" }
+]
+
 describe("root-level projected field metadata", () => {
-  it("derives supported root-level scalar fields from encoded schema", () => {
+  it("derives root-level projected columns for scalar and complex encoded fields", () => {
     const schema = S.Struct({
       id: S.String,
       name: S.String,
@@ -35,7 +40,9 @@ describe("root-level projected field metadata", () => {
       { key: "age", columnName: "__root_age", kind: "number" },
       { key: "active", columnName: "__root_active", kind: "boolean" },
       { key: "createdAt", columnName: "__root_createdAt", kind: "string" },
-      { key: "status", columnName: "__root_status", kind: "string" }
+      { key: "status", columnName: "__root_status", kind: "string" },
+      { key: "meta", columnName: "__root_meta", kind: "json" },
+      { key: "tags", columnName: "__root_tags", kind: "json" }
     ])
   })
 })
@@ -94,6 +101,26 @@ describe("SQL query builder (SQLite dialect)", () => {
       projectedRootLevelFields
     )
     expect(result.sql).toContain(`COALESCE("__root_age", json_extract(data, '$.age')) > ?`)
+  })
+
+  it("uses projected JSON root columns for nested filters", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "meta.city", op: "eq", value: "NYC" }],
+      "users",
+      {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectedJsonRootLevelFields
+    )
+    expect(result.sql).toContain(
+      `json_extract(COALESCE("__root_meta", CASE WHEN json_type(data, '$.meta') IS NULL THEN NULL`
+    )
+    expect(result.sql).toContain(`'$.city'`)
   })
 
   it("where or", () => {
@@ -296,6 +323,33 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.sql).toContain(`SELECT COUNT(1) FROM json_each(data, '$.items') AS _items`)
     expect(result.sql).toContain(`AS "pickedCount"`)
     expect(result.params).toContain("%picked%")
+  })
+
+  it("computed relation count uses projected JSON root arrays when available", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "pickedCount",
+        computed: {
+          _tag: "relation-count",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
+        }
+      }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectedJsonRootLevelFields
+    )
+    expect(result.sql).toContain(
+      `json_each(COALESCE("__root_items", CASE WHEN json_type(data, '$.items') IS NULL THEN NULL`
+    )
+    expect(result.sql).toContain(`AS _items`)
   })
 
   it("computed relation any projection (sqlite bool encoding)", () => {
@@ -776,6 +830,23 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     )
     expect(result.sql).toContain(`COALESCE("__root_flag", (data->>'flag')::boolean) = $1`)
   })
+
+  it("uses projected JSON root columns for pg nested filters", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "meta.city", op: "eq", value: "NYC" }],
+      "users",
+      {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectedJsonRootLevelFields
+    )
+    expect(result.sql).toContain(`(COALESCE("__root_meta", (data)->'meta'))->>'city' = $1`)
+  })
 })
 
 // --- Integration tests with in-memory SQLite (direct, no Effect SQL client) ---
@@ -906,6 +977,62 @@ describe("SQL Store (SQLite integration)", () => {
       const rows = query(db, q.sql, q.params)
       expect(rows).toHaveLength(1)
       expect((rows[0] as any).id).toBe("1")
+    }))
+
+  it("projected root JSON columns can replace data storage for nested fields", () =>
+    withDb((db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS "test_projected_json" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL, "__root_meta" JSON, "__root_items" JSON)`
+      )
+      db
+        .prepare(
+          `INSERT INTO "test_projected_json" (id, _etag, data, "__root_meta", "__root_items") VALUES (?, ?, ?, ?, ?)`
+        )
+        .run(
+          "1",
+          "etag1",
+          JSON.stringify({ untouched: true }),
+          JSON.stringify({ city: "NYC", zip: "10001" }),
+          JSON.stringify([{ description: "picked" }, { description: "open" }])
+        )
+
+      const nested = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "meta.city", op: "eq", value: "NYC" }],
+        "test_projected_json",
+        {},
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        projectedJsonRootLevelFields
+      )
+      expect(query(db, nested.sql, nested.params)).toHaveLength(1)
+
+      const relation = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [],
+        "test_projected_json",
+        {},
+        [{
+          key: "pickedCount",
+          computed: {
+            _tag: "relation-count",
+            path: "items",
+            filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
+          }
+        }],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        projectedJsonRootLevelFields
+      )
+      const [row] = query(db, relation.sql, relation.params)
+      expect((row as any).pickedCount).toBe(1)
     }))
 
   it("queries work when data does not contain id", () =>
@@ -1667,11 +1794,16 @@ describe("sqliteDialect.jsonExtractJson boolean round-trip", () => {
 
 describe("toRow strips _etag and id from data", () => {
   // Replicate the toRow logic from SQL.ts to test in isolation
-  const toRow = <IdKey extends PropertyKey>(e: any, idKey: IdKey) => {
+  const toRow = <IdKey extends PropertyKey>(
+    e: any,
+    idKey: IdKey,
+    rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
+  ) => {
     const newE = makeETag(e)
     const id = newE[idKey] as string
     const { _etag, [idKey]: _id, ...rest } = newE as any
-    const data = JSON.stringify(rest)
+    const projectedKeys = new Set(rootLevelFieldColumns.map((column) => column.key))
+    const data = JSON.stringify(Object.fromEntries(Object.entries(rest).filter(([key]) => !projectedKeys.has(key))))
     return { id, _etag: newE._etag!, data, item: newE }
   }
 
@@ -1718,6 +1850,21 @@ describe("toRow strips _etag and id from data", () => {
     expect(parsed.address).toEqual({ city: "NYC", zip: "10001" })
     expect(parsed).not.toHaveProperty("id")
     expect(parsed).not.toHaveProperty("_etag")
+  })
+
+  it("omits projected root fields from data", () => {
+    const row = toRow(
+      { id: "1", _etag: undefined, name: "Alice", meta: { city: "NYC" }, untouched: true },
+      "id",
+      [
+        { key: "name", columnName: "__root_name", kind: "string" },
+        { key: "meta", columnName: "__root_meta", kind: "json" }
+      ]
+    )
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed).not.toHaveProperty("name")
+    expect(parsed).not.toHaveProperty("meta")
+    expect(parsed.untouched).toBe(true)
   })
 })
 
@@ -1821,5 +1968,23 @@ describe("parseRow reconstructs full object from row", () => {
     )
     expect(result.name).toBe("Alice")
     expect(result.flag).toBe(true)
+  })
+
+  it("reconstructs projected JSON root-level columns when available", () => {
+    const result: any = parseRow(
+      {
+        id: "1",
+        _etag: "e1",
+        data: JSON.stringify({ untouched: true }),
+        __root_meta: JSON.stringify({ city: "NYC" }),
+        __root_items: JSON.stringify([{ description: "picked" }])
+      },
+      "id",
+      {},
+      projectedJsonRootLevelFields
+    )
+    expect(result.meta).toEqual({ city: "NYC" })
+    expect(result.items).toEqual([{ description: "picked" }])
+    expect(result.untouched).toBe(true)
   })
 })

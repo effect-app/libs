@@ -12,7 +12,7 @@ import type { FieldValues } from "../../Model/filter/types.js"
 import type { ComputedProjectionIrExpression } from "../../Model/query.js"
 import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
-import type { RootLevelFieldColumn } from "../rootLevelFields.js"
+import { omitRootLevelFieldColumnsFromData, type RootLevelFieldColumn } from "../rootLevelFields.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
 import { makeETag } from "../utils.js"
 import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, pgDialect, projectedColumnBackfillExpr, projectedColumnSqlType, quoteIdentifier } from "./query.js"
@@ -131,8 +131,12 @@ const makePgStore = Effect.fnUntraced(
           const newE = makeETag(e)
           const id = newE[idKey] as string
           const { _etag, [idKey]: _id, ...rest } = newE as any
-          const data = JSON.stringify(rest)
-          const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) => rest[column.key])
+          const data = JSON.stringify(omitRootLevelFieldColumnsFromData(rest, activeRootLevelFieldColumns))
+          const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) =>
+            column.kind === "json"
+              ? rest[column.key] === undefined ? null : JSON.stringify(rest[column.key])
+              : rest[column.key] ?? null
+          )
           return { id, _etag: newE._etag!, data, item: newE, rootLevelFieldValues }
         }
 

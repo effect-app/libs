@@ -15,6 +15,14 @@ import type { RootLevelFieldColumn } from "./rootLevelFields.js"
 
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
+  /**
+   * Phase 1: keep the document store model, but project eligible root-level scalar
+   * fields into real SQL columns when the adapter supports it.
+   *
+   * Nested objects / arrays and the current relation-like JSON-array semantics stay
+   * in `data`. The next step for actual relational fields is a separate mode with
+   * explicit PK/FK metadata, ownership/cardinality, migrations, and join planning.
+   */
   rootLevelFieldsWhenAvailable?: boolean
   rootLevelFieldColumns?: readonly RootLevelFieldColumn[]
   /**
@@ -233,5 +241,10 @@ export interface StorageConfig {
   url: Redacted.Redacted
   prefix: string
   dbName: string
+  /**
+   * Adapter default for Phase 1 root-level projected columns. Repositories can still
+   * opt in / out per table. Phase 2 relational support is expected to use a separate
+   * mode rather than extending this flag.
+   */
   rootLevelFieldsWhenAvailable?: boolean
 }

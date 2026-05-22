@@ -40,6 +40,14 @@ export interface RepositoryOptions<
    * use the config.defaultValues instead for simple default values
    */
   jitM?: (pm: Encoded) => Encoded
+  /**
+   * Repository storage options.
+   *
+   * `rootLevelFieldsWhenAvailable` is the Phase 1 hybrid mode: keep document-style
+   * JSON storage for nested values, while letting SQL adapters project eligible
+   * root-level scalar fields into real columns. The planned next step for relational
+   * fields is a separate explicit mode with relation metadata and join planning.
+   */
   config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
     partitionValue?: (e?: Encoded) => string
   }

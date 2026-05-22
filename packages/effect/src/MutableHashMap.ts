@@ -21,7 +21,6 @@
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @category data-structures
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.ts"
@@ -41,6 +40,8 @@ const TypeId = "~effect/collections/MutableHashMap"
  * A mutable hash map that stores key-value pairs and supports both referential
  * and Effect structural equality.
  *
+ * **Details**
+ *
  * Operations mutate the map in place. Keys that implement `Equal` / `Hash` can
  * be looked up structurally; other keys use normal JavaScript reference or
  * primitive equality.
@@ -48,7 +49,7 @@ const TypeId = "~effect/collections/MutableHashMap"
  * **Example** (Using a mutable hash map)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * // Create a mutable hash map with string keys and number values
  * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap
@@ -116,7 +117,7 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
  * **Example** (Creating an empty map)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -143,7 +144,7 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
  * **Example** (Creating a map from entries)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -171,7 +172,7 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  * **Example** (Creating a map from an iterable)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const entries = [
  *   ["apple", 1],
@@ -203,13 +204,15 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 /**
  * Looks up a key in the `MutableHashMap`.
  *
+ * **Details**
+ *
  * Returns `Some(value)` when an equal key is present and `None` when the key is
  * absent.
  *
  * **Example** (Getting a value)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -257,7 +260,7 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
  * **Example** (Reading keys)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -283,7 +286,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  * **Example** (Reading values)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -329,7 +332,7 @@ const getFromBucket = <K, V>(
  * **Example** (Checking for a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -359,7 +362,7 @@ export const has: {
  * **Example** (Setting key-value pairs)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -436,7 +439,7 @@ const getRefKey = <K>(
  * **Example** (Modifying existing values)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5], ["total", 100])
  *
@@ -503,8 +506,7 @@ export const modify: {
  * **Example** (Updating or removing a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
- * import * as Option from "effect/Option"
+ * import { MutableHashMap, Option } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5])
  *
@@ -573,7 +575,7 @@ export const modifyAt: {
  * **Example** (Removing a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -640,7 +642,7 @@ export const remove: {
  * **Example** (Clearing all entries)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -676,7 +678,7 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  * **Example** (Checking map size)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  * console.log(MutableHashMap.size(map)) // 0
@@ -700,6 +702,7 @@ export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.s
 /**
  * Returns `true` when the `MutableHashMap` contains no key-value pairs.
  *
+ * @category predicates
  * @since 2.0.0
  */
 export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backing.size === 0
@@ -707,9 +710,12 @@ export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backi
 /**
  * Runs a callback for each key-value pair in the `MutableHashMap`.
  *
+ * **Details**
+ *
  * Iteration follows the backing map's order. The callback receives the value
  * first and the key second, matching `Map.prototype.forEach`.
  *
+ * @category traversing
  * @since 2.0.0
  */
 export const forEach: {

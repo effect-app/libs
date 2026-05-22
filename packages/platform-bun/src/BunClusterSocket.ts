@@ -59,12 +59,18 @@ import * as BunFileSystem from "./BunFileSystem.ts"
 
 export {
   /**
-   * @category Re-exports
+   * Provides the cluster `RpcClientProtocol` using the shared socket client
+   * implementation.
+   *
+   * @category re-exports
    * @since 4.0.0
    */
   layerClientProtocol,
   /**
-   * @category Re-exports
+   * Provides the socket server used by Bun cluster runners through the shared
+   * socket server implementation.
+   *
+   * @category re-exports
    * @since 4.0.0
    */
   layerSocketServer
@@ -73,7 +79,7 @@ export {
 /**
  * Creates Bun socket cluster layers, configuring serialization, storage, runner health, and optional client-only mode.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <
@@ -149,7 +155,7 @@ export const layer = <
 /**
  * Layer that provides `K8sHttpClient`, using the Kubernetes service-account CA certificate when it is available.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(

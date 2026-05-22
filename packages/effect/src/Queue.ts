@@ -76,8 +76,8 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
- * @category Guards
- * @since 3.8.0
+ * @category guards
+ * @since 2.0.0
  */
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
@@ -86,8 +86,8 @@ export const isQueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is an Enqueue.
  *
- * @category Guards
- * @since 4.0.0
+ * @category guards
+ * @since 2.0.0
  */
 export const isEnqueue = <A = unknown, E = unknown>(
   u: unknown
@@ -96,8 +96,8 @@ export const isEnqueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is a Dequeue.
  *
- * @category Guards
- * @since 4.0.0
+ * @category guards
+ * @since 2.0.0
  */
 export const isDequeue = <A = unknown, E = unknown>(
   u: unknown
@@ -106,7 +106,7 @@ export const isDequeue = <A = unknown, E = unknown>(
 /**
  * Converts a Queue to an Enqueue (write-only interface).
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
@@ -114,13 +114,15 @@ export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
 
 /**
  * An `Enqueue` is a queue that can be offered to.
+ *
+ * **Details**
  *
  * This interface represents the write-only part of a Queue, allowing you to offer
  * elements to the queue but not take elements from it.
@@ -143,8 +145,8 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * })
  * ```
  *
- * @category Models
- * @since 4.0.0
+ * @category models
+ * @since 2.0.0
  */
 export interface Enqueue<in A, in E = never> extends Inspectable {
   readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
@@ -160,18 +162,19 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Enqueue`
  * write-only queue interface.
  *
- * @category Models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Enqueue {
   /**
    * Type-level variance marker for `Enqueue`.
    *
+   * **Details**
+   *
    * `Enqueue` is contravariant in both its offered value type `A` and failure
    * type `E`, because values and failures flow into the queue through this
    * handle.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Variance<A, E> {
@@ -182,6 +185,8 @@ export declare namespace Enqueue {
 
 /**
  * A `Dequeue` is a queue that can be taken from.
+ *
+ * **Details**
  *
  * This interface represents the read-only part of a Queue, allowing you to take
  * elements from the queue but not offer elements to it.
@@ -206,8 +211,8 @@ export declare namespace Enqueue {
  * })
  * ```
  *
- * @category Models
- * @since 3.8.0
+ * @category models
+ * @since 2.0.0
  */
 export interface Dequeue<out A, out E = never> extends Inspectable {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
@@ -223,18 +228,19 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Dequeue`
  * read-only queue interface.
  *
- * @category Models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Dequeue {
   /**
    * Type-level variance marker for `Dequeue`.
    *
+   * **Details**
+   *
    * `Dequeue` is covariant in both the taken value type `A` and failure type
    * `E`, because values and failures are observed through this handle.
    *
-   * @category Models
-   * @since 3.8.0
+   * @category models
+   * @since 4.0.0
    */
   export interface Variance<A, E> {
     _A: Types.Covariant<A>
@@ -245,13 +251,9 @@ export declare namespace Dequeue {
 /**
  * A `Queue` is an asynchronous queue that can be offered to and taken from.
  *
+ * **Details**
+ *
  * It also supports signaling that it is done or failed.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Mailbox`
  *
  * **Example** (Offering and taking queue values)
  *
@@ -275,8 +277,8 @@ export declare namespace Dequeue {
  * })
  * ```
  *
- * @category Models
- * @since 3.8.0
+ * @category models
+ * @since 2.0.0
  */
 export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
   readonly [TypeId]: Queue.Variance<A, E>
@@ -286,18 +288,19 @@ export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeu
  * Companion namespace containing type-level metadata and low-level state types
  * for `Queue`.
  *
- * @category Models
- * @since 3.8.0
+ * @since 2.0.0
  */
 export declare namespace Queue {
   /**
    * Type-level variance marker for `Queue`.
    *
+   * **Details**
+   *
    * A full `Queue` is invariant in both `A` and `E` because the same handle can
    * both produce and consume values and failures.
    *
-   * @category Models
-   * @since 3.8.0
+   * @category models
+   * @since 4.0.0
    */
   export interface Variance<A, E> {
     _A: Types.Invariant<A>
@@ -307,12 +310,14 @@ export declare namespace Queue {
   /**
    * Tagged state of a `Queue`.
    *
+   * **Details**
+   *
    * `Open` queues can accept offers and takers, `Closing` queues are
    * completing with a stored failure exit, and `Done` queues have finished.
    * This is low-level metadata exposed by the queue model; most users should
    * inspect queues through the public operations.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type State<A, E> =
@@ -337,11 +342,13 @@ export declare namespace Queue {
   /**
    * Represents a suspended offer waiting to be admitted to a bounded queue.
    *
+   * **Details**
+   *
    * An entry is either a single message or a batch with an offset into its
    * remaining messages, plus a resume callback that completes the suspended
    * offer when the queue can accept more input.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type OfferEntry<A> =
@@ -379,19 +386,13 @@ const QueueProto = {
 /**
  * Creates a `Queue` with optional capacity and overflow strategy.
  *
+ * **Details**
+ *
  * By default the queue is unbounded and uses the `"suspend"` strategy. Provide
  * `capacity` for a bounded queue and choose `"suspend"`, `"dropping"`, or
  * `"sliding"` to control what happens when the queue is full. The returned
  * queue can be offered to, taken from, failed, ended, interrupted, or shut down.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Mailbox.make`
- *
- * @category Constructors
- * @since 3.8.0
  * **Example** (Creating queues)
  *
  * ```ts
@@ -420,6 +421,9 @@ const QueueProto = {
  *   console.log(failed) // true
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A, E = never>(
   options?: {
@@ -446,6 +450,8 @@ export const make = <A, E = never>(
 /**
  * Creates a bounded queue with the specified capacity that uses backpressure strategy.
  *
+ * **Details**
+ *
  * When the queue reaches capacity, producers will be suspended until space becomes available.
  * This ensures all messages are processed but may slow down producers.
  *
@@ -466,7 +472,7 @@ export const make = <A, E = never>(
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
@@ -474,6 +480,8 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
 /**
  * Creates a bounded queue with sliding strategy. When the queue reaches capacity,
  * new elements are added and the oldest elements are dropped.
+ *
+ * **When to use**
  *
  * This strategy prevents producers from being blocked but may result in message loss.
  * Useful when you want to maintain a rolling window of the most recent messages.
@@ -499,7 +507,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
@@ -507,6 +515,8 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
 /**
  * Creates a bounded queue with dropping strategy. When the queue reaches capacity,
  * new elements are dropped and the offer operation returns false.
+ *
+ * **When to use**
  *
  * This strategy prevents producers from being blocked and preserves existing messages,
  * but new messages may be lost when the queue is full.
@@ -533,7 +543,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
@@ -541,6 +551,8 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
 
 /**
  * Creates an unbounded queue that can grow to any size without blocking producers.
+ *
+ * **When to use**
  *
  * Unlike bounded queues, unbounded queues never apply backpressure - producers
  * can always add messages successfully. This is useful when you want to prioritize
@@ -569,13 +581,15 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
 /**
  * Add a message to the queue. Returns `false` if the queue is done.
+ *
+ * **Details**
  *
  * For bounded queues, this operation may suspend if the queue is at capacity,
  * depending on the backpressure strategy. For dropping/sliding queues, it may
@@ -601,7 +615,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * ```
  *
  * @category Offering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
   internalEffect.suspend(() => {
@@ -631,6 +645,8 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
 
 /**
  * Add a message to the queue synchronously. Returns `false` if the queue is done.
+ *
+ * **Gotchas**
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  * Use this only when you're certain about the synchronous nature of the operation.
@@ -682,6 +698,8 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * Add multiple messages to the queue. Returns the remaining messages that
  * were not added.
  *
+ * **Details**
+ *
  * For bounded queues, this operation may suspend if the queue doesn't have
  * enough capacity. The operation returns an array of messages that couldn't
  * be added (empty array means all messages were successfully added).
@@ -701,7 +719,7 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * ```
  *
  * @category Offering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
   internalEffect.suspend(() => {
@@ -720,6 +738,8 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
 /**
  * Add multiple messages to the queue synchronously. Returns the remaining messages that
  * were not added.
+ *
+ * **Gotchas**
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
@@ -844,13 +864,14 @@ export const failCause: {
  * Fail the queue with a cause synchronously. If the queue is already done, `false` is
  * returned.
  *
+ * **Gotchas**
+ *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
  * **Example** (Failing queues with a cause synchronously)
  *
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -924,6 +945,8 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  * Signal that the queue is complete synchronously. If the queue is already done, `false` is
  * returned.
  *
+ * **Gotchas**
+ *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
  * **Example** (Ending queues synchronously)
@@ -961,6 +984,8 @@ export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(s
 
 /**
  * Interrupts the queue gracefully, transitioning it to a closing state.
+ *
+ * **Details**
  *
  * This operation stops accepting new offers but allows existing messages to be consumed.
  * Once all messages are drained, the queue transitions to the Done state with an interrupt cause.
@@ -1036,7 +1061,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * ```
  *
  * @category Completion
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   internalEffect.sync(() => {
@@ -1135,7 +1160,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E> =>
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
@@ -1221,7 +1246,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeN = <A, E>(
   self: Dequeue<A, E>,
@@ -1263,7 +1288,7 @@ export const takeN = <A, E>(
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeBetween = <A, E>(
   self: Dequeue<A, E>,
@@ -1277,6 +1302,8 @@ export const takeBetween = <A, E>(
 /**
  * Take a single message from the queue, or wait for a message to be
  * available.
+ *
+ * **Details**
  *
  * If the queue is done, it will fail with `Done`. If the
  * queue fails, the Effect will fail with the error.
@@ -1311,7 +1338,7 @@ export const takeBetween = <A, E>(
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   internalEffect.suspend(
@@ -1349,7 +1376,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
   internalEffect.suspend(() => {
@@ -1365,6 +1392,8 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
 
 /**
  * Views the next item without removing it.
+ *
+ * **Details**
  *
  * Blocks until an item is available. If the queue is done or fails, the error is propagated.
  *
@@ -1516,7 +1545,7 @@ export {
  * ```
  *
  * @category Size
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
@@ -1541,7 +1570,7 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
  * ```
  *
  * @category Size
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
 
@@ -1645,7 +1674,7 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  * ```
  *
  * @category Completion
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const into: {
   <A, E>(

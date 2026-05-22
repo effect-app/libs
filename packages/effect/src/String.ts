@@ -74,7 +74,7 @@ export const Order: order.Order<string> = order.String
  * ```
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<string> = Equ.String
 
@@ -217,6 +217,8 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
 
 /**
  * Replaces matches in a string using `String.prototype.replace`.
+ *
+ * **Details**
  *
  * String search values and non-global regular expressions replace the first
  * match; global regular expressions replace every match.
@@ -408,7 +410,7 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
  * assert.deepStrictEqual(String.length("abc"), 3)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const length = (self: string): number => self.length
@@ -870,6 +872,8 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
 /**
  * Keep the specified number of characters from the start of a string.
  *
+ * **Details**
+ *
  * If `n` is larger than the available number of characters, the string will
  * be returned whole.
  *
@@ -896,6 +900,8 @@ export const takeLeft: {
 
 /**
  * Keep the specified number of characters from the end of a string.
+ *
+ * **Details**
  *
  * If `n` is larger than the available number of characters, the string will
  * be returned whole.
@@ -1324,6 +1330,7 @@ export const snakeCase: (self: string) => string = noCase({
 /**
  * A `Reducer` for concatenating `string`s.
  *
+ * @category concatenating
  * @since 4.0.0
  */
 export const ReducerConcat: Reducer.Reducer<string> = Reducer.make((a, b) => a + b, "")

@@ -17,9 +17,8 @@
  * store them. Registrations are tied to the surrounding scope, failures from a
  * query fail the queue or stream, and invalidations that arrive while a query is
  * already running schedule a single follow-up run. Use stable key values, be
- * aware that the default layer is process-local, and wrap related work in
- * {@link Reactivity.withBatch} when many invalidations should be coalesced until
- * the batch exits.
+ * aware that the default layer is process-local, and use the {@link Reactivity}
+ * service when many invalidations should be coalesced until the batch exits.
  *
  * @since 4.0.0
  */
@@ -38,9 +37,11 @@ import * as Stream from "../../Stream.ts"
 /**
  * A service for key-based reactive invalidation.
  *
- * It can register handlers for keys, invalidate those keys, wrap mutations so
- * successful effects invalidate keys, and turn query effects into queues or
- * streams that rerun when keys are invalidated.
+ * **Details**
+ *
+ * The service can register handlers for keys, invalidate those keys, wrap
+ * mutations so successful effects invalidate keys, and turn query effects into
+ * queues or streams that rerun when keys are invalidated.
  *
  * @category tags
  * @since 4.0.0
@@ -74,6 +75,8 @@ export class Reactivity extends Context.Service<
 
 /**
  * Creates an in-memory `Reactivity` service.
+ *
+ * **Details**
  *
  * The service tracks handlers by hashed keys and runs the registered handlers when
  * matching keys are invalidated.
@@ -223,6 +226,8 @@ class PendingInvalidation extends Context.Service<PendingInvalidation, Set<strin
 /**
  * Wraps an effect so the supplied keys are invalidated after the effect succeeds.
  *
+ * **Gotchas**
+ *
  * If the effect fails, the keys are not invalidated.
  *
  * @category accessors
@@ -243,6 +248,8 @@ export const mutation: {
 
 /**
  * Runs an effect as a query tied to the supplied invalidation keys.
+ *
+ * **Details**
  *
  * The returned queue receives the initial result and each later result after the
  * keys are invalidated. The registration is removed when the current scope closes.
@@ -270,6 +277,8 @@ export const query: {
  * Runs an effect as a stream of query results tied to the supplied invalidation
  * keys.
  *
+ * **Details**
+ *
  * The effect runs initially and reruns whenever the keys are invalidated.
  *
  * @category accessors
@@ -294,6 +303,8 @@ export const stream: {
 
 /**
  * Invalidates the supplied keys through the `Reactivity` service.
+ *
+ * **Details**
  *
  * Registered queries for matching keys are rerun immediately, or collected until
  * the enclosing reactivity batch completes.

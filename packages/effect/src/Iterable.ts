@@ -46,12 +46,11 @@ import type { NoInfer } from "./Types.ts"
 /**
  * Creates an iterable by applying a function to consecutive integers.
  *
- * This is a fundamental constructor that generates iterables by calling a function
- * with each index starting from 0. If no length is specified, the iterable will
- * be infinite. This is useful for generating sequences, patterns, or any indexed data.
+ * **Details**
  *
- * @param f - Function that receives the index and returns the element
- * @param options - Configuration object with optional length
+ * The function is called with each index starting from `0`. If no length is
+ * specified, the iterable is infinite. This is useful for generating
+ * sequences, patterns, or any indexed data.
  *
  * **Example** (Generating values by index)
  *
@@ -97,6 +96,8 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
 /**
  * Returns an iterable of integers starting at `start` and increasing by `1`.
  *
+ * **Details**
+ *
  * When `end` is provided and `start <= end`, both endpoints are included. When
  * `end` is omitted, the iterable is unbounded. When `start > end`, the
  * iterable contains only `start`.
@@ -104,10 +105,10 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
  * **Example** (Creating a range)
  *
  * ```ts
- * import { range } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Array.from(range(1, 3)), [1, 2, 3])
+ * assert.deepStrictEqual(Array.from(Iterable.range(1, 3)), [1, 2, 3])
  * ```
  *
  * @category constructors
@@ -125,15 +126,17 @@ export const range = (start: number, end?: number): Iterable<number> => {
 /**
  * Return a `Iterable` containing a value repeated the specified number of times.
  *
- * **Note**. `n` is normalized to an integer >= 1.
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to `1`.
  *
  * **Example** (Repeating a value)
  *
  * ```ts
- * import { replicate } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Array.from(replicate("a", 3)), ["a", "a", "a"])
+ * assert.deepStrictEqual(Array.from(Iterable.replicate("a", 3)), ["a", "a", "a"])
  * ```
  *
  * @category constructors
@@ -148,6 +151,8 @@ export const replicate: {
  * Repeats an iterable `n` times, yielding the full contents of `self` for each
  * repetition.
  *
+ * **Details**
+ *
  * The result is lazy. Each repetition obtains a new iterator from `self`.
  *
  * @category constructors
@@ -160,6 +165,8 @@ export const repeat: {
 
 /**
  * Repeats an iterable without an upper bound.
+ *
+ * **Gotchas**
  *
  * The returned iterable is lazy and should usually be bounded with `take` or
  * another terminating consumer before materializing it.
@@ -175,17 +182,17 @@ export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infin
  * **Example** (Converting a record to entries)
  *
  * ```ts
- * import { fromRecord } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * assert.deepStrictEqual(Array.from(fromRecord(x)), [["a", 1], ["b", 2], [
+ * assert.deepStrictEqual(Array.from(Iterable.fromRecord(x)), [["a", 1], ["b", 2], [
  *   "c",
  *   3
  * ]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): Iterable<[K, A]> => ({
@@ -391,11 +398,11 @@ export const scan: {
  * **Example** (Checking for emptiness)
  *
  * ```ts
- * import { isEmpty } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(isEmpty([]), true)
- * assert.deepStrictEqual(isEmpty([1, 2, 3]), false)
+ * assert.deepStrictEqual(Iterable.isEmpty([]), true)
+ * assert.deepStrictEqual(Iterable.isEmpty([1, 2, 3]), false)
  * ```
  *
  * @category guards
@@ -447,8 +454,7 @@ export const size = <A>(self: Iterable<A>): number => {
  * **Example** (Getting the first element)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  *
  * const numbers = [1, 2, 3]
  * console.log(Iterable.head(numbers)) // Option.some(1)
@@ -499,7 +505,7 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
  * ```
  *
  * @category getters
- * @since 3.3.0
+ * @since 4.0.0
  */
 export const headUnsafe = <A>(self: Iterable<A>): A => {
   const iterator = self[Symbol.iterator]()
@@ -511,7 +517,9 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
 /**
  * Keep only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Taking from the start)
  *
@@ -616,7 +624,9 @@ export const takeWhile: {
 /**
  * Drop a max number of elements from the start of an `Iterable`
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Dropping from the start)
  *
@@ -672,8 +682,7 @@ export const drop: {
  * **Example** (Finding the first match)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  *
  * const numbers = [1, 3, 4, 6, 8]
  * const firstEven = Iterable.findFirst(numbers, (x) => x % 2 === 0)
@@ -1022,6 +1031,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  * Checks whether an iterable contains a value using Effect's default `Equal`
  * equivalence.
  *
+ * **Details**
+ *
  * Can be called as `contains(self, value)` or curried as
  * `contains(value)(self)`.
  *
@@ -1246,6 +1257,8 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
 /**
  * Groups all elements by the string or symbol key returned by `f`.
  *
+ * **Details**
+ *
  * Each property in the returned record contains a non-empty array of elements
  * that produced that key. Unlike `group`, matching elements do not need to be
  * consecutive.
@@ -1329,8 +1342,10 @@ const constEmptyIterator: Iterator<never> = {
 /**
  * Creates an empty iterable that yields no elements.
  *
- * This function returns a reusable empty iterable that can be used as a base case
- * for operations or when you need to represent "no data" in a type-safe way.
+ * **When to use**
+ *
+ * Use this reusable empty iterable as a base case for operations or when you
+ * need to represent "no data" in a type-safe way.
  *
  * **Example** (Creating an empty iterable)
  *
@@ -1356,10 +1371,10 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
 /**
  * Creates an iterable containing a single element.
  *
- * This is useful for wrapping a single value in an iterable context,
- * allowing it to be used with other iterable operations.
+ * **When to use**
  *
- * @param a - The single element to wrap in an iterable
+ * Use this to wrap a single value in an iterable context so it can be combined
+ * with other iterable operations.
  *
  * **Example** (Wrapping a single value)
  *
@@ -1393,13 +1408,12 @@ export const of = <A>(a: A): Iterable<A> => [a]
 /**
  * Transforms each element of an iterable using a function.
  *
+ * **Details**
+ *
  * This is one of the most fundamental operations for working with iterables.
  * It applies a transformation function to each element, creating a new iterable
  * with the transformed values. The operation is lazy - elements are only
  * transformed when the iterable is consumed.
- *
- * @param self - The source iterable to transform
- * @param f - Function that transforms each element (receives value and index)
  *
  * **Example** (Mapping elements)
  *
@@ -1554,14 +1568,15 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
 /**
  * Transforms elements of an iterable using a function that returns a `Result`, keeping only successful values.
  *
+ * **Details**
+ *
  * This combines mapping and filtering in a single operation - the function is applied to each element,
  * and only elements that result in `Result.succeed` are included in the result.
  *
  * **Example** (Filtering and transforming Result values)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  *
  * // Parse strings to numbers, keeping only valid ones
  * const strings = ["1", "2", "invalid", "4", "not-a-number"]
@@ -1629,8 +1644,7 @@ export const filterMap: {
  * **Example** (Filtering and transforming until failure)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  *
  * // Parse numbers until we hit an invalid one
  * const strings = ["1", "2", "3", "invalid", "4", "5"]
@@ -1689,8 +1703,7 @@ export const filterMapWhile: {
  * **Example** (Extracting Some values)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -1731,8 +1744,7 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
  * **Example** (Extracting failures)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -1748,7 +1760,7 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> => {
   return {
@@ -1777,8 +1789,7 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
  * **Example** (Extracting successes)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -1794,7 +1805,7 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0> => {
   return {
@@ -1819,12 +1830,11 @@ export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0>
 /**
  * Filters an iterable to only include elements that match a predicate.
  *
+ * **Details**
+ *
  * This function creates a new iterable containing only the elements for which
  * the predicate function returns true. Like map, this operation is lazy and
  * elements are only tested when the iterable is consumed.
- *
- * @param self - The source iterable to filter
- * @param predicate - Function that tests each element (receives value and index)
  *
  * **Example** (Filtering elements)
  *
@@ -1890,8 +1900,10 @@ export const filter: {
 /**
  * Transforms elements using a function that may return null or undefined, filtering out the null/undefined results.
  *
- * This is useful when working with APIs or functions that return nullable values,
- * providing a clean way to filter out null/undefined while transforming.
+ * **When to use**
+ *
+ * Use this when working with APIs or functions that return nullable values,
+ * providing a clean way to filter out null or undefined while transforming.
  *
  * **Example** (FlatMapping nullable results)
  *
@@ -1928,7 +1940,7 @@ export const filter: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const flatMapNullishOr: {
   <A, B>(f: (a: A) => B): (self: Iterable<A>) => Iterable<NonNullable<B>>
@@ -2002,6 +2014,8 @@ export const some: {
 /**
  * Generates an iterable by repeatedly applying a function that produces the
  * next element and state.
+ *
+ * **Details**
  *
  * This is useful for creating iterables from a generating function that
  * maintains state. The function should return `Option.some([value, nextState])`
@@ -2104,6 +2118,8 @@ export const forEach: {
 
 /**
  * Reduce an iterable to a single value by applying a function to each element and accumulating the result.
+ *
+ * **Details**
  *
  * This function applies a reducing function against an accumulator and each element
  * of the iterable (from left to right) to reduce it to a single value.

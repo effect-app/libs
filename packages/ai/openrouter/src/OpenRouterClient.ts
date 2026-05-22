@@ -49,6 +49,8 @@ import { OpenRouterConfig } from "./OpenRouterConfig.ts"
 /**
  * The OpenRouter client service interface.
  *
+ * **Details**
+ *
  * Provides methods for interacting with OpenRouter's Chat Completions API,
  * including both synchronous and streaming message creation.
  *
@@ -84,7 +86,7 @@ export interface Service {
  * The payload contains streamed choices, model metadata, optional usage, and may
  * include an OpenRouter error object for a streamed response.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
@@ -96,7 +98,7 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 /**
  * Service identifier for the OpenRouter client.
  *
- * @category service
+ * @category services
  * @since 4.0.0
  */
 export class OpenRouterClient extends Context.Service<
@@ -131,6 +133,8 @@ export type Options = {
 
   /**
    * Optional transformer for the underlying HTTP client.
+   *
+   * **When to use**
    *
    * Use this to add middleware, logging, or custom request/response handling.
    */

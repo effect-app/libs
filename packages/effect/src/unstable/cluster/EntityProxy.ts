@@ -41,14 +41,11 @@ const clientErrors = [
 /**
  * Derives an `RpcGroup` from an `Entity`.
  *
+ * **Example** (Deriving RPC endpoints from an entity)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { Rpc, RpcServer } from "effect/unstable/rpc"
  *
  * export const Counter = Entity.make("Counter", [
@@ -69,7 +66,7 @@ const clientErrors = [
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
@@ -106,9 +103,13 @@ export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
 /**
  * Type-level conversion used by `toRpcGroup`.
  *
- * For each entity RPC it creates a prefixed request RPC and a discard RPC whose
- * payload includes `entityId`, and whose errors include cluster client errors.
+ * **Details**
  *
+ * For each entity RPC, this creates a prefixed request RPC and a discard RPC
+ * whose payload includes `entityId`, and whose errors include cluster client
+ * errors.
+ *
+ * @category converting
  * @since 4.0.0
  */
 export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<
@@ -158,14 +159,11 @@ const entityIdPath = {
 /**
  * Derives an `HttpApiGroup` from an `Entity`.
  *
+ * **Example** (Deriving HTTP API endpoints from an entity)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Rpc } from "effect/unstable/rpc"
  *
@@ -193,7 +191,7 @@ const entityIdPath = {
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, Type extends string, Rpcs extends Rpc.Any>(
@@ -234,9 +232,13 @@ const tagToPath = (tag: string): string =>
 /**
  * Type-level conversion used by `toHttpApiGroup`.
  *
- * For each entity RPC it creates a POST endpoint at `/<tag>/:entityId` and a
- * discard endpoint at `/<tag>/:entityId/discard`, including cluster client errors.
+ * **Details**
  *
+ * For each entity RPC, this creates a POST endpoint at `/<tag>/:entityId` and a
+ * discard endpoint at `/<tag>/:entityId/discard`, including cluster client
+ * errors.
+ *
+ * @category converting
  * @since 4.0.0
  */
 export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<

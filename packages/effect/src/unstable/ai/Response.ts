@@ -165,6 +165,8 @@ export type AllPartsEncoded =
 /**
  * Creates a Schema for all response parts based on a toolkit.
  *
+ * **Details**
+ *
  * Generates a schema that includes all possible response parts, with tool call
  * and tool result parts dynamically created based on the provided toolkit.
  *
@@ -459,9 +461,8 @@ export const ProviderMetadata: Schema.$Record<
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
 /**
- * Base interface for all response content parts.
- *
- * Provides common structure including type identifier and optional metadata.
+ * Base interface for all response content parts, including the type identifier
+ * and optional metadata.
  *
  * @category models
  * @since 4.0.0
@@ -608,7 +609,7 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartMetadat
  * Represents provider-specific metadata that can be associated with a
  * `TextPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextPartMetadata extends ProviderMetadata {}
@@ -637,9 +638,8 @@ export const TextPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the start of streaming text content.
- *
- * Marks the beginning of a text chunk with a unique identifier.
+ * Response part indicating the start of streaming text content with a unique
+ * text chunk identifier.
  *
  * @category models
  * @since 4.0.0
@@ -668,7 +668,7 @@ export interface TextStartPartEncoded extends BasePartEncoded<"text-start", Text
  * Represents provider-specific metadata that can be associated with a
  * `TextStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextStartPartMetadata extends ProviderMetadata {}
@@ -735,7 +735,7 @@ export interface TextDeltaPartEncoded extends BasePartEncoded<"text-delta", Text
  * Represents provider-specific metadata that can be associated with a
  * `TextDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextDeltaPartMetadata extends ProviderMetadata {}
@@ -766,9 +766,7 @@ export const TextDeltaPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the end of streaming text content.
- *
- * Marks the completion of a text chunk.
+ * Response part indicating the completion of a streaming text chunk.
  *
  * @category models
  * @since 4.0.0
@@ -797,7 +795,7 @@ export interface TextEndPartEncoded extends BasePartEncoded<"text-end", TextEndP
  * Represents provider-specific metadata that can be associated with a
  * `TextEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextEndPartMetadata extends ProviderMetadata {}
@@ -868,7 +866,7 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningPartMetadata extends ProviderMetadata {}
@@ -897,9 +895,8 @@ export const ReasoningPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the start of streaming reasoning content.
- *
- * Marks the beginning of a reasoning chunk with a unique identifier.
+ * Response part indicating the start of streaming reasoning content with a
+ * unique reasoning chunk identifier.
  *
  * @category models
  * @since 4.0.0
@@ -928,7 +925,7 @@ export interface ReasoningStartPartEncoded extends BasePartEncoded<"reasoning-st
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningStartPartMetadata extends ProviderMetadata {}
@@ -995,7 +992,7 @@ export interface ReasoningDeltaPartEncoded extends BasePartEncoded<"reasoning-de
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningDeltaPartMetadata extends ProviderMetadata {}
@@ -1026,9 +1023,7 @@ export const ReasoningDeltaPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the end of streaming reasoning content.
- *
- * Marks the completion of a chunk of reasoning content.
+ * Response part indicating the completion of a streaming reasoning chunk.
  *
  * @category models
  * @since 4.0.0
@@ -1057,7 +1052,7 @@ export interface ReasoningEndPartEncoded extends BasePartEncoded<"reasoning-end"
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningEndPartMetadata extends ProviderMetadata {}
@@ -1087,6 +1082,8 @@ export const ReasoningEndPart: Schema.Struct<{
 
 /**
  * Response part indicating the start of streaming tool parameters.
+ *
+ * **Details**
  *
  * Marks the beginning of tool parameter streaming with metadata about the tool
  * call.
@@ -1136,7 +1133,7 @@ export interface ToolParamsStartPartEncoded extends BasePartEncoded<"tool-params
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsStartPartMetadata extends ProviderMetadata {}
@@ -1173,6 +1170,8 @@ export const ToolParamsStartPart: Schema.Struct<{
 
 /**
  * Response part containing incremental tool parameter content.
+ *
+ * **Details**
  *
  * Represents a chunk of tool parameters being streamed, containing the
  * incremental JSON content that forms the tool parameters.
@@ -1212,7 +1211,7 @@ export interface ToolParamsDeltaPartEncoded extends BasePartEncoded<"tool-params
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsDeltaPartMetadata extends ProviderMetadata {}
@@ -1248,6 +1247,8 @@ export const ToolParamsDeltaPart: Schema.Struct<{
 /**
  * Response part indicating the end of streaming tool parameters.
  *
+ * **Details**
+ *
  * Marks the completion of a tool parameter stream, indicating that all
  * parameter data has been sent and the tool call is ready to be executed.
  *
@@ -1278,7 +1279,7 @@ export interface ToolParamsEndPartEncoded extends BasePartEncoded<"tool-params-e
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsEndPartMetadata extends ProviderMetadata {}
@@ -1387,7 +1388,7 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * Represents provider-specific metadata that can be associated with a
  * `ToolCallPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolCallPartMetadata extends ProviderMetadata {}
@@ -1467,9 +1468,13 @@ export interface BaseToolResult<Name extends string> extends BasePart<"tool-resu
   /**
    * Whether this is a preliminary (intermediate) result.
    *
+   * **Details**
+   *
    * Preliminary results represent progress updates during streaming tool
    * execution. Only the final result (where `preliminary` is `false` or
    * `undefined`) should be used as the authoritative output.
+   *
+   * **Gotchas**
    *
    * Only applicable for framework-executed tools during streaming.
    */
@@ -1585,6 +1590,8 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
   /**
    * Whether this is a preliminary (intermediate) result.
    *
+   * **Gotchas**
+   *
    * Only applicable for framework-executed tools during streaming.
    */
   readonly preliminary?: boolean | undefined
@@ -1594,7 +1601,7 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * Represents provider-specific metadata that can be associated with a
  * `ToolResultPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolResultPartMetadata extends ProviderMetadata {}
@@ -1721,6 +1728,8 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
 /**
  * Response part representing a tool approval request.
  *
+ * **Details**
+ *
  * Emitted when a tool requires user approval before execution. The framework
  * checks the tool's `needsApproval` property and emits this part instead of
  * executing the tool when approval is required.
@@ -1776,7 +1785,7 @@ export interface ToolApprovalRequestPartEncoded
  * Represents provider-specific metadata that can be associated with a
  * `ToolApprovalRequestPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolApprovalRequestPartMetadata extends ProviderMetadata {}
@@ -1821,6 +1830,8 @@ export const toolApprovalRequestPart = (
 
 /**
  * Response part representing a file attachment.
+ *
+ * **Details**
  *
  * Supports various file types including images, documents, and binary data.
  *
@@ -1870,7 +1881,7 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartMetadat
  * Represents provider-specific metadata that can be associated with a
  * `FilePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface FilePartMetadata extends ProviderMetadata {}
@@ -1901,9 +1912,8 @@ export const FilePart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part representing a document source reference.
- *
- * Used to reference documents that were used in generating the response.
+ * Response part representing a document source reference used in generating the
+ * response.
  *
  * @category models
  * @since 4.0.0
@@ -1964,7 +1974,7 @@ export interface DocumentSourcePartEncoded extends BasePartEncoded<"source", Doc
  * Represents provider-specific metadata that can be associated with a
  * `DocumentSourcePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface DocumentSourcePartMetadata extends ProviderMetadata {}
@@ -2001,9 +2011,8 @@ export const DocumentSourcePart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part representing a URL source reference.
- *
- * Used to reference web URLs that were used in generating the response.
+ * Response part representing a URL source reference used in generating the
+ * response.
  *
  * @category models
  * @since 4.0.0
@@ -2056,7 +2065,7 @@ export interface UrlSourcePartEncoded extends BasePartEncoded<"source", UrlSourc
  * Represents provider-specific metadata that can be associated with a
  * `UrlSourcePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UrlSourcePartMetadata extends ProviderMetadata {}
@@ -2092,6 +2101,8 @@ export const UrlSourcePart: Schema.Struct<{
 
 /**
  * Schema for HTTP request details associated with an AI response.
+ *
+ * **Details**
  *
  * Captures comprehensive information about the HTTP request made to the
  * AI provider, enabling inspection of request metadata for debugging and
@@ -2130,6 +2141,8 @@ export const HttpRequestDetails = Schema.Struct({
 
 /**
  * Schema for HTTP response details associated with an AI response.
+ *
+ * **Details**
  *
  * Captures essential information about the HTTP response received from
  * the AI provider, including status codes and headers for debugging and
@@ -2240,7 +2253,7 @@ export interface ResponseMetadataPartEncoded
  * Represents provider-specific metadata that can be associated with a
  * `ResponseMetadataPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ResponseMetadataPartMetadata extends ProviderMetadata {}
@@ -2280,6 +2293,8 @@ export const ResponseMetadataPart: Schema.Struct<{
 /**
  * Represents the reason why a model finished generation of a response.
  *
+ * **Details**
+ *
  * Possible finish reasons:
  * - `"stop"`: The model generated a stop sequence.
  * - `"length"`: The model exceeded its token budget.
@@ -2316,6 +2331,8 @@ export const FinishReason: Schema.Literals<[
 /**
  * Type of the reason why a model stopped generating a response.
  *
+ * **Details**
+ *
  * Values include normal stops, token-limit stops, content filtering,
  * tool-call pauses, provider errors, and unknown provider-specific finish
  * reasons.
@@ -2327,6 +2344,8 @@ export type FinishReason = typeof FinishReason.Type
 
 /**
  * Represents usage information for a request to a large language model provider.
+ *
+ * **Details**
  *
  * If the model provider returns additional usage information than what is
  * specified here, you can generally find that information under the provider
@@ -2446,7 +2465,7 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
  * Represents provider-specific metadata that can be associated with a
  * `FinishPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface FinishPartMetadata extends ProviderMetadata {}
@@ -2521,7 +2540,7 @@ export interface ErrorPartEncoded extends BasePartEncoded<"error", ErrorPartMeta
  * Represents provider-specific metadata that can be associated with a
  * `ErrorPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ErrorPartMetadata extends ProviderMetadata {}

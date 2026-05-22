@@ -50,10 +50,12 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
  * Provides a runner RPC client protocol that connects to runner addresses over
  * HTTP.
  *
+ * **Details**
+ *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `http` to `https`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolHttp = (options: {
@@ -84,7 +86,7 @@ export const layerClientProtocolHttp = (options: {
 /**
  * Default HTTP runner client protocol layer using path `/`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolHttpDefault: Layer.Layer<
@@ -97,10 +99,12 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
  * Provides a runner RPC client protocol that connects to runner addresses over
  * WebSocket.
  *
+ * **Details**
+ *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `ws` to `wss`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolWebsocket = (options: {
@@ -133,7 +137,7 @@ export const layerClientProtocolWebsocket = (options: {
 /**
  * Default WebSocket runner client protocol layer using path `/`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolWebsocketDefault: Layer.Layer<
@@ -144,6 +148,8 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
 
 /**
  * Builds an HTTP effect that serves runner RPCs over the HTTP protocol.
+ *
+ * **Details**
  *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
@@ -165,6 +171,8 @@ export const toHttpEffect: Effect.Effect<
 
 /**
  * Builds an HTTP effect that serves runner RPCs over WebSocket.
+ *
+ * **Details**
  *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
@@ -188,7 +196,7 @@ export const toHttpEffectWebsocket: Effect.Effect<
  * Layer that provides `Sharding` and `Runners` using the configured runner RPC
  * client protocol and storage services.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClient: Layer.Layer<
@@ -203,7 +211,7 @@ export const layerClient: Layer.Layer<
  * A HTTP layer for the `Runners` services, that adds a route to the provided
  * `HttpRouter`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpOptions = (options: {
@@ -227,7 +235,7 @@ export const layerHttpOptions = (options: {
  * WebSocket layer for the `Runners` services that adds a route to the provided
  * `HttpRouter`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocketOptions = (options: {
@@ -250,10 +258,12 @@ export const layerWebsocketOptions = (options: {
 /**
  * Complete HTTP runner layer.
  *
+ * **Details**
+ *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over HTTP.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttp: Layer.Layer<
@@ -273,10 +283,12 @@ export const layerHttp: Layer.Layer<
 /**
  * Client-only HTTP runner layer.
  *
+ * **Details**
+ *
  * It configures runner clients to communicate over HTTP without serving runner
  * HTTP routes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpClientOnly: Layer.Layer<
@@ -294,10 +306,12 @@ export const layerHttpClientOnly: Layer.Layer<
 /**
  * Complete WebSocket runner layer.
  *
+ * **Details**
+ *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over WebSocket.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocket: Layer.Layer<
@@ -317,10 +331,12 @@ export const layerWebsocket: Layer.Layer<
 /**
  * Client-only WebSocket runner layer.
  *
+ * **Details**
+ *
  * It configures runner clients to communicate over WebSocket without serving
  * runner WebSocket routes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocketClientOnly: Layer.Layer<

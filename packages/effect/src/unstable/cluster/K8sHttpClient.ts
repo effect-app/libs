@@ -48,11 +48,13 @@ export class K8sHttpClient extends Context.Service<
 /**
  * Layer that configures `K8sHttpClient` for the in-cluster Kubernetes API.
  *
+ * **Details**
+ *
  * It targets `https://kubernetes.default.svc/api`, adds the service-account
  * bearer token when available, requires successful HTTP statuses, and retries
  * transient failures.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -80,10 +82,12 @@ export const layer: Layer.Layer<
 /**
  * Creates a cached effect that fetches running Kubernetes pods.
  *
+ * **Details**
+ *
  * The request can be limited by namespace and label selector, and the result is a
  * map keyed by pod IP address.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeGetPods: (
@@ -127,10 +131,12 @@ export const makeGetPods: (
  * Creates a scoped function that ensures a Kubernetes pod exists and waits until
  * it is ready.
  *
+ * **Details**
+ *
  * The pod defaults to the `default` namespace and is deleted when the surrounding
  * scope closes.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeCreatePod = Effect.gen(function*() {
@@ -234,7 +240,7 @@ export const makeCreatePod = Effect.gen(function*() {
 /**
  * Schema for the subset of Kubernetes Pod status used by cluster helpers.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpClient/PodStatus")({
@@ -251,9 +257,11 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
 /**
  * Schema for Kubernetes Pod values used by cluster helpers.
  *
+ * **Details**
+ *
  * The model exposes readiness helpers derived from the pod status conditions.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export class Pod extends Schema.Class<Pod>("@effect/cluster/K8sHttpClient/Pod")({

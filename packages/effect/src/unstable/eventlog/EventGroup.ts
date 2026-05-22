@@ -25,7 +25,7 @@ import * as Event from "./Event.ts"
 /**
  * Unique type identifier used to mark event log event groups.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/EventGroup"
@@ -33,7 +33,7 @@ export type TypeId = "~effect/eventlog/EventGroup"
 /**
  * Runtime type identifier used to mark event log event groups.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/EventGroup"
@@ -49,6 +49,8 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
 /**
  * Typed collection of event definitions that represents a portion of an event log
  * domain.
+ *
+ * **When to use**
  *
  * Build groups from `empty.add(...)`, then provide implementations for the events
  * with `EventLog.group`.
@@ -186,6 +188,8 @@ const makeProto = <
 
 /**
  * Empty event group used as the starting point for defining a group.
+ *
+ * **When to use**
  *
  * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *

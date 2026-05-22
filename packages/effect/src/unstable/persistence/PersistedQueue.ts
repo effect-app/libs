@@ -50,7 +50,7 @@ import * as Redis from "./Redis.ts"
 /**
  * Runtime type identifier for `PersistedQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
@@ -58,7 +58,7 @@ export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
 /**
  * Type-level identifier used to brand `PersistedQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/PersistedQueue"
@@ -66,18 +66,22 @@ export type TypeId = "~effect/persistence/PersistedQueue"
 /**
  * Persistent queue of schema-encoded values.
  *
+ * **Details**
+ *
  * `offer` enqueues values by id, and `take` processes one value at a time,
  * marking it complete on success or retrying it until the maximum attempts is
  * reached.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface PersistedQueue<in out A, out R = never> {
   readonly [TypeId]: TypeId
 
   /**
-   * Adds an element to the queue. Returns the id of the enqueued element.
+   * Adds an element to the queue and returns the id of the enqueued element.
+   *
+   * **Details**
    *
    * If an element with the same id already exists in the queue, it will not be
    * added again.
@@ -87,13 +91,14 @@ export interface PersistedQueue<in out A, out R = never> {
   }) => Effect.Effect<string, PersistedQueueError | Schema.SchemaError, R>
 
   /**
-   * Takes an element from the queue.
-   * If the queue is empty, it will wait until an element is available.
+   * Takes an element from the queue, waiting until one is available when the
+   * queue is empty.
    *
-   * If the returned effect succeeds, the element is marked as processed,
-   * otherwise it will be retried according to the provided options.
+   * **Details**
    *
-   * By default, max attempts is set to 10.
+   * If the returned effect succeeds, the element is marked as processed;
+   * otherwise it will be retried according to the provided options. By default,
+   * max attempts is set to 10.
    */
   readonly take: <XA, XE, XR>(
     f: (value: A, metadata: {
@@ -140,6 +145,8 @@ export const make = <S extends Schema.Top>(options: {
 
 /**
  * Creates a `PersistedQueueFactory` from the current `PersistedQueueStore`.
+ *
+ * **Details**
  *
  * Values are encoded and decoded with the supplied schema, automatically
  * assigned an id when needed, and acknowledged or retried according to the
@@ -213,7 +220,7 @@ export const layer: Layer.Layer<
 /**
  * Runtime type identifier for `PersistedQueueError`.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -221,7 +228,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/Pe
 /**
  * Type-level identifier used to brand `PersistedQueueError` values.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -229,7 +236,7 @@ export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueEr
 /**
  * Error raised by persisted queue store operations.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
@@ -249,6 +256,8 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 
 /**
  * Low-level backing store service used by `PersistedQueue`.
+ *
+ * **Details**
  *
  * The store persists offered elements and returns taken elements in a scope so
  * the finalizer can complete or retry them based on the processing exit.
@@ -285,6 +294,8 @@ export class PersistedQueueStore extends Context.Service<
 
 /**
  * Provides an in-memory `PersistedQueueStore`.
+ *
+ * **Details**
  *
  * The store is process-local and volatile; failed takes are requeued until the
  * configured maximum attempts is reached.
@@ -356,6 +367,8 @@ export const layerStoreMemory: Layer.Layer<
 
 /**
  * Creates a Redis-backed `PersistedQueueStore`.
+ *
+ * **Details**
  *
  * The store uses Redis lists and hashes with worker locks, periodically
  * refreshes locks while items are being processed, and moves exhausted items
@@ -740,6 +753,8 @@ export const layerStoreRedis: (
 
 /**
  * Creates a SQL-backed `PersistedQueueStore`.
+ *
+ * **Details**
  *
  * The store creates the queue table and indexes, acquires rows with
  * per-worker locks, refreshes active locks while scoped takes are running, and

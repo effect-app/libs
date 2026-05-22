@@ -31,13 +31,14 @@ import { Resource } from "./Resource.ts"
  * Determines how metric values relate to the time interval over which they
  * are aggregated.
  *
- * - `cumulative`: Reports total since a fixed start time. Each data point
- *   depends on all previous measurements. This is the default behavior.
+ * **Details**
  *
- * - `delta`: Reports changes since the last export. Each interval is
- *   independent with no dependency on previous measurements.
+ * `cumulative` reports total since a fixed start time. Each data point depends
+ * on all previous measurements. This is the default behavior. `delta` reports
+ * changes since the last export. Each interval is independent with no
+ * dependency on previous measurements.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type TemporalityPreference = "cumulative" | "delta"
@@ -45,7 +46,7 @@ export type TemporalityPreference = "cumulative" | "delta"
 /**
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
@@ -58,7 +59,7 @@ export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect
 /**
  * Registers a metric producer with one or more metric readers.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const registerProducer = (
@@ -115,7 +116,7 @@ export const registerProducer = (
  * )
  * ```
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (

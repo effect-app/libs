@@ -115,6 +115,8 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
 /**
  * Error indicating a network-level failure before receiving a response.
  *
+ * **Details**
+ *
  * This error is raised when issues arise before receiving an HTTP response,
  * such as network connectivity problems, request encoding issues, or invalid
  * URLs.
@@ -182,7 +184,6 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * const aiError = AiError.NetworkError.fromRequestError(platformError)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
@@ -244,13 +245,20 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 /**
  * Schema for provider-specific metadata which can be attached to error reasons.
  *
- * Provider-specific metadata is namespaced by provider and has the structure:
+ * **Details**
  *
- * ```
- * {
- *   "<provider-name>": {
- *     // Provider-specific metadata (e.g. errorCode, requestId, etc.)
- *   }
+ * Provider-specific metadata is namespaced by provider name. Each provider
+ * value can contain arbitrary mutable JSON metadata or `null`.
+ *
+ * **Example** (Metadata shape)
+ *
+ * ```ts
+ * const metadata = {
+ *   openai: {
+ *     errorCode: "rate_limit_exceeded",
+ *     requestId: "req_123"
+ *   },
+ *   anthropic: null
  * }
  * ```
  *
@@ -265,6 +273,8 @@ export const ProviderMetadata: Schema.$Record<
 /**
  * Type of provider-specific metadata attached to AI error reasons.
  *
+ * **Details**
+ *
  * Metadata is keyed by provider name, and each provider value is either mutable
  * JSON metadata or `null`.
  *
@@ -276,7 +286,7 @@ export type ProviderMetadata = typeof ProviderMetadata.Type
 /**
  * Provider-specific metadata attached to `RateLimitError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface RateLimitErrorMetadata extends ProviderMetadata {}
@@ -284,7 +294,7 @@ export interface RateLimitErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `QuotaExhaustedError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
@@ -292,7 +302,7 @@ export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `AuthenticationError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface AuthenticationErrorMetadata extends ProviderMetadata {}
@@ -300,7 +310,7 @@ export interface AuthenticationErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `ContentPolicyError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
@@ -308,7 +318,7 @@ export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InvalidRequestError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
@@ -316,7 +326,7 @@ export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InternalProviderError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InternalProviderErrorMetadata extends ProviderMetadata {}
@@ -324,7 +334,7 @@ export interface InternalProviderErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InvalidOutputError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
@@ -332,7 +342,7 @@ export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `StructuredOutputError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
@@ -340,7 +350,7 @@ export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `UnsupportedSchemaError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
@@ -348,7 +358,7 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `UnknownError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UnknownErrorMetadata extends ProviderMetadata {}
@@ -383,6 +393,8 @@ export const HttpContext = Schema.Struct({
 
 /**
  * Error indicating the request was rate limited.
+ *
+ * **Details**
  *
  * Rate limit errors are always retryable. When `retryAfter` is provided,
  * callers should wait that duration before retrying.
@@ -438,6 +450,8 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
 /**
  * Error indicating account or billing limits have been reached.
  *
+ * **Details**
+ *
  * Quota exhausted errors are not retryable without user action.
  *
  * **Example** (Creating a quota exhausted error)
@@ -488,6 +502,8 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
 
 /**
  * Error indicating authentication or authorization failure.
+ *
+ * **Details**
  *
  * Authentication errors are never retryable without credential changes.
  *
@@ -547,6 +563,8 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
 /**
  * Error indicating content policy violation.
  *
+ * **Details**
+ *
  * Content policy errors are never retryable without content changes.
  *
  * **Example** (Creating a content policy error)
@@ -597,6 +615,8 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
 
 /**
  * Error indicating the request had invalid or malformed parameters.
+ *
+ * **Details**
  *
  * Invalid request errors require fixing the request and are not retryable.
  *
@@ -657,6 +677,8 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
 /**
  * Error indicating the AI provider experienced an internal error.
  *
+ * **Details**
+ *
  * Internal provider errors are typically transient and are retryable.
  *
  * **Example** (Creating an internal provider error)
@@ -707,6 +729,8 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
 
 /**
  * Error indicating failure to parse or validate LLM output.
+ *
+ * **Details**
  *
  * Invalid output errors are retryable since LLM outputs are non-deterministic.
  *
@@ -765,7 +789,6 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
    * const parseError = AiError.InvalidOutputError.fromSchemaError(schemaError)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
@@ -782,6 +805,8 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
 /**
  * Error indicating the LLM generated text that does not conform to the
  * requested structured output schema.
+ *
+ * **Details**
  *
  * Structured output errors are retryable since LLM outputs are non-deterministic.
  *
@@ -843,7 +868,6 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError, rawText)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError, responseText: string): StructuredOutputError {
@@ -861,6 +885,8 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
 /**
  * Error indicating a codec transformer rejected a schema because it contains
  * unsupported constructs.
+ *
+ * **Details**
  *
  * Unsupported schema errors are not retryable because they indicate a
  * programmer error where the schema is incompatible with the provider.
@@ -912,6 +938,8 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 
 /**
  * Catch-all error for unknown or unexpected errors.
+ *
+ * **Details**
  *
  * Unknown errors are not retryable by default since the cause is unknown.
  *
@@ -968,6 +996,8 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
 /**
  * Error indicating the model requested a tool that doesn't exist in the toolkit.
  *
+ * **Details**
+ *
  * This error is retryable because the model may self-correct when provided
  * with the list of available tools.
  *
@@ -1020,6 +1050,8 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
 
 /**
  * Error indicating the model's tool call parameters failed schema validation.
+ *
+ * **Details**
  *
  * This error is retryable because the model may correct its parameters
  * on subsequent attempts.
@@ -1076,6 +1108,8 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
  * Error indicating the tool handler returned an invalid result that does not
  * match the tool's schema.
  *
+ * **Details**
+ *
  * This error is not retryable because invalid results indicate a bug in the
  * tool handler implementation.
  *
@@ -1127,6 +1161,8 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
 
 /**
  * Error indicating the tool result cannot be encoded for sending back to the model.
+ *
+ * **Details**
  *
  * This error is not retryable because encoding failures indicate a bug in the
  * tool schema definitions.
@@ -1182,6 +1218,8 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
 /**
  * Error indicating a provider-defined tool was configured with invalid arguments.
  *
+ * **Details**
+ *
  * This error is not retryable because it indicates a programming error in the
  * tool configuration that must be fixed in code.
  *
@@ -1234,6 +1272,8 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
 /**
  * Error indicating an operation requires a toolkit but none was provided.
  *
+ * **Details**
+ *
  * This error occurs when tool approval responses are present in the prompt
  * but no toolkit was provided to resolve them.
  *
@@ -1285,6 +1325,8 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
 
 /**
  * Error indicating the user provided invalid input in their prompt.
+ *
+ * **Details**
  *
  * This error is raised when the prompt contains content that is structurally
  * valid but not supported by the provider (e.g., unsupported media types,
@@ -1340,6 +1382,8 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
 
 /**
  * Union type of all semantic error reasons that can occur during AI operations.
+ *
+ * **Details**
  *
  * Every reason carries a semantic `_tag`, a human-readable message, and an
  * `isRetryable` getter. Provider-facing reasons may also include retry timing,
@@ -1423,12 +1467,14 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 /**
  * Top-level AI error wrapper using the `reason` pattern.
  *
- * This error wraps semantic error reasons and provides:
- * - `module` and `method` context for where the error occurred
- * - `reason` field containing the semantic error type
- * - Delegated `isRetryable` and `retryAfter` to the underlying reason
+ * **When to use**
  *
- * Use with `Effect.catchReason` for ergonomic error handling:
+ * Use with `Effect.catchReason` for ergonomic error handling.
+ *
+ * **Details**
+ *
+ * This error stores `module` and `method` context, the semantic `reason`, and
+ * delegates `isRetryable` and `retryAfter` to the underlying reason.
  *
  * **Example** (Handling an AI error by tag)
  *
@@ -1497,9 +1543,6 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
 /**
  * Type guard to check if a value is an `AiError`.
  *
- * @param u - The value to check
- * @returns `true` if the value is an `AiError`, `false` otherwise
- *
  * **Example** (Checking for an AI error)
  *
  * ```ts
@@ -1523,9 +1566,6 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
 
 /**
  * Type guard to check if a value is an `AiErrorReason`.
- *
- * @param u - The value to check
- * @returns `true` if the value is an `AiErrorReason`, `false` otherwise
  *
  * **Example** (Checking for an AI error reason)
  *
@@ -1576,6 +1616,8 @@ export const make = (params: {
 
 /**
  * Maps HTTP status codes to semantic error reasons.
+ *
+ * **When to use**
  *
  * Provider packages can use this as a base for provider-specific mapping.
  *

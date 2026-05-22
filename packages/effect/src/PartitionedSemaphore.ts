@@ -71,10 +71,12 @@ export type PartitionedTypeId = "~effect/PartitionedSemaphore"
  * A `PartitionedSemaphore` controls access to a shared permit pool while
  * tracking waiters by partition key.
  *
+ * **Details**
+ *
  * Waiting permits are distributed across partitions in round-robin order.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.19.4
  */
 export interface PartitionedSemaphore<in K> {
   readonly [PartitionedTypeId]: PartitionedTypeId
@@ -109,19 +111,19 @@ export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
 /**
  * Constructs a `PartitionedSemaphore` synchronously, outside of `Effect`.
  *
+ * **When to use**
+ *
+ * Prefer `make` when the semaphore should be created inside an `Effect`
+ * workflow.
+ *
  * **Details**
  *
  * Negative permit counts are clamped to `0`. Non-finite permit counts create
  * an unbounded semaphore whose acquire and release operations complete
  * immediately.
  *
- * **Notes**
- *
- * Prefer `make` when the semaphore should be created inside an `Effect`
- * workflow.
- *
  * @category constructors
- * @since 4.0.0
+ * @since 3.19.4
  */
 export const makeUnsafe = <K = unknown>(options: {
   readonly permits: number
@@ -320,7 +322,7 @@ export const makeUnsafe = <K = unknown>(options: {
  * across waiting partitions in round-robin order.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.19.4
  */
 export const make = <K = unknown>(options: {
   readonly permits: number

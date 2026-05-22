@@ -53,7 +53,7 @@ import type * as Schedule from "./Schedule.ts"
  * String literal type used as the runtime type identifier for `ExecutionPlan`
  * values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 3.16.0
  */
 export type TypeId = "~effect/ExecutionPlan"
@@ -62,17 +62,16 @@ export type TypeId = "~effect/ExecutionPlan"
  * Runtime type identifier attached to `ExecutionPlan` values and used by
  * `isExecutionPlan`.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 3.16.0
  */
 export const TypeId: TypeId = "~effect/ExecutionPlan"
 
 /**
- * Returns `true` if a value is an `ExecutionPlan`.
+ * Returns `true` if a value is an `ExecutionPlan` by checking for the
+ * `ExecutionPlan.TypeId` marker.
  *
- * This is a type guard that checks for the `ExecutionPlan.TypeId` marker.
- *
- * @category Guards
+ * @category guards
  * @since 3.16.0
  */
 export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicate.hasProperty(u, TypeId)
@@ -80,9 +79,11 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
 /**
  * A `ExecutionPlan` can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
  *
+ * **Example** (Defining fallback execution steps)
+ *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect, ExecutionPlan, Schedule } from "effect"
+ * import type { Layer } from "effect"
  * import type { LanguageModel } from "effect/unstable/ai"
  *
  * declare const layerBad: Layer.Layer<LanguageModel.LanguageModel>
@@ -117,7 +118,7 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @category Models
+ * @category models
  * @since 3.16.0
  */
 export interface ExecutionPlan<
@@ -158,13 +159,15 @@ export interface ExecutionPlan<
 /**
  * Base type-level configuration carried by an `ExecutionPlan`.
  *
+ * **Details**
+ *
  * `provides` tracks services supplied by plan steps, `input` tracks the error
  * input consumed by schedules and `while` predicates, `error` tracks failures
  * from plan layers or predicates, and `requirements` tracks services needed to
  * build or run the plan.
  *
- * @category Models
- * @since 3.16.0
+ * @category models
+ * @since 4.0.0
  */
 export type ConfigBase = {
   provides: any
@@ -176,9 +179,11 @@ export type ConfigBase = {
 /**
  * Create an `ExecutionPlan`, which can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
  *
+ * **Example** (Creating an execution plan)
+ *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect, ExecutionPlan, Schedule } from "effect"
+ * import type { Layer } from "effect"
  * import type { LanguageModel } from "effect/unstable/ai"
  *
  * declare const layerBad: Layer.Layer<LanguageModel.LanguageModel>
@@ -213,7 +218,7 @@ export type ConfigBase = {
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 3.16.0
  */
 export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
@@ -257,10 +262,13 @@ export declare namespace make {
   /**
    * Input shape for a single execution-plan step.
    *
+   * **Details**
+   *
    * Each step provides a `Context` or `Layer` and may limit attempts, add a
    * `while` predicate for retry decisions, or attach a `Schedule` for retry
    * timing.
    *
+   * @category models
    * @since 3.16.0
    */
   export type Step = {
@@ -274,6 +282,7 @@ export declare namespace make {
    * Computes the intersection of services provided by a list of execution-plan
    * steps.
    *
+   * @category utility types
    * @since 3.16.1
    */
   export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -290,6 +299,7 @@ export declare namespace make {
   /**
    * Computes the intersection of services provided by a list of execution plans.
    *
+   * @category utility types
    * @since 3.16.1
    */
   export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -301,6 +311,7 @@ export declare namespace make {
    * Computes the input type consumed by the `while` predicates and schedules in
    * a list of execution-plan steps.
    *
+   * @category utility types
    * @since 3.16.0
    */
   export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -317,6 +328,7 @@ export declare namespace make {
   /**
    * Computes the combined input type consumed by a list of execution plans.
    *
+   * @category utility types
    * @since 3.16.0
    */
   export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -359,6 +371,8 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 /**
  * Combines multiple execution plans by concatenating their steps in order.
  *
+ * **Details**
+ *
  * The resulting plan tries every step from the first plan, then every step from
  * the next plan, and so on.
  *
@@ -376,6 +390,8 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
 
 /**
  * Metadata describing the currently running execution-plan attempt.
+ *
+ * **Details**
  *
  * `attempt` is the current 1-based attempt number, and `stepIndex` is the
  * 0-based index of the plan step currently being evaluated.

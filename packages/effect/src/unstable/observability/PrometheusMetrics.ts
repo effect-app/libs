@@ -24,7 +24,7 @@
  *
  * ```ts
  * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * const program = Effect.gen(function*() {
  *   // Create and update metrics
@@ -57,14 +57,14 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  * **Example** (Mapping metric names)
  *
  * ```ts
- * import type * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import type { PrometheusMetrics } from "effect/unstable/observability"
  *
  * // Convert camelCase to snake_case
  * const mapper: PrometheusMetrics.MetricNameMapper = (name) =>
  *   name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase()
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MetricNameMapper = (name: string) => string
@@ -72,7 +72,7 @@ export type MetricNameMapper = (name: string) => string
 /**
  * Options for formatting metrics.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface FormatOptions {
@@ -90,7 +90,7 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {
@@ -107,7 +107,7 @@ export interface HttpOptions extends FormatOptions {
  *
  * ```ts
  * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * const program = Effect.gen(function*() {
  *   const counter = Metric.counter("api_requests_total", {
@@ -141,8 +141,10 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
 /**
  * Synchronously format all metrics in the registry to Prometheus exposition format.
  *
- * This is a low-level function that requires access to the context.
- * Most users should use `format` instead.
+ * **When to use**
+ *
+ * Use this low-level function when you already have access to the context. Most
+ * users should use `format` instead.
  *
  * @category Formatting
  * @since 4.0.0
@@ -181,6 +183,8 @@ export const formatUnsafe = (
  * Creates a Layer that registers a `/metrics` HTTP endpoint for Prometheus
  * scraping.
  *
+ * **Details**
+ *
  * This layer automatically adds a GET route to your HTTP router that serves
  * metrics in Prometheus exposition format. By default, the endpoint is
  * registered at `/metrics`, but this can be customized via the `path` option.
@@ -188,7 +192,7 @@ export const formatUnsafe = (
  * **Example** (Serving metrics over HTTP)
  *
  * ```ts
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * // Create a layer that adds /metrics endpoint to the router
  * const PrometheusLayer = PrometheusMetrics.layerHttp()

@@ -68,8 +68,6 @@
  * // Output: ["apple", "cherry"]
  * ```
  *
- * @fileoverview
- * @category data-structures
  * @since 2.0.0
  */
 import { format } from "./Formatter.ts"
@@ -85,6 +83,8 @@ const TypeId = "~effect/collections/MutableHashSet"
 /**
  * A mutable hash set for storing unique values with Effect structural equality
  * support.
+ *
+ * **Details**
  *
  * Operations mutate the set in place. Values that implement `Equal` / `Hash`
  * can be de-duplicated structurally; other values use normal JavaScript

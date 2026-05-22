@@ -44,7 +44,7 @@ const TypeId = "~effect/persistence/KeyValueStore" as const
 /**
  * Effectful key/value store service for string and binary values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValueStore {
@@ -109,10 +109,12 @@ export interface KeyValueStore {
 /**
  * Implementation callbacks used by `make` to construct a `KeyValueStore`.
  *
+ * **Details**
+ *
  * Primitive operations are required, while helpers such as `has`, `isEmpty`,
  * and `modify` can be supplied to override the defaults.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -151,7 +153,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
  * Implementation callbacks for adapting a string-only backing store into a
  * `KeyValueStore`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -187,7 +189,7 @@ const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as co
  * Error raised by key/value store operations, including the failed method,
  * optional key, message, and cause.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
@@ -217,6 +219,8 @@ export const KeyValueStore: Context.Service<
 
 /**
  * Constructs a `KeyValueStore` from primitive store operations.
+ *
+ * **Details**
  *
  * Default implementations are derived for `has`, `isEmpty`, `modify`, and
  * `modifyUint8Array` unless they are provided in the options.
@@ -259,6 +263,8 @@ export const make = (options: MakeOptions): KeyValueStore =>
 
 /**
  * Adapts a string-only backing store into a `KeyValueStore`.
+ *
+ * **Details**
  *
  * `Uint8Array` values are stored as base64 strings. `getUint8Array` decodes
  * base64 values and falls back to UTF-8 encoding for non-base64 strings.
@@ -339,6 +345,8 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 
 /**
  * Provides a `KeyValueStore` backed by files in the specified directory.
+ *
+ * **Details**
  *
  * The directory is created if needed, and each key is encoded as a file name.
  *
@@ -459,6 +467,8 @@ export interface LayerSqlOptions {
 
 /**
  * Provides a SQL-backed `KeyValueStore`.
+ *
+ * **Details**
  *
  * The layer creates the configured table if it does not exist and stores both
  * string and binary values through the current `SqlClient`.

@@ -57,14 +57,14 @@ export interface Request<out A, out E = never, out R = never> extends Variance<A
  * requirements.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type Any = Request<any, any, any>
 
 /**
  * Variance marker carried by every `Request`.
  *
- * **Notes**
+ * **Details**
  *
  * This marker preserves the success, error, and service requirement types for
  * Effect's type-level machinery. Users normally get it by extending `Request`.
@@ -199,13 +199,14 @@ const requestVariance = Equal.byReferenceUnsafe({
 /**
  * Prototype used by Effect's request constructors.
  *
- * **Notes**
+ * **Details**
  *
  * This low-level value provides the structural request marker for values
  * created by `Request.of`, `Request.tagged`, `Request.Class`, and
  * `Request.TaggedClass`. Most users should use those constructors instead of
  * interacting with the prototype directly.
  *
+ * @category models
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {
@@ -519,7 +520,7 @@ export interface Entry<out R> {
 /**
  * Creates a `Request.Entry` from its component fields.
  *
- * **Notes**
+ * **Details**
  *
  * This is a low-level helper for request runtime and resolver infrastructure;
  * most application code receives entries from a `RequestResolver` instead of

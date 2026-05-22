@@ -48,9 +48,11 @@ import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
  * Provides RPC authentication middleware that reads the authenticated
  * `EventLog.Identity` from client annotations.
  *
+ * **Details**
+ *
  * Requests without an identity fail with a forbidden `EventLogProtocolError`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerAuthMiddleware: Layer.Layer<
@@ -71,11 +73,13 @@ export const layerAuthMiddleware: Layer.Layer<
 /**
  * Creates the shared RPC handlers for the event-log remote protocol.
  *
+ * **Details**
+ *
  * The layer manages hello challenges, verifies session authentication, reassembles
  * chunked writes, delegates write and change handling to the supplied callbacks,
  * and frames large change payloads into chunks.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers = (options: {

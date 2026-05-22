@@ -46,6 +46,8 @@ import * as Prompt from "./Prompt.ts"
 /**
  * The `Tokenizer` service tag for dependency injection.
  *
+ * **Details**
+ *
  * This tag provides access to tokenization functionality throughout your
  * application, enabling token counting and prompt truncation capabilities.
  *
@@ -73,6 +75,8 @@ export class Tokenizer extends Context.Service<Tokenizer, Service>()(
  * Tokenizer service interface providing text tokenization and truncation
  * operations.
  *
+ * **Details**
+ *
  * This interface defines the core operations for converting text to tokens and
  * managing content length within token limits for AI model compatibility.
  *
@@ -80,8 +84,8 @@ export class Tokenizer extends Context.Service<Tokenizer, Service>()(
  *
  * ```ts
  * import { Effect } from "effect"
- * import type { Tokenizer } from "effect/unstable/ai"
  * import { Prompt } from "effect/unstable/ai"
+ * import type { Tokenizer } from "effect/unstable/ai"
  *
  * const customTokenizer: Tokenizer.Service = {
  *   tokenize: (input) =>
@@ -121,6 +125,8 @@ export interface Service {
 
 /**
  * Creates a Tokenizer service implementation from tokenization options.
+ *
+ * **Details**
  *
  * This function constructs a complete Tokenizer service by providing a
  * tokenization function. The service handles both tokenization and

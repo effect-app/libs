@@ -7,8 +7,8 @@
  * **Example** (Spawning and piping commands)
  *
  * ```ts
- * import { NodeServices } from "@effect/platform-node"
  * import { Effect, Stream } from "effect"
+ * import { NodeServices } from "@effect/platform-node"
  * import { ChildProcess } from "effect/unstable/process"
  *
  * // Build a command
@@ -56,12 +56,9 @@ import { type ChildProcessHandle, ChildProcessSpawner } from "./ChildProcessSpaw
 const TypeId = "~effect/unstable/process/ChildProcess"
 
 /**
- * A command that can be executed as a child process.
+ * A command that can be built using `make`, combined using `pipeTo`, and executed using `exec` or `spawn`.
  *
- * Commands are built using `make` and can be combined using `pipeTo`.
- * They are executed using `exec` or `spawn`.
- *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Command =
@@ -71,7 +68,7 @@ export type Command =
 /**
  * A standard command with pre-parsed command and arguments.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface StandardCommand extends
@@ -91,7 +88,7 @@ export interface StandardCommand extends
  * A pipeline of commands where the output of one is piped to the input of the
  * next.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface PipedCommand extends
@@ -110,12 +107,14 @@ export interface PipedCommand extends
 /**
  * Specifies which stream to pipe from the source subprocess.
  *
+ * **Details**
+ *
  * - `"stdout"`: Pipe stdout from the source (default)
  * - `"stderr"`: Pipe stderr from the source
  * - `"all"`: Pipe both stdout and stderr interleaved
  * - `` `fd${number}` ``: Pipe from a custom file descriptor (e.g., `"fd3"`)
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type PipeFromOption = "stdout" | "stderr" | "all" | `fd${number}`
@@ -123,10 +122,12 @@ export type PipeFromOption = "stdout" | "stderr" | "all" | `fd${number}`
 /**
  * Specifies which input to pipe to on the destination subprocess.
  *
+ * **Details**
+ *
  * - `"stdin"`: Pipe to stdin of the destination (default)
  * - `` `fd${number}` ``: Pipe to a custom file descriptor (e.g., `"fd3"`)
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type PipeToOption = "stdin" | `fd${number}`
@@ -145,12 +146,14 @@ export type PipeToOption = "stdin" | `fd${number}`
  * )
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface PipeOptions {
   /**
    * Which stream to pipe from the source subprocess.
+   *
+   * **Details**
    *
    * - `"stdout"` (default): Pipe stdout from the source
    * - `"stderr"`: Pipe stderr from the source
@@ -162,6 +165,8 @@ export interface PipeOptions {
   /**
    * Which input to pipe to on the destination subprocess.
    *
+   * **Details**
+   *
    * - `"stdin"` (default): Pipe to stdin of the destination
    * - `"fd3"`, `"fd4"`, etc.: Pipe to a custom file descriptor
    */
@@ -171,7 +176,7 @@ export interface PipeOptions {
 /**
  * Input type for child process stdin.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type CommandInput =
@@ -184,7 +189,7 @@ export type CommandInput =
 /**
  * Output type for child process stdout/stderr.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type CommandOutput =
@@ -197,7 +202,7 @@ export type CommandOutput =
 /**
  * A signal that can be sent to a child process.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Signal =
@@ -242,7 +247,7 @@ export type Signal =
 /**
  * The encoding format to use for binary data.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Encoding =
@@ -262,23 +267,19 @@ export type Encoding =
 /**
  * Options that can be used to control how a child process is terminated.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KillOptions {
   /**
-   * The default signal used to terminate the child process.
-   *
-   * Defaults to `"SIGTERM"`.
+   * The default signal used to terminate the child process. Defaults to `"SIGTERM"`.
    */
   readonly killSignal?: Signal | undefined
   /**
    * The duration of time to wait after the child process has been terminated
    * before forcefully killing the child process by sending it the `"SIGKILL"`
-   * signal.
-   *
-   * Defaults to `undefined`, which means that no timeout will be enforced by
-   * default.
+   * signal. Defaults to `undefined`, which means that no timeout will be
+   * enforced by default.
    */
   readonly forceKillAfter?: Duration.Input | undefined
 }
@@ -286,12 +287,14 @@ export interface KillOptions {
 /**
  * Configuration for the child process standard input stream.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface StdinConfig {
   /**
    * The configuration for the standard input stream of the child process.
+   *
+   * **Details**
    *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stdin` and the parent process.
@@ -304,15 +307,11 @@ export interface StdinConfig {
   readonly stream: CommandInput
   /**
    * Whether or not the child process `stdin` should be closed after the input
-   * stream is finished.
-   *
-   * Defaults to `true`.
+   * stream is finished. Defaults to `true`.
    */
   readonly endOnDone?: boolean | undefined
   /**
-   * The buffer encoding to use to decode string chunks.
-   *
-   * Defaults to `utf-8`.
+   * The buffer encoding to use to decode string chunks. Defaults to `utf-8`.
    */
   readonly encoding?: Encoding | undefined
 }
@@ -320,12 +319,14 @@ export interface StdinConfig {
 /**
  * Configuration for the child process standard output stream.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface StdoutConfig {
   /**
-   * The configuration for the standard ouput stream of the child process.
+   * The configuration for the standard output stream of the child process.
+   *
+   * **Details**
    *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stdout` and the parent process.
@@ -341,12 +342,14 @@ export interface StdoutConfig {
 /**
  * Configuration for the child process standard error stream.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface StderrConfig {
   /**
-   * The configuration for the standard ouput stream of the child process.
+   * The configuration for the standard error stream of the child process.
+   *
+   * **Details**
    *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stderr` and the parent process.
@@ -362,7 +365,7 @@ export interface StderrConfig {
 /**
  * Configuration for additional file descriptors to expose to the child process.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type AdditionalFdConfig =
@@ -396,7 +399,7 @@ export type AdditionalFdConfig =
 /**
  * Options for command execution.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface CommandOptions extends KillOptions {
@@ -406,6 +409,8 @@ export interface CommandOptions extends KillOptions {
   readonly cwd?: string | undefined
   /**
    * The environment of the child process.
+   *
+   * **Details**
    *
    * If `extendEnv` is set to `true`, the value of `env` will be merged with
    * the value of `globalThis.process.env`, prioritizing the values in `env`
@@ -417,6 +422,8 @@ export interface CommandOptions extends KillOptions {
    * as the values in `globalThis.process.env`, prioritizing the values in `env`
    * when conflicts exist.
    *
+   * **Details**
+   *
    * If set to `false`, only the value of `env` is used.
    */
   readonly extendEnv?: boolean | undefined
@@ -424,8 +431,12 @@ export interface CommandOptions extends KillOptions {
    * If set to `true`, runs the command inside of a shell, defaulting to `/bin/sh`
    * on UNIX systems and `cmd.exe` on Windows.
    *
+   * **Details**
+   *
    * Can also be set to a string representing the absolute path to a shell to
    * use on the system.
+   *
+   * **Gotchas**
    *
    * It is generally disadvised to use this option.
    */
@@ -433,6 +444,8 @@ export interface CommandOptions extends KillOptions {
   /**
    * If set to `true`, the child process will run independently of the parent
    * process.
+   *
+   * **Details**
    *
    * The specific behavior of this option depends upon the platform. For
    * example, the NodeJS documentation outlines the differences between Windows
@@ -458,6 +471,8 @@ export interface CommandOptions extends KillOptions {
   /**
    * Additional file descriptors to expose to the child process beyond `stdin` /
    * `stdout` / `stderr`.
+   *
+   * **Details**
    *
    * Keys must be in the format `"fd3"`, `"fd4"`, etc. with a file descriptor
    * index >= 3.
@@ -491,7 +506,7 @@ export interface CommandOptions extends KillOptions {
 /**
  * Valid template expression item types.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type TemplateExpressionItem = string | number | boolean
@@ -499,7 +514,7 @@ export type TemplateExpressionItem = string | number | boolean
 /**
  * Template expression type for interpolated values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<TemplateExpressionItem>
@@ -521,7 +536,7 @@ const Proto = {
 /**
  * Check if a value is a `Command`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, TypeId)
@@ -529,7 +544,7 @@ export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, 
 /**
  * Check if a command is a `StandardCommand`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isStandardCommand = (command: Command): command is StandardCommand => command._tag === "StandardCommand"
@@ -537,7 +552,7 @@ export const isStandardCommand = (command: Command): command is StandardCommand 
 /**
  * Check if a command is a `PipedCommand`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isPipedCommand = (command: Command): command is PipedCommand => command._tag === "PipedCommand"
@@ -569,6 +584,8 @@ const makePipedCommand = (
 /**
  * Create a command from a template literal, options + template, or array form.
  *
+ * **Details**
+ *
  * This function supports three calling conventions:
  * 1. Template literal: `make\`npm run build\``
  * 2. Options + template literal: `make({ cwd: "/app" })\`npm run build\``
@@ -592,7 +609,7 @@ const makePipedCommand = (
  * const cmd3 = ChildProcess.make("git", ["status"])
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: {
@@ -653,6 +670,8 @@ export const make: {
 /**
  * Pipe the output of one command to the input of another.
  *
+ * **Details**
+ *
  * By default, pipes `stdout` from the source to `stdin` of the destination.
  * Use the `options` parameter to customize which streams are connected.
  *
@@ -677,7 +696,7 @@ export const make: {
  * )
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const pipeTo: {
@@ -690,6 +709,8 @@ export const pipeTo: {
 
 /**
  * Prefix a command with another command.
+ *
+ * **Details**
  *
  * For pipelines, only the leftmost command is prefixed.
  *
@@ -707,7 +728,7 @@ export const pipeTo: {
  * // now prefixed will execute `time echo "foo"`
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const prefix: {
@@ -757,6 +778,8 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
 /**
  * Set the current working directory for a command.
  *
+ * **Details**
+ *
  * For pipelines, applies to each command in the pipeline.
  *
  * **Example** (Setting command working directories)
@@ -769,7 +792,7 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
  * )
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const setCwd: {
@@ -793,6 +816,8 @@ export const setCwd: {
  * Adds environment variables to a command, merging them with any existing
  * command environment and overriding duplicate keys.
  *
+ * **Details**
+ *
  * For pipelines, applies to each command in the pipeline.
  *
  * **Example** (Setting command environment variables)
@@ -805,7 +830,7 @@ export const setCwd: {
  * )
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const setEnv: {
@@ -839,7 +864,7 @@ const isTemplateString = (u: unknown): u is TemplateStringsArray =>
  * Parse an fd name like "fd3" to its numeric index.
  * Returns undefined if the name is invalid.
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const parseFdName = (name: string): number | undefined => {
@@ -852,7 +877,7 @@ export const parseFdName = (name: string): number | undefined => {
 /**
  * Create an fd name from its numeric index.
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const fdName = (fd: number): string => `fd${fd}`

@@ -11,8 +11,7 @@
  * **Example** (Creating inspectable values)
  *
  * ```ts
- * import { Inspectable } from "effect"
- * import { format } from "effect/Formatter"
+ * import { Formatter, Inspectable } from "effect"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -33,7 +32,7 @@
  *
  * const user = new User("Alice", "alice@example.com")
  * console.log(user.toString()) // Pretty printed JSON
- * console.log(format(user)) // Same as toString()
+ * console.log(Formatter.format(user)) // Same as toString()
  * ```
  *
  * @since 2.0.0
@@ -44,6 +43,8 @@ import { redact } from "./Redactable.ts"
 
 /**
  * Symbol used by Node.js for custom object inspection.
+ *
+ * **Details**
  *
  * This symbol is recognized by Node.js's `util.inspect()` function and the REPL
  * for custom object representation. When an object has a method with this symbol,
@@ -101,6 +102,8 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
 /**
  * Interface for objects that can be inspected and provide custom string representations.
  *
+ * **Details**
+ *
  * Objects implementing this interface can control how they appear in debugging contexts,
  * JSON serialization, and Node.js inspection. This is particularly useful for creating
  * custom data types that display meaningful information during development.
@@ -108,8 +111,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * **Example** (Implementing inspectable objects)
  *
  * ```ts
- * import { Inspectable } from "effect"
- * import { format } from "effect/Formatter"
+ * import { Formatter, Inspectable } from "effect"
  *
  * class Result implements Inspectable.Inspectable {
  *   constructor(
@@ -118,7 +120,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  *   ) {}
  *
  *   toString(): string {
- *     return format(this.toJSON())
+ *     return Formatter.format(this.toJSON())
  *   }
  *
  *   toJSON() {
@@ -144,15 +146,17 @@ export interface Inspectable {
 }
 
 /**
- * Safely converts a value to a JSON-serializable representation, useful for
- * implementing the `toJSON` method of the {@link Inspectable} interface.
+ * Safely converts a value to a JSON-serializable representation.
+ *
+ * **Details**
  *
  * This function attempts to extract JSON data from objects that implement the
  * `toJSON` method, recursively processes arrays, and handles errors gracefully.
  * For objects that don't have a `toJSON` method, it applies redaction to
  * protect sensitive information.
  *
- * @since 2.0.0
+ * @category converting
+ * @since 4.0.0
  */
 export const toJson = (input: unknown): unknown => {
   try {
@@ -174,10 +178,13 @@ export const toJson = (input: unknown): unknown => {
 /**
  * Converts an unknown value to a string for diagnostics.
  *
+ * **Details**
+ *
  * Strings are returned unchanged. Objects are formatted as JSON using the
  * provided whitespace setting when possible, and values that cannot be
  * formatted are converted with `String`.
  *
+ * @category converting
  * @since 2.0.0
  */
 export const toStringUnknown = (u: unknown, whitespace: number | string | undefined = 2): string => {
@@ -193,6 +200,8 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
 
 /**
  * A base prototype object that implements the {@link Inspectable} interface.
+ *
+ * **Details**
  *
  * This object provides default implementations for the {@link Inspectable} methods.
  * It can be used as a prototype for objects that want to be inspectable,
@@ -218,6 +227,7 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
  * MyClass.prototype.constructor = MyClass
  * ```
  *
+ * @category models
  * @since 2.0.0
  */
 export const BaseProto: Inspectable = {
@@ -234,6 +244,8 @@ export const BaseProto: Inspectable = {
 
 /**
  * Abstract base class that implements the Inspectable interface.
+ *
+ * **Details**
  *
  * This class provides a convenient way to create inspectable objects by extending it.
  * Subclasses only need to implement the `toJSON()` method, and they automatically
@@ -274,6 +286,8 @@ export const BaseProto: Inspectable = {
 export abstract class Class {
   /**
    * Returns a JSON representation of this object.
+   *
+   * **Details**
    *
    * Subclasses must implement this method to define how the object
    * should be serialized for debugging and inspection purposes.

@@ -257,6 +257,8 @@ export function buildWhereSQLQuery(
     return dialect.placeholder(paramIndex++)
   }
 
+  const isRootLevelPath = (path: string, relation?: string) => !relation && !path.includes(".")
+
   const fieldExpr = (path: string, relation?: string): string => {
     if (path === idKey || path === "id") return "id"
     if (relation && path.includes(".-1.")) {
@@ -271,7 +273,7 @@ export function buildWhereSQLQuery(
       const arrPath = dottedToJsonPath(path.slice(0, -".length".length))
       return dialect.arrayLength(arrPath)
     }
-    if (!relation && !path.includes(".")) {
+    if (isRootLevelPath(path, relation)) {
       const projected = projectedColumns.get(path)
       if (projected) {
         const expr = projectedColumnFieldExpr(dialect, projected)

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
-import type { RootLevelFieldColumn } from "../src/Store/rootLevelFields.js"
+import { makeRootLevelFieldColumns, type RootLevelFieldColumn } from "../src/Store/rootLevelFields.js"
 import { parseRow } from "../src/Store/SQL.js"
 import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
 import { makeETag } from "../src/Store/utils.js"
@@ -15,6 +16,29 @@ const projectedRootLevelFields: readonly RootLevelFieldColumn[] = [
   { key: "age", columnName: "__root_age", kind: "number" },
   { key: "flag", columnName: "__root_flag", kind: "boolean" }
 ]
+
+describe("root-level projected field metadata", () => {
+  it("derives supported root-level scalar fields from encoded schema", () => {
+    const schema = S.Struct({
+      id: S.String,
+      name: S.String,
+      age: S.Number,
+      active: S.Boolean,
+      createdAt: S.Date,
+      status: S.NullOr(S.String),
+      meta: S.Struct({ city: S.String }),
+      tags: S.Array(S.String)
+    })
+
+    expect(makeRootLevelFieldColumns(schema, "id")).toEqual([
+      { key: "name", columnName: "__root_name", kind: "string" },
+      { key: "age", columnName: "__root_age", kind: "number" },
+      { key: "active", columnName: "__root_active", kind: "boolean" },
+      { key: "createdAt", columnName: "__root_createdAt", kind: "string" },
+      { key: "status", columnName: "__root_status", kind: "string" }
+    ])
+  })
+})
 
 // --- Query builder unit tests ---
 

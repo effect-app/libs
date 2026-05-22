@@ -37,7 +37,8 @@ const getScalarKind = (ast: SchemaAST.AST): RootLevelFieldColumnKind | undefined
           return undefined
       }
     case "Union": {
-      const scalarKinds = encoded.types
+      const scalarKinds = encoded
+        .types
         .flatMap((type) => {
           const kind = getScalarKind(type)
           return kind === undefined ? [] : [kind]

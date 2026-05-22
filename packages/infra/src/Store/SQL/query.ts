@@ -5,8 +5,8 @@ import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
-import type { RootLevelFieldColumn, RootLevelFieldColumnKind } from "../rootLevelFields.js"
 import { isRelationCheck } from "../codeFilter.js"
+import type { RootLevelFieldColumn, RootLevelFieldColumnKind } from "../rootLevelFields.js"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string

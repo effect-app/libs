@@ -7,6 +7,7 @@ import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
+import * as Data from "effect/Data"
 import * as Predicate from "effect/Predicate"
 import fs from "fs"
 import os from "os"
@@ -17,13 +18,47 @@ import { InfraLogger } from "./logger.js"
 export const PrinterId = S.NonEmptyString255
 export type PrinterId = S.NonEmptyString255
 
+type ExecError = Error & {
+  code?: number | string
+  killed?: boolean
+  signal?: NodeJS.Signals | null
+  cmd?: string
+  stdout?: string
+  stderr?: string
+}
+
+export class CUPSError extends Data.TaggedError("CUPSError")<{
+  readonly command: string
+  readonly message: string
+  readonly code: number | string | undefined
+  readonly signal: NodeJS.Signals | null | undefined
+  readonly killed: boolean | undefined
+  readonly stdout: string | undefined
+  readonly stderr: string | undefined
+  readonly cause: unknown
+}> {}
+
 const exec_ = util.promisify(cp.exec)
 const exec = (command: string) =>
   Effect.andThen(
     InfraLogger.logDebug(`Executing: ${command}`),
     Effect.tap(
-      Effect
-        .tryPromise(() => exec_(command)),
+      Effect.tryPromise({
+        try: () => exec_(command),
+        catch: (cause) => {
+          const e = cause as ExecError
+          return new CUPSError({
+            command,
+            message: e?.message ?? String(cause),
+            code: e?.code,
+            signal: e?.signal,
+            killed: e?.killed,
+            stdout: e?.stdout,
+            stderr: e?.stderr,
+            cause
+          })
+        }
+      }),
       (r) => (InfraLogger.logDebug(`Executed`).pipe(Effect.annotateLogs("result", pretty(r))))
     )
   )

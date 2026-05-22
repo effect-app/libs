@@ -253,9 +253,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               if (existingEffect) {
                 return existingEffect
               }
-              const next = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
-              seedCache.set(ns, next)
-              return next
+              const seedEffect = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
+              seedCache.set(ns, seedEffect)
+              return seedEffect
             }
             const s: Store<IdKey, Encoded> = {
               seedNamespace: (ns) => seedNamespace(ns),
@@ -640,9 +640,9 @@ function makeSQLiteStorePerNs(
         if (existingEffect) {
           return existingEffect
         }
-        const next = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
-        seedCache.set(ns, next)
-        return next
+        const seedEffect = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
+        seedCache.set(ns, seedEffect)
+        return seedEffect
       }
 
       const s: Store<IdKey, Encoded> = {

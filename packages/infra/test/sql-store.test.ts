@@ -2,12 +2,19 @@
 import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
 import { describe, expect, it } from "vitest"
+import type { RootLevelFieldColumn } from "../src/Store/rootLevelFields.js"
 import { parseRow } from "../src/Store/SQL.js"
 import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
 import { makeETag } from "../src/Store/utils.js"
 
 const query = (db: Sqlite.Database, sql: string, params: unknown[] = []) =>
   db.prepare(sql).all(...params as any[]) as any[]
+
+const projectedRootLevelFields: readonly RootLevelFieldColumn[] = [
+  { key: "name", columnName: "__root_name", kind: "string" },
+  { key: "age", columnName: "__root_age", kind: "number" },
+  { key: "flag", columnName: "__root_flag", kind: "boolean" }
+]
 
 // --- Query builder unit tests ---
 
@@ -46,6 +53,23 @@ describe("SQL query builder (SQLite dialect)", () => {
     )
     expect(result.sql).toContain("json_extract(data, '$.age') > ?")
     expect(result.params).toContain(18)
+  })
+
+  it("uses projected root columns with JSON fallback for root-level filters", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "age", op: "gt", value: 18 as any }],
+      "users",
+      {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectedRootLevelFields
+    )
+    expect(result.sql).toContain(`COALESCE("__root_age", json_extract(data, '$.age')) > ?`)
   })
 
   it("where or", () => {
@@ -711,6 +735,23 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     )
     expect(result.sql).toContain(`COALESCE(jsonb_agg(DISTINCT _items->>'articleId'), '[]'::jsonb)`)
   })
+
+  it("uses projected root columns with JSON fallback for pg filters", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "eq", value: true as any }],
+      "users",
+      {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectedRootLevelFields
+    )
+    expect(result.sql).toContain(`COALESCE("__root_flag", (data->>'flag')::boolean) = $1`)
+  })
 })
 
 // --- Integration tests with in-memory SQLite (direct, no Effect SQL client) ---
@@ -809,6 +850,38 @@ describe("SQL Store (SQLite integration)", () => {
         {}
       )
       expect(query(db, q3.sql, q3.params).length).toBe(2)
+    }))
+
+  it("projected root columns still fall back to JSON data for legacy rows", () =>
+    withDb((db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS "test_projected" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL, "__root_name" TEXT, "__root_age" REAL, "__root_flag" INTEGER)`
+      )
+      db
+        .prepare(`INSERT INTO "test_projected" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "etag1", JSON.stringify({ name: "Alice", age: 30, flag: true }))
+      db
+        .prepare(
+          `INSERT INTO "test_projected" (id, _etag, data, "__root_name", "__root_age", "__root_flag") VALUES (?, ?, ?, ?, ?, ?)`
+        )
+        .run("2", "etag2", JSON.stringify({ name: "Bob", age: 10, flag: false }), "Bob", 10, 0)
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "age", op: "gt", value: 20 as any }],
+        "test_projected",
+        {},
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        projectedRootLevelFields
+      )
+      const rows = query(db, q.sql, q.params)
+      expect(rows).toHaveLength(1)
+      expect((rows[0] as any).id).toBe("1")
     }))
 
   it("queries work when data does not contain id", () =>
@@ -1707,5 +1780,22 @@ describe("parseRow reconstructs full object from row", () => {
     expect(reconstructed.age).toBe(30)
     expect(reconstructed.tags).toEqual(["admin"])
     expect(reconstructed._etag).toBe(newE._etag)
+  })
+
+  it("prefers projected root-level columns when available", () => {
+    const result: any = parseRow(
+      {
+        id: "1",
+        _etag: "e1",
+        data: JSON.stringify({ name: "stale", flag: false }),
+        __root_name: "Alice",
+        __root_flag: 1
+      },
+      "id",
+      {},
+      projectedRootLevelFields
+    )
+    expect(result.name).toBe("Alice")
+    expect(result.flag).toBe(true)
   })
 })

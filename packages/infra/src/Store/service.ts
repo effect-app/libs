@@ -11,9 +11,12 @@ import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import type { FieldPath } from "../Model/filter/types/path/index.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
+import type { RootLevelFieldColumn } from "./rootLevelFields.js"
 
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
+  rootLevelFieldsWhenAvailable?: boolean
+  rootLevelFieldColumns?: readonly RootLevelFieldColumn[]
   /**
    * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
    * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
@@ -230,4 +233,5 @@ export interface StorageConfig {
   url: Redacted.Redacted
   prefix: string
   dbName: string
+  rootLevelFieldsWhenAvailable?: boolean
 }

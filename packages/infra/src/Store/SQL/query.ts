@@ -5,6 +5,7 @@ import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
+import type { RootLevelFieldColumn, RootLevelFieldColumnKind } from "../rootLevelFields.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {
@@ -143,6 +144,75 @@ export function logQuery(q: { sql: string; params: unknown[] }) {
     }))
 }
 
+export const quoteIdentifier = (value: string) => `"${value.replaceAll("\"", "\"\"")}"`
+
+const projectedColumnJsonFallbackExpr = (
+  dialect: SQLDialect,
+  column: RootLevelFieldColumn
+) => {
+  const expr = dialect.jsonExtract(column.key)
+  switch (column.kind) {
+    case "string":
+      return expr
+    case "number":
+      return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::double precision`
+    case "boolean":
+      return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::boolean`
+    default:
+      return assertUnreachable(column.kind)
+  }
+}
+
+export const projectedColumnFieldExpr = (
+  dialect: SQLDialect,
+  column: RootLevelFieldColumn
+) => `COALESCE(${quoteIdentifier(column.columnName)}, ${projectedColumnJsonFallbackExpr(dialect, column)})`
+
+export const projectedColumnSelectExpr = (
+  dialect: SQLDialect,
+  column: RootLevelFieldColumn
+) =>
+  column.kind === "boolean" && dialect.jsonColumnType === "JSON"
+    ? `CASE ${projectedColumnFieldExpr(dialect, column)} WHEN 1 THEN 'true' WHEN 0 THEN 'false' ELSE 'null' END`
+    : projectedColumnFieldExpr(dialect, column)
+
+export const projectedColumnSqlType = (
+  dialect: SQLDialect,
+  kind: RootLevelFieldColumnKind
+) => {
+  switch (kind) {
+    case "string":
+      return "TEXT"
+    case "number":
+      return dialect.jsonColumnType === "JSON" ? "REAL" : "DOUBLE PRECISION"
+    case "boolean":
+      return dialect.jsonColumnType === "JSON" ? "INTEGER" : "BOOLEAN"
+    default:
+      return assertUnreachable(kind)
+  }
+}
+
+export const projectedColumnBackfillExpr = (
+  dialect: SQLDialect,
+  column: RootLevelFieldColumn
+) => projectedColumnJsonFallbackExpr(dialect, column)
+
+export const normalizeProjectedColumnValue = (
+  column: RootLevelFieldColumn,
+  value: unknown
+) => {
+  if (column.kind === "boolean") {
+    if (typeof value === "number") {
+      return value !== 0
+    }
+    if (typeof value === "string") {
+      if (value === "true") return true
+      if (value === "false") return false
+    }
+  }
+  return value
+}
+
 const dottedToJsonPath = (path: string) =>
   path
     .split(".")
@@ -175,10 +245,12 @@ export function buildWhereSQLQuery(
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number,
-  namespace?: string
+  namespace?: string,
+  rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
 ) {
   const params: unknown[] = []
   let paramIndex = 1
+  const projectedColumns = new Map(rootLevelFieldColumns.map((column) => [column.key, column] as const))
 
   const addParam = (value: unknown): string => {
     params.push(dialect.serializeScalar(value))
@@ -198,6 +270,16 @@ export function buildWhereSQLQuery(
     if (path.endsWith(".length")) {
       const arrPath = dottedToJsonPath(path.slice(0, -".length".length))
       return dialect.arrayLength(arrPath)
+    }
+    if (!relation && !path.includes(".")) {
+      const projected = projectedColumns.get(path)
+      if (projected) {
+        const expr = projectedColumnFieldExpr(dialect, projected)
+        if (path in defaultValues) {
+          return `COALESCE(${expr}, ${addParam(defaultValues[path])})`
+        }
+        return expr
+      }
     }
     const jsonPath = dottedToJsonPath(path)
     const expr = dialect.jsonExtract(jsonPath)
@@ -533,6 +615,10 @@ export function buildWhereSQLQuery(
       if (typeof s === "string") {
         if (s === idKey || s === "id") return `id`
         if (s === "_etag") return `_etag`
+        const projected = projectedColumns.get(s)
+        if (projected) {
+          return `${projectedColumnSelectExpr(dialect, projected)} AS "${s}"`
+        }
         return `${dialect.jsonExtractJson(s)} AS "${s}"`
       }
       if ("computed" in s) {

@@ -21,6 +21,7 @@ import * as Unify from "effect/Unify"
 import { setupRequestContextFromCurrent } from "../../../api/setupRequest.js"
 import { type FilterArgs, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import { getContextMap } from "../../../Store/ContextMapContainer.js"
+import { makeRootLevelFieldColumns } from "../../../Store/rootLevelFields.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
 import type { Repository } from "../service.js"
@@ -595,6 +596,8 @@ export function makeStore<Encoded extends FieldValues>() {
     mapTo: (e: E, etag: string | undefined) => Encoded,
     idKey: IdKey
   ) => {
+    const rootLevelFieldColumns = makeRootLevelFieldColumns(schema, idKey)
+
     function makeStore<RInitial = never, EInitial = never>(
       makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial>,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
@@ -634,6 +637,7 @@ export function makeStore<Encoded extends FieldValues>() {
             : undefined,
           {
             ...config,
+            rootLevelFieldColumns,
             partitionValue: config?.partitionValue
               ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
           }

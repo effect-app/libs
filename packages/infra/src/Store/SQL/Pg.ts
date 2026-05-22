@@ -12,29 +12,56 @@ import type { FieldValues } from "../../Model/filter/types.js"
 import type { ComputedProjectionIrExpression } from "../../Model/query.js"
 import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
+import type { RootLevelFieldColumn } from "../rootLevelFields.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
 import { makeETag } from "../utils.js"
-import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.js"
+import {
+  buildWhereSQLQuery,
+  logQuery,
+  normalizeProjectedColumnValue,
+  projectedColumnBackfillExpr,
+  projectedColumnSqlType,
+  quoteIdentifier,
+  pgDialect
+} from "./query.js"
 
 const parseRow = <Encoded extends FieldValues>(
-  row: { id: string; _etag: string | null; data: unknown },
+  row: { id: string; _etag: string | null; data: unknown } & Record<string, unknown>,
   idKey: PropertyKey,
-  defaultValues: Partial<Encoded>
+  defaultValues: Partial<Encoded>,
+  rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
-  return { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  const projectedFields = rootLevelFieldColumns.reduce<Record<string, unknown>>((acc, column) => {
+    const value = row[column.columnName]
+    if (value !== null && value !== undefined) {
+      acc[column.key] = normalizeProjectedColumnValue(column, value)
+    }
+    return acc
+  }, {})
+  return {
+    ...defaultValues,
+    ...data,
+    ...projectedFields,
+    [idKey]: row.id,
+    _etag: row._etag ?? undefined
+  } as PersistenceModelType<Encoded>
 }
 
 const parseSelectRow = (
   row: Record<string, unknown>,
   idKey: PropertyKey,
-  defaultValues: Record<string, unknown>
+  defaultValues: Record<string, unknown>,
+  rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
 ): any => {
   const result: Record<string, unknown> = { ...defaultValues }
+  const projectedFields = new Map(rootLevelFieldColumns.map((column) => [column.key, column] as const))
   for (const [key, value] of Object.entries(row)) {
     if (key === "id") {
       result[idKey as string] = value
       result["id"] = value
+    } else if (projectedFields.has(key)) {
+      result[key] = normalizeProjectedColumnValue(projectedFields.get(key)!, value)
     } else {
       result[key] = value
     }
@@ -42,7 +69,7 @@ const parseSelectRow = (
   return result
 }
 
-const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
+const makePgStore = Effect.fnUntraced(function*({ prefix, rootLevelFieldsWhenAvailable: rootLevelFieldsWhenAvailableDefault }: StorageConfig) {
   const sql = yield* SqlClient.SqlClient
   return {
     make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
@@ -54,6 +81,12 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
       const defaultValues = config?.defaultValues ?? {}
+      const rootLevelFieldColumns = config?.rootLevelFieldColumns ?? []
+      const useRootLevelFields = config?.rootLevelFieldsWhenAvailable ?? rootLevelFieldsWhenAvailableDefault ?? false
+      const activeRootLevelFieldColumns = useRootLevelFields ? rootLevelFieldColumns : []
+      const selectColumnsSql = activeRootLevelFieldColumns.length > 0
+        ? `, ${activeRootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
+        : ""
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -63,6 +96,8 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           }
           return namespace
         }))
+
+      const exec = (query: string, params?: readonly unknown[]) => sql.unsafe(query, params as any).pipe(Effect.orDie)
 
       const ensureTable = sql
         .unsafe(
@@ -74,6 +109,22 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
             )
           ),
+          Effect.andThen(
+            Effect.forEach(
+              activeRootLevelFieldColumns,
+              (column) =>
+                exec(
+                  `ALTER TABLE "${tableName}" ADD COLUMN IF NOT EXISTS ${quoteIdentifier(column.columnName)} ${projectedColumnSqlType(pgDialect, column.kind)}`
+                ).pipe(
+                  Effect.andThen(
+                    exec(
+                      `UPDATE "${tableName}" SET ${quoteIdentifier(column.columnName)} = ${projectedColumnBackfillExpr(pgDialect, column)} WHERE ${quoteIdentifier(column.columnName)} IS NULL`
+                    )
+                  )
+                ),
+              { discard: true }
+            )
+          ),
           Effect.orDie,
           Effect.asVoid
         )
@@ -83,17 +134,26 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         const id = newE[idKey] as string
         const { _etag, [idKey]: _id, ...rest } = newE as any
         const data = JSON.stringify(rest)
-        return { id, _etag: newE._etag!, data, item: newE }
+        const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) => rest[column.key])
+        return { id, _etag: newE._etag!, data, item: newE, rootLevelFieldValues }
       }
-
-      const exec = (query: string, params?: readonly unknown[]) => sql.unsafe(query, params as any).pipe(Effect.orDie)
 
       const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
         const row = toRow(e)
         if (e._etag) {
+          const projectedSetSql = activeRootLevelFieldColumns.length > 0
+            ? `, ${
+              activeRootLevelFieldColumns
+                .map((column, index) => `${quoteIdentifier(column.columnName)} = $${index + 3}`)
+                .join(", ")
+            }`
+            : ""
+          const idParam = row.rootLevelFieldValues.length + 3
+          const etagParam = row.rootLevelFieldValues.length + 4
+          const namespaceParam = row.rootLevelFieldValues.length + 5
           yield* exec(
-            `UPDATE "${tableName}" SET _etag = $1, data = $2 WHERE id = $3 AND _etag = $4 AND _namespace = $5`,
-            [row._etag, row.data, row.id, e._etag, ns]
+            `UPDATE "${tableName}" SET _etag = $1, data = $2${projectedSetSql} WHERE id = $${idParam} AND _etag = $${etagParam} AND _namespace = $${namespaceParam}`,
+            [row._etag, row.data, ...row.rootLevelFieldValues, row.id, e._etag, ns]
           )
           const existing = yield* exec(
             `SELECT _etag FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
@@ -119,9 +179,17 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             })
           }
         } else {
+          const projectedColumnsSql = activeRootLevelFieldColumns.length > 0
+            ? `, ${activeRootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
+            : ""
+          const projectedValuesSql = activeRootLevelFieldColumns
+            .map((_, index) => `$${index + 5}`)
+            .join(", ")
           yield* exec(
-            `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
-            [row.id, ns, row._etag, row.data]
+            `INSERT INTO "${tableName}" (id, _namespace, _etag, data${projectedColumnsSql}) VALUES ($1, $2, $3, $4${
+              projectedValuesSql.length > 0 ? `, ${projectedValuesSql}` : ""
+            })`,
+            [row.id, ns, row._etag, row.data, ...row.rootLevelFieldValues]
           )
         }
         return row.item
@@ -167,10 +235,12 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 
         all: resolveNamespace.pipe(
           Effect.flatMap((ns) => {
-            const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
+            const sqlText = `SELECT id, _etag, data${selectColumnsSql} FROM "${tableName}" WHERE _namespace = $1`
             return exec(sqlText, [ns])
               .pipe(
-                Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
+                Effect.map((rows) =>
+                  (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, activeRootLevelFieldColumns))
+                ),
                 annotateDb({
                   operation: "all",
                   system: "postgresql",
@@ -186,13 +256,13 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         find: (id) =>
           resolveNamespace.pipe(Effect
             .flatMap((ns) => {
-              const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`
+              const sqlText = `SELECT id, _etag, data${selectColumnsSql} FROM "${tableName}" WHERE id = $1 AND _namespace = $2`
               return exec(sqlText, [id, ns])
                 .pipe(
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
                     return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, activeRootLevelFieldColumns))
                       : Option.none()
                   }),
                   annotateDb({
@@ -233,7 +303,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     | undefined,
                   f.order,
                   f.skip,
-                  f.limit
+                  f.limit,
+                  undefined,
+                  activeRootLevelFieldColumns
                 )
                 const nsPlaceholder = pgDialect.placeholder(q.params.length + 1)
                 const hasWhere = q.sql.includes("WHERE")
@@ -253,7 +325,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     Effect.map((rows) => {
                       if (f.select) {
                         return (rows as any[]).map((r) => {
-                          const selected = parseSelectRow(r, idKey, {})
+                          const selected = parseSelectRow(r, idKey, {}, activeRootLevelFieldColumns)
                           return {
                             ...Struct.pick(
                               defaultValues as any,
@@ -263,7 +335,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           } as M
                         })
                       }
-                      return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                      return (rows as any[]).map((r) =>
+                        parseRow<Encoded>(r, idKey, defaultValues, activeRootLevelFieldColumns) as any as M
+                      )
                     })
                   )
                 ),

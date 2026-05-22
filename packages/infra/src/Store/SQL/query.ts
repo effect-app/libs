@@ -254,7 +254,7 @@ const extractJsonFromSourceExpr = (
     return asJson ? `(${sourceExpr})` : `(${sourceExpr})#>> '{}'`
   }
   if (!asJson) {
-    const last = parts.at(-1)!
+    const last = parts[parts.length - 1]!
     const parents = parts.slice(0, -1)
     return `(${sourceExpr})${parents.map((part) => `->'${part}'`).join("")}->>'${last}'`
   }

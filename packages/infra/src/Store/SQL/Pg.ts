@@ -132,11 +132,12 @@ const makePgStore = Effect.fnUntraced(
           const id = newE[idKey] as string
           const { _etag, [idKey]: _id, ...rest } = newE as any
           const data = JSON.stringify(omitRootLevelFieldColumnsFromData(rest, activeRootLevelFieldColumns))
-          const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) =>
-            column.kind === "json"
-              ? rest[column.key] === undefined ? null : JSON.stringify(rest[column.key])
-              : rest[column.key] ?? null
-          )
+          const rootLevelFieldValues = activeRootLevelFieldColumns.map((column) => {
+            if (column.kind === "json") {
+              return rest[column.key] === undefined ? null : JSON.stringify(rest[column.key])
+            }
+            return rest[column.key] ?? null
+          })
           return { id, _etag: newE._etag!, data, item: newE, rootLevelFieldValues }
         }
 

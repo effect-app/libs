@@ -76,12 +76,15 @@ const parseSelectRow = (
   return result
 }
 
-const serializeProjectedValue = (system: DbSystem, column: RootLevelFieldColumn, value: unknown) =>
-  column.kind === "json"
-    ? value === undefined ? null : JSON.stringify(value)
-    : column.kind === "boolean" && system === "sqlite" && value !== null && value !== undefined
-    ? value === true ? 1 : 0
-    : value ?? null
+const serializeProjectedValue = (system: DbSystem, column: RootLevelFieldColumn, value: unknown) => {
+  if (column.kind === "json") {
+    return value === undefined ? null : JSON.stringify(value)
+  }
+  if (column.kind === "boolean" && system === "sqlite" && value !== null && value !== undefined) {
+    return value === true ? 1 : 0
+  }
+  return value ?? null
+}
 
 function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: string) {
   return Effect.fnUntraced(

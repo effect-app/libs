@@ -417,7 +417,7 @@ export function buildWhereSQLQuery(
   }
 
   const addJsonParam = (value: unknown): string => {
-    params.push(dialect.jsonColumnType === "JSON" ? JSON.stringify(value) : JSON.stringify(value))
+    params.push(JSON.stringify(value))
     return dialect.placeholder(paramIndex++)
   }
 

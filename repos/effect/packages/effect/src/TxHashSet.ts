@@ -10,7 +10,7 @@
  * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
  * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
  * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce}, {@link toArray}, and {@link toHashSet}
+ * - Fold or collect values with {@link reduce} and {@link toHashSet}
  *
  * **Gotchas**
  *
@@ -56,21 +56,11 @@ const TxHashSetProto = {
 }
 
 /**
- * A TxHashSet is a transactional hash set data structure that provides atomic operations
- * on unique values within Effect transactions. It uses an immutable HashSet internally
- * with TxRef for transactional semantics, ensuring all operations are performed atomically.
+ * A TxHashSet is a transactional hash set data structure that provides atomic operations on unique values within Effect transactions. It uses an immutable HashSet internally with TxRef for transactional semantics, ensuring all operations are performed atomically.
  *
- * ## Mutation vs Return Behavior
+ * **Details**
  *
- * **Mutation operations** (add, remove, clear) modify the original TxHashSet and return `Effect<void>` or `Effect<boolean>`:
- * - These operations mutate the TxHashSet in place
- * - They do not create new TxHashSet instances
- * - Examples: `add`, `remove`, `clear`
- *
- * **Transform operations** (union, intersection, difference, map, filter) create new TxHashSet instances:
- * - These operations return `Effect<TxHashSet<T>>` with a new instance
- * - The original TxHashSet remains unchanged
- * - Examples: `union`, `intersection`, `difference`, `map`, `filter`
+ * Mutation operations such as `add`, `remove`, and `clear` update the original TxHashSet and return `Effect<void>` or `Effect<boolean>`. Transform operations such as `union`, `intersection`, `difference`, `map`, and `filter` create new TxHashSet instances and leave the original TxHashSet unchanged.
  *
  * **Example** (Using transactional hash sets)
  *
@@ -103,7 +93,7 @@ const TxHashSetProto = {
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface TxHashSet<in out V> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -133,8 +123,7 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export declare namespace TxHashSet {
   /**
@@ -158,7 +147,7 @@ export declare namespace TxHashSet {
    * ```
    *
    * @category type-level
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Value<T> = T extends TxHashSet<infer V> ? V : never
 }
@@ -268,8 +257,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * **Example** (Creating a transactional hash set from a HashSet)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const hashSet = HashSet.make("x", "y", "z")
@@ -286,7 +274,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>> =>
   Effect.gen(function*() {
@@ -300,8 +288,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * **Example** (Checking for a TxHashSet)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txSet = yield* TxHashSet.make(1, 2, 3)
@@ -316,15 +303,16 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(u, TypeId)
 
 /**
  * Adds a value to the TxHashSet. If the value already exists, the operation has no effect.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by adding
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by adding the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Adding values)
  *
@@ -358,8 +346,9 @@ export const add: {
 /**
  * Removes a value from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by removing
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by removing the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Removing values)
  *
@@ -504,8 +493,9 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
 /**
  * Removes all values from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by clearing
- * all values. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by clearing all values. It does not return a new TxHashSet reference.
  *
  * **Example** (Clearing all values)
  *
@@ -523,7 +513,7 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
  * ```
  *
  * @category mutations
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(self.ref, HashSet.empty<V>())
 
@@ -671,7 +661,7 @@ export const difference: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isSubset: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>
@@ -706,7 +696,7 @@ export const isSubset: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const some: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -740,7 +730,7 @@ export const some: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const every: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -779,7 +769,7 @@ export const every: {
  * ```
  *
  * @category mapping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const map: {
   <V, U>(f: (value: V) => U): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
@@ -813,7 +803,7 @@ export const map: {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const filter: {
   <V, U extends V>(
@@ -905,8 +895,7 @@ export const reduce: {
  * **Example** (Taking a HashSet snapshot)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txSet = yield* TxHashSet.make("x", "y", "z")
@@ -922,7 +911,7 @@ export const reduce: {
  * })
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toHashSet = <V>(self: TxHashSet<V>): Effect.Effect<HashSet.HashSet<V>> => TxRef.get(self.ref)

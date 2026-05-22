@@ -45,7 +45,7 @@ const TypeId = "~effect/http/HttpClientRequest"
 /**
  * Returns `true` when a value is an `HttpClientRequest`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isHttpClientRequest = (u: unknown): u is HttpClientRequest => hasProperty(u, TypeId)
@@ -211,6 +211,8 @@ const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = m
 
 export {
   /**
+   * Creates a `DELETE` request for the specified URL.
+   *
    * @category constructors
    * @since 4.0.0
    */
@@ -862,7 +864,7 @@ export function toUrl(self: HttpClientRequest): Option.Option<URL> {
 /**
  * Converts a Web `Request` into an `HttpClientRequest`, preserving method, URL, headers, and supported request bodies.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromWeb = (request: globalThis.Request): HttpClientRequest => {
@@ -896,7 +898,7 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 /**
  * Converts an `HttpClientRequest` to a Web `Request` as a `Result`, failing when the request URL is invalid.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebResult = (self: HttpClientRequest, options?: {
@@ -953,7 +955,7 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
 /**
  * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlParamsError` when the request URL is invalid.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWeb = (self: HttpClientRequest, options?: {

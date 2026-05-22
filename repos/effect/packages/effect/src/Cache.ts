@@ -125,8 +125,8 @@ const TypeId = "~effect/Cache"
  * })
  * ```
  *
- * @category Models
- * @since 4.0.0
+ * @category models
+ * @since 2.0.0
  */
 export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -140,13 +140,13 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
  * Represents a low-level cache entry containing a deferred lookup result and
  * an optional expiration timestamp.
  *
- * **Notes**
+ * **Details**
  *
  * An `expiresAt` value of `undefined` means the entry does not expire. Most
  * users should interact with entries through the `Cache` combinators rather
  * than constructing them directly.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Entry<A, E> {
@@ -156,6 +156,8 @@ export interface Entry<A, E> {
 
 /**
  * Creates a cache with dynamic time-to-live based on the result and key.
+ *
+ * **Details**
  *
  * The timeToLive function receives both the exit result and the key, allowing
  * for flexible TTL policies based on success/failure state and key characteristics.
@@ -185,8 +187,8 @@ export interface Entry<A, E> {
  * })
  * ```
  *
- * @category Constructors
- * @since 4.0.0
+ * @category constructors
+ * @since 2.0.0
  */
 export const makeWith = <
   Key,
@@ -220,6 +222,8 @@ export const makeWith = <
 
 /**
  * Creates a cache with a fixed time-to-live for all entries.
+ *
+ * **Details**
  *
  * This is the basic cache constructor where all entries share the same TTL.
  * The lookup function will be called when a key is not found or has expired.
@@ -277,8 +281,8 @@ export const makeWith = <
  * })
  * ```
  *
- * @category Constructors
- * @since 4.0.0
+ * @category constructors
+ * @since 2.0.0
  */
 export const make = <
   Key,
@@ -404,7 +408,7 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const get: {
@@ -557,7 +561,7 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const getOption: {
@@ -595,7 +599,7 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const getSuccess: {
@@ -707,7 +711,7 @@ export const getSuccess: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const set: {
@@ -817,7 +821,7 @@ export const set: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const has: {
@@ -874,7 +878,7 @@ export const has: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidate: {
@@ -947,7 +951,7 @@ export const invalidate: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidateWhen: {
@@ -976,6 +980,8 @@ export const invalidateWhen: {
 
 /**
  * Forces a refresh of the value associated with the specified key in the cache.
+ *
+ * **Details**
  *
  * It will always invoke the lookup function to construct a new value,
  * overwriting any existing value for that key.
@@ -1061,7 +1067,7 @@ export const invalidateWhen: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const refresh: {
@@ -1133,7 +1139,7 @@ export const refresh: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<void> =>
@@ -1143,6 +1149,8 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
 
 /**
  * Retrieves the approximate number of entries in the cache.
+ *
+ * **Details**
  *
  * Note that expired entries are counted until they are accessed and removed.
  * The size reflects the current number of entries stored, not the number
@@ -1176,7 +1184,7 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<number> =>
@@ -1209,7 +1217,7 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<Key>> =>
@@ -1252,7 +1260,7 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<A>> =>
@@ -1263,7 +1271,7 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<[Key, A]>> =>

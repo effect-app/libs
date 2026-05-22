@@ -21,6 +21,8 @@ import * as Layer from "../Layer.ts"
  * It captures all console output for testing purposes while maintaining full
  * compatibility with the standard Console API.
  *
+ * **Details**
+ *
  * This interface extends the standard Console interface and adds methods to
  * retrieve logged messages for verification in tests.
  *
@@ -28,7 +30,7 @@ import * as Layer from "../Layer.ts"
  *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
@@ -62,7 +64,6 @@ export interface TestConsole extends Console.Console {
  * The `TestConsole` namespace provides types and utilities for working with
  * test console implementations.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace TestConsole {
@@ -73,7 +74,7 @@ export declare namespace TestConsole {
    * **Example** (Typing captured console methods)
    *
    * ```ts
-   * import type * as TestConsole from "effect/testing/TestConsole"
+   * import type { TestConsole } from "effect/testing"
    *
    * const method: TestConsole.TestConsole.Method = "log"
    *
@@ -92,7 +93,7 @@ export declare namespace TestConsole {
    * **Example** (Typing captured console entries)
    *
    * ```ts
-   * import type * as TestConsole from "effect/testing/TestConsole"
+   * import type { TestConsole } from "effect/testing"
    *
    * const entry: TestConsole.TestConsole.Entry = {
    *   method: "error",
@@ -121,7 +122,7 @@ export declare namespace TestConsole {
  *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Debug message")
@@ -186,7 +187,7 @@ export const make = Effect.gen(function*() {
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = TestConsole.testConsoleWith((testConsole) =>
  *   Effect.gen(function*() {
@@ -217,7 +218,7 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("This will be captured")
@@ -244,7 +245,7 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("First message")
@@ -277,7 +278,7 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.error("Error message")

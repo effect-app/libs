@@ -62,7 +62,9 @@ import * as NodeSocket from "./NodeSocket.ts"
 
 export {
   /**
-   * @category Re-exports
+   * Provides the Kubernetes HTTP client layer used by Kubernetes runner health checks.
+   *
+   * @category re-exports
    * @since 4.0.0
    */
   layerK8sHttpClient
@@ -73,7 +75,7 @@ export {
  * transport, RPC serialization, message storage, runner health checks, and
  * optional client-only mode.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <
@@ -157,7 +159,7 @@ export const layer = <
  * Provides the HTTP server and Node HTTP services used by cluster runners,
  * listening on `ShardingConfig.runnerListenAddress` or `runnerAddress`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpServer: Layer.Layer<

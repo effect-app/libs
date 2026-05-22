@@ -108,11 +108,13 @@ export interface Closeable extends Scope {
  * })
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
-export namespace State {
+export declare namespace State {
   /**
    * Represents an open scope with no registered finalizers yet.
+   *
+   * **Details**
    *
    * Adding the first finalizer transitions the scope to `Open`; closing an
    * empty scope transitions directly to `Closed` without producing a finalizer
@@ -133,7 +135,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Empty = {
     readonly _tag: "Empty"
@@ -157,7 +159,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Open = {
     readonly _tag: "Open"
@@ -187,7 +189,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Closed = {
     readonly _tag: "Closed"
@@ -276,12 +278,6 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  * Provides a `Scope` to an `Effect`, removing the `Scope` requirement from its context.
  * This allows you to run effects that require a scope by explicitly providing one.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Scope.extend`
- *
  * **Example** (Providing a scope)
  *
  * ```ts
@@ -311,6 +307,8 @@ export const provide: {
 
 /**
  * Registers an exit-aware finalizer on a scope.
+ *
+ * **Details**
  *
  * If the scope is open, the finalizer runs when the scope closes and receives
  * the scope's exit value. If the scope is already closed, the finalizer runs
@@ -344,13 +342,15 @@ export const provide: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<unknown>) => Effect<void> =
   effect.scopeAddFinalizerExit
 
 /**
  * Registers a finalizer effect on a scope.
+ *
+ * **Details**
  *
  * If the scope is open, the finalizer runs when the scope closes, regardless of
  * whether the scope closes successfully or with an error. If the scope is
@@ -378,12 +378,14 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<void> = effect.scopeAddFinalizer
 
 /**
  * Creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -413,7 +415,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fork: (
   scope: Scope,
@@ -422,6 +424,8 @@ export const fork: (
 
 /**
  * Synchronously creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -479,18 +483,21 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
 /**
  * Unsafely transitions a scope to `Closed` with the provided exit value.
  *
+ * **Details**
+ *
  * Returns an effect that runs registered finalizers, or `undefined` when the
  * scope was already closed or no finalizers need to run. Prefer `close` unless
  * you are implementing lower-level scope machinery and can correctly run the
  * returned effect.
  *
+ * @category unsafe
  * @since 4.0.0
  */
 export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void, never, never> | undefined =
@@ -500,12 +507,14 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
  * Runs an effect with the provided closeable scope in its context and closes
  * that scope when the effect exits.
  *
+ * **Details**
+ *
  * The scope is closed with the same exit value as the effect, so registered
  * finalizers can observe whether the effect succeeded, failed, or was
  * interrupted.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const use: {
   (scope: Closeable): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>

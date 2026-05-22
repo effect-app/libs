@@ -46,11 +46,12 @@ import * as Reactivity from "./Reactivity.ts"
 /**
  * A `Context.Service` for a flattened RPC client integrated with atom reactivity.
  *
- * It exposes the RPC client, an atom runtime, mutation helpers that return
- * `AtomResultFn`s, and query helpers that return atoms or pull atoms for RPC
- * results.
+ * **Details**
  *
- * @category Models
+ * It exposes the RPC client, an atom runtime, mutation helpers that return `AtomResultFn`s, and query helpers that
+ * return atoms or pull atoms for RPC results.
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> extends
@@ -133,11 +134,12 @@ declare global {
 /**
  * Creates a `Context.Service` class for an RPC client backed by an atom runtime.
  *
- * The options provide the RPC group, protocol layer, tracing options, request id
- * generation, optional custom client effect, and runtime factory used by the query
- * and mutation helpers.
+ * **Details**
  *
- * @category Constructors
+ * The options provide the RPC group, protocol layer, tracing options, request id generation, optional custom client
+ * effect, and runtime factory used by the query and mutation helpers.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const Service = <Self>() =>

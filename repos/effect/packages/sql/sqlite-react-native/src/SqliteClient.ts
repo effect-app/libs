@@ -40,7 +40,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime identifier attached to SQLite React Native client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
@@ -48,7 +48,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
 /**
  * Type-level identifier for SQLite React Native client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
@@ -115,7 +115,7 @@ interface SqliteConnection extends Connection {}
 /**
  * Creates a scoped React Native SQLite client from the supplied configuration, using a single serialized connection and honoring `AsyncQuery` for query execution.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -280,10 +280,6 @@ interface DB {
    *
    * If you are writing to the database YOU SHOULD BE USING TRANSACTIONS!
    * Transactions protect you from partial writes and ensure that your data is always in a consistent state
-   *
-   * @param query
-   * @param params
-   * @returns QueryResult
    */
   executeSync: (query: string, params?: Array<any>) => QueryResult
   /**
@@ -301,10 +297,6 @@ interface DB {
    * Transactions protect you from partial writes and ensure that your data is always in a consistent state
    *
    * If you need a large amount of queries ran as fast as possible you should be using `executeBatch`, `executeRaw`, `loadFile` or `executeWithHostObjects`
-   *
-   * @param query string of your SQL query
-   * @param params a list of parameters to bind to the query, if any
-   * @returns Promise<QueryResult> with the result of the query
    */
   execute: (query: string, params?: Array<any>) => Promise<QueryResult>
   /**

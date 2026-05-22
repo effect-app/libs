@@ -154,10 +154,13 @@ export interface Strategy<A, E> {
 export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u, TypeId)
 
 /**
- * Makes a new pool of the specified fixed size. The pool is returned in a
- * `Scope`, which governs the lifetime of the pool. When the pool is shutdown
- * because the `Scope` is closed, the individual items allocated by the pool
- * will be released in some unspecified order.
+ * Makes a new pool of the specified fixed size.
+ *
+ * **Details**
+ *
+ * The pool is returned in a `Scope`, which governs the lifetime of the pool.
+ * When the pool is shutdown because the `Scope` is closed, the individual
+ * items allocated by the pool will be released in some unspecified order.
  *
  * By setting the `concurrency` parameter, you can control the level of concurrent
  * access per pool item. By default, the number of permits is set to `1`.
@@ -198,23 +201,34 @@ export const make = <A, E, R>(options: {
  * from item creation, while `"usage"` measures from pool usage. The default is
  * `"usage"`.
  *
- * ```ts skip-type-checking
+ * **Example** (Create a connection pool)
+ *
+ * ```ts
  * import { Duration, Effect, Pool } from "effect"
- * import { createConnection } from "mysql2"
+ *
+ * interface Connection {
+ *   readonly execute: (sql: string) => Effect.Effect<ReadonlyArray<string>>
+ *   readonly close: Effect.Effect<void>
+ * }
  *
  * const acquireDBConnection = Effect.acquireRelease(
- *   Effect.sync(() => createConnection("mysql://...")),
- *   (connection) => Effect.sync(() => connection.end(() => {}))
+ *   Effect.succeed({
+ *     execute: (sql) => Effect.succeed([`executed: ${sql}`]),
+ *     close: Effect.void
+ *   } satisfies Connection),
+ *   (connection) => connection.close
  * )
  *
- * const connectionPool = Effect.flatMap(
- *   Pool.makeWithTTL({
- *     acquire: acquireDBConnection,
- *     min: 10,
- *     max: 20,
- *     timeToLive: Duration.seconds(60)
- *   }),
- *   (pool) => pool.get
+ * const program = Effect.scoped(
+ *   Effect.flatMap(
+ *     Pool.makeWithTTL({
+ *       acquire: acquireDBConnection,
+ *       min: 10,
+ *       max: 20,
+ *       timeToLive: Duration.seconds(60)
+ *     }),
+ *     (pool) => Effect.flatMap(Pool.get(pool), (connection) => connection.execute("select 1"))
+ *   )
  * )
  * ```
  *

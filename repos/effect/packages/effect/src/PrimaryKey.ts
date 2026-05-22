@@ -15,12 +15,15 @@ import { hasProperty } from "./Predicate.ts"
 /**
  * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
  *
+ * @category symbols
  * @since 2.0.0
  */
 export const symbol = "~effect/interfaces/PrimaryKey"
 
 /**
  * An interface for objects that can provide a string-based primary key.
+ *
+ * **Details**
  *
  * Objects implementing this interface must provide a method that returns
  * a unique string identifier.
@@ -52,11 +55,13 @@ export interface PrimaryKey {
 /**
  * Checks whether a value implements the `PrimaryKey` protocol.
  *
+ * **Details**
+ *
  * This is a structural guard for the `PrimaryKey.symbol` property. It does not
  * call the method or verify that it returns a string.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symbol)
 

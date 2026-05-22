@@ -93,7 +93,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface Schedule<out Output, in Input = unknown, out Error = never, out Env = never>
@@ -178,6 +178,7 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
  * Context reference containing metadata for the currently running schedule step.
  *
  * **Details**
+ *
  * Repeat, retry, stream, and channel scheduling operations provide this service
  * to effects run between schedule steps. The default value contains undefined
  * input and output values, zero duration, and zeroed timing fields before any
@@ -230,7 +231,6 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Schedule {
@@ -262,7 +262,7 @@ export declare namespace Schedule {
    * const serviceSchedule = Schedule.spaced("5 seconds")
    * ```
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export interface Variance<out Output, in Input, out Error, out Env> {
@@ -273,12 +273,13 @@ export declare namespace Schedule {
    * Type-level marker used by `Schedule.Variance` to record the variance of
    * `Schedule` type parameters.
    *
-   * **Notes**
+   * **Details**
+   *
    * This interface exists for TypeScript inference and assignability. Users
    * normally do not construct or inspect it directly.
    *
-   * @category Models
-   * @since 2.0.0
+   * @category models
+   * @since 4.0.0
    */
   export interface VarianceStruct<out Output, in Input, out Error, out Env> {
     readonly _Out: Covariant<Output>
@@ -701,6 +702,8 @@ export const andThen: {
  * schedule to completion. Once the left schedule is complete, the right (i.e.
  * `other`) schedule will be executed to completion.
  *
+ * **Details**
+ *
  * The resulting schedule emits a `Result` to indicate which phase produced
  * each output: outputs from `self` are emitted as `Failure`, and outputs from
  * `other` are emitted as `Success`.
@@ -735,7 +738,7 @@ export const andThen: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const andThenResult: {
   <Output2, Input2, Error2, Env2>(
@@ -863,7 +866,7 @@ export const andThenResult: {
  * // Compare with either which provides union semantics (OR logic)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const both: {
@@ -911,7 +914,7 @@ export const both: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothLeft: {
@@ -960,7 +963,7 @@ export const bothLeft: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothRight: {
@@ -1014,7 +1017,7 @@ export const bothRight: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothWith: {
@@ -1062,6 +1065,7 @@ export const bothWith: {
  * far as an array.
  *
  * **Details**
+ *
  * This does not make the schedule run forever. The collected schedule stops
  * when `self` stops and fails when `self` fails.
  *
@@ -1088,8 +1092,8 @@ export const bothWith: {
  * })
  * ```
  *
- * @category utilities
- * @since 2.0.0
+ * @category utils
+ * @since 4.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1100,6 +1104,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * seen so far as an array.
  *
  * **Details**
+ *
  * This does not make the schedule run forever. The collected schedule stops
  * when `self` stops and fails when `self` fails.
  *
@@ -1124,8 +1129,8 @@ export const collectInputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
- * @since 2.0.0
+ * @category utils
+ * @since 4.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1211,7 +1216,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const collectWhile: {
@@ -1368,7 +1373,7 @@ export const collectWhile: {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
@@ -1481,6 +1486,8 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
 
 /**
  * Returns a schedule that recurs once after the specified duration.
+ *
+ * **Details**
  *
  * The schedule outputs the configured duration for its first recurrence and
  * then completes.
@@ -1657,7 +1664,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * // Compare with intersect which provides intersection semantics (AND logic)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const either: {
@@ -1708,8 +1715,8 @@ export const either: {
  * })
  * ```
  *
- * @category utilities
- * @since 2.0.0
+ * @category utils
+ * @since 4.0.0
  */
 export const eitherLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -1758,8 +1765,8 @@ export const eitherLeft: {
  * })
  * ```
  *
- * @category utilities
- * @since 2.0.0
+ * @category utils
+ * @since 4.0.0
  */
 export const eitherRight: {
   <Output2, Input2, Error2, Env2>(
@@ -1813,7 +1820,7 @@ export const eitherRight: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const eitherWith: {
@@ -1869,10 +1876,10 @@ export const eitherWith: {
 /**
  * A schedule that always recurs and returns the total elapsed duration since the first recurrence.
  *
+ * **Details**
+ *
  * This schedule never stops and outputs the cumulative time that has passed since the schedule
  * started executing. Useful for tracking execution time or implementing time-based logic.
- *
- * @returns A schedule that outputs the elapsed duration and never stops
  *
  * **Example** (Measuring elapsed schedule time)
  *
@@ -2046,10 +2053,12 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * Returns a `Schedule` that recurs on the specified fixed `interval` and
  * outputs the number of repetitions of the schedule so far.
  *
+ * **Details**
+ *
  * If the action run between updates takes longer than the interval, then the
  * action will be run immediately, but re-runs will not "pile up".
  *
- * ```
+ * ```text
  * |-----interval-----|-----interval-----|-----interval-----|
  * |---------action--------||action|-----|action|-----------|
  * ```
@@ -2251,7 +2260,7 @@ export const map: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const modifyDelay: {
@@ -2286,9 +2295,11 @@ export const modifyDelay: {
 /**
  * Returns a new `Schedule` that randomly adjusts each recurrence delay.
  *
+ * **Details**
+ *
  * Delays are jittered between `80%` and `120%` of the original delay.
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const jittered = <Output, Input, Error, Env>(
@@ -2326,7 +2337,7 @@ export const jittered = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const passthrough = <Output, Input, Error, Env>(
@@ -2508,7 +2519,7 @@ export const recurs = (times: number): Schedule<number> =>
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const reduce: {
@@ -2934,8 +2945,8 @@ export const tapOutput: {
  * })
  * ```
  *
- * @category utilities
- * @since 2.0.0
+ * @category utils
+ * @since 4.0.0
  */
 export const take: {
   (n: number): <Output, Input, Error, Env>(
@@ -3100,11 +3111,13 @@ export {
    * Returns a new schedule that passes each input and output of the specified
    * schedule to the provided `predicate`.
    *
+   * **Details**
+   *
    * If the `predicate` returns `true`, the schedule will continue, otherwise
    * the schedule will stop.
    *
-   * @category utilities
-   * @since 2.0.0
+   * @category utils
+   * @since 4.0.0
    */
   while_ as while
 }
@@ -3113,10 +3126,12 @@ export {
  * A schedule that divides the timeline to `interval`-long windows, and sleeps
  * until the nearest window boundary every time it recurs.
  *
+ * **Details**
+ *
  * For example, `Schedule.windowed("10 seconds")` would produce a schedule as
  * follows:
  *
- * ```
+ * ```text
  *      10s        10s        10s       10s
  * |----------|----------|----------|----------|
  * |action------|sleep---|act|-sleep|action----|
@@ -3156,6 +3171,8 @@ export const windowed = (interval: Duration.Input): Schedule<number> => {
 
 /**
  * Returns a new `Schedule` that will recur forever.
+ *
+ * **Details**
  *
  * The output of the schedule is the current count of its repetitions thus far
  * (i.e. `0, 1, 2, ...`).
@@ -3200,7 +3217,7 @@ export {
    * without modification. It effectively acts as a pass-through that simply
    * echoes its input values at each step.
    *
-   * @category Constructors
+   * @category constructors
    * @since 2.0.0
    */
   identity_ as identity
@@ -3230,7 +3247,7 @@ export {
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesInputType = <T>() =>
 <Input extends T, Output = never, Error = never, Env = never>(
@@ -3242,7 +3259,7 @@ export const satisfiesInputType = <T>() =>
  * altering the schedule's behavior.
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setInputType =
   <T>() => <Output, Error, Env>(self: Schedule<Output, T, Error, Env>): Schedule<Output, T, Error, Env> => self
@@ -3266,7 +3283,7 @@ export const setInputType =
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesOutputType = <T>() =>
 <Output extends T, Error = never, Input = unknown, Env = never>(
@@ -3298,7 +3315,7 @@ export const satisfiesOutputType = <T>() =>
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesErrorType = <T>() =>
 <Error extends T, Output = never, Input = unknown, Env = never>(
@@ -3334,7 +3351,7 @@ export const satisfiesErrorType = <T>() =>
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(

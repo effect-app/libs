@@ -18,7 +18,7 @@
  *   the requested permits cannot be acquired immediately.
  * - Manual `take` / `release` usage must keep permit counts balanced.
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "./Effect.ts"
 import type { Fiber } from "./Fiber.ts"
@@ -29,6 +29,8 @@ import type * as Option from "./Option.ts"
 
 /**
  * A counting semaphore that coordinates concurrent access with permits.
+ *
+ * **Details**
  *
  * Effects can acquire permits, wait until enough permits are available,
  * release permits, or run with permits that are automatically released when
@@ -50,7 +52,7 @@ import type * as Option from "./Option.ts"
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface Semaphore {
   /**
@@ -123,14 +125,10 @@ export interface Semaphore {
  * Synchronously creates a `Semaphore` initialized with the specified total
  * number of permits.
  *
+ * **When to use**
+ *
  * Use this low-level constructor when an immediate semaphore value is required;
  * otherwise prefer the effectful `make` constructor.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeSemaphoreUnsafe`
  *
  * **Example** (Creating an unsafe semaphore)
  *
@@ -159,7 +157,7 @@ export interface Semaphore {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeUnsafe = (permits: number): Semaphore => new SemaphoreImpl(permits)
 
@@ -270,14 +268,10 @@ class SemaphoreImpl implements Semaphore {
 /**
  * Creates a `Semaphore` initialized with the specified total number of permits.
  *
+ * **When to use**
+ *
  * Use the returned semaphore to limit concurrency with `withPermit` or
  * `withPermits`, or to manually `take` and `release` permits.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeSemaphore`
  *
  * **Example** (Creating a semaphore)
  *
@@ -302,7 +296,7 @@ class SemaphoreImpl implements Semaphore {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const make = (permits: number): Effect.Effect<Semaphore> => internal.sync(() => new SemaphoreImpl(permits))
 

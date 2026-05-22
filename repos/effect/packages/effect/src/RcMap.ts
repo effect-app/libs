@@ -83,7 +83,8 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
 /**
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
- * @category Models
+ *
+ * @category models
  * @since 4.0.0
  */
 export type State<K, A, E> = State.Open<K, A, E> | State.Closed
@@ -97,7 +98,8 @@ export declare namespace State {
   /**
    * Represents the open/active state of an RcMap, containing the actual
    * resource map that stores entries.
-   * @category Models
+   *
+   * @category models
    * @since 4.0.0
    */
   export interface Open<K, A, E> {
@@ -108,7 +110,8 @@ export declare namespace State {
   /**
    * Represents the closed state of an RcMap, indicating that the map has been
    * shut down and will no longer accept new operations.
-   * @category Models
+   *
+   * @category models
    * @since 4.0.0
    */
   export interface Closed {
@@ -118,7 +121,8 @@ export declare namespace State {
   /**
    * Represents an individual entry in the RcMap, containing the resource's
    * metadata including reference count, expiration time, and lifecycle management.
-   * @category Models
+   *
+   * @category models
    * @since 4.0.0
    */
   export interface Entry<A, E> {
@@ -159,9 +163,9 @@ const makeUnsafe = <K, A, E>(options: {
  * by a key. The resources are lazily acquired on the first call to `get` and
  * released when the last reference is released.
  *
- * Complex keys can extend `Equal` and `Hash` to allow lookups by value.
+ * **Details**
  *
- * **Options**
+ * Complex keys can extend `Equal` and `Hash` to allow lookups by value.
  *
  * - `capacity`: The maximum number of resources that can be held in the map.
  * - `idleTimeToLive`: When the reference count reaches zero, the resource will be released after this duration.
@@ -396,7 +400,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.8.0
  */
 export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> => {
   return Effect.suspend(() =>
@@ -435,7 +439,7 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.13.0
  */
 export const invalidate: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>
@@ -511,7 +515,7 @@ export const has: {
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.13.0
  */
 export const touch: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>

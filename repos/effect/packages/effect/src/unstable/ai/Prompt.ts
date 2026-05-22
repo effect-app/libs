@@ -70,18 +70,13 @@ import type * as Response from "./Response.ts"
 // =============================================================================
 
 /**
- * Schema for provider-specific options which can be attached to both content
- * parts and messages, enabling provider-specific behavior.
+ * Schema for provider-specific options that can be attached to content parts
+ * and messages.
  *
- * Provider-specific options are namespaced by provider and have the structure:
+ * **Details**
  *
- * ```
- * {
- *   "<provider-specific-key>": {
- *     // Provider-specific options
- *   }
- * }
- * ```
+ * Provider-specific options are keyed by provider-specific names, and each
+ * value is JSON or `null`.
  *
  * @category models
  * @since 4.0.0
@@ -109,7 +104,7 @@ const PartTypeId = "~effect/ai/Prompt/Part" as const
 /**
  * Type guard to check if a value is a Part.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTypeId)
@@ -117,8 +112,11 @@ export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTy
 /**
  * Union type representing all possible content parts within messages.
  *
+ * **Details**
+ *
  * Parts are the building blocks of message content, supporting text, files,
- * reasoning, tool calls, and tool results.
+ * reasoning, tool calls, tool results, tool approval responses, and tool
+ * approval requests.
  *
  * @category models
  * @since 4.0.0
@@ -150,7 +148,10 @@ export type PartEncoded =
 /**
  * Base interface for all content parts.
  *
- * Provides common structure including type and provider options.
+ * **Details**
+ *
+ * It provides the common structure shared by all content parts, including the
+ * part type and provider options.
  *
  * @category models
  * @since 4.0.0
@@ -255,7 +256,10 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
 /**
  * Content part representing plain text.
  *
- * The most basic content type used for textual information in messages.
+ * **Details**
+ *
+ * Text parts are the basic content type used for textual information in
+ * messages.
  *
  * **Example** (Creating text parts)
  *
@@ -418,10 +422,12 @@ export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): Rea
 // =============================================================================
 
 /**
- * Content part representing a file attachment. Files can be provided as base64
- * strings of data, byte arrays, or URLs.
+ * Content part representing a file attachment.
  *
- * Supports various file types including images, documents, and binary data.
+ * **Details**
+ *
+ * Files can be provided as base64 data strings, byte arrays, or URLs, and can
+ * represent images, documents, or other binary data.
  *
  * **Example** (Creating file parts)
  *
@@ -760,8 +766,10 @@ export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): T
 /**
  * Content part representing a user's response to a tool approval request.
  *
- * Used in tool messages to approve or deny tool execution when tools have
- * the `needsApproval` property set.
+ * **When to use**
+ *
+ * Use this part in tool messages to approve or deny tool execution when tools
+ * have the `needsApproval` property set.
  *
  * **Example** (Creating tool approval responses)
  *
@@ -879,9 +887,11 @@ export const toolApprovalResponsePart = (
 /**
  * Content part representing a tool approval request from the framework.
  *
- * Stored in assistant messages when a tool requires user approval before
- * execution. The user responds with a `ToolApprovalResponsePart` in a tool
- * message.
+ * **Details**
+ *
+ * Tool approval request parts are stored in assistant messages when a tool
+ * requires user approval before execution. The user responds with a
+ * `ToolApprovalResponsePart` in a tool message.
  *
  * **Example** (Creating tool approval requests)
  *
@@ -982,7 +992,7 @@ const MessageTypeId = "~effect/ai/Prompt/Message" as const
 /**
  * Type guard to check if a value is a Message.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, MessageTypeId)
@@ -990,7 +1000,10 @@ export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, 
 /**
  * Base interface for all message types.
  *
- * Provides common structure including role and provider options.
+ * **Details**
+ *
+ * It provides the common structure shared by all messages, including the role
+ * and provider options.
  *
  * @category models
  * @since 4.0.0
@@ -1009,8 +1022,6 @@ export interface BaseMessage<Role extends string, Options extends ProviderOption
 
 /**
  * Base interface for encoded message types.
- *
- * @template Role - String literal type for the message role
  *
  * @category models
  * @since 4.0.0
@@ -1834,7 +1845,9 @@ const decodeMessagesSync = Schema.decodeSync(Schema.Array(Message))
 export const empty: Prompt = makePrompt([])
 
 /**
- * Creates a Prompt from an input.
+ * Creates a `Prompt` from an input.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating prompts, supporting multiple
  * input formats for convenience and flexibility.
@@ -2061,8 +2074,10 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
 /**
  * Concatenates a prompt with additional raw input by concatenating messages.
  *
- * Creates a new prompt containing all messages from both the original prompt,
- * and the provided raw input, maintaining the order of messages.
+ * **Details**
+ *
+ * The returned prompt contains all messages from the original prompt followed
+ * by the provided raw input, preserving message order.
  *
  * **Example** (Concatenating prompts)
  *
@@ -2102,8 +2117,10 @@ export const concat: {
  * Creates a new prompt from the specified prompt with the system message set
  * to the specified text content.
  *
- * **NOTE**: This method will remove and replace any previous system message
- * from the prompt.
+ * **Gotchas**
+ *
+ * This method removes and replaces any previous system message from the
+ * prompt.
  *
  * **Example** (Replacing system instructions)
  *
@@ -2168,7 +2185,7 @@ export const setSystem: {
  * // result content: "You are a helpful assistant. You are an expert in programming."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const prependSystem: {
@@ -2217,7 +2234,7 @@ export const prependSystem: {
  * // result content: "You are an expert in programming. You are a helpful assistant."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const appendSystem: {

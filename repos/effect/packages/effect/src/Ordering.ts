@@ -31,8 +31,6 @@
  *   right value, while `1` means it should come after
  * - Reversing an `Ordering` swaps `-1` and `1`, but leaves `0` unchanged
  *
- * @fileoverview
- * @category utilities
  * @since 2.0.0
  */
 import type { LazyArg } from "./Function.ts"
@@ -41,6 +39,8 @@ import * as Reducer_ from "./Reducer.ts"
 
 /**
  * Represents the result of comparing two values.
+ *
+ * **Details**
  *
  * - `-1` indicates the first value is less than the second
  * - `0` indicates the values are equal
@@ -68,7 +68,7 @@ import * as Reducer_ from "./Reducer.ts"
  * }
  * ```
  *
- * @category model
+ * @category models
  * @since 2.0.0
  */
 export type Ordering = -1 | 0 | 1
@@ -105,7 +105,7 @@ export type Ordering = -1 | 0 | 1
  * }
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 : 0)
@@ -116,14 +116,13 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
  * **Example** (Pattern matching on orderings)
  *
  * ```ts
- * import { Ordering } from "effect"
- * import { constant } from "effect/Function"
+ * import { Function, Ordering } from "effect"
  * import * as assert from "node:assert"
  *
  * const toMessage = Ordering.match({
- *   onLessThan: constant("less than"),
- *   onEqual: constant("equal"),
- *   onGreaterThan: constant("greater than")
+ *   onLessThan: Function.constant("less than"),
+ *   onEqual: Function.constant("equal"),
+ *   onGreaterThan: Function.constant("greater than")
  * })
  *
  * assert.deepStrictEqual(toMessage(-1), "less than")
@@ -162,9 +161,12 @@ export const match: {
 /**
  * A `Reducer` for combining `Ordering`s.
  *
+ * **Details**
+ *
  * If any of the `Ordering`s is non-zero, the result is the first non-zero `Ordering`.
  * If all the `Ordering`s are zero, the result is zero.
  *
+ * @category ordering
  * @since 4.0.0
  */
 export const Reducer: Reducer_.Reducer<Ordering> = Reducer_.make<Ordering>(

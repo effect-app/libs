@@ -31,7 +31,7 @@
  * - Prefer the effectful APIs unless synchronous allocation or mutation is
  *   required
  *
- * @since 3.8.0
+ * @since 4.0.0
  */
 import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/effect.ts"
@@ -39,6 +39,8 @@ import * as internal from "./internal/effect.ts"
 /**
  * A reusable coordination primitive that lets fibers wait until they are
  * released by the latch.
+ *
+ * **Details**
  *
  * A closed latch causes `await` and `whenOpen` to suspend. `open` opens the
  * latch and releases current and future waiters, `release` releases only
@@ -62,7 +64,7 @@ import * as internal from "./internal/effect.ts"
  * ```
  *
  * @category models
- * @since 3.8.0
+ * @since 4.0.0
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
@@ -84,14 +86,14 @@ export interface Latch {
 /**
  * Creates a `Latch` synchronously, outside of `Effect`.
  *
- * The latch starts closed by default; pass `true` to create it open. Use this
- * only when synchronous allocation is required, otherwise prefer `make`.
+ * **When to use**
  *
- * **Previously Known As**
+ * Use this only when synchronous allocation is required; otherwise prefer
+ * `make`.
  *
- * This API replaces the following from Effect 3.x:
+ * **Details**
  *
- * - `Effect.makeLatchUnsafe`
+ * The latch starts closed by default; pass `true` to create it open.
  *
  * **Example** (Creating a latch unsafely)
  *
@@ -116,20 +118,16 @@ export interface Latch {
  * ```
  *
  * @category constructors
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
 
 /**
  * Creates a `Latch` inside `Effect`.
  *
+ * **Details**
+ *
  * The latch starts closed by default; pass `true` to create it open.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeLatch`
  *
  * **Example** (Creating a latch)
  *
@@ -156,12 +154,14 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  * ```
  *
  * @category constructors
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = internal.makeLatch
 
 /**
  * Opens the latch and releases fibers waiting on it.
+ *
+ * **Details**
  *
  * The returned effect succeeds with `true` when this call changed the latch
  * from closed to open, or `false` if it was already open.
@@ -174,6 +174,8 @@ export const open = (self: Latch): Effect.Effect<boolean> => self.open
 /**
  * Synchronously opens the latch and releases fibers waiting on it.
  *
+ * **Details**
+ *
  * Returns `true` when this call changed the latch from closed to open, or
  * `false` if it was already open. This unsafe variant performs the state
  * change immediately instead of returning an `Effect`.
@@ -185,6 +187,8 @@ export const openUnsafe = (self: Latch): boolean => self.openUnsafe()
 
 /**
  * Releases the fibers currently waiting on a closed latch without opening it.
+ *
+ * **Details**
  *
  * The returned effect succeeds with `true` when release was requested while
  * the latch was closed, or `false` if the latch was already open. Future
@@ -210,6 +214,8 @@ export {
 /**
  * Closes the latch so future `await` and `whenOpen` calls suspend.
  *
+ * **Details**
+ *
  * The returned effect succeeds with `true` when this call changed the latch
  * from open to closed, or `false` if it was already closed.
  *
@@ -222,6 +228,8 @@ export const close = (self: Latch): Effect.Effect<boolean> => self.close
  * Synchronously closes the latch so future `await` and `whenOpen` calls
  * suspend.
  *
+ * **Details**
+ *
  * Returns `true` when this call changed the latch from open to closed, or
  * `false` if it was already closed. This unsafe variant performs the state
  * change immediately instead of returning an `Effect`.
@@ -233,6 +241,8 @@ export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
 
 /**
  * Waits on the latch, then runs the provided effect.
+ *
+ * **Details**
  *
  * If the latch is open, the effect runs immediately. If it is closed, the
  * returned effect suspends until the latch is opened or the current waiters are

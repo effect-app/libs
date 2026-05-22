@@ -39,19 +39,18 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
- * Determines how metric values relate to the time interval over which they
- * are aggregated.
+ * Determines how metric values relate to the time interval over which they are aggregated.
  *
- * - `"cumulative"`: Reports total since a fixed start time. Each data point
- *   depends on all previous measurements. This is the default behavior.
+ * **Details**
  *
- * - `"delta"`: Reports changes since the last export. Each interval is
- *   independent with no dependency on previous measurements.
+ * `"cumulative"` reports total since a fixed start time. Each data point depends on all previous measurements. This is the default behavior.
+ *
+ * `"delta"` reports changes since the last export. Each interval is independent with no dependency on previous measurements.
  *
  * **Example** (Configuring aggregation temporality)
  *
  * ```ts
- * import * as OtlpMetrics from "effect/unstable/observability/OtlpMetrics"
+ * import { OtlpMetrics } from "effect/unstable/observability"
  *
  * // Use delta temporality for backends that prefer it (e.g., Datadog, Dynatrace)
  * const metricsLayer = OtlpMetrics.layer({
@@ -66,7 +65,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type AggregationTemporality = "cumulative" | "delta"
@@ -74,11 +73,11 @@ export type AggregationTemporality = "cumulative" | "delta"
 /**
  * Starts a scoped OTLP metrics exporter.
  *
- * The exporter snapshots registered Effect metrics on the configured interval,
- * serializes them with the selected aggregation temporality, and flushes during
- * scope finalization up to `shutdownTimeout`.
+ * **Details**
  *
- * @category Constructors
+ * The exporter snapshots registered Effect metrics on the configured interval, serializes them with the selected aggregation temporality, and flushes during scope finalization up to `shutdownTimeout`.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (options: {
@@ -460,7 +459,7 @@ export const make: (options: {
 /**
  * Layer that starts the OTLP metrics exporter created by `make`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options: {
@@ -479,6 +478,7 @@ export const layer = (options: {
 /**
  * OTLP metrics payload serialized by `OtlpMetrics`.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface MetricsData {

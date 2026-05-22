@@ -32,6 +32,8 @@ export type PrimitiveValue = string | number | bigint | boolean | null | undefin
 /**
  * Primitive template interpolation value.
  *
+ * **Details**
+ *
  * Arrays are rendered by converting each element to a string and concatenating the
  * results.
  *
@@ -42,6 +44,8 @@ export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
 
 /**
  * Value accepted by the string template constructor.
+ *
+ * **Details**
  *
  * Interpolations can be primitive values, optional primitive values, or effects
  * that produce primitive values.
@@ -57,6 +61,8 @@ export type Interpolated =
 /**
  * Value accepted by the streaming template constructor.
  *
+ * **Details**
+ *
  * In addition to normal interpolations, stream interpolations can emit primitive
  * values over time.
  *
@@ -68,12 +74,13 @@ export type InterpolatedWithStream = Interpolated | Stream.Stream<Primitive, any
 /**
  * Namespace containing type-level helpers for template interpolations.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Interpolated {
   /**
    * Extracts the required context from an effect or stream interpolation.
+   *
+   * **Details**
    *
    * Plain values and `Option` interpolations contribute no context.
    *
@@ -89,6 +96,8 @@ export declare namespace Interpolated {
   /**
    * Extracts the error type from an effect or stream interpolation.
    *
+   * **Details**
+   *
    * Plain values and `Option` interpolations contribute no error type.
    *
    * @category models
@@ -103,6 +112,8 @@ export declare namespace Interpolated {
 
 /**
  * Creates an effectful string from a template literal.
+ *
+ * **Details**
  *
  * Primitive and `Option` interpolations are rendered immediately. Effect
  * interpolations are evaluated and rendered before the final string is produced.
@@ -161,6 +172,8 @@ export function make<A extends ReadonlyArray<Interpolated>>(
 
 /**
  * Creates a stream of strings from a template literal.
+ *
+ * **Details**
  *
  * Static text is emitted with interpolated values. Effect interpolations are
  * evaluated as stream chunks, and stream interpolations are flattened into the

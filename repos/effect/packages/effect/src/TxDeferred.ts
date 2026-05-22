@@ -21,10 +21,9 @@ import * as TxRef from "./TxRef.ts"
 const TypeId = "~effect/transactions/TxDeferred"
 
 /**
- * A transactional deferred — a write-once cell readable within transactions.
- *
- * Readers block (retry the transaction) until a value is committed.
- * Writers succeed only on the first call; subsequent writes return `false`.
+ * A transactional deferred is a write-once cell readable within transactions.
+ * Readers block (retry the transaction) until a value is committed, and writers
+ * succeed only on the first call; subsequent writes return `false`.
  *
  * **Example** (Completing a transactional deferred)
  *
@@ -93,7 +92,7 @@ const makeTxDeferred = <A, E>(ref: TxRef.TxRef<Option<Result<A, E>>>): TxDeferre
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
   Effect.map(TxRef.make<Option<Result<A, E>>>(O.none()), makeTxDeferred)
@@ -161,7 +160,7 @@ export {
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<A, E>>> => TxRef.get(self.ref)
 
@@ -184,7 +183,7 @@ export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const done: {
   <A, E>(result: Result<A, E>): (self: TxDeferred<A, E>) => Effect.Effect<boolean>
@@ -219,7 +218,7 @@ export const done: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const succeed: {
   <A>(value: A): <E>(self: TxDeferred<A, E>) => Effect.Effect<boolean>
@@ -248,7 +247,7 @@ export const succeed: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fail: {
   <E>(error: E): <A>(self: TxDeferred<A, E>) => Effect.Effect<boolean>

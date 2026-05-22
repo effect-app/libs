@@ -141,11 +141,14 @@ const makeUnsafe = <A, E>(
 }
 
 /**
- * A FiberSet can be used to store a collection of fibers.
- * When the associated Scope is closed, all fibers in the set will be interrupted.
+ * Creates a scoped `FiberSet` for storing fibers.
  *
- * You can add fibers to the set using `FiberSet.add` or `FiberSet.run`, and the fibers will
- * be automatically removed from the FiberSet when they complete.
+ * **Details**
+ *
+ * When the associated Scope is closed, all fibers in the set will be
+ * interrupted. You can add fibers to the set using `FiberSet.add` or
+ * `FiberSet.run`, and the fibers will be automatically removed from the
+ * FiberSet when they complete.
  *
  * **Example** (Creating a scoped FiberSet)
  *
@@ -185,6 +188,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
 
 /**
  * Creates a scoped run function that forks effects into a new `FiberSet`.
+ *
+ * **Details**
  *
  * Each call returns the forked fiber and adds it to the set. Managed fibers are
  * removed when they complete and are interrupted when the set's scope closes.
@@ -227,6 +232,8 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
 /**
  * Creates a scoped run function that forks effects into a new `FiberSet` and
  * returns a `Promise` for each effect result.
+ *
+ * **Details**
  *
  * Managed fibers are removed when they complete and are interrupted when the
  * set's scope closes. Each Promise resolves with the effect's success value or
@@ -277,6 +284,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * Adds an existing fiber to the `FiberSet` using a synchronous, unsafe
  * mutation.
  *
+ * **Details**
+ *
  * When the fiber completes, it is removed from the set. If the set is already
  * closed, the supplied fiber is interrupted immediately. Non-interruption
  * failures are recorded for `FiberSet.join`.
@@ -299,7 +308,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const addUnsafe: {
   <A, E, XE extends E, XA extends A>(
@@ -516,7 +525,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * **Example** (Capturing a runtime)
  *
  * ```ts
- * import { Effect, FiberSet, Context } from "effect"
+ * import { Context, Effect, FiberSet } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
@@ -572,9 +581,11 @@ export const runtime: <A, E>(
   )
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberSet.
+ * Captures a Runtime and uses it to fork Effects into the `FiberSet`.
  *
- * The returned run function will return Promise's.
+ * **Details**
+ *
+ * The returned run function returns a `Promise` for each effect result.
  *
  * **Example** (Running effects as promises)
  *

@@ -46,7 +46,6 @@ export class InitialMessage extends Context.Service<
 /**
  * Types related to the encoded initial message exchanged with an RPC worker.
  *
- * @category initial message
  * @since 4.0.0
  */
 export declare namespace InitialMessage {
@@ -63,7 +62,9 @@ export declare namespace InitialMessage {
   }
 }
 
-const ProtocolTag: typeof Protocol = Context.Service("@effect/rpc/RpcServer/Protocol") as any
+const ProtocolTag = Context.Service<Protocol, Protocol["Service"]>(
+  "effect/rpc/RpcServer/Protocol" satisfies Protocol["key"]
+)
 
 /**
  * Runs an effect, encodes its result with the schema's JSON codec, and returns

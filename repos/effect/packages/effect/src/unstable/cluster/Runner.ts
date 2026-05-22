@@ -36,6 +36,8 @@ const TypeId = "~effect/cluster/Runner"
 /**
  * A cluster runner that can host entities.
  *
+ * **Details**
+ *
  * Each runner has a unique network `address`, the shard `groups` it participates
  * in, and a relative `weight` used when assigning shards across runners.
  *
@@ -116,7 +118,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
  * Constructs a `Runner` from its network address, shard groups, and relative
  * shard-assignment weight.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (props: {

@@ -51,7 +51,7 @@ const TypeId = "~effect/workflow/Workflow"
  * plus operations for execution, polling, interruption, resumption, and
  * registration.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Workflow<
@@ -157,12 +157,15 @@ export interface Workflow<
   ) => Effect.Effect<string>
 
   /**
-   * Add compensation logic to an effect inside a Workflow. The compensation finalizer will be
-   * called if the entire workflow fails, allowing you to perform cleanup or
-   * other actions based on the success value and the cause of the workflow failure.
+   * Add compensation logic to an effect inside a Workflow.
    *
-   * NOTE: Compensation will not work for nested activities. Compensation
-   * finalizers are only registered for top-level effects in the workflow.
+   * **Details**
+   *
+   * The compensation finalizer is called if the entire workflow fails, allowing you to perform cleanup or other actions based on the success value and the cause of the workflow failure.
+   *
+   * **Gotchas**
+   *
+   * Compensation finalizers are only registered for top-level effects in the workflow and do not work for nested activities.
    */
   readonly withCompensation: {
     <A, R2>(
@@ -194,6 +197,7 @@ export interface Workflow<
 /**
  * Schema constraint for workflow payload schemas that expose struct fields.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface AnyStructSchema extends Schema.Top {
@@ -204,7 +208,7 @@ export interface AnyStructSchema extends Schema.Top {
  * Type-level marker for services associated with a specific workflow
  * execution name.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Execution<Name extends string> {
@@ -216,7 +220,7 @@ export interface Execution<Name extends string> {
  * Type-erased workflow shape for APIs that operate on workflows without
  * preserving their specific payload, success, or error types.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -233,7 +237,7 @@ export interface Any {
  * Type-erased workflow shape that also exposes executable operations needed by
  * workflow proxy and engine helpers.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps extends Any {
@@ -252,7 +256,7 @@ export interface AnyWithProps extends Any {
 /**
  * Extracts the payload schema from a `Workflow`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type PayloadSchema<W> = W extends Workflow<
@@ -267,7 +271,7 @@ export type PayloadSchema<W> = W extends Workflow<
  * Computes the schema services required by clients that execute or poll
  * workflows.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type RequirementsClient<Workflows extends Any> = Workflows extends Workflow<
@@ -285,7 +289,7 @@ export type RequirementsClient<Workflows extends Any> = Workflows extends Workfl
  * Computes the schema services required by handlers that decode workflow
  * payloads and encode workflow results.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type RequirementsHandler<Workflows extends Any> = Workflows extends Workflow<
@@ -318,7 +322,7 @@ const InstanceTag = Context.Service<
  * deterministic execution IDs derived from the workflow name and idempotency
  * key.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -485,6 +489,7 @@ export interface CompleteEncoded<A, E> {
  * Schema constructor for `Complete` workflow results using the supplied
  * success and error schemas.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface CompleteSchema<
@@ -741,10 +746,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
 })
 
 /**
- * Accesses the workflow scope.
- *
- * The workflow scope is only closed when the workflow execution fully
- * completes.
+ * Accesses the workflow scope, which is only closed when the workflow execution fully completes.
  *
  * @category Scope
  * @since 4.0.0
@@ -759,10 +761,7 @@ export const scope: Effect.Effect<
 )
 
 /**
- * Provides the workflow scope to the given effect.
- *
- * The workflow scope is only closed when the workflow execution fully
- * completes.
+ * Provides the workflow scope to the given effect, and closes the scope only when the workflow execution fully completes.
  *
  * @category Scope
  * @since 4.0.0
@@ -794,12 +793,15 @@ export const addFinalizer: <R>(
 })
 
 /**
- * Add compensation logic to an effect inside a Workflow. The compensation finalizer will be
- * called if the entire workflow fails, allowing you to perform cleanup or
- * other actions based on the success value and the cause of the workflow failure.
+ * Add compensation logic to an effect inside a Workflow.
  *
- * NOTE: Compensation will not work for nested activities. Compensation
- * finalizers are only registered for top-level effects in the workflow.
+ * **Details**
+ *
+ * The compensation finalizer is called if the entire workflow fails, allowing you to perform cleanup or other actions based on the success value and the cause of the workflow failure.
+ *
+ * **Gotchas**
+ *
+ * Compensation finalizers are only registered for top-level effects in the workflow and do not work for nested activities.
  *
  * @category Compensation
  * @since 4.0.0
@@ -840,12 +842,13 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
   }))
 
 /**
- * If you set this annotation to `true` for a workflow, it will capture defects
- * and include them in the result of the workflow or it's activities.
+ * Captures defects for a workflow and includes them in the result of the workflow or its activities.
  *
- * By default, this is set to `true`, meaning that defects will be captured.
+ * **Details**
  *
- * @category Annotations
+ * By default, this annotation is set to `true`, meaning defects are captured.
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const CaptureDefects = Context.Reference<boolean>(
@@ -856,12 +859,13 @@ export const CaptureDefects = Context.Reference<boolean>(
 )
 
 /**
- * Annotation that causes a workflow to suspend when it encounters any error.
+ * Causes a workflow to suspend when it encounters any error.
  *
- * The suspended execution can later be resumed with the workflow's `resume`
- * method, for example `MyWorkflow.resume(executionId)`.
+ * **Details**
  *
- * @category Annotations
+ * The suspended execution can later be resumed with the workflow's `resume` method, for example `MyWorkflow.resume(executionId)`.
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const SuspendOnFailure = Context.Reference<boolean>(

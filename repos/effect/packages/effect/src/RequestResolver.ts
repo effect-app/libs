@@ -80,7 +80,7 @@ const TypeId = "~effect/RequestResolver"
  * received entry, usually by calling `completeUnsafe` or one of the `Request`
  * completion helpers.
  *
- * **Notes**
+ * **Gotchas**
  *
  * If a resolver finishes without completing an entry, the waiting request fails
  * because the resolver did not supply a result.
@@ -88,8 +88,8 @@ const TypeId = "~effect/RequestResolver"
  * **Example** (Defining a request resolver)
  *
  * ```ts
- * import type { Request } from "effect"
  * import { Effect, Exit, RequestResolver } from "effect"
+ * import type { Request } from "effect"
  *
  * interface GetUserRequest extends Request.Request<string, Error> {
  *   readonly _tag: "GetUserRequest"
@@ -139,14 +139,13 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
 /**
  * Namespace containing type-level helpers associated with `RequestResolver`.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace RequestResolver {
   /**
    * Variance marker carried by every `RequestResolver`.
    *
-   * **Notes**
+   * **Details**
    *
    * This marker preserves the request type accepted by the resolver for
    * Effect's type-level machinery. Users normally do not implement it directly.
@@ -249,6 +248,8 @@ export const make = <A extends Request.Any>(
 
 /**
  * Constructs a request resolver with the requests grouped by a calculated key.
+ *
+ * **Details**
  *
  * The key can use the Equal trait to determine if two keys are equal.
  *
@@ -463,8 +464,8 @@ export const fromEffect = <A extends Request.Any>(
  * **Example** (Handling tagged request batches)
  *
  * ```ts
- * import type { Request } from "effect"
  * import { Effect, RequestResolver } from "effect"
+ * import type { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -1103,11 +1104,7 @@ export const withCache: {
  * Cached results are loaded from the configured persistence store before
  * running the underlying resolver. Missing entries, and entries marked stale by
  * `staleWhileRevalidate`, are resolved normally and written back to the store.
- *
- * **Notes**
- *
- * Creating the persisted resolver requires `Persistence.Persistence` and
- * `Scope`.
+ * Creating the persisted resolver requires `Persistence.Persistence` and `Scope`.
  *
  * @category Persistence
  * @since 4.0.0

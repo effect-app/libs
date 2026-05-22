@@ -30,7 +30,6 @@
  * - `compareAndSet` compares with Effect equality semantics, not only JavaScript reference equality
  * - For state that must participate in `Effect` workflows, interruption, or fiber coordination, prefer higher-level Effect data types
  *
- * @category data-structures
  * @since 2.0.0
  */
 import * as Equal from "./Equal.ts"
@@ -43,6 +42,8 @@ const TypeId = "~effect/MutableRef"
 
 /**
  * A synchronous mutable reference that stores a current value.
+ *
+ * **Details**
  *
  * Read or write the value directly through `.current`, or use the `MutableRef`
  * helpers for pipeable updates such as `get`, `set`, `update`, and

@@ -34,6 +34,8 @@ export type Etag = Weak | Strong
 /**
  * Weak HTTP entity tag.
  *
+ * **Details**
+ *
  * The `value` is the raw tag value without the surrounding quotes or `W/` prefix.
  *
  * @category models
@@ -46,6 +48,8 @@ export interface Weak {
 
 /**
  * Strong HTTP entity tag.
+ *
+ * **Details**
  *
  * The `value` is the raw tag value without the surrounding quotes.
  *
@@ -98,7 +102,7 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
 /**
  * Layer that provides a `Generator` which produces strong ETags from file size and modification time metadata.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Generator> = Layer.succeed(
@@ -115,7 +119,7 @@ export const layer: Layer.Layer<Generator> = Layer.succeed(
 /**
  * Layer that provides a `Generator` which produces weak ETags from file size and modification time metadata.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWeak: Layer.Layer<Generator> = Layer.succeed(

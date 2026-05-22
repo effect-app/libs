@@ -29,7 +29,7 @@ const TypeId = "~effect/workflow/DurableClock"
  * Represents a durable workflow timer with a name, duration, and deferred
  * completed when the timer wakes.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface DurableClock {
@@ -43,7 +43,7 @@ export interface DurableClock {
  * Creates a durable clock definition and its associated deferred wake-up
  * signal.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (options: {
@@ -82,7 +82,7 @@ export const sleep: (
      * If the duration is less than or equal to this threshold, the clock will
      * be executed in memory.
      *
-     * Defaults to 60 seconds.
+     * @default 60 seconds
      */
     readonly inMemoryThreshold?: Duration.Input | undefined
   }

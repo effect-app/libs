@@ -41,11 +41,13 @@ import * as EventLogServer from "./EventLogServer.ts"
 /**
  * Provides RPC handlers for the encrypted event-log server.
  *
+ * **Details**
+ *
  * Incoming encrypted write payloads are decoded and persisted through `Storage`;
  * change streams read encrypted entries from storage and encode them for the
  * remote protocol.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
@@ -99,7 +101,7 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
  * Provides an encrypted event-log RPC server using `EventLogRemoteRpcs` and the
  * encrypted server RPC handlers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<never, never, RpcServer.Protocol | Storage> = RpcServer.layer(EventLogRemoteRpcs).pipe(
@@ -132,6 +134,8 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
 /**
  * Storage service used by the encrypted event-log server.
  *
+ * **Details**
+ *
  * It provides the server remote id, stores session authentication bindings,
  * persists encrypted entries, and streams encrypted changes for a public key and
  * store id.
@@ -159,6 +163,8 @@ export class Storage extends Context.Service<Storage, {
 
 /**
  * Creates an in-memory encrypted server `Storage`.
+ *
+ * **Details**
  *
  * Data, session authentication bindings, and streams are process-local and are
  * released with the surrounding scope.

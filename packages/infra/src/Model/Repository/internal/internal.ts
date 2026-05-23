@@ -324,8 +324,8 @@ export function makeRepoInternal<
                 )
               )
 
-          type SelectItem = NonNullable<FilterArgs<Encoded>["select"]>[number]
-          type PlainSelectItem = keyof Encoded | { key: string; subKeys: readonly string[] }
+          type SelectItem = NonNullable<FilterArgs<Encoded, keyof Encoded>["select"]>[number]
+          type PlainSelectItem = string | { key: string; subKeys: readonly string[] }
           interface QueryBatchRequest extends Request.Request<unknown, unknown> {
             readonly _tag: "RepositoryQueryBatch"
             readonly key: string
@@ -336,7 +336,7 @@ export function makeRepoInternal<
           }
           const QueryBatchRequest = Request.tagged<QueryBatchRequest>("RepositoryQueryBatch")
 
-          const splitSelect = (select: FilterArgs<Encoded>["select"]) => {
+          const splitSelect = (select: FilterArgs<Encoded, keyof Encoded>["select"]) => {
             const plain: PlainSelectItem[] = []
             const fixed: SelectItem[] = []
             if (select) {
@@ -416,18 +416,19 @@ export function makeRepoInternal<
 
           const queryBatchResolver = RequestResolver.makeGrouped<QueryBatchRequest, string>({
             key: ({ request }) => request.key,
-            resolver: Effect.fnUntraced(function*(entries) {
-              const first = entries[0]!.request
+            resolver: Effect.fnUntraced(function*(entries, _key) {
+              const first = entries[0].request
               const mergedPlainSelect = mergePlainSelect(entries.map((_) => _.request.plainSelect))
               const mergedSelect = mergedPlainSelect
                 ? [...first.fixedSelect, ...mergedPlainSelect]
-                : undefined
+                : first.fixedSelect
+              const mutableSelect = [...mergedSelect]
               const rows = yield* filter({
                 ...first.baseArgs,
-                select: mergedSelect
+                select: Array.isArrayNonEmpty(mutableSelect) ? mutableSelect : undefined
               })
               for (const entry of entries) {
-                const exit = yield* Effect.result(entry.request.resolve(rows))
+                const exit = yield* Effect.exit(entry.request.resolve(rows))
                 entry.completeUnsafe(exit)
               }
             })
@@ -580,21 +581,23 @@ export function makeRepoInternal<
               ttype: a.ttype,
               fixedSelect: fixed
             })
-            return Effect.request(
-              QueryBatchRequest({
-                key,
-                baseArgs,
-                fixedSelect: fixed,
-                plainSelect: plain,
-                resolve: (rows) => runQueryFromRows(a, rows)
-              }),
-              queryBatchResolver
-            ).pipe(
-              Effect.withSpan("Repository.queryBatched", {
-                kind: "client",
-                attributes: { "app.entity": name }
-              }, { captureStackTrace: false })
-            )
+            return Effect
+              .request(
+                QueryBatchRequest({
+                  key,
+                  baseArgs,
+                  fixedSelect: fixed,
+                  plainSelect: plain,
+                  resolve: (rows) => runQueryFromRows(a, rows) as Effect.Effect<unknown, unknown, never>
+                }),
+                queryBatchResolver
+              )
+              .pipe(
+                Effect.withSpan("Repository.queryBatched", {
+                  kind: "client",
+                  attributes: { "app.entity": name }
+                }, { captureStackTrace: false })
+              )
           }) as typeof query
 
           const validateSample = Effect.fn("Repository.validateSample", { attributes: { "app.entity": name } })(

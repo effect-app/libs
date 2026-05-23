@@ -546,6 +546,8 @@ export interface Repository<
     >
   }
 
+  readonly queryBatched: this["query"]
+
   /** @deprecated use query */
   readonly mapped: Mapped<Encoded>
 

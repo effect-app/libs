@@ -1959,3 +1959,43 @@ it("memFilter: aggregate with nested path grouping", () => {
   expect(result.find((r: any) => r.city === "NYC")!.count).toBe(2)
   expect(result.find((r: any) => r.city === "LA")!.count).toBe(1)
 })
+
+class CartLine extends S.Class<CartLine>("CartLine")({
+  id: S.String,
+  cartId: S.String,
+  sku: S.String,
+  qty: S.Number
+}) {}
+
+it("queryBatched supports structural in-filter arrays across different projections", () =>
+  Effect
+    .gen(function*() {
+      const repo = yield* makeRepo("CartLine", CartLine, {})
+      yield* repo.saveAndPublish([
+        new CartLine({ id: "1", cartId: "cart-1", sku: "a", qty: 1 }),
+        new CartLine({ id: "2", cartId: "cart-1", sku: "b", qty: 2 }),
+        new CartLine({ id: "3", cartId: "cart-2", sku: "c", qty: 3 }),
+        new CartLine({ id: "4", cartId: "cart-3", sku: "d", qty: 4 })
+      ])
+
+      const cartIds = ["cart-1", "cart-2"] as const
+      const [identityProjection, quantityProjection] = yield* Effect.all([
+        repo.queryBatched(
+          where("cartId", "in", cartIds),
+          project(S.Struct({ id: S.String, cartId: S.String }))
+        ),
+        repo.queryBatched(
+          where("cartId", "in", cartIds),
+          project(S.Struct({ id: S.String, qty: S.Number }))
+        )
+      ])
+
+      expect(identityProjection).toHaveLength(3)
+      expect(quantityProjection).toHaveLength(3)
+      expect(identityProjection.map((_) => _.id).toSorted()).toEqual(["1", "2", "3"])
+      expect(quantityProjection.map((_) => _.qty).toSorted()).toEqual([1, 2, 3])
+    })
+    .pipe(
+      setupRequestContextFromCurrent(),
+      Effect.provide(TestStoreLive)
+    ))

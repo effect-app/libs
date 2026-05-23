@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.245
+
+### Minor Changes
+
+- a03a248: `CommandButton`: add `optionalInput` prop accepting `Option<I>`. `Some` enables button and fires click with value; `None` disables. Use when input is gated by a `computed` rather than a `v-if` on the button. Also bind `:disabled` on the `<v-btn>` (previously only `aria-disabled`).
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.245
+- @effect-app/vue@4.0.0-beta.245
+
 ## 4.0.0-beta.244
 
 ### Patch Changes

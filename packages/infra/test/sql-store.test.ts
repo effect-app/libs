@@ -86,7 +86,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain(18)
   })
 
-  it("uses projected root columns with JSON fallback for root-level filters", () => {
+  it("uses projected root columns directly for root-level filters", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
@@ -100,7 +100,7 @@ describe("SQL query builder (SQLite dialect)", () => {
       undefined,
       projectedRootLevelFields
     )
-    expect(result.sql).toContain(`COALESCE("__root_age", json_extract(data, '$.age')) > ?`)
+    expect(result.sql).toContain(`"__root_age" > ?`)
   })
 
   it("uses projected JSON root columns for nested filters", () => {
@@ -117,9 +117,7 @@ describe("SQL query builder (SQLite dialect)", () => {
       undefined,
       projectedJsonRootLevelFields
     )
-    expect(result.sql).toContain(
-      `json_extract(COALESCE("__root_meta", CASE WHEN json_type(data, '$.meta') IS NULL THEN NULL`
-    )
+    expect(result.sql).toContain(`json_extract("__root_meta", '$.city')`)
     expect(result.sql).toContain(`'$.city'`)
   })
 
@@ -325,7 +323,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("%picked%")
   })
 
-  it("computed relation count uses projected JSON root arrays when available", () => {
+  it("computed relation count uses projected JSON root arrays directly", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
@@ -346,9 +344,7 @@ describe("SQL query builder (SQLite dialect)", () => {
       undefined,
       projectedJsonRootLevelFields
     )
-    expect(result.sql).toContain(
-      `json_each(COALESCE("__root_items", CASE WHEN json_type(data, '$.items') IS NULL THEN NULL`
-    )
+    expect(result.sql).toContain(`json_each("__root_items", '$')`)
     expect(result.sql).toContain(`AS _items`)
   })
 
@@ -814,7 +810,7 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     expect(result.sql).toContain(`COALESCE(jsonb_agg(DISTINCT _items->>'articleId'), '[]'::jsonb)`)
   })
 
-  it("uses projected root columns with JSON fallback for pg filters", () => {
+  it("uses projected root columns directly for pg filters", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
@@ -828,7 +824,7 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
       undefined,
       projectedRootLevelFields
     )
-    expect(result.sql).toContain(`COALESCE("__root_flag", (data->>'flag')::boolean) = $1`)
+    expect(result.sql).toContain(`"__root_flag" = $1`)
   })
 
   it("uses projected JSON root columns for pg nested filters", () => {
@@ -845,7 +841,7 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
       undefined,
       projectedJsonRootLevelFields
     )
-    expect(result.sql).toContain(`(COALESCE("__root_meta", (data)->'meta'))->>'city' = $1`)
+    expect(result.sql).toContain(`("__root_meta")->>'city' = $1`)
   })
 })
 
@@ -947,7 +943,7 @@ describe("SQL Store (SQLite integration)", () => {
       expect(query(db, q3.sql, q3.params).length).toBe(2)
     }))
 
-  it("projected root columns still fall back to JSON data for legacy rows", () =>
+  it("projected root columns do not fall back to legacy JSON data", () =>
     withDb((db) => {
       db.exec(
         `CREATE TABLE IF NOT EXISTS "test_projected" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL, "__root_name" TEXT, "__root_age" REAL, "__root_flag" INTEGER)`
@@ -975,8 +971,7 @@ describe("SQL Store (SQLite integration)", () => {
         projectedRootLevelFields
       )
       const rows = query(db, q.sql, q.params)
-      expect(rows).toHaveLength(1)
-      expect((rows[0] as any).id).toBe("1")
+      expect(rows).toHaveLength(0)
     }))
 
   it("projected root JSON columns can replace data storage for nested fields", () =>
@@ -1970,6 +1965,21 @@ describe("parseRow reconstructs full object from row", () => {
     expect(result.flag).toBe(true)
   })
 
+  it("does not fall back to data for projected root-level columns", () => {
+    const result: any = parseRow(
+      {
+        id: "1",
+        _etag: "e1",
+        data: JSON.stringify({ name: "legacy", flag: true })
+      },
+      "id",
+      {},
+      projectedRootLevelFields
+    )
+    expect(result.name).toBeUndefined()
+    expect(result.flag).toBeUndefined()
+  })
+
   it("reconstructs projected JSON root-level columns when available", () => {
     const result: any = parseRow(
       {
@@ -1986,5 +1996,20 @@ describe("parseRow reconstructs full object from row", () => {
     expect(result.meta).toEqual({ city: "NYC" })
     expect(result.items).toEqual([{ description: "picked" }])
     expect(result.untouched).toBe(true)
+  })
+
+  it("does not fall back to data for projected JSON root-level columns", () => {
+    const result: any = parseRow(
+      {
+        id: "1",
+        _etag: "e1",
+        data: JSON.stringify({ meta: { city: "legacy" }, items: [{ description: "legacy" }] })
+      },
+      "id",
+      {},
+      projectedJsonRootLevelFields
+    )
+    expect(result.meta).toBeUndefined()
+    expect(result.items).toBeUndefined()
   })
 })

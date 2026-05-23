@@ -17,7 +17,7 @@ import { annotateDb, type DbSystem } from "../otel.js"
 import { storeId } from "./Memory.js"
 import { omitRootLevelFieldColumnsFromData, type RootLevelFieldColumn } from "./rootLevelFields.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
-import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, projectedColumnBackfillExpr, projectedColumnSqlType, quoteIdentifier, type SQLDialect, sqliteDialect } from "./SQL/query.js"
+import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, projectedColumnSqlType, quoteIdentifier, type SQLDialect, sqliteDialect } from "./SQL/query.js"
 import { makeETag } from "./utils.js"
 
 export type WithNsTransactionFn = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -33,7 +33,10 @@ export const parseRow = <Encoded extends FieldValues>(
   defaultValues: Partial<Encoded>,
   rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
 ): PersistenceModelType<Encoded> => {
-  const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
+  const data = omitRootLevelFieldColumnsFromData(
+    (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>,
+    rootLevelFieldColumns
+  )
   const projectedFields = rootLevelFieldColumns.reduce<Record<string, unknown>>((acc, column) => {
     const value = row[column.columnName]
     if (value !== null && value !== undefined) {
@@ -109,6 +112,15 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             const selectColumnsSql = activeRootLevelFieldColumns.length > 0
               ? `, ${activeRootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
               : ""
+            const projectedColumnsDefinitionSql = activeRootLevelFieldColumns.length > 0
+              ? `, ${
+                activeRootLevelFieldColumns
+                  .map((column) =>
+                    `${quoteIdentifier(column.columnName)} ${projectedColumnSqlType(dialect, column.kind)}`
+                  )
+                  .join(", ")
+              }`
+              : ""
 
             const resolveNamespace = !config?.allowNamespace
               ? Effect.succeed("primary")
@@ -122,33 +134,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             const exec = (query: string, params?: readonly unknown[]) =>
               sql.unsafe(query, params as any).pipe(Effect.orDie)
 
-            const ensureRootLevelFieldColumns = Effect.gen(function*() {
-              if (activeRootLevelFieldColumns.length === 0) {
-                return
-              }
-              const existing = (yield* exec(`PRAGMA table_info(${JSON.stringify(tableName)})`)) as Array<
-                { name: string }
-              >
-              const existingColumns = new Set(existing.map((column) => column.name))
-              for (const column of activeRootLevelFieldColumns) {
-                if (!existingColumns.has(column.columnName)) {
-                  yield* exec(
-                    `ALTER TABLE "${tableName}" ADD COLUMN ${quoteIdentifier(column.columnName)} ${
-                      projectedColumnSqlType(dialect, column.kind)
-                    }`
-                  )
-                }
-                yield* exec(
-                  `UPDATE "${tableName}" SET ${quoteIdentifier(column.columnName)} = ${
-                    projectedColumnBackfillExpr(dialect, column)
-                  } WHERE ${quoteIdentifier(column.columnName)} IS NULL`
-                )
-              }
-            })
-
             const ensureTable = sql
               .unsafe(
-                `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data ${jsonColumnType} NOT NULL, PRIMARY KEY (id, _namespace))`
+                `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data ${jsonColumnType} NOT NULL${projectedColumnsDefinitionSql}, PRIMARY KEY (id, _namespace))`
               )
               .pipe(
                 Effect.andThen(
@@ -156,7 +144,6 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                     `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
                   )
                 ),
-                Effect.andThen(ensureRootLevelFieldColumns),
                 Effect.orDie,
                 Effect.asVoid
               )
@@ -490,6 +477,15 @@ function makeSQLiteStorePerNs(
       const selectColumnsSql = activeRootLevelFieldColumns.length > 0
         ? `, ${activeRootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
         : ""
+      const projectedColumnsDefinitionSql = activeRootLevelFieldColumns.length > 0
+        ? `, ${
+          activeRootLevelFieldColumns
+            .map((column) =>
+              `${quoteIdentifier(column.columnName)} ${projectedColumnSqlType(sqliteDialect, column.kind)}`
+            )
+            .join(", ")
+        }`
+        : ""
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -518,7 +514,7 @@ function makeSQLiteStorePerNs(
         withNsSql(ns, (sql) =>
           sql
             .unsafe(
-              `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
+              `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL PRIMARY KEY, _etag TEXT, data JSON NOT NULL${projectedColumnsDefinitionSql})`
             )
             .pipe(
               Effect.andThen(
@@ -526,31 +522,6 @@ function makeSQLiteStorePerNs(
                   `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
                 )
               ),
-              Effect.andThen(Effect.gen(function*() {
-                if (activeRootLevelFieldColumns.length === 0) {
-                  return
-                }
-                const existing = (yield* exec(ns, `PRAGMA table_info(${JSON.stringify(tableName)})`)) as Array<
-                  { name: string }
-                >
-                const existingColumns = new Set(existing.map((column) => column.name))
-                for (const column of activeRootLevelFieldColumns) {
-                  if (!existingColumns.has(column.columnName)) {
-                    yield* exec(
-                      ns,
-                      `ALTER TABLE "${tableName}" ADD COLUMN ${quoteIdentifier(column.columnName)} ${
-                        projectedColumnSqlType(sqliteDialect, column.kind)
-                      }`
-                    )
-                  }
-                  yield* exec(
-                    ns,
-                    `UPDATE "${tableName}" SET ${quoteIdentifier(column.columnName)} = ${
-                      projectedColumnBackfillExpr(sqliteDialect, column)
-                    } WHERE ${quoteIdentifier(column.columnName)} IS NULL`
-                  )
-                }
-              })),
               Effect.orDie,
               Effect.asVoid
             ))

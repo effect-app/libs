@@ -15,7 +15,7 @@ import { storeId } from "../Memory.js"
 import { omitRootLevelFieldColumnsFromData, type RootLevelFieldColumn } from "../rootLevelFields.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
 import { makeETag } from "../utils.js"
-import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, pgDialect, projectedColumnBackfillExpr, projectedColumnSqlType, quoteIdentifier } from "./query.js"
+import { buildWhereSQLQuery, logQuery, normalizeProjectedColumnValue, pgDialect, projectedColumnSqlType, quoteIdentifier } from "./query.js"
 
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown } & Record<string, unknown>,
@@ -23,7 +23,10 @@ const parseRow = <Encoded extends FieldValues>(
   defaultValues: Partial<Encoded>,
   rootLevelFieldColumns: readonly RootLevelFieldColumn[] = []
 ): PersistenceModelType<Encoded> => {
-  const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
+  const data = omitRootLevelFieldColumnsFromData(
+    (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as Record<string, unknown>,
+    rootLevelFieldColumns
+  )
   const projectedFields = rootLevelFieldColumns.reduce<Record<string, unknown>>((acc, column) => {
     const value = row[column.columnName]
     if (value !== null && value !== undefined) {
@@ -80,6 +83,15 @@ const makePgStore = Effect.fnUntraced(
         const selectColumnsSql = activeRootLevelFieldColumns.length > 0
           ? `, ${activeRootLevelFieldColumns.map((column) => quoteIdentifier(column.columnName)).join(", ")}`
           : ""
+        const projectedColumnsDefinitionSql = activeRootLevelFieldColumns.length > 0
+          ? `, ${
+            activeRootLevelFieldColumns
+              .map((column) =>
+                `${quoteIdentifier(column.columnName)} ${projectedColumnSqlType(pgDialect, column.kind)}`
+              )
+              .join(", ")
+          }`
+          : ""
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
@@ -94,33 +106,12 @@ const makePgStore = Effect.fnUntraced(
 
         const ensureTable = sql
           .unsafe(
-            `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSONB NOT NULL, PRIMARY KEY (id, _namespace))`
+            `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSONB NOT NULL${projectedColumnsDefinitionSql}, PRIMARY KEY (id, _namespace))`
           )
           .pipe(
             Effect.andThen(
               sql.unsafe(
                 `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
-              )
-            ),
-            Effect.andThen(
-              Effect.forEach(
-                activeRootLevelFieldColumns,
-                (column) =>
-                  exec(
-                    `ALTER TABLE "${tableName}" ADD COLUMN IF NOT EXISTS ${quoteIdentifier(column.columnName)} ${
-                      projectedColumnSqlType(pgDialect, column.kind)
-                    }`
-                  )
-                    .pipe(
-                      Effect.andThen(
-                        exec(
-                          `UPDATE "${tableName}" SET ${quoteIdentifier(column.columnName)} = ${
-                            projectedColumnBackfillExpr(pgDialect, column)
-                          } WHERE ${quoteIdentifier(column.columnName)} IS NULL`
-                        )
-                      )
-                    ),
-                { discard: true }
               )
             ),
             Effect.orDie,

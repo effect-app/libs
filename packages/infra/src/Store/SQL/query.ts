@@ -146,29 +146,10 @@ export function logQuery(q: { sql: string; params: unknown[] }) {
 
 export const quoteIdentifier = (value: string) => `"${value.replaceAll("\"", "\"\"")}"`
 
-const projectedColumnJsonFallbackExpr = (
-  dialect: SQLDialect,
-  column: RootLevelFieldColumn
-) => {
-  const expr = dialect.jsonExtract(column.key)
-  switch (column.kind) {
-    case "string":
-      return expr
-    case "number":
-      return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::double precision`
-    case "boolean":
-      return dialect.jsonColumnType === "JSON" ? expr : `(${expr})::boolean`
-    case "json":
-      return extractJsonFromSourceExpr(dialect, "data", column.key, true)
-    default:
-      return assertUnreachable(column.kind)
-  }
-}
-
 export const projectedColumnFieldExpr = (
-  dialect: SQLDialect,
+  _dialect: SQLDialect,
   column: RootLevelFieldColumn
-) => `COALESCE(${quoteIdentifier(column.columnName)}, ${projectedColumnJsonFallbackExpr(dialect, column)})`
+) => quoteIdentifier(column.columnName)
 
 export const projectedColumnSelectExpr = (
   dialect: SQLDialect,
@@ -195,11 +176,6 @@ export const projectedColumnSqlType = (
       return assertUnreachable(kind)
   }
 }
-
-export const projectedColumnBackfillExpr = (
-  dialect: SQLDialect,
-  column: RootLevelFieldColumn
-) => projectedColumnJsonFallbackExpr(dialect, column)
 
 export const normalizeProjectedColumnValue = (
   column: RootLevelFieldColumn,
@@ -406,7 +382,7 @@ export function buildWhereSQLQuery(
       return
     }
     return {
-      sourceExpr: projectedColumnFieldExpr(dialect, projected),
+      sourceExpr: quoteIdentifier(projected.columnName),
       subPath: subPathParts.join(".")
     }
   }
@@ -444,7 +420,7 @@ export function buildWhereSQLQuery(
     if (isRootLevelPath(path, relation)) {
       const projected = projectedColumns.get(path)
       if (projected) {
-        const expr = projectedColumnFieldExpr(dialect, projected)
+        const expr = quoteIdentifier(projected.columnName)
         if (path in defaultValues) {
           return `COALESCE(${expr}, ${
             projected.kind === "json" ? addJsonParam(defaultValues[path]) : addParam(defaultValues[path])

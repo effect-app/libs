@@ -43,10 +43,10 @@ export interface RepositoryOptions<
   /**
    * Repository storage options.
    *
-   * `rootLevelFieldsWhenAvailable` is the Phase 1 hybrid mode: keep document-style
-   * JSON storage for nested values, while letting SQL adapters project eligible
-   * root-level scalar fields into real columns. The planned next step for relational
-   * fields is a separate explicit mode with relation metadata and join planning.
+   * `rootLevelFieldsWhenAvailable` switches SQL repositories from reading/writing
+   * derived root fields via `data` to reading/writing those fields via dedicated
+   * root columns instead. Existing table/data migrations are expected to be handled
+   * offline rather than as runtime fallback behavior.
    */
   config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
     partitionValue?: (e?: Encoded) => string

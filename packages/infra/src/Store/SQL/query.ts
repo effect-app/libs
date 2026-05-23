@@ -146,18 +146,15 @@ export function logQuery(q: { sql: string; params: unknown[] }) {
 
 export const quoteIdentifier = (value: string) => `"${value.replaceAll("\"", "\"\"")}"`
 
-export const projectedColumnFieldExpr = (
-  _dialect: SQLDialect,
-  column: RootLevelFieldColumn
-) => quoteIdentifier(column.columnName)
+export const projectedColumnFieldExpr = (column: RootLevelFieldColumn) => quoteIdentifier(column.columnName)
 
 export const projectedColumnSelectExpr = (
   dialect: SQLDialect,
   column: RootLevelFieldColumn
 ) =>
   column.kind === "boolean" && dialect.jsonColumnType === "JSON"
-    ? `CASE ${projectedColumnFieldExpr(dialect, column)} WHEN 1 THEN 'true' WHEN 0 THEN 'false' ELSE 'null' END`
-    : projectedColumnFieldExpr(dialect, column)
+    ? `CASE ${projectedColumnFieldExpr(column)} WHEN 1 THEN 'true' WHEN 0 THEN 'false' ELSE 'null' END`
+    : projectedColumnFieldExpr(column)
 
 export const projectedColumnSqlType = (
   dialect: SQLDialect,
@@ -420,7 +417,7 @@ export function buildWhereSQLQuery(
     if (isRootLevelPath(path, relation)) {
       const projected = projectedColumns.get(path)
       if (projected) {
-        const expr = quoteIdentifier(projected.columnName)
+        const expr = projectedColumnFieldExpr(projected)
         if (path in defaultValues) {
           return `COALESCE(${expr}, ${
             projected.kind === "json" ? addJsonParam(defaultValues[path]) : addParam(defaultValues[path])

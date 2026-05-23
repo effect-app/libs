@@ -118,7 +118,6 @@ describe("SQL query builder (SQLite dialect)", () => {
       projectedJsonRootLevelFields
     )
     expect(result.sql).toContain(`json_extract("__root_meta", '$.city')`)
-    expect(result.sql).toContain(`'$.city'`)
   })
 
   it("where or", () => {

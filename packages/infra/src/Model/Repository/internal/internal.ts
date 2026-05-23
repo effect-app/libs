@@ -389,7 +389,7 @@ export function makeRepoInternal<
             readonly fixedSelect: readonly SelectItem[]
           }) => {
             const canonicalize = (value: unknown): unknown => {
-              if (globalThis.Array.isArray(value)) {
+              if (Array.isArray(value)) {
                 return value.map(canonicalize)
               }
               if (typeof value === "object" && value !== null) {
@@ -468,7 +468,7 @@ export function makeRepoInternal<
                   flow(
                     Array.head,
                     Option.match({
-                      onNone: () => Effect.fail(new NotFoundError({ id: "query", /* TODO */ type: name })),
+                      onNone: () => Effect.fail(new NotFoundError({ id: "query", type: name })),
                       onSome: Effect.succeed
                     })
                   )

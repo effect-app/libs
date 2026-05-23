@@ -17,6 +17,7 @@ import { packages } from "./shared.js"
 
 import { patchArgvForWrapCommands } from "./argv-patch.js"
 import { syncEffectSubtree } from "./sync-effect-subtree.js"
+import { syncShared } from "./sync-shared.js"
 
 patchArgvForWrapCommands(process.argv)
 
@@ -751,6 +752,23 @@ NodeRuntime.runMain(
         )
         .pipe(Command.withDescription("Sync the Effect subtree to the version pinned in package.json"))
 
+      const sync = Command
+        .make(
+          "sync",
+          {
+            lockfile: Flag.file("lockfile").pipe(
+              Flag.optional,
+              Flag.withDescription("Path to lockfile (default: .shared.json)")
+            )
+          },
+          Effect.fn("effa-cli.sync")(function*({ lockfile }) {
+            yield* syncShared({
+              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json")
+            })
+          })
+        )
+        .pipe(Command.withDescription("Sync shared docs / e2e helpers / plugins from effect-app/shared per .shared.json"))
+
       // configure CLI
       return yield* Command.run(
         Command
@@ -765,7 +783,8 @@ NodeRuntime.runMain(
             packagejsonPackages,
             gist,
             nuke,
-            syncEffect
+            syncEffect,
+            sync
           ])),
         {
           version: "v1.0.0"

@@ -382,28 +382,29 @@ export function makeRepoInternal<
             return [...keys.values()]
           }
 
+          const canonicalizeBatchKey = (value: unknown): unknown => {
+            if (Array.isArray(value)) {
+              return value.map(canonicalizeBatchKey)
+            }
+            if (typeof value === "object" && value !== null) {
+              const record = value as Record<string, unknown>
+              return Object.fromEntries(
+                Object
+                  .entries(record)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([key, val]) => [key, canonicalizeBatchKey(val)])
+              )
+            }
+            return value
+          }
+
           const makeBatchKey = (options: {
             readonly baseArgs: Omit<FilterArgs<Encoded>, "select">
             readonly mode: "collect" | "project" | "transform" | "aggregate" | undefined
             readonly ttype: "one" | "many" | "count" | undefined
             readonly fixedSelect: readonly SelectItem[]
-          }) => {
-            const canonicalize = (value: unknown): unknown => {
-              if (Array.isArray(value)) {
-                return value.map(canonicalize)
-              }
-              if (typeof value === "object" && value !== null) {
-                const record = value as Record<string, unknown>
-                return Object.fromEntries(
-                  Object
-                    .entries(record)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([key, val]) => [key, canonicalize(val)])
-                )
-              }
-              return value
-            }
-            return JSON.stringify(canonicalize({
+          }) =>
+            JSON.stringify(canonicalizeBatchKey({
               mode: options.mode,
               ttype: options.ttype,
               filter: options.baseArgs.filter,
@@ -412,7 +413,6 @@ export function makeRepoInternal<
               skip: options.baseArgs.skip,
               fixedSelect: options.fixedSelect
             }))
-          }
 
           const queryBatchResolver = RequestResolver.makeGrouped<QueryBatchRequest, string>({
             key: ({ request }) => request.key,

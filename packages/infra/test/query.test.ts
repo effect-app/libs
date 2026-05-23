@@ -1993,7 +1993,9 @@ it("queryBatched supports structural in-filter arrays across different projectio
       expect(identityProjection).toHaveLength(3)
       expect(quantityProjection).toHaveLength(3)
       expect(identityProjection.map((_) => _.id).toSorted()).toEqual(["1", "2", "3"])
+      expect(identityProjection.map((_) => _.cartId).toSorted()).toEqual(["cart-1", "cart-1", "cart-2"])
       expect(quantityProjection.map((_) => _.qty).toSorted()).toEqual([1, 2, 3])
+      expect(quantityProjection.map((_) => _.id).toSorted()).toEqual(["1", "2", "3"])
     })
     .pipe(
       setupRequestContextFromCurrent(),

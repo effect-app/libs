@@ -1978,7 +1978,7 @@ it("queryBatched supports structural in-filter arrays across different projectio
         new CartLine({ id: "4", cartId: "cart-3", sku: "d", qty: 4 })
       ])
 
-      const cartIds = ["cart-1", "cart-2"] as const
+      const cartIds = ["cart-1", "cart-2"]
       const [identityProjection, quantityProjection] = yield* Effect.all([
         repo.queryBatched(
           where("cartId", "in", cartIds),

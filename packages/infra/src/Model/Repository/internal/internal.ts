@@ -416,20 +416,20 @@ export function makeRepoInternal<
 
           const queryBatchResolver = RequestResolver.makeGrouped<QueryBatchRequest, string>({
             key: ({ request }) => request.key,
-            resolver: Effect.fnUntraced(function*(entries, _key) {
+            resolver: Effect.fnUntraced(function*(entries) {
               const first = entries[0].request
               const mergedPlainSelect = mergePlainSelect(entries.map((_) => _.request.plainSelect))
               const mergedSelect = mergedPlainSelect
                 ? [...first.fixedSelect, ...mergedPlainSelect]
                 : first.fixedSelect
-              const mutableSelect = [...mergedSelect]
+              const select = [...mergedSelect]
               const rows = yield* filter({
                 ...first.baseArgs,
-                select: Array.isArrayNonEmpty(mutableSelect) ? mutableSelect : undefined
+                select: Array.isArrayNonEmpty(select) ? select : undefined
               })
               for (const entry of entries) {
                 const exit = yield* Effect.exit(entry.request.resolve(rows))
-                entry.completeUnsafe(exit)
+                yield* Request.complete(exit)(entry)
               }
             })
           })

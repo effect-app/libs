@@ -143,6 +143,7 @@ class LeakProbePosts extends Req.Query<LeakProbePosts>()("LeakProbePosts", {}, {
 const LEAK_USER_COUNT = 100
 const LEAK_REQUEST_COUNT = 100
 const LEAK_LIKES_PER_POST = 10
+const LEAK_USER_REFS_PER_POST = 2
 
 const leakUsers = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
   new LeakUser({
@@ -266,7 +267,7 @@ const router = Router(Rsc)({
             const resolved = yield* Effect.forEach(
               userRefs,
               (userId) => Effect.request(GetLeakUser({ userId }), resolver).pipe(Effect.orDie),
-              { concurrency: "unbounded" }
+              { concurrency: 1 }
             )
             return resolved.length
           })
@@ -400,15 +401,17 @@ it.live(
     leakStats.resolverBatches = 0
     leakStats.resolverRequestedUsers = 0
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
-    const expectedPerRequestResolves = LEAK_USER_COUNT * (2 + LEAK_LIKES_PER_POST)
+    const expectedPerRequestResolves = LEAK_USER_COUNT * (LEAK_USER_REFS_PER_POST + LEAK_LIKES_PER_POST)
     const first = yield* client.LeakProbePosts.handler()
     expect(first).toBe(expectedPerRequestResolves)
+    const resolverUsersAfterFirstRequest = leakStats.resolverRequestedUsers
+    expect(resolverUsersAfterFirstRequest).toBe(LEAK_USER_COUNT)
     yield* Effect.forEach(
       Array.from({ length: LEAK_REQUEST_COUNT - 1 }, () => undefined),
       () => client.LeakProbePosts.handler(),
       { discard: true }
     )
-    expect(leakStats.resolverRequestedUsers).toBe(LEAK_USER_COUNT)
+    expect(leakStats.resolverRequestedUsers).toBe(resolverUsersAfterFirstRequest)
   }, Effect.provide(LeakyTestLayer)),
   { timeout: 30_000 }
 )

@@ -1,3 +1,4 @@
+import { Console } from "effect"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
@@ -72,6 +73,7 @@ export const provideOnRequestScope =
       // value (e.g. ContextMap) across every request handled by that server.
       const memoMap = yield* Layer.makeMemoMap
       const ctx = yield* Layer.buildWithMemoMap(layer, memoMap, requestScope)
+      yield* Effect.addFinalizer(() => Console.log("request scope finalized"))
       return yield* Effect.provide(self, ctx)
     })
 

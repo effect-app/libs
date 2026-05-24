@@ -38,13 +38,16 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
-import { HttpRouter, HttpServer } from "effect-app/http"
+import { HttpMiddleware, HttpRouter, HttpServer } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Request from "effect/Request"
+import * as RequestResolver from "effect/RequestResolver"
 import * as Stream from "effect/Stream"
 import { FetchHttpClient } from "effect/unstable/http"
 import { RpcSerialization } from "effect/unstable/rpc"
@@ -52,7 +55,12 @@ import { createServer } from "http"
 import { RequestContextMiddleware } from "../src/api/internal/RequestContextMiddleware.js"
 import { makeRouter } from "../src/api/routing.js"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
-import { getContextMap } from "../src/Store/ContextMapContainer.js"
+import { makeRepo } from "../src/Model/Repository.js"
+import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
+import { LocaleRef } from "../src/RequestContext.js"
+import { ContextMapContainer, getContextMap, withRequestResolverCache } from "../src/Store/ContextMapContainer.js"
+import { MemoryStoreLive, storeId } from "../src/Store/Memory.js"
+import { makeContextMap } from "../src/Store/service.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 // ---------------------------------------------------------------------------
@@ -111,7 +119,81 @@ class ReadEtagOnce extends Req.Query<ReadEtagOnce>()("ReadEtagOnce", {}, {
   success: S.String
 }) {}
 
-const Rsc = { StreamEtag, StreamWithEtag, ReadEtagOnce }
+class LeakUser extends S.Class<LeakUser>("LeakUser")({
+  id: S.String,
+  name: S.String
+}) {}
+
+class LeakLike extends S.Class<LeakLike>("LeakLike")({
+  likeUserId: S.String
+}) {}
+
+class LeakPost extends S.Class<LeakPost>("LeakPost")({
+  id: S.String,
+  authorUserId: S.String,
+  publisherUserId: S.String,
+  likes: S.Array(LeakLike)
+}) {}
+
+class LeakProbePosts extends Req.Query<LeakProbePosts>()("LeakProbePosts", {}, {
+  allowAnonymous: true,
+  success: S.Number
+}) {}
+
+const LEAK_USER_COUNT = 100
+const LEAK_REQUEST_COUNT = 100
+const LEAK_LIKES_PER_POST = 10
+
+const leakUsers = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
+  new LeakUser({
+    id: `u-${i}`,
+    name: `User ${i}`
+  })
+)
+const leakPosts = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
+  new LeakPost({
+    id: `p-${i}`,
+    authorUserId: `u-${i}`,
+    publisherUserId: `u-${(i + 1) % LEAK_USER_COUNT}`,
+    likes: Array.from({ length: LEAK_LIKES_PER_POST }, (_, j) =>
+      new LeakLike({
+        likeUserId: `u-${(i + j) % LEAK_USER_COUNT}`
+      }))
+  })
+)
+const leakUsersById = new Map(leakUsers.map((_) => [_.id, _] as const))
+const leakStats = {
+  resolverBatches: 0,
+  resolverRequestedUsers: 0
+}
+
+interface GetLeakUserRequest extends Request.Request<LeakUser, Error> {
+  readonly _tag: "GetLeakUser"
+  readonly userId: string
+}
+
+const GetLeakUser = Request.tagged<GetLeakUserRequest>("GetLeakUser")
+
+const leakUserResolver = RequestResolver
+  .make((entries) => {
+    leakStats.resolverBatches += 1
+    leakStats.resolverRequestedUsers += entries.length
+    return Effect.forEach(entries, (entry) => {
+      const user = leakUsersById.get(entry.request.userId)
+      if (user === undefined) {
+        return Request.complete(Exit.fail(new Error(`Missing leak user ${entry.request.userId}`)))(entry)
+      }
+      return Request.complete(Exit.succeed(user))(entry)
+    }, { discard: true })
+  })
+  .pipe(RequestResolver.batchN(20))
+
+const leakUserResolverWithRequestCache = withRequestResolverCache(leakUserResolver, {
+  capacity: 10_000,
+  strategy: "fifo"
+}).pipe(Effect.orDie)
+
+const Rsc = { StreamEtag, StreamWithEtag, ReadEtagOnce, LeakProbePosts }
 
 // Distinct constants so an assertion failure points squarely at "the etag
 // the handler wrote was no longer there when later chunks ran".
@@ -161,7 +243,34 @@ const router = Router(Rsc)({
             )
           })
           .pipe(Stream.unwrap),
-      ReadEtagOnce: () => getContextMap.pipe(Effect.orDie, Effect.map((m) => m.get(SHARED_KEY) ?? MISSING))
+      ReadEtagOnce: () => getContextMap.pipe(Effect.orDie, Effect.map((m) => m.get(SHARED_KEY) ?? MISSING)),
+      LeakProbePosts: () =>
+        Effect
+          .gen(function*() {
+            const userRepo = yield* makeRepo("LeakProbeUser", LeakUser, {
+              makeInitial: Effect.succeed(leakUsers)
+            })
+            const postRepo = yield* makeRepo("LeakProbePost", LeakPost, {
+              makeInitial: Effect.succeed(leakPosts)
+            })
+            const resolver = yield* leakUserResolverWithRequestCache
+            const posts = yield* postRepo.all
+            const allUsers = yield* userRepo.all
+            if (allUsers.length !== LEAK_USER_COUNT) {
+              return yield* Effect.die(new Error(`Expected ${LEAK_USER_COUNT} users, got ${allUsers.length}`))
+            }
+            const userRefs = posts.flatMap((post) => [
+              post.authorUserId,
+              post.publisherUserId,
+              ...post.likes.map((like) => like.likeUserId)
+            ])
+            const resolved = yield* Effect.forEach(
+              userRefs,
+              (userId) => Effect.request(GetLeakUser({ userId }), resolver),
+              { concurrency: "unbounded" }
+            )
+            return resolved.length
+          })
     })
   }
 })
@@ -178,12 +287,34 @@ const RpcRouterLayer = matchAll({ router })
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
 const RequestContextMiddlewareLayer = HttpRouter.middleware(RequestContextMiddleware()).layer
+const LeakyRequestContextMiddlewareLayer = HttpRouter.middleware(
+  HttpMiddleware.make((app) =>
+    app.pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Layer.succeed(ContextMapContainer, ContextMapContainer.of(makeContextMap())),
+          Layer.succeed(LocaleRef, "en"),
+          Layer.succeed(storeId, "primary")
+        )
+      )
+    ))
+).layer
 
 const ServerLayer = HttpRouter
   .serve(
     RpcRouterLayer.pipe(Layer.provide(RequestContextMiddlewareLayer))
   )
   .pipe(
+    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)),
+    Layer.provide(NodeServerLayer),
+    Layer.provide(RpcSerialization.layerNdjson)
+  )
+const LeakyServerLayer = HttpRouter
+  .serve(
+    RpcRouterLayer.pipe(Layer.provide(LeakyRequestContextMiddlewareLayer))
+  )
+  .pipe(
+    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)),
     Layer.provide(NodeServerLayer),
     Layer.provide(RpcSerialization.layerNdjson)
   )
@@ -204,6 +335,7 @@ const ClientLayer = Layer
   .pipe(Layer.provide(NodeServerLayer))
 
 const TestLayer = Layer.mergeAll(ServerLayer, ClientLayer)
+const LeakyTestLayer = Layer.mergeAll(LeakyServerLayer, ClientLayer)
 
 // ---------------------------------------------------------------------------
 // Test
@@ -259,4 +391,23 @@ it.live(
     expect(b).toStrictEqual(["beta", "beta", "beta"])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
+)
+
+it.live(
+  "leak repro: 100 rpc requests with leaky ContextMap keep resolver cache users/fibers across requests",
+  Effect.fnUntraced(function*() {
+    leakStats.resolverBatches = 0
+    leakStats.resolverRequestedUsers = 0
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
+    const expectedPerRequestResolves = LEAK_USER_COUNT * (2 + LEAK_LIKES_PER_POST)
+    const first = yield* client.LeakProbePosts.handler()
+    expect(first).toBe(expectedPerRequestResolves)
+    yield* Effect.forEach(
+      Array.from({ length: LEAK_REQUEST_COUNT - 1 }, () => undefined),
+      () => client.LeakProbePosts.handler(),
+      { discard: true }
+    )
+    expect(leakStats.resolverRequestedUsers).toBe(LEAK_USER_COUNT)
+  }, Effect.provide(LeakyTestLayer)),
+  { timeout: 30_000 }
 )

@@ -123,21 +123,25 @@ class LeakUser extends S.Class<LeakUser>("LeakUser")({
   name: S.String
 }) {}
 
-const leakStats = {
-  resolverBatches: 0,
-  resolverRequestedUsers: 0
-}
+// WeakRefs to every LeakUser the resolver hands out this session. The resolver
+// returns a fresh clone (not the base from leakUsersById) so the only strong
+// references to these instances live inside per-request caches / ContextMap.
+// If a request's ContextMap (and the request-scoped resolver cache hanging off
+// it) is properly released when the request ends, every clone becomes eligible
+// for GC. If anything retains the ContextMap across requests, the clones — and
+// their ~100kb name buffers — survive.
+const resolvedUserRefs: Array<WeakRef<LeakUser>> = []
 
 const leakUserResolver = RequestResolver
   .make((entries: ReadonlyArray<Request.Entry<GetLeakUserRequest>>) => {
-    leakStats.resolverBatches += 1
-    leakStats.resolverRequestedUsers += entries.length
     return Effect.forEach(entries, (entry) => {
-      const user = leakUsersById.get(entry.request.userId)
-      if (user === undefined) {
+      const base = leakUsersById.get(entry.request.userId)
+      if (base === undefined) {
         return Request.complete(Exit.die(new Error(`Missing leak user ${entry.request.userId}`)))(entry)
       }
-      return Request.complete(Exit.succeed(user))(entry)
+      const clone = new LeakUser({ id: base.id, name: base.name })
+      resolvedUserRefs.push(new WeakRef(clone))
+      return Request.complete(Exit.succeed(clone))(entry)
     }, { discard: true })
   })
   .pipe(RequestResolver.batchN(20))
@@ -181,24 +185,31 @@ class LeakProbePosts extends Req.Query<LeakProbePosts>()("LeakProbePosts", {}, {
   success: S.Number
 }) {}
 
-const LEAK_USER_COUNT = 100
+const LEAK_USER_COUNT = 10
+const LEAK_POST_COUNT = 50
 const LEAK_REQUEST_COUNT = 100
-const LEAK_LIKES_PER_POST = 10
-const LEAK_USER_REFS_PER_POST = 2
+const LEAK_LIKES_PER_POST = 8
+
+// ~100kb name buffer so each retained User clone visibly blows up RSS.
+const HUGE_NAME = "x".repeat(100_000)
 
 const leakUsers = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
   new LeakUser({
     id: `u-${i}`,
-    name: `User ${i}`
+    name: `User ${i} ${HUGE_NAME}`
   }))
-const leakPosts = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
+// Each post picks distinct users across author / publisher / likes so a single
+// request decodes a varied mix rather than the same user repeatedly. With a
+// 10-user pool and 8 likes per post the indices below give 10 distinct users
+// per post (author + publisher + 8 likes).
+const leakPosts = Array.from({ length: LEAK_POST_COUNT }, (_, i) =>
   LeakPost.make({
     id: `p-${i}`,
-    authorUserId: leakUsers[i]!,
-    publisherUserId: leakUsers[(i + 1) % LEAK_USER_COUNT]!,
+    authorUserId: leakUsers[i % LEAK_USER_COUNT]!,
+    publisherUserId: leakUsers[(i * 3 + 1) % LEAK_USER_COUNT]!,
     likes: Array.from({ length: LEAK_LIKES_PER_POST }, (_, j) =>
       LeakLike.make({
-        likeUserId: leakUsers[(i + j) % LEAK_USER_COUNT]!
+        likeUserId: leakUsers[(i + j * 2 + 2) % LEAK_USER_COUNT]!
       }))
   }))
 const leakUsersById = new Map(leakUsers.map((_) => [_.id, _] as const))
@@ -257,23 +268,18 @@ const router = Router(Rsc)({
       LeakProbePosts: () =>
         Effect
           .gen(function*() {
-            const userRepo = yield* makeRepo("LeakProbeUser", LeakUser, {
-              makeInitial: Effect.succeed(leakUsers)
-            })
             const postRepo = yield* makeRepo("LeakProbePost", LeakPost, {
               makeInitial: Effect.succeed(leakPosts)
             })
             const posts = yield* postRepo.all
-            const allUsers = yield* userRepo.all
-            if (allUsers.length !== LEAK_USER_COUNT) {
-              return yield* Effect.die(new Error(`Expected ${LEAK_USER_COUNT} users, got ${allUsers.length}`))
-            }
-            const resolved = posts.flatMap((post) => [
+            // Touch every user reference so `UserFromId` decode (→ resolver
+            // → cache) actually runs and produces the clones we WeakRef-track.
+            const refs = posts.flatMap((post) => [
               post.authorUserId,
               post.publisherUserId,
               ...post.likes.map((like) => like.likeUserId)
             ])
-            return resolved.length
+            return refs.length
           })
           .pipe(Effect.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)))
     })
@@ -385,22 +391,34 @@ it.live(
 )
 
 it.live(
-  "leak repro: 100 rpc requests with leaky ContextMap keep resolver cache users/fibers across requests",
+  "resolver-produced User clones are GC-eligible after their requests complete",
   Effect.fnUntraced(function*() {
-    leakStats.resolverBatches = 0
-    leakStats.resolverRequestedUsers = 0
+    if (typeof globalThis.gc !== "function") {
+      return yield* Effect.die(
+        new Error("run vitest with --expose-gc (NODE_OPTIONS=--expose-gc) to enable the WeakRef leak probe")
+      )
+    }
+    resolvedUserRefs.length = 0
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
-    const expectedPerRequestResolves = LEAK_USER_COUNT * (LEAK_USER_REFS_PER_POST + LEAK_LIKES_PER_POST)
-    const first = yield* client.LeakProbePosts.handler()
-    expect(first).toBe(expectedPerRequestResolves)
-    const resolverUsersAfterFirstRequest = leakStats.resolverRequestedUsers
-    expect(resolverUsersAfterFirstRequest).toBe(LEAK_USER_COUNT)
     yield* Effect.forEach(
-      Array.from({ length: LEAK_REQUEST_COUNT - 1 }, () => undefined),
+      Array.from({ length: LEAK_REQUEST_COUNT }, () => undefined),
       () => client.LeakProbePosts.handler(),
       { discard: true }
     )
-    expect(leakStats.resolverRequestedUsers).toBe(resolverUsersAfterFirstRequest)
+    // Let request finalizers and any pending microtasks drain before forcing GC.
+    yield* Effect.sleep("200 millis")
+    globalThis.gc()
+    yield* Effect.sleep("50 millis")
+    globalThis.gc()
+    const totalProduced = resolvedUserRefs.length
+    const alive = resolvedUserRefs.filter((ref) => ref.deref() !== undefined).length
+    // Sanity: the resolver actually ran (otherwise the probe proves nothing).
+    expect(totalProduced).toBeGreaterThan(0)
+    // If a leaky ContextMap (or anything else) retains the per-request resolver
+    // cache across requests, the cached User clones — each ~100kb — survive GC
+    // and `alive` grows with the number of requests. Post-fix every clone must
+    // be collectable once its request scope closes.
+    expect(alive).toBe(0)
   }, Effect.provide(LeakyTestLayer)),
   { timeout: 30_000 }
 )

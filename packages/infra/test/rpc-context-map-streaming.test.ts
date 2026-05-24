@@ -60,7 +60,7 @@ import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { LocaleRef } from "../src/RequestContext.js"
 import { ContextMapContainer, getContextMap, withRequestResolverCache } from "../src/Store/ContextMapContainer.js"
 import { MemoryStoreLive, storeId } from "../src/Store/Memory.js"
-import { makeContextMap } from "../src/Store/service.js"
+import { ContextMap, makeContextMap } from "../src/Store/service.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 // ---------------------------------------------------------------------------
@@ -148,8 +148,7 @@ const leakUsers = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
   new LeakUser({
     id: `u-${i}`,
     name: `User ${i}`
-  })
-)
+  }))
 const leakPosts = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
   new LeakPost({
     id: `p-${i}`,
@@ -159,8 +158,7 @@ const leakPosts = Array.from({ length: LEAK_USER_COUNT }, (_, i) =>
       new LeakLike({
         likeUserId: `u-${(i + j) % LEAK_USER_COUNT}`
       }))
-  })
-)
+  }))
 const leakUsersById = new Map(leakUsers.map((_) => [_.id, _] as const))
 const leakStats = {
   resolverBatches: 0,
@@ -175,13 +173,13 @@ interface GetLeakUserRequest extends Request.Request<LeakUser, Error> {
 const GetLeakUser = Request.tagged<GetLeakUserRequest>("GetLeakUser")
 
 const leakUserResolver = RequestResolver
-  .make((entries) => {
+  .make((entries: ReadonlyArray<Request.Entry<GetLeakUserRequest>>) => {
     leakStats.resolverBatches += 1
     leakStats.resolverRequestedUsers += entries.length
     return Effect.forEach(entries, (entry) => {
       const user = leakUsersById.get(entry.request.userId)
       if (user === undefined) {
-        return Request.complete(Exit.fail(new Error(`Missing leak user ${entry.request.userId}`)))(entry)
+        return Request.complete(Exit.die(new Error(`Missing leak user ${entry.request.userId}`)))(entry)
       }
       return Request.complete(Exit.succeed(user))(entry)
     }, { discard: true })
@@ -191,7 +189,8 @@ const leakUserResolver = RequestResolver
 const leakUserResolverWithRequestCache = withRequestResolverCache(leakUserResolver, {
   capacity: 10_000,
   strategy: "fifo"
-}).pipe(Effect.orDie)
+})
+  .pipe(Effect.orDie)
 
 const Rsc = { StreamEtag, StreamWithEtag, ReadEtagOnce, LeakProbePosts }
 
@@ -266,11 +265,12 @@ const router = Router(Rsc)({
             ])
             const resolved = yield* Effect.forEach(
               userRefs,
-              (userId) => Effect.request(GetLeakUser({ userId }), resolver),
+              (userId) => Effect.request(GetLeakUser({ userId }), resolver).pipe(Effect.orDie),
               { concurrency: "unbounded" }
             )
             return resolved.length
           })
+          .pipe(Effect.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)))
     })
   }
 })
@@ -287,25 +287,27 @@ const RpcRouterLayer = matchAll({ router })
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
 const RequestContextMiddlewareLayer = HttpRouter.middleware(RequestContextMiddleware()).layer
-const LeakyRequestContextMiddlewareLayer = HttpRouter.middleware(
-  HttpMiddleware.make((app) =>
-    app.pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          Layer.succeed(ContextMapContainer, ContextMapContainer.of(makeContextMap())),
-          Layer.succeed(LocaleRef, "en"),
-          Layer.succeed(storeId, "primary")
+const LeakyRequestContextMiddlewareLayer = HttpRouter
+  .middleware(
+    HttpMiddleware.make((app) =>
+      app.pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            Layer.succeed(ContextMapContainer, ContextMapContainer.of(ContextMap.of(makeContextMap()))),
+            Layer.succeed(LocaleRef, "en"),
+            Layer.succeed(storeId, S.NonEmptyString255("primary"))
+          )
         )
       )
-    ))
-).layer
+    )
+  )
+  .layer
 
 const ServerLayer = HttpRouter
   .serve(
     RpcRouterLayer.pipe(Layer.provide(RequestContextMiddlewareLayer))
   )
   .pipe(
-    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)),
     Layer.provide(NodeServerLayer),
     Layer.provide(RpcSerialization.layerNdjson)
   )
@@ -314,7 +316,6 @@ const LeakyServerLayer = HttpRouter
     RpcRouterLayer.pipe(Layer.provide(LeakyRequestContextMiddlewareLayer))
   )
   .pipe(
-    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)),
     Layer.provide(NodeServerLayer),
     Layer.provide(RpcSerialization.layerNdjson)
   )

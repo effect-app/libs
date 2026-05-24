@@ -17,6 +17,7 @@ import { packages } from "./shared.js"
 
 import { patchArgvForWrapCommands } from "./argv-patch.js"
 import { syncEffectSubtree } from "./sync-effect-subtree.js"
+import { syncDiff, syncPush, syncShared } from "./sync-shared.js"
 
 patchArgvForWrapCommands(process.argv)
 
@@ -751,6 +752,66 @@ NodeRuntime.runMain(
         )
         .pipe(Command.withDescription("Sync the Effect subtree to the version pinned in package.json"))
 
+      const SharedLockfileFlag = Flag.file("lockfile").pipe(
+        Flag.optional,
+        Flag.withDescription("Path to lockfile (default: .shared.json)")
+      )
+
+      const sync = Command
+        .make(
+          "sync",
+          { lockfile: SharedLockfileFlag },
+          Effect.fn("effa-cli.sync")(function*({ lockfile }) {
+            yield* syncShared({
+              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json")
+            })
+          })
+        )
+        .pipe(
+          Command.withDescription("Sync shared docs / e2e helpers / plugins from effect-app/shared per .shared.json")
+        )
+
+      const syncDiffCmd = Command
+        .make(
+          "sync-diff",
+          { lockfile: SharedLockfileFlag },
+          Effect.fn("effa-cli.sync-diff")(function*({ lockfile }) {
+            yield* syncDiff({
+              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json")
+            })
+          })
+        )
+        .pipe(Command.withDescription("Report drift between local synced files and the pinned shared ref"))
+
+      const syncPushCmd = Command
+        .make(
+          "sync-push",
+          {
+            lockfile: SharedLockfileFlag,
+            message: Flag.string("message").pipe(
+              Flag.withAlias("m"),
+              Flag.optional,
+              Flag.withDescription("Commit message for the push")
+            ),
+            branch: Flag.string("branch").pipe(
+              Flag.optional,
+              Flag.withDescription("Branch name in shared repo (default: auto-generated)")
+            ),
+            pr: Flag.boolean("pr").pipe(
+              Flag.withDescription("Open a PR via `gh pr create` after pushing")
+            )
+          },
+          Effect.fn("effa-cli.sync-push")(function*({ branch, lockfile, message, pr }) {
+            yield* syncPush({
+              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json"),
+              message: Option.getOrUndefined(message),
+              branch: Option.getOrUndefined(branch),
+              pr
+            })
+          })
+        )
+        .pipe(Command.withDescription("Push locally-modified synced files to the shared repo on a new branch"))
+
       // configure CLI
       return yield* Command.run(
         Command
@@ -765,7 +826,10 @@ NodeRuntime.runMain(
             packagejsonPackages,
             gist,
             nuke,
-            syncEffect
+            syncEffect,
+            sync,
+            syncDiffCmd,
+            syncPushCmd
           ])),
         {
           version: "v1.0.0"

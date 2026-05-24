@@ -2,9 +2,6 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Data from "effect/Data"
-import { dual } from "effect/Function"
-import type * as Request from "effect/Request"
-import * as RequestResolver from "effect/RequestResolver"
 import { ContextMap } from "./service.js"
 
 // TODO: we have to create a new contextmap on every request.
@@ -26,38 +23,17 @@ export const getContextMap = ContextMapContainer.pipe(
 )
 
 /**
- * Uses the official `RequestResolver.withCache` internally,
- * creating one cached resolver per ContextMap (i.e. per request).
- * Uses a shared semaphore in the ContextMap to ensure safe single initialization.
+ * Runs `make` at most once per ContextMap (i.e. per request) and caches the
+ * resulting value in the ContextMap under a fresh symbol. Subsequent calls of
+ * the returned Effect within the same ContextMap return the cached value.
+ *
+ * Uses the ContextMap's shared semaphore for safe single initialization.
  */
-export const withRequestResolverCache: {
-  <A extends Request.Request<any, any>>(options: {
-    readonly capacity: number
-    readonly strategy?: "lru" | "fifo" | undefined
-  }): (
-    self: RequestResolver.RequestResolver<A>
-  ) => Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError>
-  <A extends Request.Request<any, any>>(
-    self: RequestResolver.RequestResolver<A>,
-    options: {
-      readonly capacity: number
-      readonly strategy?: "lru" | "fifo" | undefined
-    }
-  ): Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError>
-} = dual(2, <A extends Request.Request<any, any>>(
-  self: RequestResolver.RequestResolver<A>,
-  options: {
-    readonly capacity: number
-    readonly strategy?: "lru" | "fifo" | undefined
-  }
-): Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError> => {
+export const cachedPerRequest = <A, E, R>(
+  make: Effect.Effect<A, E, R>
+): Effect.Effect<A, E | ContextMapNotStartedError, R> => {
   const cacheKey = Symbol()
   return getContextMap.pipe(
-    Effect.flatMap((ctxMap) =>
-      ctxMap.getOrCreateStoreEffect(
-        cacheKey,
-        RequestResolver.withCache(self, options)
-      )
-    )
+    Effect.flatMap((ctxMap) => ctxMap.getOrCreateStoreEffect(cacheKey, make))
   )
-})
+}

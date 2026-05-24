@@ -203,9 +203,13 @@ export const syncDiff = Effect.fnUntraced(function*(opts: { lockfilePath?: strin
     yield* Effect.logInfo(`${kind}  ${srcRel}  ->  ${destPath}`)
   }
   yield* Effect.logInfo("")
-  yield* Effect.logInfo(`Summary: ${changes.filter((c) => c.kind === "M").length} modified, ${
-    changes.filter((c) => c.kind === "D").length
-  } missing in project, ${changes.filter((c) => c.kind === "E").length} excluded.`)
+  yield* Effect.logInfo(
+    `Summary: ${changes.filter((c) => c.kind === "M").length} modified, ${
+      changes
+        .filter((c) => c.kind === "D")
+        .length
+    } missing in project, ${changes.filter((c) => c.kind === "E").length} excluded.`
+  )
 })
 
 /**
@@ -255,9 +259,10 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
     yield* Effect.logInfo(`  M ${srcRel}`)
   }
 
-  const branch = opts.branch ?? `sync/from-${sanitizeRepoSlug(process.cwd().split("/").pop() ?? "project")}-${
-    new Date().toISOString().slice(0, 10)
-  }`
+  const branch = opts.branch
+    ?? `sync/from-${sanitizeRepoSlug(process.cwd().split("/").pop() ?? "project")}-${
+      new Date().toISOString().slice(0, 10)
+    }`
 
   const message = opts.message ?? "sync: propagate local edits"
 
@@ -280,7 +285,9 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
     yield* runGetExitCode(
       `gh pr create --title ${JSON.stringify(message)} --body ${
         JSON.stringify(`Propagated from project at ${process.cwd()}.\n\nFiles:\n${
-          modified.map((m) => `- ${m.srcRel}`).join("\n")
+          modified
+            .map((m) => `- ${m.srcRel}`)
+            .join("\n")
         }`)
       } --head ${JSON.stringify(branch)}`,
       cachePath

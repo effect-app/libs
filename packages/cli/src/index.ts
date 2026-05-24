@@ -767,7 +767,9 @@ NodeRuntime.runMain(
             })
           })
         )
-        .pipe(Command.withDescription("Sync shared docs / e2e helpers / plugins from effect-app/shared per .shared.json"))
+        .pipe(
+          Command.withDescription("Sync shared docs / e2e helpers / plugins from effect-app/shared per .shared.json")
+        )
 
       const syncDiffCmd = Command
         .make(

@@ -238,10 +238,14 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
 
   const fs = yield* FileSystem.FileSystem
   const modified: Array<{ srcRel: string; srcAbs: string; destAbs: string }> = []
+  const deleted: Array<{ srcRel: string; srcAbs: string }> = []
 
   for (const { srcRel, srcAbs, destAbs, excluded } of files) {
     if (excluded) continue
-    if (!(yield* fs.exists(destAbs))) continue
+    if (!(yield* fs.exists(destAbs))) {
+      deleted.push({ srcRel, srcAbs })
+      continue
+    }
     const srcHash = (yield* runGetString(`sha256sum ${JSON.stringify(srcAbs)}`)).split(" ")[0]
     const destHash = (yield* runGetString(`sha256sum ${JSON.stringify(destAbs)}`)).split(" ")[0]
     if (srcHash !== destHash) {
@@ -249,14 +253,17 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
     }
   }
 
-  if (modified.length === 0) {
+  if (modified.length === 0 && deleted.length === 0) {
     yield* Effect.logInfo("No local modifications to push.")
     return
   }
 
-  yield* Effect.logInfo(`Pushing ${modified.length} modified file(s):`)
+  yield* Effect.logInfo(`Pushing ${modified.length} modified, ${deleted.length} deleted file(s):`)
   for (const { srcRel } of modified) {
     yield* Effect.logInfo(`  M ${srcRel}`)
+  }
+  for (const { srcRel } of deleted) {
+    yield* Effect.logInfo(`  D ${srcRel}`)
   }
 
   const branch = opts.branch
@@ -273,6 +280,9 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
   for (const { srcAbs, destAbs } of modified) {
     yield* runGetExitCode(`cp ${JSON.stringify(destAbs)} ${JSON.stringify(srcAbs)}`)
   }
+  for (const { srcAbs } of deleted) {
+    yield* runGetExitCode(`git rm -f ${JSON.stringify(srcAbs)}`, cachePath)
+  }
 
   yield* runGetExitCode(`git add -A`, cachePath)
   yield* runGetExitCode(
@@ -285,9 +295,10 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
     yield* runGetExitCode(
       `gh pr create --title ${JSON.stringify(message)} --body ${
         JSON.stringify(`Propagated from project at ${process.cwd()}.\n\nFiles:\n${
-          modified
-            .map((m) => `- ${m.srcRel}`)
-            .join("\n")
+          [
+            ...modified.map((m) => `- M ${m.srcRel}`),
+            ...deleted.map((d) => `- D ${d.srcRel}`)
+          ].join("\n")
         }`)
       } --head ${JSON.stringify(branch)}`,
       cachePath

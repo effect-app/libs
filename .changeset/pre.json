@@ -305,6 +305,7 @@
     "swift-owls-knit",
     "swift-tables-turn",
     "sync-effect-subtree",
+    "sync-push-deletions",
     "tagged-request-command-query-split",
     "tagged-request-for",
     "tagged-union-drop-fields-constraint",

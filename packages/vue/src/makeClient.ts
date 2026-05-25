@@ -162,7 +162,7 @@ export interface MutationExt<
     I,
     S.Schema.Type<ProjSchema>,
     E | S.SchemaError,
-    R | S.Codec.DecodingServices<ProjSchema>,
+    R | ProjSchema["DecodingServices"],
     S.Codec.Encoded<ProjSchema>
   >
 }
@@ -223,7 +223,7 @@ export type QueryProjection<RT, HandlerReq> = HandlerReq extends
         I,
         S.Schema.Type<ProjSchema>,
         E | S.SchemaError,
-        R | S.Codec.DecodingServices<ProjSchema>,
+        R | ProjSchema["DecodingServices"],
         Request,
         Id
       >

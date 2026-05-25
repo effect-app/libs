@@ -153,12 +153,17 @@ export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
   : S.Schema.Type<T["success"]>
 
+// `T["success"]` / `T["error"]` are constrained to `S.Top` via `Req`, so we
+// can read `["DecodingServices"]` directly. Avoids the conditional in
+// `S.Codec.DecodingServices<X> = X extends Top ? X["DecodingServices"] : never`,
+// which tsgo (native) fails to reduce in this generic position and leaves as
+// `unknown`, polluting the `R` channel of every client handler.
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
   ? RequestStreamHandlerWithInput<
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
+    R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
     T,
     Id,
     FinalTypeOf<T>
@@ -167,7 +172,7 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] ext
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
+    R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
     T,
     Id
   >

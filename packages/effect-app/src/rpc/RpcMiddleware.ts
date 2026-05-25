@@ -72,7 +72,10 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type FailureContext<Options> = S.Codec.DecodingServices<FailureSchema<Options>>
+  // Avoid `S.Codec.DecodingServices<X> = X extends Top ? X["DecodingServices"] : never`:
+  // tsgo fails to reduce it here and leaves `unknown`. `FailureSchema<Options>` is
+  // always `S.Top` (either `Options["error"]` or `typeof S.Never`), so read directly.
+  export type FailureContext<Options> = FailureSchema<Options>["DecodingServices"]
 
   /**
    * @since 1.0.0

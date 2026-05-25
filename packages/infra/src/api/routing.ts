@@ -73,8 +73,8 @@ type GetSuccess<T> = T extends { success: S.Top } ? T["success"] : typeof S.Void
 type GetFailure<T extends { error?: S.Top }> = T["error"] extends never ? typeof S.Never : T["error"]
 
 type GetSuccessShape<Action extends { success?: S.Top }, RT extends RequestType> = {
-  d: S.Schema.Type<GetSuccess<Action>>
-  raw: S.Codec.Encoded<GetSuccess<Action>>
+  d: GetSuccess<Action>["Type"]
+  raw: GetSuccess<Action>["Encoded"]
 }[RT]
 
 interface HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A, E, R> {
@@ -82,7 +82,7 @@ interface HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A
   _tag: RT
   stack: string
   handler: (
-    req: S.Schema.Type<Action>,
+    req: Action["Type"],
     headers: HttpHeaders.Headers
   ) => Effect.Effect<A, E, R> | Stream.Stream<A, E, R>
 }
@@ -92,7 +92,7 @@ export interface Handler<Action extends AnyRequestModule, RT extends RequestType
     Action,
     RT,
     GetSuccessShape<Action, RT>,
-    S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+    GetFailure<Action>["Type"] | S.SchemaError,
     R
   >
 {}
@@ -123,7 +123,7 @@ type EffectMatch<
   RT extends RequestType,
   Key extends keyof Resource
 > = <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-  f: (req: S.Schema.Type<Resource[Key]>) => Effect.Effect<A, E, R2>
+  f: (req: Resource[Key]["Type"]) => Effect.Effect<A, E, R2>
 ) => Handler<
   Resource[Key],
   RT,
@@ -139,7 +139,7 @@ type StreamMatch<
   RT extends RequestType,
   Key extends keyof Resource
 > = <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-  f: (req: S.Schema.Type<Resource[Key]>) => Stream.Stream<A, E, R2>
+  f: (req: Resource[Key]["Type"]) => Stream.Stream<A, E, R2>
 ) => Handler<
   Resource[Key],
   RT,
@@ -171,7 +171,7 @@ export type RouteMatcher<
     & Match<Resource, RequestContextMap, RequestTypes.DECODED, Key>
     & {
       success: Resource[Key]["success"]
-      successRaw: S.Codec<S.Codec.Encoded<Resource[Key]["success"]>>
+      successRaw: S.Codec<Resource[Key]["success"]["Encoded"]>
       error: Resource[Key]["error"]
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
@@ -266,11 +266,11 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
       Action extends AnyRequestModule,
       RT extends RequestType
     > = (
-      req: S.Schema.Type<Action>
+      req: Action["Type"]
     ) => Generator<
       Effect.Effect<
         any,
-        S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+        GetFailure<Action>["Type"] | S.SchemaError,
         // the actual implementation of the handler may just require the dynamic context provided by the middleware
         // and the per request context provided by the context provider
         HandlerContext<Action>
@@ -283,10 +283,10 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
       Action extends AnyRequestModule,
       RT extends RequestType
     > = (
-      req: S.Schema.Type<Action>
+      req: Action["Type"]
     ) => Effect.Effect<
       GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+      GetFailure<Action>["Type"] | S.SchemaError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
       // and the per request context provided by the context provider
       HandlerContext<Action>
@@ -296,10 +296,10 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
       Action extends AnyRequestModule,
       RT extends RequestType
     > = (
-      req: S.Schema.Type<Action>
+      req: Action["Type"]
     ) => Stream.Stream<
       GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+      GetFailure<Action>["Type"] | S.SchemaError,
       HandlerContext<Action>
     >
 

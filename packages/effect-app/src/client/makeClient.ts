@@ -44,9 +44,9 @@ type QueryOnlyResources<Resources> = {
 }
 
 type InputFromPayload<Payload extends S.Struct.Fields> = keyof Payload extends never ? void
-  : S.Schema.Type<S.Struct<Payload>>
+  : S.Struct<Payload>["Type"]
 
-type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : S.Schema.Type<Success>
+type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : Success["Type"]
 
 type InvalidationResources = Record<string, Record<string, unknown>>
 
@@ -95,7 +95,7 @@ type InvalidationConfigForCommand<
   Resources,
   InputFromPayload<Payload>,
   OutputFromSuccess<Success>,
-  S.Schema.Type<Error>
+  Error["Type"]
 >
 
 export const configureInvalidation = <Resources>() =>
@@ -225,7 +225,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           OutputFromSuccess<SchemaOrFields<Success>>,
-          S.Schema.Type<ErrorResult<C & { success: Success; error: Error }>>
+          ErrorResult<C & { success: Success; error: Error }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -275,7 +275,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           OutputFromSuccess<SchemaOrFields<Success>>,
-          S.Schema.Type<ErrorResult<C & { success: Success }>>
+          ErrorResult<C & { success: Success }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -322,7 +322,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           void,
-          S.Schema.Type<ErrorResult<C & { error: Error }>>
+          ErrorResult<C & { error: Error }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -367,7 +367,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           void,
-          S.Schema.Type<ErrorResult<C>>
+          ErrorResult<C>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -405,7 +405,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           OutputFromSuccess<SchemaOrFields<Success>>,
-          S.Schema.Type<ErrorResult<C & { success: Success; error: Error }>>
+          ErrorResult<C & { success: Success; error: Error }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -457,7 +457,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           OutputFromSuccess<SchemaOrFields<Success>>,
-          S.Schema.Type<ErrorResult<C & { success: Success }>>
+          ErrorResult<C & { success: Success }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -502,7 +502,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           void,
-          S.Schema.Type<ErrorResult<C & { error: Error }>>
+          ErrorResult<C & { error: Error }>["Type"]
         >
       ): TaggedRequestForResult<
         Self,
@@ -544,7 +544,7 @@ export const makeRpcClient = <
           Resources,
           InputFromPayload<Payload>,
           void,
-          S.Schema.Type<ErrorResult<C>>
+          ErrorResult<C>["Type"]
         >
       ): TaggedRequestForResult<
         Self,

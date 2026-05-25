@@ -292,12 +292,12 @@ export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSche
   const from = S
     .Array(value)
     .annotate({ ...concurrencyUnbounded, expected: "an array of unique items that will be decoded as a ReadonlySet" })
-  const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
+  const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<ValueSchema["Type"]>>
   const schema = from.pipe(
     S.decodeTo(
       to,
       SchemaTransformation.transform({
-        decode: (arr) => new Set(arr) as ReadonlySet<S.Schema.Type<ValueSchema>>,
+        decode: (arr) => new Set(arr) as ReadonlySet<ValueSchema["Type"]>,
         encode: (set) => [...set]
       })
     )
@@ -319,7 +319,7 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
       expected: "an array of key-value tuples that will be decoded as a ReadonlyMap"
     })
   const to = S.instanceOf(Map) as S.instanceOf<
-    ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+    ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>
   >
   const schema = from.pipe(
     S.decodeTo(
@@ -327,7 +327,7 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
       SchemaTransformation.transform({
         decode: (
           arr
-        ) => new Map(arr) as ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>,
+        ) => new Map(arr) as ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>,
         encode: (
           map
         ) => [...map.entries()] as any // fu
@@ -350,7 +350,7 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
          * note.
          */
         withConstructorDefault: s.pipe(
-          S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))
+          S.withConstructorDefault(Effect.sync(() => new Set<ValueSchema["Type"]>()))
         ),
         /**
          * Decode-time default `new Set()`. **Discouraged for persisted
@@ -360,7 +360,7 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
          * decode-time fallback. See file-level note.
          */
         withDecodingDefaultType: s.pipe(
-          S.withDecodingDefaultType(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))
+          S.withDecodingDefaultType(Effect.sync(() => new Set<ValueSchema["Type"]>()))
         )
       })
   )

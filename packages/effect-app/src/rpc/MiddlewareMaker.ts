@@ -94,7 +94,7 @@ export namespace MiddlewareMaker {
     : never
     : never
 
-  export type Errors<T> = T extends TagClassAny ? T extends { error: S.Top } ? S.Schema.Type<T["error"]>
+  export type Errors<T> = T extends TagClassAny ? T extends { error: S.Top } ? T["error"]["Type"]
     : never
     : never
 

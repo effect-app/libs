@@ -65,7 +65,7 @@ export declare namespace TagClass {
    */
   export type Failure<Options> = Options extends { readonly error: S.Codec<infer _A>; readonly optional?: false } ? _A
     // actually not, the Failure depends on Dynamic Middleware Configuration!
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]["Type"]
     : never
 
   /**

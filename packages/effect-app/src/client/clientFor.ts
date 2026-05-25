@@ -63,11 +63,11 @@ export type Client<M extends RequestsAny, ModuleName extends string> = RequestHa
   ModuleName
 >
 
-export type ExtractResponse<T> = T extends S.Codec<any> ? S.Schema.Type<T>
+export type ExtractResponse<T> = T extends S.Codec<any> ? T["Type"]
   : T extends unknown ? void
   : never
 
-export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
+export type ExtractEResponse<T> = T extends S.Codec<any> ? T["Encoded"]
   : T extends unknown ? void
   : never
 
@@ -150,8 +150,8 @@ export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
   : RequestInput<I>
 
 /** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
-type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
-  : S.Schema.Type<T["success"]>
+type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? F["Type"]
+  : T["success"]["Type"]
 
 // `T["success"]` / `T["error"]` are constrained to `S.Top` via `Req`, so we
 // can read `["DecodingServices"]` directly. Avoids the conditional in
@@ -161,8 +161,8 @@ type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
   ? RequestStreamHandlerWithInput<
     HandlerInput<T>,
-    S.Schema.Type<T["success"]>,
-    S.Schema.Type<T["error"]> | E,
+    T["success"]["Type"],
+    T["error"]["Type"] | E,
     R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
     T,
     Id,
@@ -170,8 +170,8 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] ext
   >
   : RequestHandlerWithInput<
     HandlerInput<T>,
-    S.Schema.Type<T["success"]>,
-    S.Schema.Type<T["error"]> | E,
+    T["success"]["Type"],
+    T["error"]["Type"] | E,
     R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
     T,
     Id

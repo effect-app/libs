@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type * as PubSub from "effect/PubSub"
+import type * as Scope from "effect/Scope"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.js"
 import type * as Effect from "../../Effect.js"
 import type * as Option from "../../Option.js"
@@ -9,6 +9,22 @@ import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js
 import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"
 import type { ValidationResult } from "./validation.js"
+
+/**
+ * Synchronous broadcast channel for repository change events.
+ *
+ * `publish` only completes after every currently-subscribed handler's Effect
+ * has finished — callers must await all handlers before continuing. Handlers
+ * registered via `subscribe` are auto-removed when the subscriber's Scope
+ * closes, and the full handler set is cleared when the repository's own scope
+ * closes.
+ */
+export interface ChangeFeed<T> {
+  readonly publish: (evt: [T[], "save" | "remove"]) => Effect.Effect<void>
+  readonly subscribe: (
+    handler: (evt: [T[], "save" | "remove"]) => Effect.Effect<void>
+  ) => Effect.Effect<void, never, Scope.Scope>
+}
 
 export interface Repository<
   T,
@@ -28,7 +44,7 @@ export interface Repository<
     items: Iterable<T>,
     events?: Iterable<Evt>
   ) => Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
-  readonly changeFeed: PubSub.PubSub<[T[], "save" | "remove"]>
+  readonly changeFeed: ChangeFeed<T>
   readonly removeAndPublish: (
     items: Iterable<T>,
     events?: Iterable<Evt>

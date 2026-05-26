@@ -2,10 +2,12 @@
 
 import * as Equivalence from "effect/Equivalence"
 import { flow, pipe } from "effect/Function"
+import * as HashSet from "effect/HashSet"
 import * as Pipeable from "effect/Pipeable"
-import * as PubSub from "effect/PubSub"
+import * as Ref from "effect/Ref"
 import * as Result from "effect/Result"
 import * as SchemaAST from "effect/SchemaAST"
+import type * as Scope from "effect/Scope"
 import * as Unify from "effect/Unify"
 import * as Array from "../../../Array.js"
 import type { NonEmptyReadonlyArray } from "../../../Array.js"
@@ -22,7 +24,7 @@ import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
 import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
-import type { Repository } from "../service.js"
+import type { ChangeFeed, Repository } from "../service.js"
 import { ValidationError, ValidationResult } from "../validation.js"
 
 const dedupe = Array.dedupeWith(Equivalence.String)
@@ -105,7 +107,24 @@ export function makeRepoInternal<
           const pub = "publishEvents" in args
             ? args.publishEvents
             : () => Effect.void
-          const changeFeed = yield* PubSub.unbounded<[T[], "save" | "remove"]>()
+
+          type ChangeFeedEvt = [T[], "save" | "remove"]
+          type ChangeFeedHandler = (evt: ChangeFeedEvt) => Effect.Effect<void>
+          const changeFeedHandlers = yield* Ref.make(HashSet.empty<ChangeFeedHandler>())
+          // clear all handlers when the repository's scope closes
+          yield* Effect.addFinalizer(() => Ref.set(changeFeedHandlers, HashSet.empty<ChangeFeedHandler>()))
+          const changeFeed: ChangeFeed<T> = {
+            publish: (evt) =>
+              Effect.flatMap(
+                Ref.get(changeFeedHandlers),
+                (hs) => Effect.forEach(hs, (h) => h(evt), { concurrency: "unbounded", discard: true })
+              ),
+            subscribe: (handler) =>
+              Effect.acquireRelease(
+                Ref.update(changeFeedHandlers, HashSet.add(handler)),
+                () => Ref.update(changeFeedHandlers, HashSet.remove(handler))
+              )
+          }
 
           const allE = cms
             .pipe(Effect.flatMap((cm) => Effect.map(store.all, (_) => _.map((_) => mapReverse(_, cm.set)))))
@@ -223,7 +242,7 @@ export function makeRepoInternal<
                   Effect.andThen(Effect.sync(() => toNonEmptyArray(evts))),
                   // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
                   (_) => flatMapOption(_, pub),
-                  Effect.andThen(PubSub.publish(changeFeed, [Chunk.toArray(it), "save"] as [T[], "save" | "remove"])),
+                  Effect.andThen(changeFeed.publish([Chunk.toArray(it), "save"] as [T[], "save" | "remove"])),
                   Effect.asVoid
                 )
             }
@@ -252,7 +271,7 @@ export function makeRepoInternal<
                   // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
                   .pipe((_) => flatMapOption(_, pub))
 
-                yield* PubSub.publish(changeFeed, [it, "remove"] as [T[], "save" | "remove"])
+                yield* changeFeed.publish([it, "remove"] as [T[], "save" | "remove"])
               }
             }
           )
@@ -272,7 +291,7 @@ export function makeRepoInternal<
               for (const id of eids) {
                 set(id, undefined)
               }
-              yield* PubSub.publish(changeFeed, [[], "remove"] as [T[], "save" | "remove"])
+              yield* changeFeed.publish([[], "remove"] as [T[], "save" | "remove"])
             }
           )
 
@@ -669,7 +688,11 @@ export interface Repos<
           partitionValue?: (e?: Encoded) => string
         }
       }
-  ): Effect.Effect<Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>, E, StoreMaker | RInitial | R2>
+  ): Effect.Effect<
+    Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>,
+    E,
+    StoreMaker | RInitial | R2 | Scope.Scope
+  >
   makeWith<Out, RInitial = never, E = never, R2 = never>(
     args: [Evt] extends [never] ? {
         makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
@@ -685,7 +708,7 @@ export interface Repos<
         }
       },
     f: (r: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>) => Out
-  ): Effect.Effect<Out, E, StoreMaker | RInitial | R2>
+  ): Effect.Effect<Out, E, StoreMaker | RInitial | R2 | Scope.Scope>
   readonly Q: ReturnType<typeof Q.make<Encoded>>
   readonly type: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>
 }

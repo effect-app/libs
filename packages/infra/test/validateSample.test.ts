@@ -39,6 +39,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -87,6 +88,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -105,6 +107,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -134,6 +137,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -168,6 +172,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -215,6 +220,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 
@@ -237,6 +243,7 @@ describe("validateSample", () => {
       .pipe(
         Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
+        Effect.scoped,
         Effect.runPromise
       ))
 })

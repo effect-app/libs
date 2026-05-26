@@ -6,6 +6,7 @@
 
 // import type { ParserEnv } from "../../Schema/custom/Parser.js"
 
+import type * as Scope from "effect/Scope"
 import type { NonEmptyReadonlyArray } from "../../Array.js"
 import type * as Context from "../../Context.js"
 import * as Effect from "../../Effect.js"
@@ -88,7 +89,7 @@ export const makeRepo: {
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
-    RInitial | StoreMaker | RepositoryRegistry
+    RInitial | StoreMaker | RepositoryRegistry | Scope.Scope
   >
   <
     ItemType extends string,
@@ -107,7 +108,7 @@ export const makeRepo: {
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
-    RInitial | StoreMaker | RepositoryRegistry
+    RInitial | StoreMaker | RepositoryRegistry | Scope.Scope
   >
 } = <
   ItemType extends string,

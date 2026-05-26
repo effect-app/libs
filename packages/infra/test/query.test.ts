@@ -172,6 +172,7 @@ it("works with repo", () =>
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
+      Effect.scoped,
       Effect.runPromise
     ))
 
@@ -243,6 +244,7 @@ it("collect", () =>
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
+      Effect.scoped,
       Effect.runPromise
     ))
 
@@ -289,7 +291,7 @@ it(
         expect(result).toEqual([])
         expect(result2).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -475,7 +477,7 @@ it(
 
         expect([]).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -518,7 +520,7 @@ it(
 
         expect([]).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -551,7 +553,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -578,7 +580,7 @@ it(
 
         expect(result).toStrictEqual([{ b: 1 }])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it("projectComputed sets computed IR and forces project mode", () => {
@@ -818,7 +820,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -862,7 +864,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it(
@@ -906,7 +908,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
 )
 
 it("remove null from one constituent of a tagged union", () =>
@@ -955,7 +957,7 @@ it("remove null from one constituent of a tagged union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine 3", () =>
   Effect
@@ -993,7 +995,7 @@ it("refine 3", () =>
       const resQuer1 = yield* repo.query(where("id", "AA"))
       expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("my test", () =>
   Effect
@@ -1011,7 +1013,7 @@ it("my test", () =>
       )
       expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine inner without imposing a projection", () =>
   Effect
@@ -1086,7 +1088,7 @@ it("refine inner without imposing a projection", () =>
         }[]
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("does not allow string queries on arrays", () =>
   Effect
@@ -1121,7 +1123,7 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("test array.length", () =>
   Effect
@@ -1162,7 +1164,7 @@ it("test array.length", () =>
         QueryWhere<Something, Something>
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("distribution over union", () =>
   Effect
@@ -1186,7 +1188,7 @@ it("distribution over union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine nested union", () =>
   Effect
@@ -1227,7 +1229,7 @@ it("refine nested union", () =>
         }[]
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("find with transformed id", () =>
   Effect
@@ -1285,7 +1287,7 @@ it("find with transformed id", () =>
       )
       expect(Option.isNone(notFound)).toBe(true)
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("find with transformed id in tagged union", () =>
   Effect
@@ -1378,7 +1380,7 @@ it("find with transformed id in tagged union", () =>
       )
       expect(Option.isNone(notFound)).toBe(true)
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine union with nested union", () =>
   Effect
@@ -1493,7 +1495,7 @@ it("refine union with nested union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 // ---------------------------------------------------------------------------
 // memFilter: computed projection execution (in-memory) and code filter coverage

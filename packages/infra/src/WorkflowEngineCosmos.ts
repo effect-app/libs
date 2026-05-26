@@ -14,10 +14,10 @@
  * lapsed and re-drives them in the local process, picking up persisted
  * activity results from where the crashed driver left off.
  *
- * Limitations:
- *   - Clocks are scheduled in-process via `FiberMap`. The clock record is
- *     persisted so a restart-aware poller can rearm; that poller is not
- *     included here.
+ * Durable clocks: `scheduleClock` writes a clock doc (`fireAt`,
+ * `deferredName`) and arms an in-process timer. A cross-partition clock
+ * poller fires any clock whose `fireAt` is due, completing the deferred
+ * idempotently (via create-only) and deleting the doc. Survives restarts.
  */
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -47,6 +47,8 @@ export interface WorkflowEngineCosmosConfig {
   readonly heartbeatInterval?: Duration.Duration
   /** Cadence for scanning stale leases. Default 15s. Set to `Duration.zero` to disable. */
   readonly recoveryInterval?: Duration.Duration
+  /** Cadence for scanning due clocks. Default 5s. Set to `Duration.zero` to disable. */
+  readonly clockPollInterval?: Duration.Duration
   /** Stable worker identity; defaults to a random UUID per process. */
   readonly workerId?: string
 }
@@ -87,6 +89,7 @@ interface ClockDoc {
   readonly id: string
   readonly _partitionKey: string
   readonly type: "clock"
+  readonly workflowName: string
   readonly deferredName: string
   readonly fireAt: string
 }
@@ -114,6 +117,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const leaseTtl = cfg.leaseTtl ?? Duration.seconds(30)
   const heartbeatInterval = cfg.heartbeatInterval ?? Duration.seconds(10)
   const recoveryInterval = cfg.recoveryInterval ?? Duration.seconds(15)
+  const clockPollInterval = cfg.clockPollInterval ?? Duration.seconds(5)
 
   const annotate = (operation: string, executionId?: string) =>
     annotateDb({
@@ -348,6 +352,24 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       yield* drive(executionId, state.payload, state.parent, entry)
     })
 
+  // --- Clock firing -----------------------------------------------------
+  // Persist deferred completion (first-writer-wins via createIfMissing),
+  // resume the workflow, then clean up the clock doc.
+  const fireClock = (doc: ClockDoc): Effect.Effect<void> =>
+    Effect.gen(function*() {
+      const created = yield* createIfMissing<DeferredDoc>({
+        id: deferredKey(doc.deferredName),
+        _partitionKey: doc._partitionKey,
+        type: "deferred",
+        exit: Exit.void
+      })
+        .pipe(annotate("clockFire", doc._partitionKey))
+      if (created) yield* driveById(doc._partitionKey)
+      yield* Effect.promise(() => container.item(doc.id, doc._partitionKey).delete()).pipe(
+        Effect.catchCause(() => Effect.void)
+      )
+    })
+
   // --- Encoded engine ----------------------------------------------------
 
   const encoded: Encoded = {
@@ -493,23 +515,19 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         id: clockKey(options.clock.name),
         _partitionKey: options.executionId,
         type: "clock",
+        workflowName: workflow.name,
         deferredName: options.clock.deferred.name,
         fireAt
       }
       return Effect.gen(function*() {
         yield* createIfMissing(clockDoc).pipe(annotate("clockPersist", options.executionId))
-        yield* engine
-          .deferredDone(options.clock.deferred, {
-            workflowName: workflow.name,
-            executionId: options.executionId,
-            deferredName: options.clock.deferred.name,
-            exit: Exit.void
-          })
-          .pipe(
-            Effect.delay(options.clock.duration),
-            FiberMap.run(clocks, `${options.executionId}/${options.clock.name}`, { onlyIfMissing: true }),
-            Effect.asVoid
-          )
+        // Fast-path in-process timer. If this process dies, the clock poller
+        // picks up the persisted doc and fires the deferred.
+        yield* fireClock(clockDoc).pipe(
+          Effect.delay(options.clock.duration),
+          FiberMap.run(clocks, `${options.executionId}/${options.clock.name}`, { onlyIfMissing: true }),
+          Effect.asVoid
+        )
       })
     }
   }
@@ -546,6 +564,53 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
 
     yield* recoverStep.pipe(
       Effect.repeat(Schedule.spaced(recoveryInterval)),
+      Effect.forkIn(scope)
+    )
+  }
+
+  // --- Clock poller -----------------------------------------------------
+  // Cross-partition scan for clocks whose fireAt is due. Fires the deferred
+  // via createIfMissing (idempotent) so multiple pollers across processes
+  // converge. Also acts as the restart recovery path for clocks scheduled
+  // before a crash.
+  if (Duration.toMillis(clockPollInterval) > 0) {
+    type DueClock = {
+      readonly id: string
+      readonly _partitionKey: string
+      readonly workflowName: string
+      readonly deferredName: string
+    }
+    const clockStep = Effect
+      .gen(function*() {
+        const nowIso = new Date().toISOString()
+        const due = yield* Effect.promise(() =>
+          container
+            .items
+            .query<DueClock>({
+              query:
+                "SELECT c.id, c._partitionKey, c.workflowName, c.deferredName FROM c WHERE c.type = 'clock' AND c.fireAt <= @now",
+              parameters: [{ name: "@now", value: nowIso }]
+            })
+            .fetchAll()
+        )
+        for (const row of due.resources) {
+          yield* Effect.forkIn(
+            fireClock({
+              id: row.id,
+              _partitionKey: row._partitionKey,
+              type: "clock",
+              workflowName: row.workflowName,
+              deferredName: row.deferredName,
+              fireAt: nowIso
+            }),
+            scope
+          )
+        }
+      })
+      .pipe(annotate("clockScan"), Effect.catchCause(() => Effect.void))
+
+    yield* clockStep.pipe(
+      Effect.repeat(Schedule.spaced(clockPollInterval)),
       Effect.forkIn(scope)
     )
   }

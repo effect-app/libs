@@ -8,10 +8,13 @@
  * create-only ops in batches for first-writer-wins semantics on activity
  * results and durable-deferred completions.
  *
+ * Crash recovery: each driver holds a time-bound lease (`worker` +
+ * `leaseExpiresAt`) on the exec doc and renews it via a heartbeat fiber.
+ * A scope-bound recovery poller queries for exec docs whose lease has
+ * lapsed and re-drives them in the local process, picking up persisted
+ * activity results from where the crashed driver left off.
+ *
  * Limitations:
- *   - Workflow handler code lives in process; the process that calls
- *     `execute` first owns the in-process fiber. Other callers observing
- *     the same `executionId` poll Cosmos until completion.
  *   - Clocks are scheduled in-process via `FiberMap`. The clock record is
  *     persisted so a restart-aware poller can rearm; that poller is not
  *     included here.
@@ -25,9 +28,11 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as FiberMap from "effect/FiberMap"
 import * as Redacted from "effect/Redacted"
+import * as Schedule from "effect/Schedule"
 import type * as Scope from "effect/Scope"
 import * as Workflow from "effect/unstable/workflow/Workflow"
 import { type Encoded, makeUnsafe, WorkflowEngine, WorkflowInstance } from "effect/unstable/workflow/WorkflowEngine"
+import { randomUUID } from "node:crypto"
 import { CosmosClient, CosmosClientLayer } from "./cosmos-client.js"
 import { OptimisticConcurrencyException } from "./errors.js"
 import { annotateCosmosResponse, annotateDb } from "./otel.js"
@@ -36,6 +41,14 @@ export interface WorkflowEngineCosmosConfig {
   readonly url: Redacted.Redacted<string>
   readonly dbName: string
   readonly prefix?: string
+  /** Lease duration before claim considered stale. Default 30s. */
+  readonly leaseTtl?: Duration.Duration
+  /** Renewal cadence — should be < leaseTtl. Default 10s. */
+  readonly heartbeatInterval?: Duration.Duration
+  /** Cadence for scanning stale leases. Default 15s. Set to `Duration.zero` to disable. */
+  readonly recoveryInterval?: Duration.Duration
+  /** Stable worker identity; defaults to a random UUID per process. */
+  readonly workerId?: string
 }
 
 type ExecStatus = "running" | "complete" | "interrupted"
@@ -51,6 +64,8 @@ interface ExecDoc {
   suspended: boolean
   interrupted: boolean
   completedExit?: Workflow.Result<unknown, unknown> | undefined
+  worker?: string | undefined
+  leaseExpiresAt?: string | undefined
   readonly _etag?: string
 }
 
@@ -94,6 +109,11 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   )
   const container = db.container(containerId)
   const scope = yield* Effect.scope
+
+  const workerId = cfg.workerId ?? randomUUID()
+  const leaseTtl = cfg.leaseTtl ?? Duration.seconds(30)
+  const heartbeatInterval = cfg.heartbeatInterval ?? Duration.seconds(10)
+  const recoveryInterval = cfg.recoveryInterval ?? Duration.seconds(15)
 
   const annotate = (operation: string, executionId?: string) =>
     annotateDb({
@@ -189,6 +209,62 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       ? Option.some(state.completedExit)
       : Option.none()
 
+  // --- Lease / claim ----------------------------------------------------
+
+  const leaseActive = (state: ExecDoc, now: number): boolean =>
+    state.worker !== undefined
+    && state.worker !== workerId
+    && state.leaseExpiresAt !== undefined
+    && Date.parse(state.leaseExpiresAt) > now
+
+  /**
+   * Try to claim a lease on `state`. Returns the updated doc on success, `None`
+   * if another worker holds an active lease, or on OCC conflict (caller may
+   * retry by re-reading).
+   */
+  const tryClaim = (state: ExecDoc): Effect.Effect<Option.Option<ExecDoc>> =>
+    Effect.gen(function*() {
+      const now = Date.now()
+      if (leaseActive(state, now)) return Option.none<ExecDoc>()
+      const updated: ExecDoc = {
+        ...state,
+        worker: workerId,
+        leaseExpiresAt: new Date(now + Duration.toMillis(leaseTtl)).toISOString()
+      }
+      return yield* replaceExec(updated).pipe(
+        Effect.map(Option.some),
+        Effect.catchTag("OptimisticConcurrencyException", () => Effect.succeed(Option.none<ExecDoc>()))
+      )
+    })
+
+  /**
+   * Renew lease until the local fiber stops or another worker takes the claim.
+   * Best-effort: failures are swallowed; loop simply retries on next tick.
+   */
+  const heartbeat = (executionId: string): Effect.Effect<void> =>
+    Effect.gen(function*() {
+      while (true) {
+        yield* Effect.sleep(heartbeatInterval)
+        const local = locals.get(executionId)
+        const polled = local?.fiber?.pollUnsafe()
+        if (!local?.fiber || polled) return
+        const cur = yield* readExec(executionId).pipe(
+          Effect.catchCause(() => Effect.succeed(Option.none<ExecDoc>()))
+        )
+        if (Option.isNone(cur)) continue
+        const state = cur.value
+        if (state.status === "complete" || state.worker !== workerId) return
+        yield* replaceExec({
+          ...state,
+          leaseExpiresAt: new Date(Date.now() + Duration.toMillis(leaseTtl)).toISOString()
+        })
+          .pipe(
+            Effect.catchTag("OptimisticConcurrencyException", () => Effect.void),
+            Effect.catchCause(() => Effect.void)
+          )
+      }
+    })
+
   // --- Drive logic -------------------------------------------------------
 
   const drive = (
@@ -209,7 +285,12 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       const stateOpt = yield* readExec(executionId)
       if (Option.isNone(stateOpt) || stateOpt.value.status === "complete") return
 
-      const state = stateOpt.value
+      // Best-effort claim: takes lease so recovery poller leaves us alone.
+      // Failure is tolerated — local fiber still drives; OCC guards persisted
+      // state so split-brain stays correct.
+      const claimed = yield* tryClaim(stateOpt.value)
+      const state = Option.isSome(claimed) ? claimed.value : stateOpt.value
+
       const instance = WorkflowInstance.initial(entry.workflow, executionId)
       instance.interrupted = state.interrupted
       if (!local) {
@@ -220,20 +301,21 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       }
 
       const onComplete = Effect.fnUntraced(function*(result: Workflow.Result<unknown, unknown>) {
-        // Persist completion with OCC: only the first to mark it complete wins.
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete") return
+        const isComplete = result._tag === "Complete"
         yield* replaceExec({
           ...current.value,
-          status: result._tag === "Complete" ? "complete" : current.value.status,
+          status: isComplete ? "complete" : current.value.status,
           suspended: result._tag === "Suspended",
           interrupted: instance.interrupted,
-          completedExit: result._tag === "Complete" ? result : undefined
+          completedExit: isComplete ? result : undefined,
+          // Release lease on completion so the doc isn't seen as orphaned.
+          worker: isComplete ? undefined : current.value.worker,
+          leaseExpiresAt: isComplete ? undefined : current.value.leaseExpiresAt
         })
-          .pipe(
-            Effect.catchTag("OptimisticConcurrencyException", () => Effect.void)
-          )
-        if (parent && result._tag === "Complete") {
+          .pipe(Effect.catchTag("OptimisticConcurrencyException", () => Effect.void))
+        if (parent && isComplete) {
           yield* Effect.forkIn(driveById(parent), scope)
         }
       })
@@ -250,6 +332,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         Effect.tap(onComplete),
         Effect.forkIn(entry.scope)
       )
+
+      if (Option.isSome(claimed)) {
+        yield* Effect.forkIn(heartbeat(executionId), scope)
+      }
     })
 
   const driveById = (executionId: string): Effect.Effect<void> =>
@@ -429,6 +515,41 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   }
 
   const engine = makeUnsafe(encoded)
+
+  // --- Recovery poller --------------------------------------------------
+  // Scan for executions whose lease has lapsed (or was never set) and
+  // re-drive them locally. driveById will go through claim → fork fiber,
+  // resuming activities from persisted results.
+  if (Duration.toMillis(recoveryInterval) > 0) {
+    type StaleRow = { readonly _partitionKey: string; readonly workflowName: string }
+    const recoverStep = Effect
+      .gen(function*() {
+        const nowIso = new Date().toISOString()
+        const stale = yield* Effect.promise(() =>
+          container
+            .items
+            .query<StaleRow>({
+              query:
+                "SELECT c._partitionKey, c.workflowName FROM c WHERE c.type = 'exec' AND c.status = 'running' AND (NOT IS_DEFINED(c.leaseExpiresAt) OR c.leaseExpiresAt <= @now)",
+              parameters: [{ name: "@now", value: nowIso }]
+            })
+            .fetchAll()
+        )
+        for (const row of stale.resources) {
+          if (!workflows.has(row.workflowName)) continue
+          const local = locals.get(row._partitionKey)
+          if (local?.fiber && !local.fiber.pollUnsafe()) continue
+          yield* Effect.forkIn(driveById(row._partitionKey), scope)
+        }
+      })
+      .pipe(annotate("recoveryScan"), Effect.catchCause(() => Effect.void))
+
+    yield* recoverStep.pipe(
+      Effect.repeat(Schedule.spaced(recoveryInterval)),
+      Effect.forkIn(scope)
+    )
+  }
+
   return engine
 })
 

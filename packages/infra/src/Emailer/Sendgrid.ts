@@ -28,10 +28,7 @@ const makeSendgrid = (
     return Emailer.of({
       sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
         function*(msg_: EmailMsgOptionalFrom) {
-          let replyTo: EmailData | undefined
-          if (!msg_.from) {
-            replyTo = msg_.replyTo ?? defaultReplyTo
-          }
+          const replyTo = msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
           const msg: EmailMsg = {
             ...msg_,
             from: msg_.from ?? defaultFrom,

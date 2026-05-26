@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.251
+
+### Patch Changes
+
+- 1c858d3: fix request scope problems
+
 ## 4.0.0-beta.250
 
 ### Patch Changes

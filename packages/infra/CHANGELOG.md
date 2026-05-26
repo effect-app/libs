@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.251
+
+### Patch Changes
+
+- 1c858d3: fix request scope problems
+- Updated dependencies [1c858d3]
+  - effect-app@4.0.0-beta.251
+
 ## 4.0.0-beta.250
 
 ### Patch Changes

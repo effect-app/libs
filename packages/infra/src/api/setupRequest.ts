@@ -1,10 +1,10 @@
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
+import { LocaleRef, RequestContext, spanAttributes } from "effect-app/RequestContext"
 import { NonEmptyString255 } from "effect-app/Schema"
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
-import { LocaleRef, RequestContext, spanAttributes } from "../RequestContext.js"
 import { ContextMapContainer } from "../Store/ContextMapContainer.js"
 import { storeId } from "../Store/Memory.js"
 

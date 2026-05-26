@@ -1,10 +1,10 @@
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { makeRepo, ValidationError, ValidationResult } from "effect-app/Model/Repository"
+import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { makeRepo, ValidationError, ValidationResult } from "../src/Model/Repository.js"
-import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)

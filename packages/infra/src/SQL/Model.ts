@@ -24,7 +24,7 @@ import * as VariantSchema from "effect/unstable/schema/VariantSchema"
 import { SqlClient } from "effect/unstable/sql/SqlClient"
 import * as SqlResolver from "effect/unstable/sql/SqlResolver"
 import * as SqlSchema from "effect/unstable/sql/SqlSchema"
-import { type DbSystem, withDbSpan } from "../../otel.js"
+import { type DbSystem, withDbSpan } from "../otel.js"
 
 const {
   Class,

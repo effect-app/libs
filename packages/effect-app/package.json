@@ -70,10 +70,6 @@
       "types": "./dist/Emailer.d.ts",
       "default": "./dist/Emailer.js"
     },
-    "./Emailer/service": {
-      "types": "./dist/Emailer/service.d.ts",
-      "default": "./dist/Emailer/service.js"
-    },
     "./Function": {
       "types": "./dist/Function.d.ts",
       "default": "./dist/Function.js"
@@ -330,10 +326,6 @@
       "types": "./dist/QueueMaker.d.ts",
       "default": "./dist/QueueMaker.js"
     },
-    "./QueueMaker/service": {
-      "types": "./dist/QueueMaker/service.d.ts",
-      "default": "./dist/QueueMaker/service.js"
-    },
     "./RequestContext": {
       "types": "./dist/RequestContext.d.ts",
       "default": "./dist/RequestContext.js"
@@ -365,10 +357,6 @@
     "./Store": {
       "types": "./dist/Store.d.ts",
       "default": "./dist/Store.js"
-    },
-    "./Store/service": {
-      "types": "./dist/Store/service.d.ts",
-      "default": "./dist/Store/service.js"
     },
     "./toast": {
       "types": "./dist/toast.d.ts",

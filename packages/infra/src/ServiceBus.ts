@@ -7,7 +7,7 @@ import * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
 import * as FiberSet from "effect/FiberSet"
 import type * as Scope from "effect/Scope"
-import { InfraLogger } from "../logger.js"
+import { InfraLogger } from "./logger.js"
 
 const logged = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.logInfo(name).pipe(

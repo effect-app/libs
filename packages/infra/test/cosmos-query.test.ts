@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { and, computed, make, projectComputed, relation, toFilter, where } from "effect-app/Model/query"
 import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
-import { and, computed, make, projectComputed, relation, toFilter, where } from "../src/Model/query.js"
 import { buildWhereCosmosQuery3 } from "../src/Store/Cosmos/query.js"
 
 class Order extends S.Class<Order>("Order")({

@@ -7,8 +7,8 @@ import { CosmosStoreLayer } from "./Cosmos.js"
 import { DiskStoreLayer } from "./Disk.js"
 import { MemoryStoreLive } from "./Memory.js"
 // import { RedisStoreLayer } from "./Redis.js"
-import { RepositoryRegistryLive } from "../Model.js"
-import type { StorageConfig } from "./service.js"
+import { RepositoryRegistryLive } from "effect-app/Model"
+import type { StorageConfig } from "effect-app/Store"
 import { SQLiteStoreLayer } from "./SQL.js"
 import { PgStoreLayer } from "./SQL/Pg.js"
 
@@ -46,5 +46,3 @@ export function StoreMakerLayer(
     })
     .pipe(Layer.unwrap, Layer.merge(RepositoryRegistryLive))
 }
-
-export * from "./service.js"

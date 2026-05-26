@@ -1,17 +1,17 @@
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import { QueueMeta } from "effect-app/QueueMaker"
 import * as S from "effect-app/Schema"
 import type { StringId } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import { flow } from "effect/Function"
 import * as Tracer from "effect/Tracer"
-import { Receiver, Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { messagingSpanArgs } from "../otel.js"
+import { Receiver, Sender } from "../ServiceBus.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
-import { QueueMeta } from "./service.js"
 
 export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },

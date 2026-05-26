@@ -2,13 +2,12 @@ import type { MailContent } from "@sendgrid/helpers/classes/mail.js"
 import sgMail from "@sendgrid/mail"
 import * as Array from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
-import type { EmailData } from "effect-app/Emailer/service"
+import { type EmailData, Emailer, type EmailMsg, type EmailMsgOptionalFrom, SendMailError } from "effect-app/Emailer"
 import { dropUndefinedT } from "effect-app/utils"
 import * as Equivalence from "effect/Equivalence"
 import * as Redacted from "effect/Redacted"
 import { inspect } from "util"
 import { InfraLogger } from "../logger.js"
-import { Emailer, type EmailMsg, type EmailMsgOptionalFrom, SendMailError } from "./service.js"
 
 export interface SendgridConfig {
   defaultReplyTo?: EmailData

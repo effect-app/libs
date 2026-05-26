@@ -11,6 +11,11 @@ import type { FieldPath } from "../Model/filter/types/path/index.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
 import type * as Option from "../Option.js"
 
+/**
+ * Adapter-neutral unique-key definition for stores that support unique indexes,
+ * such as the Cosmos adapter. Each path identifies a field participating in the
+ * unique key.
+ */
 export interface UniqueKey {
   readonly paths: string[]
 }

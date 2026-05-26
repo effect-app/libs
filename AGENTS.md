@@ -132,7 +132,7 @@ per-request hot path:
   want it scoped to *this* effect only, or
 - Build it explicitly against the request scope with a fresh `MemoMap`
   (`Layer.makeMemoMap` + `Layer.buildWithMemoMap(layer, memoMap, requestScope)`)
-  — see `provideOnRequestScope` in `packages/infra/src/api/setupRequest.ts`.
+  — see `provideOnRequestScope` in `packages/infra/src/setupRequest.ts`.
 
 If neither option is taken and the layer carries state, the state leaks
 across requests. Concrete repro lives in

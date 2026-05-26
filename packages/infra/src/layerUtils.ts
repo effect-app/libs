@@ -4,7 +4,7 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import type * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
-import { InfraLogger } from "../logger.js"
+import { InfraLogger } from "./logger.js"
 
 // TODO: These LayerUtils are flaky, like in dependencies as a readonly array, it breaks when there are two entries
 // we should look at Service.MakeDeps[E/RIn/ROut] etc.

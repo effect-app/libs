@@ -8,10 +8,10 @@ import * as Fiber from "effect/Fiber"
 import { flow } from "effect/Function"
 import * as Q from "effect/Queue"
 import * as Tracer from "effect/Tracer"
-import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { MemQueue } from "../memQueue.js"
 import { messagingSpanArgs } from "../otel.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../setupRequest.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
 
 export const makeMemQueue = Effect.fnUntraced(function*<

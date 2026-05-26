@@ -5,8 +5,8 @@ import { LocaleRef, RequestContext, spanAttributes } from "effect-app/RequestCon
 import { NonEmptyString255 } from "effect-app/Schema"
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
-import { ContextMapContainer } from "../Store/ContextMapContainer.js"
-import { storeId } from "../Store/Memory.js"
+import { ContextMapContainer } from "./Store/ContextMapContainer.js"
+import { storeId } from "./Store/Memory.js"
 
 const withSqlTransaction = <R, E, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.serviceOption(SqlClient.SqlClient).pipe(

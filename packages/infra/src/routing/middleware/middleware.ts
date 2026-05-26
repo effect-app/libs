@@ -10,9 +10,9 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { type Rpc } from "effect/unstable/rpc"
-import { logError, reportError } from "../../../errorReporter.js"
-import { InfraLogger } from "../../../logger.js"
-import { WithNsTransaction } from "../../../Store/SQL.js"
+import { logError, reportError } from "../../errorReporter.js"
+import { InfraLogger } from "../../logger.js"
+import { WithNsTransaction } from "../../Store/SQL.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -35,7 +35,7 @@ const isOptimisticConcurrencyException = (input: unknown) =>
   typeof input === "object" && input !== null && "_tag" in input && input._tag === "OptimisticConcurrencyException"
 
 export const RequestType = Context.Reference<"command" | "query">(
-  "@effect-app/infra/api/routing/RequestType",
+  "@effect-app/infra/routing/RequestType",
   { defaultValue: () => "query" }
 )
 

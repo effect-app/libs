@@ -1,4 +1,4 @@
-import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/routing"
 import { expectTypeOf, it } from "@effect/vitest"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import * as Context from "effect-app/Context"
@@ -13,7 +13,7 @@ import * as S from "effect-app/Schema"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { type ConfigError } from "effect/Config"
 import { type RpcSerialization } from "effect/unstable/rpc/RpcSerialization"
-import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // Inline minimal context provider (provides `Some`)

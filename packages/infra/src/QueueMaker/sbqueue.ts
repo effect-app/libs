@@ -7,10 +7,10 @@ import { pretty } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import { flow } from "effect/Function"
 import * as Tracer from "effect/Tracer"
-import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { messagingSpanArgs } from "../otel.js"
 import { Receiver, Sender } from "../ServiceBus.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../setupRequest.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
 
 export function makeServiceBusQueue<

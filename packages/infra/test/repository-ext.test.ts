@@ -4,7 +4,7 @@ import * as Layer from "effect-app/Layer"
 import { makeRepo } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
-import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
+import { setupRequestContextFromCurrent } from "../src/setupRequest.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 class BatchItem extends S.Class<BatchItem>("BatchItem")({

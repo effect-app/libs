@@ -5,7 +5,7 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Scope from "effect/Scope"
-import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
+import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off

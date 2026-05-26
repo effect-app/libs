@@ -4,7 +4,7 @@ import { makeRepo, ValidationError, ValidationResult } from "effect-app/Model/Re
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
-import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
+import { setupRequestContextFromCurrent } from "../src/setupRequest.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)

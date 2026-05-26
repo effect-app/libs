@@ -1,5 +1,5 @@
-import { getRequestContext, setupRequestContextWithCustomSpan } from "@effect-app/infra/api/setupRequest"
 import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "@effect-app/infra/setupRequest"
 import { subMinutes } from "date-fns"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"

@@ -14,7 +14,7 @@ import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
-import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
+import { setupRequestContextFromCurrent } from "../src/setupRequest.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
 

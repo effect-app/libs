@@ -1,6 +1,6 @@
 import * as Effect from "effect-app/Effect"
 import * as Cause from "effect/Cause"
-import { logError, reportError } from "../errorReporter.js"
+import { logError, reportError } from "./errorReporter.js"
 
 // const onExitReportError = (name: string, unknownOnly?: boolean) => {
 //   const report = reportError(name)

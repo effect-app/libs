@@ -140,62 +140,6 @@
       "types": "./dist/Store/utils.d.ts",
       "default": "./dist/Store/utils.js"
     },
-    "./api/ContextProvider": {
-      "types": "./dist/api/ContextProvider.d.ts",
-      "default": "./dist/api/ContextProvider.js"
-    },
-    "./api/codec": {
-      "types": "./dist/api/codec.d.ts",
-      "default": "./dist/api/codec.js"
-    },
-    "./api/layerUtils": {
-      "types": "./dist/api/layerUtils.d.ts",
-      "default": "./dist/api/layerUtils.js"
-    },
-    "./api/middlewares": {
-      "types": "./dist/api/middlewares.d.ts",
-      "default": "./dist/api/middlewares.js"
-    },
-    "./api/reportError": {
-      "types": "./dist/api/reportError.d.ts",
-      "default": "./dist/api/reportError.js"
-    },
-    "./api/routing": {
-      "types": "./dist/api/routing.d.ts",
-      "default": "./dist/api/routing.js"
-    },
-    "./api/routing/middleware": {
-      "types": "./dist/api/routing/middleware.d.ts",
-      "default": "./dist/api/routing/middleware.js"
-    },
-    "./api/routing/middleware/RouterMiddleware": {
-      "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",
-      "default": "./dist/api/routing/middleware/RouterMiddleware.js"
-    },
-    "./api/routing/middleware/middleware": {
-      "types": "./dist/api/routing/middleware/middleware.d.ts",
-      "default": "./dist/api/routing/middleware/middleware.js"
-    },
-    "./api/routing/schema/jwt": {
-      "types": "./dist/api/routing/schema/jwt.d.ts",
-      "default": "./dist/api/routing/schema/jwt.js"
-    },
-    "./api/routing/tsort": {
-      "types": "./dist/api/routing/tsort.d.ts",
-      "default": "./dist/api/routing/tsort.js"
-    },
-    "./api/routing/utils": {
-      "types": "./dist/api/routing/utils.d.ts",
-      "default": "./dist/api/routing/utils.js"
-    },
-    "./api/setupRequest": {
-      "types": "./dist/api/setupRequest.d.ts",
-      "default": "./dist/api/setupRequest.js"
-    },
-    "./api/util": {
-      "types": "./dist/api/util.d.ts",
-      "default": "./dist/api/util.js"
-    },
     "./arbs": {
       "types": "./dist/arbs.d.ts",
       "default": "./dist/arbs.js"
@@ -271,6 +215,62 @@
     "./redis-client": {
       "types": "./dist/redis-client.d.ts",
       "default": "./dist/redis-client.js"
+    },
+    "./ContextProvider": {
+      "types": "./dist/ContextProvider.d.ts",
+      "default": "./dist/ContextProvider.js"
+    },
+    "./codec": {
+      "types": "./dist/codec.d.ts",
+      "default": "./dist/codec.js"
+    },
+    "./layerUtils": {
+      "types": "./dist/layerUtils.d.ts",
+      "default": "./dist/layerUtils.js"
+    },
+    "./middlewares": {
+      "types": "./dist/middlewares.d.ts",
+      "default": "./dist/middlewares.js"
+    },
+    "./reportError": {
+      "types": "./dist/reportError.d.ts",
+      "default": "./dist/reportError.js"
+    },
+    "./routing": {
+      "types": "./dist/routing.d.ts",
+      "default": "./dist/routing.js"
+    },
+    "./routing/middleware": {
+      "types": "./dist/routing/middleware.d.ts",
+      "default": "./dist/routing/middleware.js"
+    },
+    "./routing/middleware/RouterMiddleware": {
+      "types": "./dist/routing/middleware/RouterMiddleware.d.ts",
+      "default": "./dist/routing/middleware/RouterMiddleware.js"
+    },
+    "./routing/middleware/middleware": {
+      "types": "./dist/routing/middleware/middleware.d.ts",
+      "default": "./dist/routing/middleware/middleware.js"
+    },
+    "./routing/schema/jwt": {
+      "types": "./dist/routing/schema/jwt.d.ts",
+      "default": "./dist/routing/schema/jwt.js"
+    },
+    "./routing/tsort": {
+      "types": "./dist/routing/tsort.d.ts",
+      "default": "./dist/routing/tsort.js"
+    },
+    "./routing/utils": {
+      "types": "./dist/routing/utils.d.ts",
+      "default": "./dist/routing/utils.js"
+    },
+    "./setupRequest": {
+      "types": "./dist/setupRequest.d.ts",
+      "default": "./dist/setupRequest.js"
+    },
+    "./util": {
+      "types": "./dist/util.d.ts",
+      "default": "./dist/util.js"
     }
   },
   "scripts": {

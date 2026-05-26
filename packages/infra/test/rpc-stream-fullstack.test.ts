@@ -25,8 +25,8 @@ import * as Stream from "effect/Stream"
 import { FetchHttpClient } from "effect/unstable/http"
 import { RpcSerialization } from "effect/unstable/rpc"
 import { createServer } from "http"
-import { makeRouter } from "../src/api/routing.js"
-import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
+import { makeRouter } from "../src/routing.js"
+import { DefaultGenericMiddlewaresLive } from "../src/routing/middleware.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 // ---------------------------------------------------------------------------

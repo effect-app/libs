@@ -13,9 +13,10 @@ import type * as Option from "../Option.js"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
- * such as the Cosmos adapter. Each path identifies a field participating in the
- * unique key. Adapters forward these paths directly to the underlying storage
- * engine.
+ * such as the Cosmos adapter. This shape is intentionally kept structurally
+ * compatible with adapter-specific `UniqueKey` types. Each path identifies a
+ * field participating in the unique key, and adapters forward these paths
+ * directly to the underlying storage engine.
  */
 export interface UniqueKey {
   readonly paths: string[]

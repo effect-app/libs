@@ -16,6 +16,12 @@ export interface SendgridConfig {
   realMail: boolean
   defaultFrom: EmailData
   apiKey: Redacted.Redacted
+  /**
+   * Email address used for fake/test recipients. Use `{i}` as a placeholder for
+   * an auto-incrementing index to ensure uniqueness.
+   *
+   * @example "test+{i}@example.com"
+   */
   fakeMailAddress: string
 }
 
@@ -29,11 +35,11 @@ const makeSendgrid = (
       sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
         function*(msg_: EmailMsgOptionalFrom) {
           const replyTo = msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
-          const msg: EmailMsg = {
+          const msg = dropUndefinedT({
             ...msg_,
             from: msg_.from ?? defaultFrom,
-            ...(replyTo ? { replyTo } : {})
-          }
+            replyTo
+          }) satisfies EmailMsg
           const render = renderMessage(!realMail, fakeMailAddress)
 
           const renderedMsg_ = render(msg)

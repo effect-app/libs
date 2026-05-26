@@ -1,14 +1,23 @@
-import type { EmailData } from "@sendgrid/helpers/classes/email-address.js"
 import type { MailContent } from "@sendgrid/helpers/classes/mail.js"
 import sgMail from "@sendgrid/mail"
 import * as Array from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import type { EmailData } from "effect-app/Emailer/service"
 import { dropUndefinedT } from "effect-app/utils"
 import * as Equivalence from "effect/Equivalence"
 import * as Redacted from "effect/Redacted"
 import { inspect } from "util"
 import { InfraLogger } from "../logger.js"
-import { Emailer, type EmailMsg, type EmailMsgOptionalFrom, type SendgridConfig, SendMailError } from "./service.js"
+import { Emailer, type EmailMsg, type EmailMsgOptionalFrom, SendMailError } from "./service.js"
+
+export interface SendgridConfig {
+  defaultReplyTo?: EmailData
+  subjectPrefix: string
+  realMail: boolean
+  defaultFrom: EmailData
+  apiKey: Redacted.Redacted
+  fakeMailAddress: string
+}
 
 const makeSendgrid = (
   { apiKey, defaultFrom, defaultReplyTo, fakeMailAddress, realMail, subjectPrefix }: SendgridConfig

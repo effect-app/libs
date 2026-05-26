@@ -1,1 +1,1 @@
-export * from "./Store/service.js"
+export * from "effect-app/Store"

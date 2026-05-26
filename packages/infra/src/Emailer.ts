@@ -1,1 +1,1 @@
-export * from "./Emailer/service.js"
+export * from "effect-app/Emailer"

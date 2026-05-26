@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { RepositoryRegistryLive } from "effect-app/Model"
+import type { StorageConfig } from "effect-app/Store"
 import * as Redacted from "effect/Redacted"
 import type { SqlClient } from "effect/unstable/sql"
 import { CosmosStoreLayer } from "./Cosmos.js"
 import { DiskStoreLayer } from "./Disk.js"
 import { MemoryStoreLive } from "./Memory.js"
 // import { RedisStoreLayer } from "./Redis.js"
-import { RepositoryRegistryLive } from "effect-app/Model"
-import type { StorageConfig } from "effect-app/Store"
 import { SQLiteStoreLayer } from "./SQL.js"
 import { PgStoreLayer } from "./SQL/Pg.js"
 

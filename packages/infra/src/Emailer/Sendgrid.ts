@@ -19,13 +19,6 @@ export interface SendgridConfig {
   fakeMailAddress: string
 }
 
-const resolveReplyTo = (msg: EmailMsgOptionalFrom, defaultReplyTo?: EmailData) => {
-  if (msg.from) {
-    return undefined
-  }
-  return msg.replyTo ?? defaultReplyTo
-}
-
 const makeSendgrid = (
   { apiKey, defaultFrom, defaultReplyTo, fakeMailAddress, realMail, subjectPrefix }: SendgridConfig
 ) =>
@@ -35,7 +28,10 @@ const makeSendgrid = (
     return Emailer.of({
       sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
         function*(msg_: EmailMsgOptionalFrom) {
-          const replyTo = resolveReplyTo(msg_, defaultReplyTo)
+          let replyTo: EmailData | undefined
+          if (!msg_.from) {
+            replyTo = msg_.replyTo ?? defaultReplyTo
+          }
           const msg: EmailMsg = {
             ...msg_,
             from: msg_.from ?? defaultFrom,

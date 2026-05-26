@@ -2,14 +2,12 @@
 
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
-import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import type { FilterResult } from "effect-app/Model/filter/filterApi"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { NonEmptyString255 } from "effect-app/Schema"
-import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "effect-app/Store"
+import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
 import { flow, pipe } from "effect/Function"
 import * as Order from "effect/Order"
@@ -314,9 +312,6 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
     return selectPerRow(r)
   })
 }
-
-const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
-export class storeId extends Context.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger

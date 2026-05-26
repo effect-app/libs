@@ -18,6 +18,7 @@ import { flatMapOption } from "../../../Effect.js"
 import * as Option from "../../../Option.js"
 import * as S from "../../../Schema.js"
 import { type Codec, NonNegativeInt } from "../../../Schema.js"
+import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
 import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
@@ -404,7 +405,7 @@ export function makeRepoInternal<
                 : a.ttype === "count"
                 ? Effect
                   .map(eff, (_) => NonNegativeInt(_.length))
-                  .pipe(Effect.orDie)
+                  .pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e)))
                 : eff,
               Effect.tap((r) =>
                 Effect.annotateCurrentSpan({
@@ -625,10 +626,8 @@ export function makeStore<Encoded extends FieldValues>() {
             ? makeInitial
               .pipe(
                 Effect.flatMap(Effect.forEach(encodeToEncoded())),
-                Effect.withSpan("Repository.makeInitial", {
+                setupRequestContextFromCurrent("Repository.makeInitial [effect-app/infra]", {
                   attributes: { "app.entity": name }
-                }, {
-                  captureStackTrace: false
                 })
               )
             : undefined,

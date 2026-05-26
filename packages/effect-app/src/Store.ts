@@ -12,6 +12,7 @@ import type { FieldValues } from "./Model/filter/types.js"
 import type { FieldPath } from "./Model/filter/types/path/index.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.js"
 import type * as Option from "./Option.js"
+import { NonEmptyString255 } from "./Schema.js"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
@@ -261,6 +262,9 @@ export const cachedPerRequest = <A, E, R>(
     Effect.flatMap((ctxMap) => ctxMap.getOrCreateStoreEffect(cacheKey, make))
   )
 }
+
+const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
+export class storeId extends Context.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {
   _etag?: string | undefined

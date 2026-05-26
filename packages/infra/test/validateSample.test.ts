@@ -3,8 +3,8 @@ import * as Layer from "effect-app/Layer"
 import { makeRepo, ValidationError, ValidationResult } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
+import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import { describe, expect, it } from "vitest"
-import { setupRequestContextFromCurrent } from "../src/setupRequest.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)

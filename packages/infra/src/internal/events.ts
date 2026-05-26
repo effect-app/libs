@@ -1,13 +1,13 @@
 import * as Effect from "effect-app/Effect"
 import { HttpHeaders, HttpServerResponse } from "effect-app/http"
 import * as S from "effect-app/Schema"
+import { setupStreamingRequestContextFromCurrent } from "effect-app/setupRequest"
+import { storeId } from "effect-app/Store"
 import * as Duration from "effect/Duration"
 import { pipe } from "effect/Function"
 import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import { reportError } from "../errorReporter.js"
-import { setupStreamingRequestContextFromCurrent } from "../setupRequest.js"
-import { storeId } from "../Store/Memory.js"
 
 // Tell the client to retry every 10 seconds if connectivity is lost
 const setRetry = Stream.succeed("retry: 10000")

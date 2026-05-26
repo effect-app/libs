@@ -252,10 +252,6 @@
       "types": "./dist/routing/utils.d.ts",
       "default": "./dist/routing/utils.js"
     },
-    "./setupRequest": {
-      "types": "./dist/setupRequest.d.ts",
-      "default": "./dist/setupRequest.js"
-    },
     "./test": {
       "types": "./dist/test.d.ts",
       "default": "./dist/test.js"

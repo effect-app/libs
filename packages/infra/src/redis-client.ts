@@ -8,7 +8,7 @@ import Redlock from "redlock"
 
 export class ConnectionException extends Data.TaggedError("ConnectionException")<{ cause: Error; message: string }> {
   constructor(cause: Error) {
-    super({ message: "A connection error ocurred", cause })
+    super({ message: "A connection error occurred", cause })
   }
 }
 

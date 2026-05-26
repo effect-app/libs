@@ -3,8 +3,8 @@ import { HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-ap
 import * as Layer from "effect-app/Layer"
 import { Locale, LocaleRef, RequestContext, spanAttributes } from "effect-app/RequestContext"
 import { NonEmptyString255 } from "effect-app/Schema"
+import { ContextMapContainer } from "effect-app/Store"
 import { provideOnRequestScope } from "../setupRequest.js"
-import { ContextMapContainer } from "../Store/ContextMapContainer.js"
 import { storeId } from "../Store/Memory.js"
 
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>

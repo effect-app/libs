@@ -18,7 +18,7 @@ import { flatMapOption } from "../../../Effect.js"
 import * as Option from "../../../Option.js"
 import * as S from "../../../Schema.js"
 import { type Codec, NonNegativeInt } from "../../../Schema.js"
-import { ContextMap, type FilterArgs, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
+import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
 import type { Repository } from "../service.js"
@@ -96,26 +96,10 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
-          const etags = new Map<string, string | undefined>()
-          const cms = Effect.serviceOption(ContextMap).pipe(
-            Effect.map(Option.match({
-              onNone: () => ({
-                get: (id: string) => etags.get(`${name}.${id}`),
-                set: (id: string, etag: string | undefined) => {
-                  const key = `${name}.${id}`
-                  if (etag === undefined) {
-                    etags.delete(key)
-                  } else {
-                    etags.set(key, etag)
-                  }
-                }
-              }),
-              onSome: (contextMap) => ({
-                get: (id: string) => contextMap.get(`${name}.${id}`),
-                set: (id: string, etag: string | undefined) => contextMap.set(`${name}.${id}`, etag)
-              })
-            }))
-          )
+          const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
+            get: (id: string) => _.get(`${name}.${id}`),
+            set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
+          }))
 
           const pub = "publishEvents" in args
             ? args.publishEvents

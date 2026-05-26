@@ -112,10 +112,6 @@
       "types": "./dist/ServiceBus.d.ts",
       "default": "./dist/ServiceBus.js"
     },
-    "./Store/ContextMapContainer": {
-      "types": "./dist/Store/ContextMapContainer.d.ts",
-      "default": "./dist/Store/ContextMapContainer.js"
-    },
     "./Store/Cosmos": {
       "types": "./dist/Store/Cosmos.d.ts",
       "default": "./dist/Store/Cosmos.js"

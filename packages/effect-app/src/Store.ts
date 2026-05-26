@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import * as Data from "effect/Data"
 import type * as Redacted from "effect/Redacted"
 import * as Semaphore from "effect/Semaphore"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import type { OptimisticConcurrencyException } from "./client/errors.js"
 import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
+import * as Layer from "./Layer.js"
 import type { FilterResult } from "./Model/filter/filterApi.js"
 import type { FieldValues } from "./Model/filter/types.js"
 import type { FieldPath } from "./Model/filter/types/path/index.js"
@@ -230,6 +232,34 @@ const makeMap = Effect.acquireRelease(
 )
 
 export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
+}
+
+export class ContextMapContainer extends Context.Reference("ContextMapContainer", {
+  defaultValue: (): ContextMap | "root" => "root"
+}) {
+  static readonly layer = Layer.effect(this, ContextMap.make.pipe(Effect.map(ContextMap.of)))
+}
+
+export class ContextMapNotStartedError extends Data.TaggedError("ContextMapNotStartedError") {}
+
+export const getContextMap = ContextMapContainer.pipe(
+  Effect.filterOrFail((_) => _ !== "root", () => new ContextMapNotStartedError())
+)
+
+/**
+ * Runs `make` at most once per ContextMap (i.e. per request) and caches the
+ * resulting value in the ContextMap under a fresh symbol. Subsequent calls of
+ * the returned Effect within the same ContextMap return the cached value.
+ *
+ * Uses the ContextMap's shared semaphore for safe single initialization.
+ */
+export const cachedPerRequest = <A, E, R>(
+  make: Effect.Effect<A, E, R>
+): Effect.Effect<A, E | ContextMapNotStartedError, R> => {
+  const cacheKey = Symbol()
+  return getContextMap.pipe(
+    Effect.flatMap((ctxMap) => ctxMap.getOrCreateStoreEffect(cacheKey, make))
+  )
 }
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {

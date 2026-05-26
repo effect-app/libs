@@ -11,18 +11,29 @@ import type { Mapped } from "./legacy.js"
 import type { ValidationResult } from "./validation.js"
 
 /**
+ * Event emitted by a repository's ChangeFeed.
+ *
+ * Tuple shape: `[items, op, namespace]` — `namespace` is the `storeId`
+ * context value at publish time (defaults to `"primary"`).
+ */
+export type ChangeFeedEvent<T> = readonly [items: T[], op: "save" | "remove", namespace: string]
+
+/**
  * Synchronous broadcast channel for repository change events.
  *
- * `publish` only completes after every currently-subscribed handler's Effect
- * has finished — callers must await all handlers before continuing. Handlers
- * registered via `subscribe` are auto-removed when the subscriber's Scope
- * closes, and the full handler set is cleared when the repository's own scope
- * closes.
+ * `publish` only completes after every matching handler's Effect has
+ * finished — callers must await all handlers before continuing. Subscribers
+ * can target a single namespace via `options.namespace`, or omit it to
+ * receive events from every namespace (wildcard).
+ *
+ * Handlers are auto-removed when the subscriber's Scope closes; the full
+ * handler set is cleared when the repository's own scope closes.
  */
 export interface ChangeFeed<T> {
   readonly publish: (evt: [T[], "save" | "remove"]) => Effect.Effect<void>
   readonly subscribe: (
-    handler: (evt: [T[], "save" | "remove"]) => Effect.Effect<void>
+    handler: (evt: ChangeFeedEvent<T>) => Effect.Effect<void>,
+    options?: { readonly namespace?: string }
   ) => Effect.Effect<void, never, Scope.Scope>
 }
 

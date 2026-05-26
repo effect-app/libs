@@ -2,6 +2,7 @@
 
 import * as Equivalence from "effect/Equivalence"
 import { flow, pipe } from "effect/Function"
+import * as HashMap from "effect/HashMap"
 import * as HashSet from "effect/HashSet"
 import * as Pipeable from "effect/Pipeable"
 import * as Ref from "effect/Ref"
@@ -21,10 +22,10 @@ import * as Option from "../../../Option.js"
 import * as S from "../../../Schema.js"
 import { type Codec, NonNegativeInt } from "../../../Schema.js"
 import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
-import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
+import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, storeId, StoreMaker } from "../../../Store.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
-import type { ChangeFeed, Repository } from "../service.js"
+import type { ChangeFeed, ChangeFeedEvent, Repository } from "../service.js"
 import { ValidationError, ValidationResult } from "../validation.js"
 
 const dedupe = Array.dedupeWith(Equivalence.String)
@@ -108,22 +109,48 @@ export function makeRepoInternal<
             ? args.publishEvents
             : () => Effect.void
 
-          type ChangeFeedEvt = [T[], "save" | "remove"]
-          type ChangeFeedHandler = (evt: ChangeFeedEvt) => Effect.Effect<void>
-          const changeFeedHandlers = yield* Ref.make(HashSet.empty<ChangeFeedHandler>())
+          type ChangeFeedHandler = (evt: ChangeFeedEvent<T>) => Effect.Effect<void>
+          const changeFeedByNamespace = yield* Ref.make(HashMap.empty<string, HashSet.HashSet<ChangeFeedHandler>>())
+          const changeFeedWildcard = yield* Ref.make(HashSet.empty<ChangeFeedHandler>())
           // clear all handlers when the repository's scope closes
-          yield* Effect.addFinalizer(() => Ref.set(changeFeedHandlers, HashSet.empty<ChangeFeedHandler>()))
+          yield* Effect.addFinalizer(() =>
+            Effect.all([
+              Ref.set(changeFeedByNamespace, HashMap.empty<string, HashSet.HashSet<ChangeFeedHandler>>()),
+              Ref.set(changeFeedWildcard, HashSet.empty<ChangeFeedHandler>())
+            ], { discard: true })
+          )
           const changeFeed: ChangeFeed<T> = {
-            publish: (evt) =>
-              Effect.flatMap(
-                Ref.get(changeFeedHandlers),
-                (hs) => Effect.forEach(hs, (h) => h(evt), { concurrency: "unbounded", discard: true })
-              ),
-            subscribe: (handler) =>
-              Effect.acquireRelease(
-                Ref.update(changeFeedHandlers, HashSet.add(handler)),
-                () => Ref.update(changeFeedHandlers, HashSet.remove(handler))
+            publish: ([items, op]) =>
+              Effect.gen(function*() {
+                const ns = yield* storeId
+                const evt: ChangeFeedEvent<T> = [items, op, ns]
+                const map = yield* Ref.get(changeFeedByNamespace)
+                const wild = yield* Ref.get(changeFeedWildcard)
+                const targeted = Option.getOrElse(HashMap.get(map, ns), () => HashSet.empty<ChangeFeedHandler>())
+                const all = HashSet.union(targeted, wild)
+                yield* Effect.forEach(all, (h) => h(evt), { concurrency: "unbounded", discard: true })
+              }),
+            subscribe: (handler, options) => {
+              const ns = options?.namespace
+              if (ns === undefined) {
+                return Effect.acquireRelease(
+                  Ref.update(changeFeedWildcard, HashSet.add(handler)),
+                  () => Ref.update(changeFeedWildcard, HashSet.remove(handler))
+                )
+              }
+              return Effect.acquireRelease(
+                Ref.update(changeFeedByNamespace, (m) => {
+                  const cur = Option.getOrElse(HashMap.get(m, ns), () => HashSet.empty<ChangeFeedHandler>())
+                  return HashMap.set(m, ns, HashSet.add(cur, handler))
+                }),
+                () =>
+                  Ref.update(changeFeedByNamespace, (m) => {
+                    const cur = Option.getOrElse(HashMap.get(m, ns), () => HashSet.empty<ChangeFeedHandler>())
+                    const next = HashSet.remove(cur, handler)
+                    return HashSet.size(next) === 0 ? HashMap.remove(m, ns) : HashMap.set(m, ns, next)
+                  })
               )
+            }
           }
 
           const allE = cms

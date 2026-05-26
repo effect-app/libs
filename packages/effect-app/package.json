@@ -15,6 +15,7 @@
     "validator": "^13.15.35"
   },
   "devDependencies": {
+    "@effect/vitest": "^4.0.0-beta.70",
     "@faker-js/faker": "^8.4.1",
     "@types/node": "25.6.0",
     "@types/uuid": "^11.0.0",

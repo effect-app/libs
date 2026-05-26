@@ -3,12 +3,12 @@
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import type { FilterR, FilterResult, Ops } from "effect-app/Model/filter/filterApi"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
+import type { SupportedValues } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
-import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
-import type { SupportedValues } from "../service.js"
 
 export function logQuery(q: {
   query: string

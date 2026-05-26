@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Array from "effect-app/Array"
+import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
+import type { FieldValues } from "effect-app/Model/filter/types"
 import * as Option from "effect-app/Option"
+import type { Filter } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
-import type { FilterR, FilterResult } from "../Model/filter/filterApi.js"
-import type { FieldValues } from "../Model/filter/types.js"
 import { get } from "./Memory.js"
-import type { Filter } from "./service.js"
 import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
 
 const vAsArr = (v: string) => v as unknown as any[]

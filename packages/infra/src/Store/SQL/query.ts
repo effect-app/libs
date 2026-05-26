@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
-import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {

@@ -1,0 +1,243 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type * as Redacted from "effect/Redacted"
+import * as Semaphore from "effect/Semaphore"
+import type { NonEmptyReadonlyArray } from "./Array.js"
+import type { OptimisticConcurrencyException } from "./client/errors.js"
+import * as Context from "./Context.js"
+import * as Effect from "./Effect.js"
+import type { FilterResult } from "./Model/filter/filterApi.js"
+import type { FieldValues } from "./Model/filter/types.js"
+import type { FieldPath } from "./Model/filter/types/path/index.js"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.js"
+import type * as Option from "./Option.js"
+
+/**
+ * Adapter-neutral unique-key definition for stores that support unique indexes,
+ * such as the Cosmos adapter. This shape is intentionally kept structurally
+ * compatible with adapter-specific `UniqueKey` types. Each path identifies a
+ * field participating in the unique key, and adapters forward these paths
+ * directly to the underlying storage engine.
+ */
+export interface UniqueKey {
+  readonly paths: string[]
+}
+
+export interface StoreConfig<E> {
+  partitionValue: (e?: E) => string
+  /**
+   * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
+   * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
+   */
+  allowNamespace?: (namespace: string) => boolean
+  /**
+   * just in time migrations, supported by the database driver, supporting queries, for simple default values
+   */
+  defaultValues?: Partial<E>
+
+  /**
+   * How many items can be processed in one batch at a time.
+   * Defaults to 100 for CosmosDB.
+   */
+  maxBulkSize?: number
+
+  /**
+   * Unique indexes, mainly for CosmosDB
+   */
+  uniqueKeys?: UniqueKey[]
+}
+
+export type SupportedValues = string | boolean | number | null
+export type SupportedValues2 = string | boolean | number
+
+// default is eq
+export type Where =
+  | { key: string; t?: "eq" | "not-eq"; value: SupportedValues }
+  | { key: string; t: "gt" | "lt" | "gte" | "lte"; value: SupportedValues2 }
+  | {
+    key: string
+    t: "contains" | "starts-with" | "ends-with" | "not-contains" | "not-starts-with" | "not-ends-with"
+    value: string
+  }
+  | { key: string; t: "includes" | "not-includes"; value: string }
+  | {
+    key: string
+    t: "in" | "not-in"
+    value: readonly (SupportedValues)[]
+  }
+
+export type Filter = readonly FilterResult[]
+
+export interface O<TFieldValues extends FieldValues> {
+  key: FieldPath<TFieldValues>
+  direction: "ASC" | "DESC"
+}
+
+export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded = never> {
+  t: Encoded
+  filter?: Filter | undefined
+  select?:
+    | NonEmptyReadonlyArray<
+      U | { key: string; subKeys: readonly string[] } | {
+        key: string
+        computed: ComputedProjectionIrExpression
+      } | {
+        key: string
+        path: string
+      } | {
+        key: string
+        aggregate: AggregateIrExpression
+      }
+    >
+    | undefined
+  order?: NonEmptyReadonlyArray<O<NoInfer<Encoded>>>
+  limit?: number | undefined
+  skip?: number | undefined
+}
+
+export type FilterFunc<Encoded extends FieldValues> = <U extends keyof Encoded = never>(
+  args: FilterArgs<Encoded, U>
+) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[]>
+
+export interface Store<
+  IdKey extends keyof Encoded,
+  Encoded extends FieldValues,
+  PM extends PersistenceModelType<Encoded> = PersistenceModelType<Encoded>
+> {
+  all: Effect.Effect<PM[]>
+  filter: FilterFunc<Encoded>
+  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>>
+  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException>
+  batchSet: (
+    items: NonEmptyReadonlyArray<PM>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
+  bulkSet: (
+    items: NonEmptyReadonlyArray<PM>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
+  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
+  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
+  /**
+   * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
+   * Non-primary namespaces must be seeded explicitly before use.
+   */
+  seedNamespace: (namespace: string) => Effect.Effect<void>
+}
+
+export class StoreMaker extends Context.Opaque<StoreMaker, {
+  make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+    name: string,
+    idKey: IdKey,
+    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+    config?: StoreConfig<Encoded>
+  ) => Effect.Effect<Store<IdKey, Encoded>, E, R>
+}>()("effect-app/StoreMaker") {
+}
+
+export const makeContextMap = () => {
+  const etags = new Map<string, string>()
+  const getEtag = (id: string) => etags.get(id)
+  const setEtag = (id: string, eTag: string | undefined) => {
+    if (eTag === undefined) {
+      etags.delete(id)
+    } else {
+      etags.set(id, eTag)
+    }
+  }
+
+  // const parsedCache = new Map<
+  //   Parser<any, any, any>,
+  //   Map<unknown, These.These<unknown, unknown>>
+  // >()
+
+  // const parserCache = new Map<
+  //   Parser<any, any, any>,
+  //   (i: any) => These.These<any, any>
+  // >()
+
+  // const setAndReturn = <I, E, A>(
+  //   p: Parser<I, E, A>,
+  //   np: (i: I) => These.These<E, A>
+  // ) => {
+  //   parserCache.set(p, np)
+  //   return np
+  // }
+
+  // const parserEnv: ParserEnv = {
+  //   // TODO: lax: true would turn off refinement checks, may help on large payloads
+  //   // but of course removes confirming of validation rules (which may be okay for a database owned by the app, as we write safely)
+  //   lax: false,
+  //   cache: {
+  //     getOrSetParser: (p) => parserCache.get(p) ?? setAndReturn(p, (i) => parserEnv.cache!.getOrSet(i, p)),
+  //     getOrSetParsers: (parsers) => {
+  //       return Object.entries(parsers).reduce((prev, [k, v]) => {
+  //         prev[k] = parserEnv.cache!.getOrSetParser(v)
+  //         return prev
+  //       }, {} as any)
+  //     },
+  //     getOrSet: (i, parse): any => {
+  //       const c = parsedCache.get(parse)
+  //       if (c) {
+  //         const f = c.get(i)
+  //         if (f) {
+  //           // console.log("$$$ cache hit", i)
+  //           return f
+  //         } else {
+  //           const nf = parse(i, parserEnv)
+  //           c.set(i, nf)
+  //           return nf
+  //         }
+  //       } else {
+  //         const nf = parse(i, parserEnv)
+  //         parsedCache.set(parse, new Map([[i, nf]]))
+  //         return nf
+  //       }
+  //     }
+  //   }
+  // }
+
+  const store = new Map<symbol, unknown>()
+  const sem = Semaphore.makeUnsafe(1)
+
+  return {
+    createdAt: new Date(),
+    get: getEtag,
+    set: setEtag,
+    getOrCreateStore: <T>(key: symbol, make: () => T): T => {
+      let value = store.get(key) as T | undefined
+      if (value === undefined) {
+        value = make()
+        store.set(key, value)
+      }
+      return value
+    },
+    getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
+      sem.withPermits(1)(Effect.uninterruptible(Effect.gen(function*() {
+        const value = store.get(key) as T | undefined
+        if (value !== undefined) return value
+        const v = yield* make
+        store.set(key, v)
+        return v
+      }))),
+    clear: () => {
+      etags.clear()
+      store.clear()
+    }
+  }
+}
+
+const makeMap = Effect.acquireRelease(
+  Effect.sync(() => makeContextMap()),
+  (m) => Effect.sync(() => m.clear())
+)
+
+export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
+}
+
+export type PersistenceModelType<Encoded extends object> = Encoded & {
+  _etag?: string | undefined
+}
+
+export interface StorageConfig {
+  url: Redacted.Redacted
+  prefix: string
+  dbName: string
+}

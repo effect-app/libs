@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect-app/Effect"
 import { HttpHeaders } from "effect-app/http"
 import { SignJWT } from "jose"
-import { checkJWTI, InvalidRequestError, InvalidTokenError, UnauthorizedError } from "../src/api/internal/auth.js"
+import { checkJWTI, InvalidRequestError, InvalidTokenError, UnauthorizedError } from "../src/internal/auth.js"
 
 const issuer = "https://issuer.example.com/"
 const audience = "effect-app"

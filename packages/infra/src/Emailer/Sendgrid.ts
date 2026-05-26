@@ -1,14 +1,28 @@
-import type { EmailData } from "@sendgrid/helpers/classes/email-address.js"
 import type { MailContent } from "@sendgrid/helpers/classes/mail.js"
 import sgMail from "@sendgrid/mail"
 import * as Array from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import { type EmailData, Emailer, type EmailMsg, type EmailMsgOptionalFrom, SendMailError } from "effect-app/Emailer"
 import { dropUndefinedT } from "effect-app/utils"
 import * as Equivalence from "effect/Equivalence"
 import * as Redacted from "effect/Redacted"
 import { inspect } from "util"
 import { InfraLogger } from "../logger.js"
-import { Emailer, type EmailMsg, type EmailMsgOptionalFrom, type SendgridConfig, SendMailError } from "./service.js"
+
+export interface SendgridConfig {
+  defaultReplyTo?: EmailData
+  subjectPrefix: string
+  realMail: boolean
+  defaultFrom: EmailData
+  apiKey: Redacted.Redacted
+  /**
+   * Email address used for fake/test recipients. Use `{i}` as a placeholder for
+   * an auto-incrementing index to ensure uniqueness.
+   *
+   * @example "test+{i}@example.com"
+   */
+  fakeMailAddress: string
+}
 
 const makeSendgrid = (
   { apiKey, defaultFrom, defaultReplyTo, fakeMailAddress, realMail, subjectPrefix }: SendgridConfig
@@ -19,11 +33,12 @@ const makeSendgrid = (
     return Emailer.of({
       sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
         function*(msg_: EmailMsgOptionalFrom) {
-          const msg: EmailMsg = dropUndefinedT({
+          const replyTo = msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
+          const msg = dropUndefinedT({
             ...msg_,
             from: msg_.from ?? defaultFrom,
-            replyTo: msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
-          })
+            replyTo
+          }) satisfies EmailMsg
           const render = renderMessage(!realMail, fakeMailAddress)
 
           const renderedMsg_ = render(msg)

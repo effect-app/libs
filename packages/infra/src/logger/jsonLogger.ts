@@ -1,8 +1,8 @@
 import * as Array from "effect-app/Array"
+import { spanAttributes } from "effect-app/RequestContext"
 import * as Cause from "effect/Cause"
 import * as Logger from "effect/Logger"
 import { CurrentLogAnnotations, CurrentLogSpans } from "effect/References"
-import { spanAttributes } from "../RequestContext.js"
 import { getRequestContextFromFiber } from "./shared.js"
 
 export const jsonLogger = Logger.make<unknown, void>(

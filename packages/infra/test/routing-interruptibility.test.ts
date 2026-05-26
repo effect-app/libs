@@ -6,8 +6,8 @@ import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc"
-import { applyRequestTypeInterruptibility } from "../src/api/routing.js"
-import { ConfigureInterruptibilityMiddlewareLive, RequestType } from "../src/api/routing/middleware.js"
+import { applyRequestTypeInterruptibility } from "../src/routing.js"
+import { ConfigureInterruptibilityMiddlewareLive, RequestType } from "../src/routing/middleware.js"
 
 const InterruptibilityRpcs = RpcGroup.make(
   Rpc

@@ -1,11 +1,11 @@
 import { expectTypeOf } from "@effect/vitest"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { makeRepo } from "effect-app/Model"
+import { and, make, one, or, order, page, project, type QueryWhere, where } from "effect-app/Model/query"
 import * as S from "effect-app/Schema"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Struct from "effect/Struct"
-import { makeRepo } from "../src/Model.js"
-import { and, make, one, or, order, page, project, type QueryWhere, where } from "../src/Model/query.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })

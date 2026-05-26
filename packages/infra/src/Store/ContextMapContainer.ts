@@ -1,8 +1,8 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { ContextMap } from "effect-app/Store"
 import * as Data from "effect/Data"
-import { ContextMap } from "./service.js"
 
 // TODO: we have to create a new contextmap on every request.
 // we want to share one map during startup

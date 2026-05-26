@@ -10,8 +10,10 @@ export * as ConfigProvider from "./ConfigProvider.js"
 export * as Context from "./Context.js"
 export * as Effect from "./Effect.js"
 export * as Layer from "./Layer.js"
+export * as Model from "./Model.js"
 export * as NonEmptySet from "./NonEmptySet.js"
 export * as Set from "./Set.js"
+export * as Store from "./Store.js"
 
 export { type NonEmptyArray, type NonEmptyReadonlyArray } from "./Array.js"
 

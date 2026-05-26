@@ -14,7 +14,7 @@ import * as Result from "effect/Result"
 import { FetchHttpClient } from "effect/unstable/http"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { createServer } from "http"
-import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
+import { DefaultGenericMiddlewaresLive } from "../src/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
 const incomplete = RpcX

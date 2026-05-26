@@ -1,5 +1,6 @@
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
+import { QueueMeta } from "effect-app/QueueMaker"
 import * as S from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
 import * as Cause from "effect/Cause"
@@ -7,12 +8,11 @@ import * as Fiber from "effect/Fiber"
 import { flow } from "effect/Function"
 import * as Q from "effect/Queue"
 import * as Tracer from "effect/Tracer"
-import { MemQueue } from "../adapters/memQueue.js"
-import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
+import { MemQueue } from "../memQueue.js"
 import { messagingSpanArgs } from "../otel.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../setupRequest.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
-import { QueueMeta } from "./service.js"
 
 export const makeMemQueue = Effect.fnUntraced(function*<
   Evt extends { id: S.StringId; _tag: string },

@@ -149,7 +149,14 @@ type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parame
 export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> = HasNoFields<I> extends true ? void
   : RequestInput<I>
 
-/** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
+/**
+ * Extracts the final-value type from a stream request. Defaults to the success
+ * type when no `final` schema is set.
+ *
+ * NOTE: `final` schema is NOT YET IMPLEMENTED at runtime — this type only
+ * shapes the TypeScript return type. The stream executor does not decode the
+ * terminal chunk using this schema.
+ */
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? F["Type"]
   : T["success"]["Type"]
 

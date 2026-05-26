@@ -39,7 +39,17 @@ export type Req = S.Top & {
   fields: S.Struct.Fields
   success: S.Top
   error: S.Top
-  /** Optional final-value schema for stream requests. When set, the execute effect resolves with the last stream value decoded to this type. */
+  /**
+   * Optional final-value schema for stream requests.
+   *
+   * **NOT YET IMPLEMENTED** — the schema is stored on the request class and
+   * shapes the TypeScript return type via `FinalTypeOf`, but the client-side
+   * stream executor does not yet use it to decode the terminal stream value at
+   * runtime. Setting this only affects compile-time types; no runtime decoding
+   * occurs.
+   *
+   * @todo Implement runtime decoding of the last stream chunk using this schema.
+   */
   final?: S.Top
   config?: Record<string, any>
   readonly id: string

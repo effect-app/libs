@@ -210,6 +210,75 @@ export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>
 })
 
 /**
+ * Type alias for the wire success schema of a command Rpc.
+ * Matches the shape produced by `CommandResponseWithMetaData`.
+ */
+export type CommandRpcSuccessSchema<S extends S.Top> = S.Struct<{
+  payload: S
+  metadata: typeof CommandMetaData
+}>
+
+/**
+ * Type alias for the wire error schema of a command Rpc.
+ * Matches the shape produced by `CommandFailureWithMetaData`.
+ */
+export type CommandRpcErrorSchema<E extends S.Top> = S.Struct<{
+  _tag: S.Literal<"CommandFailureWithMetaData">
+  error: E
+  metadata: typeof CommandMetaData
+}>
+
+/**
+ * Wraps a plain Effect handler for use with a command Rpc created via
+ * `AppMiddleware.commandRpc()` / `makeCommandRpc`.
+ *
+ * Per call: provides a fresh `InvalidationSet`, wraps success with
+ * `CommandResponseWithMetaData`, wraps handler-thrown failure with
+ * `CommandFailureWithMetaData`. Keys accumulated before a failure are
+ * preserved in the failure envelope (matches routing.ts behavior).
+ *
+ * ```ts
+ * updateProfile: Invalidation.commandHandler(Effect.fn(function*(payload) {
+ *   yield* Invalidation.InvalidationSet.add(UserRsc.GetProfile)
+ *   return yield* profileRepo.update(payload)
+ * }))
+ * ```
+ */
+export const commandHandler = <Payload, A, E, R>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fn: (payload: Payload, options: any) => Effect.Effect<A, E, R>
+) =>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(payload: Payload, options: any): Effect.Effect<
+  { readonly payload: A; readonly metadata: CommandMetaData },
+  { readonly _tag: "CommandFailureWithMetaData"; readonly error: E; readonly metadata: CommandMetaData },
+  R
+> => {
+  const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
+  const invalidationSet = makeInvalidationSet(keysRef)
+  return fn(payload, options).pipe(
+    Effect.provideService(InvalidationSet, invalidationSet),
+    Effect.matchEffect({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onFailure: (err: any) =>
+        Ref.get(keysRef).pipe(
+          Effect.flatMap((keys) =>
+            Effect.fail({
+              _tag: "CommandFailureWithMetaData" as const,
+              error: err as E,
+              metadata: { invalidateQueries: keys }
+            })
+          )
+        ),
+      onSuccess: (value) =>
+        Ref.get(keysRef).pipe(
+          Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }))
+        )
+    })
+  )
+}
+
+/**
  * `Rpc.Custom` definition for command RPCs that wrap the success/error schemas
  * with `CommandResponseWithMetaData` / `CommandFailureWithMetaData`. The wrap
  * lets server forward accumulated invalidation keys on both success and

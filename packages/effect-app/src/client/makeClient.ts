@@ -149,6 +149,7 @@ export const makeRpcClient = <
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    /** @see {@link Req.final} — NOT YET IMPLEMENTED at runtime; type-level only. */
     final?: S.Top | S.Struct.Fields // optional final-value schema for stream requests
     stream?: boolean // request metadata — stripped from stored config
   }

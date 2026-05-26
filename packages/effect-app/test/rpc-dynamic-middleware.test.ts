@@ -13,6 +13,11 @@ import * as RpcX from "../src/rpc.js"
 import { RpcContextMap } from "../src/rpc.js"
 import * as S from "../src/Schema.js"
 
+// ── Shared command test error ────────────────────────────────────────────────
+class CommandError extends S.TaggedErrorClass<CommandError>()("CommandError", {
+  reason: S.String
+}) {}
+
 // ── Domain service ────────────────────────────────────────────────────────────
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -199,5 +204,137 @@ it.live(
       expect(result).toStrictEqual(Result.fail(new NotLoggedInError("Not logged in")))
     },
     Effect.provide(TestLayer)
+  )
+)
+
+// ── Command RPC support ────────────────────────────────────────────────────────
+//
+// Command rpcs use `makeCommandRpc` wire format:
+//   success → { payload: A, metadata: { invalidateQueries: [...] } }
+//   failure → { _tag: "CommandFailureWithMetaData", error: E, metadata: {...} }
+//
+// Server handlers MUST be wrapped with `Invalidation.commandHandler(fn)`.
+// The wrapper provides a fresh `InvalidationSet` per call and applies the
+// wrapping automatically. Keys added via `InvalidationSet.add()` inside the
+// handler appear in the response metadata.
+//
+// Note: `RpcTest.makeClient` is in-memory (no HTTP); the client receives the
+// raw wire types. Production clients (ApiClientFactory) unwrap them transparently.
+
+const CommandRpcs = RpcX.MiddlewareMaker.middlewareGroup(AppMiddleware)(
+  RpcGroup.make(
+    // anonymous: success void, no keys
+    AppMiddleware.rpc("cmdDoNothing", {
+      command: true,
+      success: S.Void,
+      config: { allowAnonymous: true }
+    }),
+    // anonymous: success string, accumulates an invalidation key
+    AppMiddleware.rpc("cmdWithKey", {
+      command: true,
+      success: S.String,
+      config: { allowAnonymous: true }
+    }),
+    // anonymous: fails after accumulating a key (key survives in metadata)
+    AppMiddleware.rpc("cmdAndFail", {
+      command: true,
+      success: S.Void,
+      error: CommandError,
+      config: { allowAnonymous: true }
+    }),
+    // auth required (default): handler can access UserProfile
+    AppMiddleware.rpc("cmdProtected", {
+      command: true,
+      success: S.String
+    })
+  )
+)
+
+const CommandInvalidationKey: RpcX.Invalidation.InvalidationKey = ["cmd", "key"]
+
+const commandImpl = CommandRpcs.toLayerDynamic({
+  cmdDoNothing: RpcX.Invalidation.commandHandler(Effect.fn(function*() {
+    return undefined as void
+  })),
+  cmdWithKey: RpcX.Invalidation.commandHandler(Effect.fn(function*() {
+    yield* RpcX.Invalidation.InvalidationSet.add(CommandInvalidationKey)
+    return "done" as const
+  })),
+  cmdAndFail: RpcX.Invalidation.commandHandler(Effect.fn(function*() {
+    yield* RpcX.Invalidation.InvalidationSet.add(CommandInvalidationKey)
+    return yield* Effect.fail(new CommandError({ reason: "intentional" }))
+  })),
+  cmdProtected: RpcX.Invalidation.commandHandler(Effect.fn(function*() {
+    const user = yield* UserProfile
+    return user.id
+  }))
+})
+
+// Type test: command impl requires nothing (middleware provides all context).
+expectTypeOf<Layer.Services<typeof commandImpl>>().toEqualTypeOf<never>()
+
+export const CommandTestLayer = Layer.mergeAll(commandImpl, middlewareLayer)
+
+// ── Command runtime tests ─────────────────────────────────────────────────────
+
+it.live(
+  "command with no keys: returns { payload, metadata: { invalidateQueries: [] } }",
+  Effect.fnUntraced(
+    function*() {
+      const client = yield* RpcTest.makeClient(CommandRpcs)
+      const result = yield* client.cmdDoNothing()
+      expect(result).toStrictEqual({ payload: undefined, metadata: { invalidateQueries: [] } })
+    },
+    Effect.provide(CommandTestLayer)
+  )
+)
+
+it.live(
+  "command with InvalidationSet.add: key appears in metadata",
+  Effect.fnUntraced(
+    function*() {
+      const client = yield* RpcTest.makeClient(CommandRpcs)
+      const result = yield* client.cmdWithKey()
+      expect(result).toStrictEqual({
+        payload: "done",
+        metadata: { invalidateQueries: [CommandInvalidationKey] }
+      })
+    },
+    Effect.provide(CommandTestLayer)
+  )
+)
+
+it.live(
+  "command failure: CommandFailureWithMetaData wraps error + accumulated keys",
+  Effect.fnUntraced(
+    function*() {
+      const client = yield* RpcTest.makeClient(CommandRpcs)
+      const result = yield* Effect.result(client.cmdAndFail())
+      expect(Result.isFailure(result)).toBe(true)
+      if (Result.isFailure(result)) {
+        const failure = result.failure as {
+          _tag: "CommandFailureWithMetaData"
+          error: CommandError
+          metadata: { invalidateQueries: ReadonlyArray<unknown> }
+        }
+        expect(failure._tag).toBe("CommandFailureWithMetaData")
+        expect(failure.error._tag).toBe("CommandError")
+        expect(failure.error.reason).toBe("intentional")
+        expect(failure.metadata.invalidateQueries).toStrictEqual([CommandInvalidationKey])
+      }
+    },
+    Effect.provide(CommandTestLayer)
+  )
+)
+
+it.live(
+  "protected command without auth → NotLoggedInError (middleware fires before handler)",
+  Effect.fnUntraced(
+    function*() {
+      const client = yield* RpcTest.makeClient(CommandRpcs)
+      const result = yield* Effect.result(client.cmdProtected())
+      expect(result).toStrictEqual(Result.fail(new NotLoggedInError("Not logged in")))
+    },
+    Effect.provide(CommandTestLayer)
   )
 )

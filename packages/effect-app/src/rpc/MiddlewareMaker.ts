@@ -5,11 +5,12 @@ import * as Layer from "effect/Layer"
 import * as S from "effect/Schema"
 import type * as Scope from "effect/Scope"
 import { type Simplify } from "effect/Types"
-import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
+import { Rpc, RpcGroup, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import * as Context from "../Context.js"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
+import * as Invalidation from "./Invalidation.js"
 import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
@@ -174,24 +175,35 @@ export interface BuildingMiddleware<
     Success extends S.Top = typeof S.Void,
     Error extends S.Top = typeof S.Never,
     const Stream extends boolean = false,
+    const Command extends boolean = false,
     Config extends GetContextConfig<RequestContextMap> = {}
   >(tag: Tag, options?: {
     readonly payload?: Payload
     readonly success?: Success
     readonly error?: Error
     readonly stream?: Stream
+    /** When true, uses `makeCommandRpc` — wire format wraps success/error with
+     * `CommandResponseWithMetaData` / `CommandFailureWithMetaData`.
+     * Handlers must be wrapped with `Invalidation.commandHandler(fn)`. */
+    readonly command?: Command
     readonly config?: Config
     readonly primaryKey?: [Payload] extends [S.Struct.Fields] ? ((
         payload: Payload extends S.Struct.Fields ? Simplify<S.Struct<Payload>["Type"]> : Payload["Type"]
       ) => string)
       : never
   }) =>
-    & Rpc.Rpc<
-      Tag,
-      Payload extends S.Struct.Fields ? S.Struct<Payload> : Payload,
-      Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
-      Stream extends true ? typeof S.Never : Error
-    >
+    & (Command extends true ? Rpc.Rpc<
+        Tag,
+        Payload extends S.Struct.Fields ? S.Struct<Payload> : Payload,
+        Invalidation.CommandRpcSuccessSchema<Success>,
+        Invalidation.CommandRpcErrorSchema<Error>
+      >
+      : Rpc.Rpc<
+        Tag,
+        Payload extends S.Struct.Fields ? S.Struct<Payload> : Payload,
+        Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
+        Stream extends true ? typeof S.Never : Error
+      >)
     & { readonly config: Config }
 
   middleware<MWs extends NonEmptyArray<MiddlewareMaker.Any>>(
@@ -409,6 +421,7 @@ export const Tag = <Self>() =>
       readonly success?: Success
       readonly error?: Error
       readonly stream?: Stream
+      readonly command?: boolean
       readonly config?: Config
       readonly primaryKey?: [Payload] extends [S.Struct.Fields] ? ((
           payload: Payload extends S.Struct.Fields ? Simplify<S.Struct<Payload>["Type"]> : Payload["Type"]
@@ -431,14 +444,26 @@ export const Tag = <Self>() =>
       // attached to the rpc group later (`RpcGroup.middleware(...)` at the
       // routing/client level), and are unioned into the failure schema by
       // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk.
-      // @ts-expect-error — TypeScript can't prove Simplify<T> ≡ { [K in keyof T]: T[K] } for unresolved generics (primaryKey)
-      const rpc = Rpc.make(tag, {
-        ...options?.payload !== undefined ? { payload: options.payload } : {},
-        ...options?.success !== undefined ? { success: options.success } : {},
-        ...options?.error !== undefined ? { error: options.error } : {},
-        ...options?.stream !== undefined ? { stream: options.stream } : {},
-        ...options?.primaryKey !== undefined ? { primaryKey: options.primaryKey } : {}
-      }) as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let rpc: any
+      if (options?.command) {
+        // Command rpc: wire format wraps success/error with CommandResponseWithMetaData /
+        // CommandFailureWithMetaData. Handlers must use Invalidation.commandHandler(fn).
+        rpc = Invalidation.makeCommandRpc(tag, {
+          ...options?.payload !== undefined ? { payload: options.payload } : {},
+          ...options?.success !== undefined ? { success: options.success } : {},
+          ...options?.error !== undefined ? { error: options.error } : {}
+        })
+      } else {
+        // @ts-expect-error — TypeScript can't prove Simplify<T> ≡ { [K in keyof T]: T[K] } for unresolved generics (primaryKey)
+        rpc = Rpc.make(tag, {
+          ...options?.payload !== undefined ? { payload: options.payload } : {},
+          ...options?.success !== undefined ? { success: options.success } : {},
+          ...options?.error !== undefined ? { error: options.error } : {},
+          ...options?.stream !== undefined ? { stream: options.stream } : {},
+          ...options?.primaryKey !== undefined ? { primaryKey: options.primaryKey } : {}
+        })
+      }
 
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },
@@ -490,3 +515,31 @@ export const middlewareGroup = <
     }
   })
 }
+
+/**
+ * Convenience wrapper around {@link middlewareGroup} for "Rsc-style" modules —
+ * objects whose values are all `Rpc.Rpc` instances (e.g. a namespace of RPCs
+ * created with `AppMiddleware.rpc(...)`).
+ *
+ * Instead of:
+ * ```ts
+ * middlewareGroup(middleware)(RpcGroup.make(Rsc.GetUser, Rsc.ListUsers))
+ * ```
+ * write:
+ * ```ts
+ * middlewareGroupFromRsc(middleware)(Rsc)
+ * ```
+ */
+export const middlewareGroupFromRsc = <
+  RequestContextMap extends Record<string, RpcContextMap.Any>,
+  Middleware extends RpcMiddlewareX.TagClassAny & {
+    readonly requestContext: RequestContextTag<RequestContextMap>
+    readonly requestContextMap: RequestContextMap
+  }
+>(
+  middleware: Middleware
+) =>
+<R extends Rpc.Any>(rscModule: Record<string, R>) =>
+  middlewareGroup(middleware)(
+    RpcGroup.make(...(Object.values(rscModule) as [R, ...R[]]))
+  )

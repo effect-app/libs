@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.252
+
+### Patch Changes
+
+- a788432: fix circular
+
 ## 4.0.0-beta.251
 
 ### Patch Changes

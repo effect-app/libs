@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.250
+
+### Patch Changes
+
+- 3053760: fix: restore context map container behavior
+
 ## 4.0.0-beta.249
 
 ### Minor Changes

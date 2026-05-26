@@ -2,7 +2,7 @@ import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringId
 import type { B } from "effect-app/Schema/schema"
 import * as Effect from "effect/Effect"
 import type { Simplify } from "effect/Types"
-import { S } from "./index.js"
+import * as S from "./Schema.js"
 import { extendM } from "./utils.js"
 
 export interface RequestIdBrand extends StringIdBrand {

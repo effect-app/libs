@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { identity, pipe } from "effect/Function"
+import * as Match from "effect/Match"
+import * as SchemaAST from "effect/SchemaAST"
 import * as Array from "../../Array.js"
 import { toNonEmptyArray } from "../../Array.js"
 import * as Option from "../../Option.js"
 import * as S from "../../Schema.js"
 import { dropUndefinedT } from "../../utils.js"
-import { identity, pipe } from "effect/Function"
-import * as Match from "effect/Match"
-import * as SchemaAST from "effect/SchemaAST"
 import type { FilterResult } from "../filter/filterApi.js"
 import type { FieldValues } from "../filter/types.js"
 import type { FieldPath } from "../filter/types/path/eager.js"

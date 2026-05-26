@@ -28,11 +28,15 @@ const makeSendgrid = (
     return Emailer.of({
       sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
         function*(msg_: EmailMsgOptionalFrom) {
-          const msg: EmailMsg = dropUndefinedT({
+          const msg: EmailMsg = {
             ...msg_,
             from: msg_.from ?? defaultFrom,
-            replyTo: msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
-          })
+            ...msg_.from
+              ? {}
+              : (msg_.replyTo ?? defaultReplyTo)
+              ? { replyTo: msg_.replyTo ?? defaultReplyTo }
+              : {}
+          }
           const render = renderMessage(!realMail, fakeMailAddress)
 
           const renderedMsg_ = render(msg)

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type * as PubSub from "effect/PubSub"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.js"
 import type * as Effect from "../../Effect.js"
 import type * as Option from "../../Option.js"
 import type * as S from "../../Schema.js"
 import type { NonNegativeInt } from "../../Schema/numbers.js"
-import type * as PubSub from "effect/PubSub"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
 import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"

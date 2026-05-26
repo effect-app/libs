@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+import * as Exit from "effect/Exit"
+import * as Request from "effect/Request"
+import * as RequestResolver from "effect/RequestResolver"
 import * as Array from "../../Array.js"
 import type { NonEmptyArray } from "../../Array.js"
 import { type InvalidStateError, NotFoundError, type OptimisticConcurrencyException } from "../../client/errors.js"
 import * as Effect from "../../Effect.js"
 import * as Option from "../../Option.js"
 import { type FixEnv, type PureEnv, runTerm } from "../../Pure.js"
-import * as Exit from "effect/Exit"
-import * as Request from "effect/Request"
-import * as RequestResolver from "effect/RequestResolver"
 import { AnyPureDSL } from "../dsl.js"
 import type { FieldValues } from "../filter/types.js"
 import type { Query, QueryEnd, QueryWhere } from "../query.js"

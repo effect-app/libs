@@ -1,12 +1,12 @@
+import * as Cause from "effect/Cause"
+import * as Fiber from "effect/Fiber"
 import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
 import * as Layer from "./Layer.js"
 import type * as Option from "./Option.js"
 import * as S from "./Schema.js"
-import { wrapEffect } from "./utils.js"
-import * as Cause from "effect/Cause"
-import * as Fiber from "effect/Fiber"
 import { CurrentToastId, Toast, type ToastId } from "./toast.js"
+import { wrapEffect } from "./utils.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
   stableToastId?: undefined | string | ((...args: Args) => string | undefined)

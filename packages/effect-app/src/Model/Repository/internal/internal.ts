@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import * as Equivalence from "effect/Equivalence"
+import { flow, pipe } from "effect/Function"
+import * as Pipeable from "effect/Pipeable"
+import * as PubSub from "effect/PubSub"
+import * as Result from "effect/Result"
+import * as SchemaAST from "effect/SchemaAST"
+import * as Unify from "effect/Unify"
 import * as Array from "../../../Array.js"
 import type { NonEmptyReadonlyArray } from "../../../Array.js"
 import { toNonEmptyArray } from "../../../Array.js"
@@ -11,16 +18,7 @@ import { flatMapOption } from "../../../Effect.js"
 import * as Option from "../../../Option.js"
 import * as S from "../../../Schema.js"
 import { type Codec, NonNegativeInt } from "../../../Schema.js"
-import * as Equivalence from "effect/Equivalence"
-import { flow, pipe } from "effect/Function"
-import * as Pipeable from "effect/Pipeable"
-import * as PubSub from "effect/PubSub"
-import * as Result from "effect/Result"
-import * as SchemaAST from "effect/SchemaAST"
-import * as Unify from "effect/Unify"
-import { setupRequestContextFromCurrent } from "../../../api/setupRequest.js"
-import { type FilterArgs, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
-import { getContextMap } from "../../../Store/ContextMapContainer.js"
+import { ContextMap, type FilterArgs, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
 import type { Repository } from "../service.js"
@@ -98,10 +96,26 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
-          const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
-            get: (id: string) => _.get(`${name}.${id}`),
-            set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
-          }))
+          const etags = new Map<string, string | undefined>()
+          const cms = Effect.serviceOption(ContextMap).pipe(
+            Effect.map(Option.match({
+              onNone: () => ({
+                get: (id: string) => etags.get(`${name}.${id}`),
+                set: (id: string, etag: string | undefined) => {
+                  const key = `${name}.${id}`
+                  if (etag === undefined) {
+                    etags.delete(key)
+                  } else {
+                    etags.set(key, etag)
+                  }
+                }
+              }),
+              onSome: (contextMap) => ({
+                get: (id: string) => contextMap.get(`${name}.${id}`),
+                set: (id: string, etag: string | undefined) => contextMap.set(`${name}.${id}`, etag)
+              })
+            }))
+          )
 
           const pub = "publishEvents" in args
             ? args.publishEvents
@@ -406,7 +420,7 @@ export function makeRepoInternal<
                 : a.ttype === "count"
                 ? Effect
                   .map(eff, (_) => NonNegativeInt(_.length))
-                  .pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e)))
+                  .pipe(Effect.orDie)
                 : eff,
               Effect.tap((r) =>
                 Effect.annotateCurrentSpan({
@@ -627,8 +641,10 @@ export function makeStore<Encoded extends FieldValues>() {
             ? makeInitial
               .pipe(
                 Effect.flatMap(Effect.forEach(encodeToEncoded())),
-                setupRequestContextFromCurrent("Repository.makeInitial [effect-app/infra]", {
+                Effect.withSpan("Repository.makeInitial", {
                   attributes: { "app.entity": name }
+                }, {
+                  captureStackTrace: false
                 })
               )
             : undefined,

@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { NonEmptyReadonlyArray } from "../Array.js"
-import * as Context from "../Context.js"
-import * as Effect from "../Effect.js"
-import type * as Option from "../Option.js"
-import type { OptimisticConcurrencyException } from "../client/errors.js"
 import type * as Redacted from "effect/Redacted"
 import * as Semaphore from "effect/Semaphore"
+import type { NonEmptyReadonlyArray } from "../Array.js"
+import type { OptimisticConcurrencyException } from "../client/errors.js"
+import * as Context from "../Context.js"
+import * as Effect from "../Effect.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import type { FieldPath } from "../Model/filter/types/path/index.js"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
+import type * as Option from "../Option.js"
 
 export interface UniqueKey {
-  readonly paths: ReadonlyArray<string>
+  readonly paths: string[]
 }
 
 export interface StoreConfig<E> {

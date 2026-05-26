@@ -298,8 +298,7 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
           [
             ...modified.map((m) => `- M ${m.srcRel}`),
             ...deleted.map((d) => `- D ${d.srcRel}`)
-          ]
-            .join("\n")
+          ].join("\n")
         }`)
       } --head ${JSON.stringify(branch)}`,
       cachePath

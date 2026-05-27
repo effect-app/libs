@@ -110,6 +110,7 @@
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",
     "fix-resolver-cache-precheck",
+    "fix-schema-interface-widening",
     "fix-seed-marker-and-circular-dep",
     "fix-sql-array-relation-queries",
     "fix-sql-in-null-handling",

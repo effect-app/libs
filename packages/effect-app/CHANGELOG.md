@@ -1,5 +1,27 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.256
+
+### Patch Changes
+
+- 347af48: Fix schema interface widening regression introduced in 4.0.0-beta.255 (changeset `olive-onions-lose`).
+
+  The original refactor annotated branded schema constants with interfaces extending `S.Codec<A, primitive> & WithDefaults<...>`. That widened the underlying `BrandedSchema<...>` chain and dropped phantom slots (`Iso`, `~type.make.in`, `~type.parameters`, `Rebuild`, etc.) that downstream combinators read. In consumer projects this surfaced as `DecodingServices` / `EncodingServices` leaking as `unknown` — for example `Q.project(schema, "project")` failing with `Type 'unknown' is not assignable to type 'never'`, and RPC handler / generator-return shape mismatches against `Effect<any, ..., CurrentSettings | ...>`.
+
+  Each `*Schema` interface now extends the concrete underlying chain (e.g. `BrandedSchema<S.NonEmptyString, NonEmptyString64>`) and adds a call signature for `withDefaultMake` (and an explicit `withConstructorDefault` field for the numeric and `StringId` schemas). The runtime values are unchanged and the type-display improvement is preserved.
+
+  Affected: `NonEmptyString*`, `Min3String255`, `StringId`, `Url`, `PositiveInt`, `NonNegativeInt`, `Int`, `PositiveNumber`, `NonNegativeNumber`, and `brandedStringId`.
+
+## 4.0.0-beta.255
+
+### Patch Changes
+
+- 52a31dd: Reduce schema type complexity by exposing explicit interfaces for branded string and number schemas.
+
+  Each branded constant in `Schema/strings.ts`, `Schema/moreStrings.ts`, and `Schema/numbers.ts` now has a named interface (e.g. `NonEmptyStringSchema`, `StringIdSchema`, `PositiveIntSchema`, `UrlSchema`) annotating its `export const`. Mirrors the pattern used in `effect/Schema` itself — TypeScript reports the interface name instead of expanding the full pipe/brand/extension chain, which shrinks inferred types in consumer code and speeds up type display.
+
+  No runtime or API surface changes; `brandedStringId` now returns `BrandedStringIdSchema<Id>` (same shape as before, just named).
+
 ## 4.0.0-beta.254
 
 ### Patch Changes

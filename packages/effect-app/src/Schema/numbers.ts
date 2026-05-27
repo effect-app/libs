@@ -11,16 +11,22 @@
 import { extendM } from "effect-app/utils"
 import * as Effect from "effect/Effect"
 import * as S from "effect/Schema"
+import type * as SchemaAST from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
-import { fromBrand, nominal } from "./brand.js"
+import { type BrandedSchema, fromBrand, nominal } from "./brand.js"
 import { withDefaultMake } from "./ext.js"
 import { type B } from "./schema.js"
 
 export interface PositiveIntBrand
   extends Simplify<B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand>
 {}
+export type PositiveInt = number & PositiveIntBrand
 /** Positive integer. `.withConstructorDefault` => `1` (construction-only). */
-export const PositiveInt = extendM(
+export interface PositiveIntSchema extends BrandedSchema<S.Int, PositiveInt> {
+  (i: number, options?: SchemaAST.ParseOptions): PositiveInt
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Int, PositiveInt>>
+}
+export const PositiveInt: PositiveIntSchema = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThan(0)),
     fromBrand<PositiveInt>(nominal<PositiveInt>(), { identifier: "PositiveInt", jsonSchema: {} }),
@@ -35,11 +41,15 @@ export const PositiveInt = extendM(
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1))))
   })
 )
-export type PositiveInt = number & PositiveIntBrand
 
 export interface NonNegativeIntBrand extends Simplify<B.Brand<"NonNegativeInt"> & IntBrand & NonNegativeNumberBrand> {}
+export type NonNegativeInt = number & NonNegativeIntBrand
 /** Non-negative integer. `.withConstructorDefault` => `0` (construction-only). */
-export const NonNegativeInt = extendM(
+export interface NonNegativeIntSchema extends BrandedSchema<S.Int, NonNegativeInt> {
+  (i: number, options?: SchemaAST.ParseOptions): NonNegativeInt
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Int, NonNegativeInt>>
+}
+export const NonNegativeInt: NonNegativeIntSchema = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThanOrEqualTo(0)),
     fromBrand<NonNegativeInt>(nominal<NonNegativeInt>(), {
@@ -57,11 +67,15 @@ export const NonNegativeInt = extendM(
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0))))
   })
 )
-export type NonNegativeInt = number & NonNegativeIntBrand
 
 export interface IntBrand extends Simplify<B.Brand<"Int">> {}
+export type Int = number & IntBrand
 /** Integer. `.withConstructorDefault` => `0` (construction-only). */
-export const Int = extendM(
+export interface IntSchema extends BrandedSchema<S.Int, Int> {
+  (i: number, options?: SchemaAST.ParseOptions): Int
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Int, Int>>
+}
+export const Int: IntSchema = extendM(
   S.Int.pipe(fromBrand<Int>(nominal<Int>(), { identifier: "Int", jsonSchema: {} }), withDefaultMake),
   (s) => ({
     /**
@@ -72,11 +86,15 @@ export const Int = extendM(
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0))))
   })
 )
-export type Int = number & IntBrand
 
 export interface PositiveNumberBrand extends Simplify<B.Brand<"PositiveNumber"> & NonNegativeNumberBrand> {}
+export type PositiveNumber = number & PositiveNumberBrand
 /** Positive finite number. `.withConstructorDefault` => `1` (construction-only). */
-export const PositiveNumber = extendM(
+export interface PositiveNumberSchema extends BrandedSchema<S.Finite, PositiveNumber> {
+  (i: number, options?: SchemaAST.ParseOptions): PositiveNumber
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Finite, PositiveNumber>>
+}
+export const PositiveNumber: PositiveNumberSchema = extendM(
   S.Finite.pipe(
     S.check(S.isGreaterThan(0)),
     fromBrand<PositiveNumber>(nominal<PositiveNumber>(), {
@@ -94,11 +112,15 @@ export const PositiveNumber = extendM(
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1))))
   })
 )
-export type PositiveNumber = number & PositiveNumberBrand
 
 export interface NonNegativeNumberBrand extends Simplify<B.Brand<"NonNegativeNumber">> {}
+export type NonNegativeNumber = number & NonNegativeNumberBrand
 /** Non-negative finite number. `.withConstructorDefault` => `0` (construction-only). */
-export const NonNegativeNumber = extendM(
+export interface NonNegativeNumberSchema extends BrandedSchema<S.Finite, NonNegativeNumber> {
+  (i: number, options?: SchemaAST.ParseOptions): NonNegativeNumber
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Finite, NonNegativeNumber>>
+}
+export const NonNegativeNumber: NonNegativeNumberSchema = extendM(
   S
     .Finite
     .pipe(
@@ -118,7 +140,6 @@ export const NonNegativeNumber = extendM(
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0))))
   })
 )
-export type NonNegativeNumber = number & NonNegativeNumberBrand
 
 /** @deprecated Not an actual decimal */
 export const NonNegativeDecimal = NonNegativeNumber

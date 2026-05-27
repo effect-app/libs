@@ -21,6 +21,11 @@ import { withDefaultMake, type WithDefaults } from "./ext.js"
 import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
+type BrandedStringSchema<A extends string> = S.Codec<A, string> & WithDefaults<S.Codec<A, string>>
+type BrandedStringSchemaWithConstructorDefault<A extends string> = BrandedStringSchema<A> & {
+  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<A, string> & S.WithoutConstructorDefault>
+}
+
 const nonEmptyString = S.NonEmptyString
 
 /**
@@ -36,7 +41,8 @@ export type NonEmptyString50 = string & NonEmptyString50Brand
 /**
  * A string that is at least 1 character long and a maximum of 50.
  */
-export const NonEmptyString50 = nonEmptyString.pipe(
+export interface NonEmptyString50Schema extends BrandedStringSchema<NonEmptyString50> {}
+export const NonEmptyString50: NonEmptyString50Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(50)),
   fromBrand<NonEmptyString50>(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
@@ -58,7 +64,8 @@ export type NonEmptyString64 = string & NonEmptyString64Brand
 /**
  * A string that is at least 1 character long and a maximum of 64.
  */
-export const NonEmptyString64 = nonEmptyString.pipe(
+export interface NonEmptyString64Schema extends BrandedStringSchema<NonEmptyString64> {}
+export const NonEmptyString64: NonEmptyString64Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(64)),
   fromBrand<NonEmptyString64>(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
@@ -81,7 +88,8 @@ export type NonEmptyString80 = string & NonEmptyString80Brand
  * A string that is at least 1 character long and a maximum of 80.
  */
 
-export const NonEmptyString80 = nonEmptyString.pipe(
+export interface NonEmptyString80Schema extends BrandedStringSchema<NonEmptyString80> {}
+export const NonEmptyString80: NonEmptyString80Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(80)),
   fromBrand<NonEmptyString80>(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
@@ -103,7 +111,8 @@ export type NonEmptyString100 = string & NonEmptyString100Brand
 /**
  * A string that is at least 1 character long and a maximum of 100.
  */
-export const NonEmptyString100 = nonEmptyString.pipe(
+export interface NonEmptyString100Schema extends BrandedStringSchema<NonEmptyString100> {}
+export const NonEmptyString100: NonEmptyString100Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(100)),
   fromBrand<NonEmptyString100>(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
@@ -125,7 +134,8 @@ export type Min3String255 = string & Min3String255Brand
 /**
  * A string that is at least 3 character long and a maximum of 255.
  */
-export const Min3String255 = pipe(
+export interface Min3String255Schema extends BrandedStringSchema<Min3String255> {}
+export const Min3String255: Min3String255Schema = pipe(
   S.String,
   S.check(S.isMinLength(3), S.isMaxLength(255)),
   fromBrand<Min3String255>(nominal<Min3String255>(), {
@@ -161,7 +171,10 @@ const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
  * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
  * applied during decode — see file-level note).
  */
-export const StringId = extendM(
+export interface StringIdSchema extends BrandedStringSchemaWithConstructorDefault<StringId> {
+  readonly make: (s?: string) => StringId
+}
+export const StringId: StringIdSchema = extendM(
   pipe(
     S.String,
     S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
@@ -297,7 +310,8 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
   return validator.default.isURL(s, { require_tld: false })
 }
 
-export const Url = S
+export interface UrlSchema extends BrandedStringSchema<Url> {}
+export const Url: UrlSchema = S
   .String
   .pipe(
     S.annotate({

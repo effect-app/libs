@@ -1,14 +1,15 @@
 import type * as B from "effect/Brand"
 import * as S from "effect/Schema"
+import type * as SchemaAST from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
-import { fromBrand, nominal } from "./brand.js"
-import { withDefaultMake, type WithDefaults } from "./ext.js"
-
-type BrandedStringSchema<A extends string> = S.Codec<A, string> & WithDefaults<S.Codec<A, string>>
+import { type BrandedSchema, fromBrand, nominal } from "./brand.js"
+import { withDefaultMake } from "./ext.js"
 
 export type NonEmptyStringBrand = B.Brand<"NonEmptyString">
 export type NonEmptyString = string & NonEmptyStringBrand
-export interface NonEmptyStringSchema extends BrandedStringSchema<NonEmptyString> {}
+export interface NonEmptyStringSchema extends BrandedSchema<S.NonEmptyString, NonEmptyString> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString
+}
 export const NonEmptyString: NonEmptyStringSchema = S
   .NonEmptyString
   .pipe(
@@ -21,7 +22,9 @@ export const NonEmptyString: NonEmptyStringSchema = S
 
 export interface NonEmptyString64kBrand extends Simplify<B.Brand<"NonEmptyString64k"> & NonEmptyStringBrand> {}
 export type NonEmptyString64k = string & NonEmptyString64kBrand
-export interface NonEmptyString64kSchema extends BrandedStringSchema<NonEmptyString64k> {}
+export interface NonEmptyString64kSchema extends BrandedSchema<S.NonEmptyString, NonEmptyString64k> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString64k
+}
 export const NonEmptyString64k: NonEmptyString64kSchema = S
   .NonEmptyString
   .pipe(
@@ -35,7 +38,9 @@ export const NonEmptyString64k: NonEmptyString64kSchema = S
 
 export interface NonEmptyString2kBrand extends Simplify<B.Brand<"NonEmptyString2k"> & NonEmptyString64kBrand> {}
 export type NonEmptyString2k = string & NonEmptyString2kBrand
-export interface NonEmptyString2kSchema extends BrandedStringSchema<NonEmptyString2k> {}
+export interface NonEmptyString2kSchema extends BrandedSchema<S.NonEmptyString, NonEmptyString2k> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString2k
+}
 export const NonEmptyString2k: NonEmptyString2kSchema = S
   .NonEmptyString
   .pipe(
@@ -49,7 +54,9 @@ export const NonEmptyString2k: NonEmptyString2kSchema = S
 
 export interface NonEmptyString255Brand extends Simplify<B.Brand<"NonEmptyString255"> & NonEmptyString2kBrand> {}
 export type NonEmptyString255 = string & NonEmptyString255Brand
-export interface NonEmptyString255Schema extends BrandedStringSchema<NonEmptyString255> {}
+export interface NonEmptyString255Schema extends BrandedSchema<S.NonEmptyString, NonEmptyString255> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString255
+}
 export const NonEmptyString255: NonEmptyString255Schema = S
   .NonEmptyString
   .pipe(

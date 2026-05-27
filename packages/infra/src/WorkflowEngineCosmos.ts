@@ -2,27 +2,38 @@
  * Cosmos DB backed {@link WorkflowEngine} implementation.
  *
  * Persists workflow state in a single container partitioned by `executionId`
- * so per-execution writes can be issued through Cosmos TransactionalBatch
- * (atomic for ops sharing the same partition key). Optimistic concurrency
- * is enforced with `_etag` + `IfMatch` on Replace operations and with
- * create-only ops in batches for first-writer-wins semantics on activity
- * results and durable-deferred completions.
+ * so per-execution writes share a partition key (eligible for Cosmos
+ * TransactionalBatch). Optimistic concurrency is enforced with `_etag` +
+ * `IfMatch` on Replace, and create-only batch ops give first-writer-wins
+ * semantics for activity results and durable-deferred completions.
+ *
+ * Durability — everything that crosses the storage boundary is round-tripped
+ * through schema codecs (`S.fromJsonString(S.toCodecJson(...))`), exactly like
+ * the cluster engine, instead of dumping live runtime objects as JSON:
+ *
+ * - The workflow payload and the top-level workflow result are encoded with the
+ *   workflow's own `payloadSchema` / `successSchema` / `errorSchema`, so typed
+ *   values (dates, branded ids, schema classes) survive a restart.
+ * - Activity results flow through the engine already encoded, so they are
+ *   persisted with an opaque `Workflow.Result({ success: AnyOrVoid, error:
+ *   AnyOrVoid })` codec — same trick the cluster `ActivityRpc` uses.
+ * - Durable-deferred exits and clock completions use an opaque `Exit` codec.
  *
  * Crash recovery: each driver holds a time-bound lease (`worker` +
- * `leaseExpiresAt`) on the exec doc and renews it via a heartbeat fiber.
- * A scope-bound recovery poller queries for exec docs whose lease has
- * lapsed and re-drives them in the local process, picking up persisted
- * activity results from where the crashed driver left off.
+ * `leaseExpiresAt`) on the exec doc and renews it via a heartbeat fiber. A
+ * scope-bound recovery poller queries for exec docs whose lease has lapsed and
+ * re-drives them in the local process, decoding the persisted payload and
+ * picking up persisted activity results from where the crashed driver left off.
  *
- * Durable clocks: `scheduleClock` writes a clock doc (`fireAt`,
- * `deferredName`) and arms an in-process timer. A cross-partition clock
- * poller fires any clock whose `fireAt` is due, completing the deferred
- * idempotently (via create-only) and deleting the doc. Survives restarts.
+ * Durable clocks: `scheduleClock` writes a clock doc (`fireAt`, `deferredName`)
+ * and arms an in-process timer. A cross-partition clock poller fires any clock
+ * whose `fireAt` is due, completing the deferred idempotently (create-only) and
+ * deleting the doc. Survives restarts.
  */
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
-import { dropUndefinedT } from "effect-app/utils"
+import * as S from "effect-app/Schema"
 import * as Duration from "effect/Duration"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -60,12 +71,14 @@ interface ExecDoc {
   readonly _partitionKey: string
   readonly type: "exec"
   readonly workflowName: string
-  readonly payload: object
+  /** Schema-encoded (JSON string) workflow payload. */
+  readonly payload: string
   readonly parent: string | undefined
   status: ExecStatus
   suspended: boolean
   interrupted: boolean
-  completedExit?: Workflow.Result<unknown, unknown> | undefined
+  /** Schema-encoded (JSON string) top-level `Workflow.Result`, set on completion. */
+  completedResult?: string | undefined
   worker?: string | undefined
   leaseExpiresAt?: string | undefined
   readonly _etag?: string
@@ -75,14 +88,16 @@ interface ActivityDoc {
   readonly id: string
   readonly _partitionKey: string
   readonly type: "activity"
-  readonly exit: Exit.Exit<Workflow.Result<unknown, unknown>>
+  /** Schema-encoded (JSON string) `Workflow.Result`. */
+  readonly result: string
 }
 
 interface DeferredDoc {
   readonly id: string
   readonly _partitionKey: string
   readonly type: "deferred"
-  readonly exit: Exit.Exit<unknown, unknown>
+  /** Schema-encoded (JSON string) `Exit`. */
+  readonly exit: string
 }
 
 interface ClockDoc {
@@ -100,6 +115,20 @@ const deferredKey = (name: string) => `deferred::${name}`
 const clockKey = (name: string) => `clock::${name}`
 
 const isOptimisticStatus = (code: number) => code === 409 || code === 412 || code === 404
+
+// --- Storage codecs ----------------------------------------------------------
+// Values flowing through the engine's activity / deferred boundary are already
+// schema-encoded, so the structure is round-tripped while the payload stays
+// opaque (mirrors the cluster engine's `AnyOrVoid` usage).
+const AnyOrVoid = S.Union([S.Any, S.Void])
+const ActivityResultCodec = S.fromJsonString(S.toCodecJson(Workflow.Result({ success: AnyOrVoid, error: AnyOrVoid })))
+const DeferredExitCodec = S.fromJsonString(S.toCodecJson(S.Exit(AnyOrVoid, AnyOrVoid, S.Defect)))
+
+const encodeActivityResult = (r: Workflow.Result<unknown, unknown>) =>
+  Effect.orDie(S.encodeEffect(ActivityResultCodec)(r))
+const decodeActivityResult = (s: string) => Effect.orDie(S.decodeEffect(ActivityResultCodec)(s))
+const encodeDeferredExit = (e: Exit.Exit<unknown, unknown>) => Effect.orDie(S.encodeEffect(DeferredExitCodec)(e))
+const decodeDeferredExit = (s: string) => Effect.orDie(S.decodeEffect(DeferredExitCodec)(s))
 
 const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngineCosmosConfig) {
   const { db } = yield* CosmosClient
@@ -147,6 +176,41 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   }
   const locals = new Map<string, LocalExec>()
   const clocks = yield* FiberMap.make<string>()
+
+  // Per-workflow codecs for the typed payload + top-level result. Cached by
+  // workflow name; derived from the workflow's own schemas so typed values
+  // (dates, branded ids, schema classes) survive the storage round-trip.
+  const makePayloadCodec = (workflow: Workflow.Any) => S.fromJsonString(S.toCodecJson(workflow.payloadSchema))
+  const payloadCodecCache = new Map<string, ReturnType<typeof makePayloadCodec>>()
+  const payloadCodecFor = (workflow: Workflow.Any) => {
+    let c = payloadCodecCache.get(workflow.name)
+    if (!c) {
+      c = makePayloadCodec(workflow)
+      payloadCodecCache.set(workflow.name, c)
+    }
+    return c
+  }
+
+  const makeResultCodec = (workflow: Workflow.Any) =>
+    S.fromJsonString(S.toCodecJson(Workflow.Result({ success: workflow.successSchema, error: workflow.errorSchema })))
+  const resultCodecCache = new Map<string, ReturnType<typeof makeResultCodec>>()
+  const resultCodecFor = (workflow: Workflow.Any) => {
+    let c = resultCodecCache.get(workflow.name)
+    if (!c) {
+      c = makeResultCodec(workflow)
+      resultCodecCache.set(workflow.name, c)
+    }
+    return c
+  }
+
+  const encodePayload = (workflow: Workflow.Any, payload: object) =>
+    Effect.orDie(S.encodeEffect(payloadCodecFor(workflow))(payload)) as Effect.Effect<string>
+  const decodePayload = (workflow: Workflow.Any, s: string) =>
+    Effect.orDie(S.decodeEffect(payloadCodecFor(workflow))(s)) as Effect.Effect<object>
+  const encodeResult = (workflow: Workflow.Any, r: Workflow.Result<unknown, unknown>) =>
+    Effect.orDie(S.encodeEffect(resultCodecFor(workflow))(r)) as Effect.Effect<string>
+  const decodeResult = (workflow: Workflow.Any, s: string) =>
+    Effect.orDie(S.decodeEffect(resultCodecFor(workflow))(s)) as Effect.Effect<Workflow.Result<unknown, unknown>>
 
   // --- Cosmos primitives -------------------------------------------------
 
@@ -201,6 +265,16 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       )
     })
 
+  // Last-writer-wins upsert — used to overwrite a persisted *suspended* activity
+  // result once it finally completes (create-only ops can't transition it).
+  const upsert = <T extends { readonly id: string; readonly _partitionKey: string }>(
+    body: T
+  ): Effect.Effect<void> =>
+    Effect.gen(function*() {
+      const resp = yield* Effect.promise(() => container.items.upsert<T>(body))
+      yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
+    })
+
   const readPoint = <T extends { id: string }>(id: string, executionId: string) =>
     Effect.promise(() => container.item(id, executionId).read<T>()).pipe(
       Effect.map((r) => Option.fromNullishOr(r.resource))
@@ -208,10 +282,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
 
   // --- Workflow result helpers ------------------------------------------
 
-  const completeExit = (state: ExecDoc): Option.Option<Workflow.Result<unknown, unknown>> =>
-    state.status === "complete" && state.completedExit
-      ? Option.some(state.completedExit)
-      : Option.none()
+  const completeResult = (
+    workflow: Workflow.Any,
+    state: ExecDoc
+  ): Effect.Effect<Option.Option<Workflow.Result<unknown, unknown>>> =>
+    state.status === "complete" && state.completedResult
+      ? Effect.map(decodeResult(workflow, state.completedResult), Option.some)
+      : Effect.succeedNone
 
   // --- Lease / claim ----------------------------------------------------
 
@@ -308,12 +385,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete") return
         const isComplete = result._tag === "Complete"
+        const completedResult = isComplete ? yield* encodeResult(entry.workflow, result) : undefined
         yield* replaceExec({
           ...current.value,
           status: isComplete ? "complete" : current.value.status,
           suspended: result._tag === "Suspended",
           interrupted: instance.interrupted,
-          completedExit: isComplete ? result : undefined,
+          completedResult,
           // Release lease on completion so the doc isn't seen as orphaned.
           worker: isComplete ? undefined : current.value.worker,
           leaseExpiresAt: isComplete ? undefined : current.value.leaseExpiresAt
@@ -349,7 +427,8 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       const state = stateOpt.value
       const entry = workflows.get(state.workflowName)
       if (!entry) return
-      yield* drive(executionId, state.payload, state.parent, entry)
+      const payload = yield* decodePayload(entry.workflow, state.payload)
+      yield* drive(executionId, payload, state.parent, entry)
     })
 
   // --- Clock firing -----------------------------------------------------
@@ -361,7 +440,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         id: deferredKey(doc.deferredName),
         _partitionKey: doc._partitionKey,
         type: "deferred",
-        exit: Exit.void
+        exit: yield* encodeDeferredExit(Exit.void)
       })
         .pipe(annotate("clockFire", doc._partitionKey))
       if (created) yield* driveById(doc._partitionKey)
@@ -391,7 +470,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         _partitionKey: options.executionId,
         type: "exec",
         workflowName: workflow.name,
-        payload: options.payload,
+        payload: yield* encodePayload(workflow, options.payload),
         parent: options.parent?.executionId,
         status: "running",
         suspended: false,
@@ -414,13 +493,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       while (true) {
         const cur = yield* readExec(options.executionId)
         if (Option.isSome(cur)) {
-          const c = completeExit(cur.value)
+          const c = yield* completeResult(workflow, cur.value)
           if (Option.isSome(c)) return c.value as any
         }
         yield* Effect.sleep(Duration.millis(500))
       }
     }),
-    poll: (_workflow, executionId) =>
+    poll: (workflow, executionId) =>
       Effect.gen(function*() {
         const local = locals.get(executionId)
         if (local?.fiber) {
@@ -431,7 +510,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         }
         const state = yield* readExec(executionId)
         if (Option.isNone(state)) return Option.none<Workflow.Result<unknown, unknown>>()
-        return completeExit(state.value)
+        return yield* completeResult(workflow, state.value)
       }),
     interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
       const local = locals.get(executionId)
@@ -462,48 +541,56 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         annotate("activityRead", instance.executionId)
       )
       if (Option.isSome(existing)) {
-        const exit = existing.value.exit
-        if (!(exit._tag === "Success" && (exit.value as any)._tag === "Suspended")) {
-          return yield* exit
-        }
+        const prev = yield* decodeActivityResult(existing.value.result)
+        // A completed activity is replayed from its persisted result; a
+        // suspended one must re-run (it parked on a clock/deferred).
+        if (prev._tag === "Complete") return prev
       }
 
       const activityInstance = WorkflowInstance.initial(instance.workflow, instance.executionId)
       activityInstance.interrupted = instance.interrupted
 
-      const exit = yield* activity.executeEncoded.pipe(
+      const result = yield* activity.executeEncoded.pipe(
         Workflow.intoResult,
-        Effect.provideService(WorkflowInstance, activityInstance),
-        Effect.exit
+        Effect.provideService(WorkflowInstance, activityInstance)
       )
+      const doc: ActivityDoc = {
+        id,
+        _partitionKey: instance.executionId,
+        type: "activity",
+        result: yield* encodeActivityResult(result)
+      }
 
-      // First-writer-wins: if persistence loses the race, read back and use the persisted exit.
-      const persisted = yield* createIfMissing<ActivityDoc>(
-        dropUndefinedT({
-          id,
-          _partitionKey: instance.executionId,
-          type: "activity" as const,
-          exit
-        })
-      )
-        .pipe(annotate("activityPersist", instance.executionId))
-      if (persisted) return yield* exit
+      if (Option.isSome(existing)) {
+        // Overwrite the previously persisted *suspended* doc with the new result.
+        yield* upsert(doc).pipe(annotate("activityPersist", instance.executionId))
+        return result
+      }
+
+      // First-writer-wins: if persistence loses the race, use the persisted result.
+      const persisted = yield* createIfMissing(doc).pipe(annotate("activityPersist", instance.executionId))
+      if (persisted) return result
       const winner = yield* readPoint<ActivityDoc>(id, instance.executionId)
-      return Option.isSome(winner) ? yield* winner.value.exit : yield* exit
+      if (Option.isSome(winner)) {
+        const w = yield* decodeActivityResult(winner.value.result)
+        if (w._tag === "Complete") return w
+      }
+      return result
     }),
     deferredResult: Effect.fnUntraced(function*(deferred) {
       const instance = yield* WorkflowInstance
       const got = yield* readPoint<DeferredDoc>(deferredKey(deferred.name), instance.executionId).pipe(
         annotate("deferredRead", instance.executionId)
       )
-      return Option.map(got, (d) => d.exit)
+      if (Option.isNone(got)) return Option.none<Exit.Exit<unknown, unknown>>()
+      return Option.some(yield* decodeDeferredExit(got.value.exit))
     }),
     deferredDone: Effect.fnUntraced(function*(options) {
       const created = yield* createIfMissing<DeferredDoc>({
         id: deferredKey(options.deferredName),
         _partitionKey: options.executionId,
         type: "deferred",
-        exit: options.exit
+        exit: yield* encodeDeferredExit(options.exit)
       })
         .pipe(annotate("deferredPersist", options.executionId))
       if (!created) return
@@ -621,9 +708,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
 /**
  * Cosmos DB backed `WorkflowEngine` layer.
  *
- * Per-execution writes use TransactionalBatch (same partition key) and OCC
- * via `_etag`/IfMatch, giving first-writer-wins semantics for activity
- * results, durable-deferred completions, and exec-state transitions.
+ * Per-execution writes share a partition key (TransactionalBatch-eligible) and
+ * use OCC via `_etag`/IfMatch, giving first-writer-wins semantics for activity
+ * results, durable-deferred completions, and exec-state transitions. All
+ * persisted payloads/results/exits are round-tripped through schema codecs.
  */
 export const layerCosmos = (cfg: WorkflowEngineCosmosConfig): Layer.Layer<WorkflowEngine> =>
   Layer

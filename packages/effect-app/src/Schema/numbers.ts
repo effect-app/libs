@@ -18,7 +18,7 @@ import { type B } from "./schema.js"
 
 type BrandedNumberSchema<A extends number> = S.Codec<A, number> & WithDefaults<S.Codec<A, number>>
 type BrandedNumberSchemaWithConstructorDefault<A extends number> = BrandedNumberSchema<A> & {
-  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<A, number> & S.WithoutConstructorDefault>
+  readonly withConstructorDefault: S.Codec<A, number>
 }
 
 export interface PositiveIntBrand

@@ -22,10 +22,6 @@ import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
 type BrandedStringSchema<A extends string> = S.Codec<A, string> & WithDefaults<S.Codec<A, string>>
-type BrandedStringSchemaWithConstructorDefault<A extends string> = BrandedStringSchema<A> & {
-  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<A, string> & S.WithoutConstructorDefault>
-}
-
 const nonEmptyString = S.NonEmptyString
 
 /**
@@ -171,10 +167,7 @@ const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
  * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
  * applied during decode — see file-level note).
  */
-export interface StringIdSchema extends BrandedStringSchemaWithConstructorDefault<StringId> {
-  readonly make: (s?: string) => StringId
-}
-export const StringId: StringIdSchema = extendM(
+export const StringId = extendM(
   pipe(
     S.String,
     S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),

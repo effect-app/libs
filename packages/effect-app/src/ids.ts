@@ -24,7 +24,7 @@ export const RequestId = extendM(
   Object
     .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as unknown as Codec<NonEmptyString255, string>),
   (s) => {
-    const make = StringId.make as () => NonEmptyString255
+    const make = (() => StringId.make()) as () => NonEmptyString255
     return ({
       make,
       /**

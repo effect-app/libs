@@ -22,6 +22,8 @@ import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
 type BrandedStringSchema<A extends string> = S.Codec<A, string> & WithDefaults<S.Codec<A, string>>
+type ConstructorDefaultBaseSchema<A> = S.Codec<A, string> & S.WithoutConstructorDefault
+type WithConstructorDefaultSchema<A> = S.withConstructorDefault<ConstructorDefaultBaseSchema<A>>
 const nonEmptyString = S.NonEmptyString
 
 /**
@@ -155,6 +157,7 @@ const minLength = 6
 const maxLength = 50
 const size = 21
 const length = 10 * size
+/** Base `StringId` codec (without constructor default extensions). */
 const StringIdSchemaBase = pipe(
   S.String,
   S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
@@ -178,7 +181,7 @@ const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
  */
 export interface StringIdSchema extends BrandedStringSchema<StringId> {
   readonly make: (s?: string) => StringId
-  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<StringId, string> & S.WithoutConstructorDefault>
+  readonly withConstructorDefault: WithConstructorDefaultSchema<StringId>
 }
 export const StringId: StringIdSchema = extendM(
   StringIdSchemaBase,
@@ -252,7 +255,7 @@ export function prefixedStringId<Type extends StringId>() {
          * file-level note.
          */
         withConstructorDefault: schema.pipe(
-          S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
+          S.withConstructorDefault<ConstructorDefaultBaseSchema<Type>>(
             Effect.sync(make)
           )
         )
@@ -288,11 +291,11 @@ export interface PrefixedStringUtils<
    * field is omitted from `.make(...)` input. NOT applied during decode —
    * cannot be used to JIT-migrate database fields. See file-level note.
    */
-  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
+  readonly withConstructorDefault: WithConstructorDefaultSchema<Type>
 }
 
 export interface BrandedStringIdSchema<Id> extends S.Codec<Id, string>, WithDefaults<S.Codec<Id, string>> {
-  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
+  readonly withConstructorDefault: WithConstructorDefaultSchema<Id>
   readonly make: () => Id
 }
 

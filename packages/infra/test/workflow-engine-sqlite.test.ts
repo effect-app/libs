@@ -5,6 +5,7 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
 import * as Duration from "effect/Duration"
 import * as Exit from "effect/Exit"
 import * as Schema from "effect/Schema"
@@ -54,6 +55,12 @@ const AwaitEmail = Workflow.make({
 const AwaitEmailHandler = AwaitEmail.toLayer(Effect.fn(function*() {
   return yield* DurableDeferred.await(EmailReceived)
 }))
+
+// Reproduces the adapter's opaque activity-result codec so tests can seed
+// schema-encoded values into the activity table directly.
+const ActivityResultCodec = S.fromJsonString(
+  S.toCodecJson(Workflow.Result({ success: S.Union([S.Any, S.Void]), error: S.Union([S.Any, S.Void]) }))
+)
 
 // --- Layer wiring ----------------------------------------------------
 
@@ -129,11 +136,14 @@ describe("WorkflowEngine (SQLite)", () => {
         yield* Increment.execute({ value: 2 })
         const rows = yield* sql
           .unsafe(
-            `SELECT execution_id, name, attempt FROM workflow_activity`
+            `SELECT execution_id, name, attempt, result FROM workflow_activity`
           )
           .pipe(Effect.orDie)
         assert.strictEqual(rows.length, 1)
         assert.strictEqual((rows[0] as any).name, "Bump")
+        // Stored value is schema-encoded JSON, not a raw runtime object.
+        const decoded = S.decodeSync(ActivityResultCodec)((rows[0] as any).result)
+        assert.strictEqual(decoded._tag, "Complete")
       })
       .pipe(Effect.provide(incrementLayer())))
 
@@ -184,7 +194,7 @@ describe("WorkflowEngine (SQLite)", () => {
         yield* sql
           .unsafe(
             `INSERT INTO workflow_exec (execution_id, workflow_name, payload, status, suspended, interrupted, etag)
-         VALUES ('exec-clock', 'Sqlite/AwaitEmail', '{}', 'running', 0, 0, 'e1')`
+         VALUES ('exec-clock', 'Sqlite/AwaitEmail', '{"id":"x"}', 'running', 0, 0, 'e1')`
           )
           .pipe(Effect.orDie)
         yield* sql
@@ -227,16 +237,16 @@ describe("WorkflowEngine (SQLite)", () => {
 
         const rows = yield* sql
           .unsafe(
-            `SELECT status, completed_exit FROM workflow_exec WHERE execution_id = 'recover-1'`
+            `SELECT status, completed_result FROM workflow_exec WHERE execution_id = 'recover-1'`
           )
           .pipe(Effect.orDie)
         assert.strictEqual((rows[0] as any).status, "complete")
-        const completedExit = JSON.parse((rows[0] as any).completed_exit) as { _tag: string }
-        assert.strictEqual(completedExit._tag, "Complete")
+        const completedResult = JSON.parse((rows[0] as any).completed_result) as { _tag: string }
+        assert.strictEqual(completedResult._tag, "Complete")
       })
       .pipe(Effect.provide(tickLayer())))
 
-  it.live("activity dedup: a pre-existing persisted exit wins over a fresh run", () =>
+  it.live("activity dedup: a pre-existing persisted result wins over a fresh run", () =>
     Effect
       .gen(function*() {
         const sql = yield* SqlClient.SqlClient
@@ -249,17 +259,20 @@ describe("WorkflowEngine (SQLite)", () => {
             [executionId] as any
           )
           .pipe(Effect.orDie)
-        const fakeResult = { _tag: "Complete", exit: Exit.succeed(999) }
+        const seeded = S.encodeSync(ActivityResultCodec)(
+          new Workflow.Complete({ exit: Exit.succeed(999) })
+        )
         yield* sql
           .unsafe(
-            `INSERT INTO workflow_activity (execution_id, name, attempt, exit)
+            `INSERT INTO workflow_activity (execution_id, name, attempt, result)
          VALUES (?, 'Bump', 1, ?)`,
-            [executionId, JSON.stringify(fakeResult)] as any
+            [executionId, seeded] as any
           )
           .pipe(Effect.orDie)
 
         const result = yield* Increment.execute({ value: 7 })
         assert.strictEqual(result, 8)
+        // Bump's user effect must NOT have run — counter stays at 0.
         assert.strictEqual(counter.count, 0)
       })
       .pipe(Effect.provide(incrementLayer())))

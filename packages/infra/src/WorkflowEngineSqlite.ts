@@ -3,7 +3,7 @@
  *
  * Persists workflow state across four tables:
  *   - `workflow_exec`     — one row per execution; tracks status, lease, etag
- *   - `workflow_activity` — recorded activity exits keyed by (exec, name, attempt)
+ *   - `workflow_activity` — recorded activity results keyed by (exec, name, attempt)
  *   - `workflow_deferred` — durable deferred completions keyed by (exec, name)
  *   - `workflow_clock`    — scheduled clocks with `fire_at`
  *
@@ -16,6 +16,18 @@
  *   - activity / deferred / clock inserts use `INSERT ... ON CONFLICT DO
  *     NOTHING RETURNING ...` for first-writer-wins semantics across drivers.
  *
+ * Durability — everything that crosses the storage boundary is round-tripped
+ * through schema codecs (`S.fromJsonString(S.toCodecJson(...))`), exactly like
+ * the cluster engine:
+ *
+ * - The workflow payload and the top-level `Workflow.Result` are encoded with
+ *   the workflow's own `payloadSchema` / `successSchema` / `errorSchema`, so
+ *   typed values (dates, branded ids, schema classes) survive a restart.
+ * - Activity results flow through the engine already encoded, so they are
+ *   persisted with an opaque `Workflow.Result({ success: AnyOrVoid, error:
+ *   AnyOrVoid })` codec — same trick the cluster `ActivityRpc` uses.
+ * - Durable-deferred exits use an opaque `Exit` codec.
+ *
  * Crash recovery: each driver holds a time-bound lease on the exec row,
  * renewed by a heartbeat fiber. A scope-bound recovery poller re-drives any
  * exec whose lease has lapsed. A clock poller fires due clocks even when
@@ -24,7 +36,7 @@
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
-import * as Cause from "effect/Cause"
+import * as S from "effect-app/Schema"
 import * as Duration from "effect/Duration"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -58,12 +70,14 @@ type ExecStatus = "running" | "complete" | "interrupted"
 interface ExecRow {
   readonly execution_id: string
   readonly workflow_name: string
+  /** Schema-encoded (JSON string) workflow payload. */
   readonly payload: string
   readonly parent: string | null
   readonly status: ExecStatus
   readonly suspended: number
   readonly interrupted: number
-  readonly completed_exit: string | null
+  /** Schema-encoded (JSON string) top-level `Workflow.Result`, set on completion. */
+  readonly completed_result: string | null
   readonly worker: string | null
   readonly lease_expires_at: number | null
   readonly etag: string
@@ -72,65 +86,44 @@ interface ExecRow {
 interface ExecState {
   readonly executionId: string
   readonly workflowName: string
-  readonly payload: object
+  readonly payload: string
   readonly parent: string | undefined
   readonly status: ExecStatus
   readonly suspended: boolean
   readonly interrupted: boolean
-  readonly completedExit: Workflow.Result<unknown, unknown> | undefined
+  readonly completedResult: string | undefined
   readonly worker: string | undefined
   readonly leaseExpiresAt: number | undefined
   readonly etag: string
 }
 
-// --- JSON revival of Exit / Cause / Workflow.Result ------------------
-// SQLite stores these as JSON, which loses class prototypes. The engine
-// wrapper code in `effect/unstable/workflow/WorkflowEngine` relies on real
-// `Exit` values (e.g. `yield* exit`, `Exit.map`), so we reconstruct them
-// before returning to the wrapper.
-
-const reviveCause = (c: unknown): Cause.Cause<unknown> => {
-  if (Cause.isCause(c)) return c
-  const reasons = (c as { reasons?: ReadonlyArray<any> })?.reasons ?? []
-  if (reasons.length === 0) return Cause.empty
-  return Cause.fromReasons(reasons.map((r) => {
-    if (r._tag === "Fail") return Cause.fail(r.error).reasons[0]!
-    if (r._tag === "Die") return Cause.die(r.defect).reasons[0]!
-    if (r._tag === "Interrupt") return Cause.interrupt(r.fiberId).reasons[0]!
-    return Cause.die(r).reasons[0]!
-  }))
-}
-
-const reviveExit = <A, E>(j: unknown): Exit.Exit<A, E> => {
-  if (Exit.isExit(j)) return j as Exit.Exit<A, E>
-  const v = j as { _tag: string; value?: unknown; cause?: unknown }
-  if (v?._tag === "Success") return Exit.succeed(v.value) as Exit.Exit<A, E>
-  return Exit.failCause(reviveCause(v?.cause)) as Exit.Exit<A, E>
-}
-
-const reviveResult = (
-  r: unknown
-): Workflow.Result<unknown, unknown> => {
-  const v = r as { _tag: string; exit?: unknown }
-  if (v?._tag === "Suspended") return v as unknown as Workflow.Result<unknown, unknown>
-  return { ...(v as object), exit: reviveExit(v.exit) } as unknown as Workflow.Result<unknown, unknown>
-}
-
 const parseExec = (row: ExecRow): ExecState => ({
   executionId: row.execution_id,
   workflowName: row.workflow_name,
-  payload: JSON.parse(row.payload) as object,
+  payload: row.payload,
   parent: row.parent ?? undefined,
   status: row.status,
   suspended: row.suspended !== 0,
   interrupted: row.interrupted !== 0,
-  completedExit: row.completed_exit
-    ? reviveResult(JSON.parse(row.completed_exit))
-    : undefined,
+  completedResult: row.completed_result ?? undefined,
   worker: row.worker ?? undefined,
   leaseExpiresAt: row.lease_expires_at ?? undefined,
   etag: row.etag
 })
+
+// --- Storage codecs ---------------------------------------------------------
+// Values flowing through the engine's activity / deferred boundary are already
+// schema-encoded, so the structure is round-tripped while the payload stays
+// opaque (mirrors the cluster engine's `AnyOrVoid` usage).
+const AnyOrVoid = S.Union([S.Any, S.Void])
+const ActivityResultCodec = S.fromJsonString(S.toCodecJson(Workflow.Result({ success: AnyOrVoid, error: AnyOrVoid })))
+const DeferredExitCodec = S.fromJsonString(S.toCodecJson(S.Exit(AnyOrVoid, AnyOrVoid, S.Defect)))
+
+const encodeActivityResult = (r: Workflow.Result<unknown, unknown>) =>
+  Effect.orDie(S.encodeEffect(ActivityResultCodec)(r))
+const decodeActivityResult = (s: string) => Effect.orDie(S.decodeEffect(ActivityResultCodec)(s))
+const encodeDeferredExit = (e: Exit.Exit<unknown, unknown>) => Effect.orDie(S.encodeEffect(DeferredExitCodec)(e))
+const decodeDeferredExit = (s: string) => Effect.orDie(S.decodeEffect(DeferredExitCodec)(s))
 
 const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngineSqliteConfig) {
   const sql = yield* SqlClient.SqlClient
@@ -170,7 +163,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        status TEXT NOT NULL,
        suspended INTEGER NOT NULL DEFAULT 0,
        interrupted INTEGER NOT NULL DEFAULT 0,
-       completed_exit TEXT,
+       completed_result TEXT,
        worker TEXT,
        lease_expires_at INTEGER,
        etag TEXT NOT NULL
@@ -184,7 +177,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        execution_id TEXT NOT NULL,
        name TEXT NOT NULL,
        attempt INTEGER NOT NULL,
-       exit TEXT NOT NULL,
+       result TEXT NOT NULL,
        PRIMARY KEY (execution_id, name, attempt)
      )`
   )
@@ -230,6 +223,41 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const locals = new Map<string, LocalExec>()
   const clocks = yield* FiberMap.make<string>()
 
+  // Per-workflow codecs for the typed payload + top-level result. Cached by
+  // workflow name; derived from the workflow's own schemas so typed values
+  // (dates, branded ids, schema classes) survive the storage round-trip.
+  const makePayloadCodec = (workflow: Workflow.Any) => S.fromJsonString(S.toCodecJson(workflow.payloadSchema))
+  const payloadCodecCache = new Map<string, ReturnType<typeof makePayloadCodec>>()
+  const payloadCodecFor = (workflow: Workflow.Any) => {
+    let c = payloadCodecCache.get(workflow.name)
+    if (!c) {
+      c = makePayloadCodec(workflow)
+      payloadCodecCache.set(workflow.name, c)
+    }
+    return c
+  }
+
+  const makeResultCodec = (workflow: Workflow.Any) =>
+    S.fromJsonString(S.toCodecJson(Workflow.Result({ success: workflow.successSchema, error: workflow.errorSchema })))
+  const resultCodecCache = new Map<string, ReturnType<typeof makeResultCodec>>()
+  const resultCodecFor = (workflow: Workflow.Any) => {
+    let c = resultCodecCache.get(workflow.name)
+    if (!c) {
+      c = makeResultCodec(workflow)
+      resultCodecCache.set(workflow.name, c)
+    }
+    return c
+  }
+
+  const encodePayload = (workflow: Workflow.Any, payload: object) =>
+    Effect.orDie(S.encodeEffect(payloadCodecFor(workflow))(payload)) as Effect.Effect<string>
+  const decodePayload = (workflow: Workflow.Any, s: string) =>
+    Effect.orDie(S.decodeEffect(payloadCodecFor(workflow))(s)) as Effect.Effect<object>
+  const encodeResult = (workflow: Workflow.Any, r: Workflow.Result<unknown, unknown>) =>
+    Effect.orDie(S.encodeEffect(resultCodecFor(workflow))(r)) as Effect.Effect<string>
+  const decodeResult = (workflow: Workflow.Any, s: string) =>
+    Effect.orDie(S.decodeEffect(resultCodecFor(workflow))(s)) as Effect.Effect<Workflow.Result<unknown, unknown>>
+
   // --- Core SQL operations ----------------------------------------------
 
   const readExec = (executionId: string): Effect.Effect<Option.Option<ExecState>> =>
@@ -262,7 +290,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
            SET status = ?,
                suspended = ?,
                interrupted = ?,
-               completed_exit = ?,
+               completed_result = ?,
                worker = ?,
                lease_expires_at = ?,
                etag = ?
@@ -272,7 +300,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
             merged.status,
             merged.suspended ? 1 : 0,
             merged.interrupted ? 1 : 0,
-            merged.completedExit ? JSON.stringify(merged.completedExit) : null,
+            merged.completedResult ?? null,
             merged.worker ?? null,
             merged.leaseExpiresAt ?? null,
             newEtag,
@@ -301,7 +329,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       [
         initial.executionId,
         initial.workflowName,
-        JSON.stringify(initial.payload),
+        initial.payload,
         initial.parent ?? null,
         initial.status,
         initial.suspended ? 1 : 0,
@@ -314,57 +342,73 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         annotate("createExec", initial.executionId)
       )
 
-  type ActivityResult = Workflow.Result<unknown, unknown>
-
-  const insertActivity = (
+  // First-writer-wins persistence of an activity result; returns true if this
+  // call won, false if another writer beat us to the (exec, name, attempt) row.
+  const createActivity = (
     executionId: string,
     name: string,
     attempt: number,
-    result: ActivityResult
+    encoded: string
   ): Effect.Effect<boolean> =>
     exec(
-      `INSERT INTO "${activityTable}" (execution_id, name, attempt, exit)
+      `INSERT INTO "${activityTable}" (execution_id, name, attempt, result)
        VALUES (?, ?, ?, ?)
        ON CONFLICT DO NOTHING
        RETURNING execution_id`,
-      [executionId, name, attempt, JSON.stringify(result)]
+      [executionId, name, attempt, encoded]
     )
       .pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
+
+  // Overwrites a previously persisted *suspended* activity result so the next
+  // attempt can record its real outcome.
+  const upsertActivity = (
+    executionId: string,
+    name: string,
+    attempt: number,
+    encoded: string
+  ): Effect.Effect<void> =>
+    exec(
+      `INSERT INTO "${activityTable}" (execution_id, name, attempt, result)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(execution_id, name, attempt) DO UPDATE SET result = excluded.result`,
+      [executionId, name, attempt, encoded]
+    )
+      .pipe(Effect.asVoid)
 
   const readActivity = (
     executionId: string,
     name: string,
     attempt: number
-  ): Effect.Effect<Option.Option<ActivityResult>> =>
+  ): Effect.Effect<Option.Option<string>> =>
     exec(
-      `SELECT exit FROM "${activityTable}" WHERE execution_id = ? AND name = ? AND attempt = ?`,
+      `SELECT result FROM "${activityTable}" WHERE execution_id = ? AND name = ? AND attempt = ?`,
       [executionId, name, attempt]
     )
       .pipe(
         Effect.map((rows) => {
-          const r = (rows as ReadonlyArray<{ exit: string }>)[0]
-          return r ? Option.some(reviveResult(JSON.parse(r.exit))) : Option.none()
+          const r = (rows as ReadonlyArray<{ result: string }>)[0]
+          return r ? Option.some(r.result) : Option.none<string>()
         })
       )
 
-  const insertDeferred = (
+  const createDeferred = (
     executionId: string,
     name: string,
-    exitValue: Exit.Exit<unknown, unknown>
+    encoded: string
   ): Effect.Effect<boolean> =>
     exec(
       `INSERT INTO "${deferredTable}" (execution_id, name, exit)
        VALUES (?, ?, ?)
        ON CONFLICT DO NOTHING
        RETURNING execution_id`,
-      [executionId, name, JSON.stringify(exitValue)]
+      [executionId, name, encoded]
     )
       .pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
 
   const readDeferred = (
     executionId: string,
     name: string
-  ): Effect.Effect<Option.Option<Exit.Exit<unknown, unknown>>> =>
+  ): Effect.Effect<Option.Option<string>> =>
     exec(
       `SELECT exit FROM "${deferredTable}" WHERE execution_id = ? AND name = ?`,
       [executionId, name]
@@ -372,7 +416,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       .pipe(
         Effect.map((rows) => {
           const r = (rows as ReadonlyArray<{ exit: string }>)[0]
-          return r ? Option.some(reviveExit(JSON.parse(r.exit))) : Option.none()
+          return r ? Option.some(r.exit) : Option.none<string>()
         })
       )
 
@@ -397,6 +441,16 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       `DELETE FROM "${clockTable}" WHERE execution_id = ? AND name = ?`,
       [executionId, name]
     )
+
+  // --- Workflow result helpers ------------------------------------------
+
+  const completeResult = (
+    workflow: Workflow.Any,
+    state: ExecState
+  ): Effect.Effect<Option.Option<Workflow.Result<unknown, unknown>>> =>
+    state.status === "complete" && state.completedResult
+      ? Effect.map(decodeResult(workflow, state.completedResult), Option.some)
+      : Effect.succeedNone
 
   // --- Lease / claim ----------------------------------------------------
 
@@ -479,11 +533,12 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete") return
         const isComplete = result._tag === "Complete"
+        const completedResult = isComplete ? yield* encodeResult(entry.workflow, result) : undefined
         yield* replaceExec(current.value, {
           status: isComplete ? "complete" : current.value.status,
           suspended: result._tag === "Suspended",
           interrupted: instance.interrupted,
-          completedExit: isComplete ? result : undefined,
+          completedResult,
           worker: isComplete ? undefined : current.value.worker,
           leaseExpiresAt: isComplete ? undefined : current.value.leaseExpiresAt
         })
@@ -518,7 +573,8 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       const state = stateOpt.value
       const entry = workflows.get(state.workflowName)
       if (!entry) return
-      yield* drive(executionId, state.payload, state.parent, entry)
+      const payload = yield* decodePayload(entry.workflow, state.payload)
+      yield* drive(executionId, payload, state.parent, entry)
     })
 
   // --- Clock firing -----------------------------------------------------
@@ -528,17 +584,19 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     name: string,
     deferredName: string
   ): Effect.Effect<void> =>
-    sql
-      .withTransaction(Effect.gen(function*() {
-        const inserted = yield* insertDeferred(executionId, deferredName, Exit.void)
-        yield* deleteClock(executionId, name)
-        return inserted
-      }))
-      .pipe(
-        Effect.orDie,
-        Effect.flatMap((inserted) => inserted ? driveById(executionId) : Effect.void),
-        annotate("clockFire", executionId)
-      )
+    Effect
+      .gen(function*() {
+        const encoded = yield* encodeDeferredExit(Exit.void)
+        const inserted = yield* sql
+          .withTransaction(Effect.gen(function*() {
+            const got = yield* createDeferred(executionId, deferredName, encoded)
+            yield* deleteClock(executionId, name)
+            return got
+          }))
+          .pipe(Effect.orDie)
+        if (inserted) yield* driveById(executionId)
+      })
+      .pipe(annotate("clockFire", executionId))
 
   // --- Encoded engine ---------------------------------------------------
 
@@ -558,12 +616,12 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       const initial: ExecState = {
         executionId: options.executionId,
         workflowName: workflow.name,
-        payload: options.payload,
+        payload: yield* encodePayload(workflow, options.payload),
         parent: options.parent?.executionId,
         status: "running",
         suspended: false,
         interrupted: false,
-        completedExit: undefined,
+        completedResult: undefined,
         worker: undefined,
         leaseExpiresAt: undefined,
         etag: randomUUID()
@@ -575,15 +633,17 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       if (local?.fiber) {
         return (yield* Fiber.join(local.fiber)) as any
       }
+      // Foreign-driver fallback: poll the persisted result until completion.
       while (true) {
         const cur = yield* readExec(options.executionId)
-        if (Option.isSome(cur) && cur.value.status === "complete" && cur.value.completedExit) {
-          return cur.value.completedExit as any
+        if (Option.isSome(cur)) {
+          const r = yield* completeResult(workflow, cur.value)
+          if (Option.isSome(r)) return r.value as any
         }
         yield* Effect.sleep(Duration.millis(500))
       }
     }),
-    poll: (_workflow, executionId) =>
+    poll: (workflow, executionId) =>
       Effect.gen(function*() {
         const local = locals.get(executionId)
         if (local?.fiber) {
@@ -593,10 +653,8 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
           return Option.some(exitVal.value)
         }
         const state = yield* readExec(executionId)
-        if (Option.isNone(state) || state.value.status !== "complete" || !state.value.completedExit) {
-          return Option.none<Workflow.Result<unknown, unknown>>()
-        }
-        return Option.some(state.value.completedExit)
+        if (Option.isNone(state)) return Option.none<Workflow.Result<unknown, unknown>>()
+        return yield* completeResult(workflow, state.value)
       }),
     interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
       const local = locals.get(executionId)
@@ -623,9 +681,13 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     activityExecute: Effect.fnUntraced(function*(activity, attempt) {
       const instance = yield* WorkflowInstance
       const existing = yield* readActivity(instance.executionId, activity.name, attempt)
-      if (Option.isSome(existing) && existing.value._tag !== "Suspended") {
-        return existing.value
+      if (Option.isSome(existing)) {
+        const prev = yield* decodeActivityResult(existing.value)
+        // A completed activity is replayed from its persisted result; a
+        // suspended one must re-run (it parked on a clock/deferred).
+        if (prev._tag === "Complete") return prev
       }
+
       const activityInstance = WorkflowInstance.initial(instance.workflow, instance.executionId)
       activityInstance.interrupted = instance.interrupted
 
@@ -633,18 +695,32 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         Workflow.intoResult,
         Effect.provideService(WorkflowInstance, activityInstance)
       )
+      const encodedResult = yield* encodeActivityResult(result)
 
-      const persisted = yield* insertActivity(instance.executionId, activity.name, attempt, result)
+      if (Option.isSome(existing)) {
+        // Overwrite the previously persisted *suspended* result.
+        yield* upsertActivity(instance.executionId, activity.name, attempt, encodedResult)
+        return result
+      }
+      // First-writer-wins: if persistence loses the race, use the persisted result.
+      const persisted = yield* createActivity(instance.executionId, activity.name, attempt, encodedResult)
       if (persisted) return result
       const winner = yield* readActivity(instance.executionId, activity.name, attempt)
-      return Option.isSome(winner) ? winner.value : result
+      if (Option.isSome(winner)) {
+        const w = yield* decodeActivityResult(winner.value)
+        if (w._tag === "Complete") return w
+      }
+      return result
     }),
     deferredResult: Effect.fnUntraced(function*(deferred) {
       const instance = yield* WorkflowInstance
-      return yield* readDeferred(instance.executionId, deferred.name)
+      const got = yield* readDeferred(instance.executionId, deferred.name)
+      if (Option.isNone(got)) return Option.none<Exit.Exit<unknown, unknown>>()
+      return Option.some(yield* decodeDeferredExit(got.value))
     }),
     deferredDone: Effect.fnUntraced(function*(options) {
-      const inserted = yield* insertDeferred(options.executionId, options.deferredName, options.exit)
+      const encoded = yield* encodeDeferredExit(options.exit)
+      const inserted = yield* createDeferred(options.executionId, options.deferredName, encoded)
       if (!inserted) return
       yield* driveById(options.executionId)
     }),

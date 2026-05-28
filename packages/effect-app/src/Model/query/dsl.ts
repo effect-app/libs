@@ -761,7 +761,49 @@ export const expr = {
 
 export const computed = <T extends ComputedProjectionMap>(value: T): T => value
 
+/**
+ * Helpers passed to the inline-builder form of {@link projectComputed}. The
+ * `relation` factory is bound to the source row shape so paths/fields inside
+ * the projection are validated against the document shape inferred from the
+ * pipe.
+ */
+export interface ComputedHelpers<TFieldValues extends FieldValues> {
+  relation: <const P extends FieldPath<TFieldValues>>(path: P) => ReturnType<typeof relation<TFieldValues, P>>
+}
+
+const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelpers<TFieldValues> => ({
+  relation: (path) => relation<TFieldValues, typeof path>(path)
+})
+
 export const projectComputed: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<Option.Option<A>, I, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    mode: "collect"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    mode?: "project"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends Record<string, unknown>,
@@ -789,8 +831,19 @@ export const projectComputed: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, computedProjection: ComputedProjectionMap, mode = "project") => (current: any) =>
-  new Project({ current, schema, mode, computed: computedProjection } as any)
+} = (
+  schema: any,
+  mapOrBuild:
+    | ComputedProjectionMap
+    | ((helpers: ComputedHelpers<FieldValues>) => ComputedProjectionMap),
+  mode = "project"
+) =>
+(current: any) => {
+  const computedProjection = typeof mapOrBuild === "function"
+    ? mapOrBuild(makeComputedHelpers())
+    : mapOrBuild
+  return new Project({ current, schema, mode, computed: computedProjection } as any)
+}
 
 /**
  * Builder shape returned by {@link agg}. Field-taking methods are constrained

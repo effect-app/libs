@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "4.0.0-beta.256",
+  "version": "4.0.0-beta.257",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -60,214 +60,15 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./CUPS": {
-      "types": "./dist/CUPS.d.ts",
-      "default": "./dist/CUPS.js"
-    },
-    "./ContextProvider": {
-      "types": "./dist/ContextProvider.d.ts",
-      "default": "./dist/ContextProvider.js"
-    },
-    "./Emailer/Sendgrid": {
-      "types": "./dist/Emailer/Sendgrid.d.ts",
-      "default": "./dist/Emailer/Sendgrid.js"
-    },
-    "./Emailer/fake": {
-      "types": "./dist/Emailer/fake.d.ts",
-      "default": "./dist/Emailer/fake.js"
-    },
-    "./MainFiberSet": {
-      "types": "./dist/MainFiberSet.d.ts",
-      "default": "./dist/MainFiberSet.js"
-    },
-    "./QueueMaker/SQLQueue": {
-      "types": "./dist/QueueMaker/SQLQueue.d.ts",
-      "default": "./dist/QueueMaker/SQLQueue.js"
-    },
-    "./QueueMaker/errors": {
-      "types": "./dist/QueueMaker/errors.d.ts",
-      "default": "./dist/QueueMaker/errors.js"
-    },
-    "./QueueMaker/memQueue": {
-      "types": "./dist/QueueMaker/memQueue.d.ts",
-      "default": "./dist/QueueMaker/memQueue.js"
-    },
-    "./QueueMaker/sbqueue": {
-      "types": "./dist/QueueMaker/sbqueue.d.ts",
-      "default": "./dist/QueueMaker/sbqueue.js"
-    },
-    "./RequestFiberSet": {
-      "types": "./dist/RequestFiberSet.d.ts",
-      "default": "./dist/RequestFiberSet.js"
-    },
-    "./SQL": {
-      "types": "./dist/SQL.d.ts",
-      "default": "./dist/SQL.js"
-    },
-    "./SQL/Model": {
-      "types": "./dist/SQL/Model.d.ts",
-      "default": "./dist/SQL/Model.js"
-    },
-    "./ServiceBus": {
-      "types": "./dist/ServiceBus.d.ts",
-      "default": "./dist/ServiceBus.js"
-    },
-    "./Store/Cosmos": {
-      "types": "./dist/Store/Cosmos.d.ts",
-      "default": "./dist/Store/Cosmos.js"
-    },
-    "./Store/Cosmos/query": {
-      "types": "./dist/Store/Cosmos/query.d.ts",
-      "default": "./dist/Store/Cosmos/query.js"
-    },
-    "./Store/Disk": {
-      "types": "./dist/Store/Disk.d.ts",
-      "default": "./dist/Store/Disk.js"
-    },
-    "./Store/Memory": {
-      "types": "./dist/Store/Memory.d.ts",
-      "default": "./dist/Store/Memory.js"
-    },
-    "./Store/SQL": {
-      "types": "./dist/Store/SQL.d.ts",
-      "default": "./dist/Store/SQL.js"
-    },
-    "./Store/SQL/Pg": {
-      "types": "./dist/Store/SQL/Pg.d.ts",
-      "default": "./dist/Store/SQL/Pg.js"
-    },
-    "./Store/SQL/query": {
-      "types": "./dist/Store/SQL/query.d.ts",
-      "default": "./dist/Store/SQL/query.js"
-    },
-    "./Store/codeFilter": {
-      "types": "./dist/Store/codeFilter.d.ts",
-      "default": "./dist/Store/codeFilter.js"
-    },
-    "./Store/index": {
-      "types": "./dist/Store/index.d.ts",
-      "default": "./dist/Store/index.js"
-    },
-    "./Store/utils": {
-      "types": "./dist/Store/utils.d.ts",
-      "default": "./dist/Store/utils.js"
-    },
-    "./arbs": {
-      "types": "./dist/arbs.d.ts",
-      "default": "./dist/arbs.js"
-    },
-    "./codec": {
-      "types": "./dist/codec.d.ts",
-      "default": "./dist/codec.js"
-    },
-    "./cosmos-client": {
-      "types": "./dist/cosmos-client.d.ts",
-      "default": "./dist/cosmos-client.js"
-    },
-    "./errorReporter": {
-      "types": "./dist/errorReporter.d.ts",
-      "default": "./dist/errorReporter.js"
-    },
-    "./errors": {
-      "types": "./dist/errors.d.ts",
-      "default": "./dist/errors.js"
-    },
-    "./fileUtil": {
-      "types": "./dist/fileUtil.d.ts",
-      "default": "./dist/fileUtil.js"
-    },
-    "./layerUtils": {
-      "types": "./dist/layerUtils.d.ts",
-      "default": "./dist/layerUtils.js"
-    },
-    "./logger": {
-      "types": "./dist/logger.d.ts",
-      "default": "./dist/logger.js"
-    },
-    "./logger/jsonLogger": {
-      "types": "./dist/logger/jsonLogger.d.ts",
-      "default": "./dist/logger/jsonLogger.js"
-    },
-    "./logger/logFmtLogger": {
-      "types": "./dist/logger/logFmtLogger.d.ts",
-      "default": "./dist/logger/logFmtLogger.js"
-    },
-    "./logger/shared": {
-      "types": "./dist/logger/shared.d.ts",
-      "default": "./dist/logger/shared.js"
-    },
-    "./memQueue": {
-      "types": "./dist/memQueue.d.ts",
-      "default": "./dist/memQueue.js"
-    },
-    "./middlewares": {
-      "types": "./dist/middlewares.d.ts",
-      "default": "./dist/middlewares.js"
-    },
-    "./mongo-client": {
-      "types": "./dist/mongo-client.d.ts",
-      "default": "./dist/mongo-client.js"
-    },
-    "./otel": {
-      "types": "./dist/otel.d.ts",
-      "default": "./dist/otel.js"
-    },
-    "./rateLimit": {
-      "types": "./dist/rateLimit.d.ts",
-      "default": "./dist/rateLimit.js"
-    },
-    "./redis-client": {
-      "types": "./dist/redis-client.d.ts",
-      "default": "./dist/redis-client.js"
-    },
-    "./reportError": {
-      "types": "./dist/reportError.d.ts",
-      "default": "./dist/reportError.js"
-    },
-    "./routing": {
-      "types": "./dist/routing.d.ts",
-      "default": "./dist/routing.js"
-    },
-    "./routing/middleware": {
-      "types": "./dist/routing/middleware.d.ts",
-      "default": "./dist/routing/middleware.js"
-    },
-    "./routing/middleware/RouterMiddleware": {
-      "types": "./dist/routing/middleware/RouterMiddleware.d.ts",
-      "default": "./dist/routing/middleware/RouterMiddleware.js"
-    },
-    "./routing/middleware/middleware": {
-      "types": "./dist/routing/middleware/middleware.d.ts",
-      "default": "./dist/routing/middleware/middleware.js"
-    },
-    "./routing/schema/jwt": {
-      "types": "./dist/routing/schema/jwt.d.ts",
-      "default": "./dist/routing/schema/jwt.js"
-    },
-    "./routing/tsort": {
-      "types": "./dist/routing/tsort.d.ts",
-      "default": "./dist/routing/tsort.js"
-    },
-    "./routing/utils": {
-      "types": "./dist/routing/utils.d.ts",
-      "default": "./dist/routing/utils.js"
-    },
-    "./test": {
-      "types": "./dist/test.d.ts",
-      "default": "./dist/test.js"
-    },
-    "./util": {
-      "types": "./dist/util.d.ts",
-      "default": "./dist/util.js"
-    },
-    "./vitest": {
-      "types": "./dist/vitest.d.ts",
-      "default": "./dist/vitest.js"
+    "./internal/*": null,
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson pnpm check",
+    "build:tsc": "pnpm clean-dist && pnpm check",
     "check": "tsgo --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsgo -w",

@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue",
-  "version": "4.0.0-beta.256",
+  "version": "4.0.0-beta.257",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",
@@ -43,74 +43,15 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./commander": {
-      "types": "./dist/commander.d.ts",
-      "default": "./dist/commander.js"
-    },
-    "./confirm": {
-      "types": "./dist/confirm.d.ts",
-      "default": "./dist/confirm.js"
-    },
-    "./errorReporter": {
-      "types": "./dist/errorReporter.d.ts",
-      "default": "./dist/errorReporter.js"
-    },
-    "./form": {
-      "types": "./dist/form.d.ts",
-      "default": "./dist/form.js"
-    },
-    "./intl": {
-      "types": "./dist/intl.d.ts",
-      "default": "./dist/intl.js"
-    },
-    "./lib": {
-      "types": "./dist/lib.d.ts",
-      "default": "./dist/lib.js"
-    },
-    "./makeClient": {
-      "types": "./dist/makeClient.d.ts",
-      "default": "./dist/makeClient.js"
-    },
-    "./makeContext": {
-      "types": "./dist/makeContext.d.ts",
-      "default": "./dist/makeContext.js"
-    },
-    "./makeIntl": {
-      "types": "./dist/makeIntl.d.ts",
-      "default": "./dist/makeIntl.js"
-    },
-    "./makeUseCommand": {
-      "types": "./dist/makeUseCommand.d.ts",
-      "default": "./dist/makeUseCommand.js"
-    },
-    "./mutate": {
-      "types": "./dist/mutate.d.ts",
-      "default": "./dist/mutate.js"
-    },
-    "./query": {
-      "types": "./dist/query.d.ts",
-      "default": "./dist/query.js"
-    },
-    "./routeParams": {
-      "types": "./dist/routeParams.d.ts",
-      "default": "./dist/routeParams.js"
-    },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "default": "./dist/runtime.js"
-    },
-    "./toast": {
-      "types": "./dist/toast.d.ts",
-      "default": "./dist/toast.js"
-    },
-    "./withToast": {
-      "types": "./dist/withToast.d.ts",
-      "default": "./dist/withToast.js"
+    "./internal/*": null,
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson pnpm check",
+    "build:tsc": "pnpm clean-dist && pnpm check",
     "check": "tsgo --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsgo -w",

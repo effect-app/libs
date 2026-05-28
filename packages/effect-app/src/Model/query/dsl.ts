@@ -793,70 +793,81 @@ export const projectComputed: {
   new Project({ current, schema, mode, computed: computedProjection } as any)
 
 /**
+ * Builder shape returned by {@link agg}. Field-taking methods are constrained
+ * to `FieldPath<TFieldValues>` so paths are validated against the document
+ * shape.
+ */
+export interface AggBuilder<TFieldValues extends FieldValues> {
+  field: (path: FieldPath<TFieldValues>) => AggregateExpression
+  count: () => AggregateExpression
+  countWhen: (operation: ComputedProjectionOperation) => AggregateExpression
+  sum: (field: FieldPath<TFieldValues>) => AggregateExpression
+  min: (field: FieldPath<TFieldValues>) => AggregateExpression
+  max: (field: FieldPath<TFieldValues>) => AggregateExpression
+}
+
+const makeAggBuilder = <TFieldValues extends FieldValues>(): AggBuilder<TFieldValues> => ({
+  field: (path) => ({ _tag: "agg-field", path: path as string }),
+  count: () => ({ _tag: "agg-count" }),
+  countWhen: (operation) => ({ _tag: "agg-count-when", operation }),
+  sum: (field) => ({ _tag: "agg-sum", field: field as string }),
+  min: (field) => ({ _tag: "agg-min", field: field as string }),
+  max: (field) => ({ _tag: "agg-max", field: field as string })
+})
+
+/**
  * Scope-bound aggregate-expression builder factory. Invoke with the source
  * document field-value shape to get a builder whose `field`/`sum`/`min`/`max`
  * arguments are constrained to `FieldPath<TFieldValues>`.
  *
- * Example: `agg<Row>().field("address.city")`, `agg<Row>().sum("qty")`.
- *
- * - `field(path)` — references a document field for GROUP BY (with optional output alias)
- * - `count()` — COUNT(*) across all rows in the group
- * - `countWhen(op)` — COUNT of rows matching the filter operation
- * - `sum(field)` — SUM of a numeric document field
- * - `min(field)` / `max(field)` — MIN/MAX of a document field
+ * Prefer the inline callback form of {@link aggregate} (`aggregate(schema,
+ * ($) => ({...}))`) — there the source shape is inferred from the pipe so no
+ * explicit type argument is needed. This factory is the escape hatch when
+ * the builder is constructed outside the pipe.
  */
-export const agg = <TFieldValues extends FieldValues = FieldValues>() => ({
-  field: (path: FieldPath<TFieldValues>): AggregateExpression => ({
-    _tag: "agg-field",
-    path: path as string
-  }),
-  count: (): AggregateExpression => ({ _tag: "agg-count" }),
-  countWhen: (operation: ComputedProjectionOperation): AggregateExpression => ({
-    _tag: "agg-count-when",
-    operation
-  }),
-  sum: (field: FieldPath<TFieldValues>): AggregateExpression => ({
-    _tag: "agg-sum",
-    field: field as string
-  }),
-  min: (field: FieldPath<TFieldValues>): AggregateExpression => ({
-    _tag: "agg-min",
-    field: field as string
-  }),
-  max: (field: FieldPath<TFieldValues>): AggregateExpression => ({
-    _tag: "agg-max",
-    field: field as string
-  })
-})
+export const agg = <TFieldValues extends FieldValues = FieldValues>(): AggBuilder<TFieldValues> =>
+  makeAggBuilder<TFieldValues>()
 
 /**
  * Attach an aggregate projection to a query, performing GROUP BY + aggregate functions at the
  * database level instead of fetching all rows and grouping in memory.
  *
- * The `aggregateMap` maps each output field name to either:
- * - `agg<Row>().field(path)` — a group-by field (document path → output alias)
- * - `agg<Row>().count()` / `agg<Row>().countWhen(op)` / `agg<Row>().sum(f)` / `agg<Row>().min(f)` /
- *   `agg<Row>().max(f)` — an aggregate
- *
- * The output is decoded directly with `schema` (no PM reverse-mapping, no etag tracking).
- * Decode failures surface as `S.SchemaError`.
+ * Pass a builder callback to get a typed `agg` bound to the source row shape
+ * (inferred from the pipe — no explicit generic needed):
  *
  * @example
  * ```ts
- * const a = agg<Row>()
  * repo.query(
  *   where("status", "active"),
  *   aggregate(
  *     S.Struct({ city: S.String, count: S.Number }),
- *     {
- *       city: a.field("address.city"),
- *       count: a.countWhen((q) => q.pipe(where("active", true)))
- *     }
+ *     ($) => ({
+ *       city: $.field("address.city"),
+ *       count: $.countWhen((q) => q.pipe(where("active", true)))
+ *     })
  *   )
  * )
  * ```
+ *
+ * A plain {@link AggregateMap} is also accepted for the rare case where the
+ * map is built outside the pipe (loses path inference).
+ *
+ * The output is decoded directly with `schema` (no PM reverse-mapping, no etag tracking).
+ * Decode failures surface as `S.SchemaError`.
  */
 export const aggregate: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    build: (agg: AggBuilder<ExtractFieldValuesRefined<Q>>) => AggregateMap
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends Record<string, unknown>,
@@ -869,8 +880,12 @@ export const aggregate: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, aggregateMap: AggregateMap) => (current: any) =>
-  new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
+} = (schema: any, mapOrBuild: AggregateMap | ((agg: AggBuilder<FieldValues>) => AggregateMap)) => (current: any) => {
+  const aggregateMap = typeof mapOrBuild === "function"
+    ? mapOrBuild(makeAggBuilder())
+    : mapOrBuild
+  return new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
+}
 
 type GetArV<T> = T extends readonly (infer R)[] ? R : never
 

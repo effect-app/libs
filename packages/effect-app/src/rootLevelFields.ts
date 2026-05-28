@@ -1,6 +1,6 @@
+import * as SchemaAST from "effect/SchemaAST"
 import type * as S from "./Schema.js"
 import type { RootLevelFieldColumn, RootLevelFieldColumnKind } from "./Store.js"
-import * as SchemaAST from "effect/SchemaAST"
 
 const walkTransformation = (ast: SchemaAST.AST): SchemaAST.AST => {
   if (ast._tag === "Declaration" && ast.typeParameters.length > 0) {

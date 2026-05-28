@@ -10,13 +10,34 @@ This is the Effect App library repository, focusing on functional programming pa
 ### Core Principles
 
 - **Zero Tolerance for Errors**: All automated checks must pass
-- **No `as any` / `as unknown` casts**: These are never acceptable fixes. Understand the actual types and fix the root cause. If a type mismatch exists, find the correct v4 API, update the type signatures, or restructure the code.
+- **Root causes, not workarounds**: When something fails — a type error, a runtime crash, a failing test, a hanging fiber — diagnose the invariant that was violated and fix it there. Do **not** mask the symptom with a wrapper, a revive helper, a `try/catch`, a `JSON.parse(JSON.stringify(...))`, or any other shape-coercion. Each of these is a tell that you skipped the diagnosis.
+- **No `as any` / `as unknown` casts**: A specific case of the rule above. Casts hide the type system telling you the shape is wrong. Understand the actual types and fix the root cause. If a type mismatch exists, find the correct v4 API, update the type signatures, or restructure the code.
+- **No hand-rolled deserialization**: Anything stored as JSON and read back must round-trip through a Schema codec (`S.fromJsonString(S.toCodecJson(...))`, `S.encodeEffect` / `S.decodeEffect`). Class prototypes — `Exit`, `Cause`, `Workflow.Result`, `Schema.Class` instances — do not survive `JSON.parse`. The schema layer is the canonical reconstruction path; writing a custom `reviveX` helper is a smell that the codec is missing.
+- **Search prior art before writing helpers**: Before introducing a new utility for a cross-boundary concern (serialization, encoding, retries, context propagation, OCC), grep the repo and `repos/effect` for the established pattern. The cluster engine, the existing Cosmos adapter, the SQL stores — they have already solved most of these problems. Copying the established pattern beats inventing a parallel one.
+- **Check newer branches before resuming work**: A new session may resume on `main` with no checkout of relevant feature branches. Before extending a topic, run `git branch -a | grep <topic>` and inspect the latest version with `git show <branch>:<path>`. Session-local memory of "how X works" may be from an older draft that has since been replaced.
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
 - **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic. Comments in jsdocs are acceptable.
 - **Look for effect sources inside `repos/effect`**
 - **Never import local `repos` files**: Always use the latest online versions of packages instead.
 - **Never webfetch from the effect repos**: just use the locally included under `repos`
+
+### When you hit an error, before writing any fix
+
+Errors are signals, not nuisances. Run this checklist:
+
+1. **State the failure precisely.** Quote the exact error or behavior. `"object is not iterable"` is not the same as `"wrong type"`. The message names the violated invariant.
+2. **Name the boundary.** Where in the data flow did the value lose the property the consumer needs? At the storage write, the storage read, the network hop, the schema decode, the context provision?
+3. **Search for prior art at that boundary.** `grep` the repo + `repos/effect` for how similar values cross the same boundary. If a pattern exists, use it.
+4. **Only then write code.** If your fix re-implements something the searched-for pattern already does (revive prototypes, retry on OCC, encode JSON), stop — use the existing pattern instead.
+
+Anti-patterns that mean you skipped the checklist:
+
+- `JSON.parse` of a value that contains tagged classes, followed by manual prototype reconstruction.
+- `try/catch` around a yield that swallows the error and returns a fabricated value.
+- Adding a second `as any` to make a first `as any` typecheck.
+- Adding a sleep / retry to "give it time to work" instead of finding the missing wake signal.
+- Disabling a hook (`--no-verify`) or a check to make the diff land.
 
 ### Mandatory Validation Steps
 

@@ -152,6 +152,10 @@
       "types": "./dist/Store/utils.d.ts",
       "default": "./dist/Store/utils.js"
     },
+    "./WorkflowEngineSqlite": {
+      "types": "./dist/WorkflowEngineSqlite.d.ts",
+      "default": "./dist/WorkflowEngineSqlite.js"
+    },
     "./arbs": {
       "types": "./dist/arbs.d.ts",
       "default": "./dist/arbs.js"

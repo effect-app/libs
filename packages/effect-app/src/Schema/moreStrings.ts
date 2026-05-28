@@ -104,9 +104,7 @@ export const NonEmptyString80: NonEmptyString80Schema = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 100.
  */
-export interface NonEmptyString100Brand
-  extends Simplify<SchemaB.Brand<"NonEmptyString100"> & NonEmptyString255Brand>
-{}
+export interface NonEmptyString100Brand extends Simplify<SchemaB.Brand<"NonEmptyString100"> & NonEmptyString255Brand> {}
 
 /**
  * A string that is at least 1 character long and a maximum of 100.

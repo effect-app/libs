@@ -1,5 +1,111 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.257
+
+### Patch Changes
+
+- Updated dependencies [e71eb78]
+  - effect-app@4.0.0-beta.257
+  - @effect-app/vue@4.0.0-beta.257
+
+## 4.0.0-beta.256
+
+### Patch Changes
+
+- Updated dependencies [347af48]
+  - effect-app@4.0.0-beta.256
+  - @effect-app/vue@4.0.0-beta.256
+
+## 4.0.0-beta.255
+
+### Patch Changes
+
+- Updated dependencies [52a31dd]
+  - effect-app@4.0.0-beta.255
+  - @effect-app/vue@4.0.0-beta.255
+
+## 4.0.0-beta.254
+
+### Patch Changes
+
+- Updated dependencies [29a1e57]
+  - effect-app@4.0.0-beta.254
+  - @effect-app/vue@4.0.0-beta.254
+
+## 4.0.0-beta.253
+
+### Patch Changes
+
+- Updated dependencies [b90fa30]
+  - effect-app@4.0.0-beta.253
+  - @effect-app/vue@4.0.0-beta.253
+
+## 4.0.0-beta.252
+
+### Patch Changes
+
+- Updated dependencies [a788432]
+  - effect-app@4.0.0-beta.252
+  - @effect-app/vue@4.0.0-beta.252
+
+## 4.0.0-beta.251
+
+### Patch Changes
+
+- Updated dependencies [1c858d3]
+  - effect-app@4.0.0-beta.251
+  - @effect-app/vue@4.0.0-beta.251
+
+## 4.0.0-beta.250
+
+### Patch Changes
+
+- Updated dependencies [3053760]
+  - effect-app@4.0.0-beta.250
+  - @effect-app/vue@4.0.0-beta.250
+
+## 4.0.0-beta.249
+
+### Patch Changes
+
+- Updated dependencies [ba789a2]
+  - effect-app@4.0.0-beta.249
+  - @effect-app/vue@4.0.0-beta.249
+
+## 4.0.0-beta.248
+
+### Patch Changes
+
+- Updated dependencies [2a86a17]
+  - effect-app@4.0.0-beta.248
+  - @effect-app/vue@4.0.0-beta.248
+
+## 4.0.0-beta.247
+
+### Patch Changes
+
+- Updated dependencies [01bab22]
+  - effect-app@4.0.0-beta.247
+  - @effect-app/vue@4.0.0-beta.247
+
+## 4.0.0-beta.246
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.246
+- @effect-app/vue@4.0.0-beta.246
+
+## 4.0.0-beta.245
+
+### Minor Changes
+
+- a03a248: `CommandButton`: add `optionalInput` prop accepting `Option<I>`. `Some` enables button and fires click with value; `None` disables. Use when input is gated by a `computed` rather than a `v-if` on the button. Also bind `:disabled` on the `<v-btn>` (previously only `aria-disabled`).
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.245
+- @effect-app/vue@4.0.0-beta.245
+
 ## 4.0.0-beta.244
 
 ### Patch Changes

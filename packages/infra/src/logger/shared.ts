@@ -1,8 +1,8 @@
 import * as Option from "effect-app/Option"
+import { LocaleRef, RequestContext } from "effect-app/RequestContext"
 import { NonEmptyString255 } from "effect-app/Schema"
+import { storeId } from "effect-app/Store"
 import type * as Fiber from "effect/Fiber"
-import { LocaleRef, RequestContext } from "../RequestContext.js"
-import { storeId } from "../Store/Memory.js"
 
 export function getRequestContextFromFiber(fiber: Fiber.Fiber<unknown, unknown>) {
   const span = Option.fromNullishOr(fiber.currentSpan)

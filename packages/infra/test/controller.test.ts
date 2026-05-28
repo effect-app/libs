@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import * as Context from "effect-app/Context"
@@ -13,8 +13,8 @@ import * as S from "effect-app/Schema"
 import { TypeTestId } from "effect-app/TypeTest"
 import * as Scope from "effect/Scope"
 import { type RpcSerialization } from "effect/unstable/rpc"
-import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api/routing/middleware.js"
-import { sort } from "../src/api/routing/tsort.js"
+import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
+import { sort } from "../src/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {

@@ -1,9 +1,9 @@
 import * as Sentry from "@sentry/node"
 import * as Effect from "effect-app/Effect"
+import { getRC } from "effect-app/setupRequest"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import type * as LogLevel from "effect/LogLevel"
-import { getRC } from "./api/setupRequest.js"
 import { CauseException, tryToJson, tryToReport } from "./errors.js"
 import { InfraLogger } from "./logger.js"
 

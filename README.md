@@ -7,6 +7,22 @@ WIP [docs](https://github.com/effect-ts-app/docs)
 
 See https://github.com/effect-ts-app/boilerplate for a sample app use.
 
+## Package boundaries
+
+- `effect-app`: service contracts and runtime-agnostic base logic.
+- `@effect-app/infra`: backend / Node adapters.
+- `@effect-app/vue`: Vue / browser adapters.
+
+Migration targets introduced in this repo include:
+
+- `@effect-app/infra/Emailer/service` -> `effect-app/Emailer`
+- `@effect-app/infra/QueueMaker/service` -> `effect-app/QueueMaker`
+- `@effect-app/infra/Store/service` -> `effect-app/Store`
+- `@effect-app/infra/Model/*` -> `effect-app/Model/*`
+- `@effect-app/vue/runtime` -> `effect-app/runtime`
+- `@effect-app/vue/toast` -> `effect-app/toast`
+- `@effect-app/vue/withToast` -> `effect-app/withToast`
+
 ## Update Effect Subtree
 
 `repos/effect` is a git subtree of `https://github.com/Effect-TS/effect-smol.git`.

@@ -160,16 +160,16 @@ export interface MutationExt<
     RT,
     Id,
     I,
-    S.Schema.Type<ProjSchema>,
+    ProjSchema["Type"],
     E | S.SchemaError,
-    R | S.Codec.DecodingServices<ProjSchema>,
-    S.Codec.Encoded<ProjSchema>
+    R | ProjSchema["DecodingServices"],
+    ProjSchema["Encoded"]
   >
 }
 
 export type MutationWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? MutationExt<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
+  ? MutationExt<RT, Id, I, A, E, R, Request["success"]["Encoded"]>
   : never
 
 /**
@@ -217,13 +217,13 @@ export type QueryProjection<RT, HandlerReq> = HandlerReq extends
   RequestHandlerWithInput<infer I, infer _A, infer E, infer R, infer Request, infer Id>
   ? Request["type"] extends "query" ? {
       project: <ProjSchema extends S.Top>(
-        schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
+        schema: Request["success"]["Encoded"] extends ProjSchema["Encoded"] ? ProjSchema : never
       ) => ProjectResult<
         RT,
         I,
-        S.Schema.Type<ProjSchema>,
+        ProjSchema["Type"],
         E | S.SchemaError,
-        R | S.Codec.DecodingServices<ProjSchema>,
+        R | ProjSchema["DecodingServices"],
         Request,
         Id
       >

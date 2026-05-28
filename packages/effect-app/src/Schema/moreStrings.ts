@@ -10,15 +10,17 @@
  */
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
+import type * as B from "effect/Brand"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
+import type * as SchemaAST from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
-import { fromBrand, nominal } from "./brand.js"
-import { withDefaultMake, type WithDefaults } from "./ext.js"
-import { type B } from "./schema.js"
+import { type BrandedSchema, fromBrand, nominal } from "./brand.js"
+import { withDefaultMake } from "./ext.js"
+import { type B as SchemaB } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
 const nonEmptyString = S.NonEmptyString
@@ -26,7 +28,7 @@ const nonEmptyString = S.NonEmptyString
 /**
  * A string that is at least 1 character long and a maximum of 50.
  */
-export interface NonEmptyString50Brand extends Simplify<B.Brand<"NonEmptyString50"> & NonEmptyString64Brand> {}
+export interface NonEmptyString50Brand extends Simplify<SchemaB.Brand<"NonEmptyString50"> & NonEmptyString64Brand> {}
 
 /**
  * A string that is at least 1 character long and a maximum of 50.
@@ -36,7 +38,10 @@ export type NonEmptyString50 = string & NonEmptyString50Brand
 /**
  * A string that is at least 1 character long and a maximum of 50.
  */
-export const NonEmptyString50 = nonEmptyString.pipe(
+export interface NonEmptyString50Schema extends BrandedSchema<S.NonEmptyString, NonEmptyString50> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString50
+}
+export const NonEmptyString50: NonEmptyString50Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(50)),
   fromBrand<NonEmptyString50>(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
@@ -48,7 +53,7 @@ export const NonEmptyString50 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 64.
  */
-export interface NonEmptyString64Brand extends Simplify<B.Brand<"NonEmptyString64"> & NonEmptyString80Brand> {}
+export interface NonEmptyString64Brand extends Simplify<SchemaB.Brand<"NonEmptyString64"> & NonEmptyString80Brand> {}
 
 /**
  * A string that is at least 1 character long and a maximum of 64.
@@ -58,7 +63,10 @@ export type NonEmptyString64 = string & NonEmptyString64Brand
 /**
  * A string that is at least 1 character long and a maximum of 64.
  */
-export const NonEmptyString64 = nonEmptyString.pipe(
+export interface NonEmptyString64Schema extends BrandedSchema<S.NonEmptyString, NonEmptyString64> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString64
+}
+export const NonEmptyString64: NonEmptyString64Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(64)),
   fromBrand<NonEmptyString64>(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
@@ -70,7 +78,7 @@ export const NonEmptyString64 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 80.
  */
-export interface NonEmptyString80Brand extends Simplify<B.Brand<"NonEmptyString80"> & NonEmptyString100Brand> {}
+export interface NonEmptyString80Brand extends Simplify<SchemaB.Brand<"NonEmptyString80"> & NonEmptyString100Brand> {}
 
 /**
  * A string that is at least 1 character long and a maximum of 80.
@@ -81,7 +89,10 @@ export type NonEmptyString80 = string & NonEmptyString80Brand
  * A string that is at least 1 character long and a maximum of 80.
  */
 
-export const NonEmptyString80 = nonEmptyString.pipe(
+export interface NonEmptyString80Schema extends BrandedSchema<S.NonEmptyString, NonEmptyString80> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString80
+}
+export const NonEmptyString80: NonEmptyString80Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(80)),
   fromBrand<NonEmptyString80>(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
@@ -93,7 +104,7 @@ export const NonEmptyString80 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 100.
  */
-export interface NonEmptyString100Brand extends Simplify<B.Brand<"NonEmptyString100"> & NonEmptyString255Brand> {}
+export interface NonEmptyString100Brand extends Simplify<SchemaB.Brand<"NonEmptyString100"> & NonEmptyString255Brand> {}
 
 /**
  * A string that is at least 1 character long and a maximum of 100.
@@ -103,7 +114,10 @@ export type NonEmptyString100 = string & NonEmptyString100Brand
 /**
  * A string that is at least 1 character long and a maximum of 100.
  */
-export const NonEmptyString100 = nonEmptyString.pipe(
+export interface NonEmptyString100Schema extends BrandedSchema<S.NonEmptyString, NonEmptyString100> {
+  (i: string, options?: SchemaAST.ParseOptions): NonEmptyString100
+}
+export const NonEmptyString100: NonEmptyString100Schema = nonEmptyString.pipe(
   S.check(S.isMaxLength(100)),
   fromBrand<NonEmptyString100>(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
@@ -115,7 +129,7 @@ export const NonEmptyString100 = nonEmptyString.pipe(
 /**
  * A string that is at least 3 character long and a maximum of 255.
  */
-export interface Min3String255Brand extends Simplify<B.Brand<"Min3String255"> & NonEmptyString255Brand> {}
+export interface Min3String255Brand extends Simplify<SchemaB.Brand<"Min3String255"> & NonEmptyString255Brand> {}
 
 /**
  * A string that is at least 3 character long and a maximum of 255.
@@ -125,7 +139,10 @@ export type Min3String255 = string & Min3String255Brand
 /**
  * A string that is at least 3 character long and a maximum of 255.
  */
-export const Min3String255 = pipe(
+export interface Min3String255Schema extends BrandedSchema<S.String, Min3String255> {
+  (i: string, options?: SchemaAST.ParseOptions): Min3String255
+}
+export const Min3String255: Min3String255Schema = pipe(
   S.String,
   S.check(S.isMinLength(3), S.isMaxLength(255)),
   fromBrand<Min3String255>(nominal<Min3String255>(), {
@@ -138,19 +155,28 @@ export const Min3String255 = pipe(
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
-export interface StringIdBrand extends Simplify<B.Brand<"StringId"> & NonEmptyString50Brand> {}
+export interface StringIdBrand extends Simplify<SchemaB.Brand<"StringId"> & NonEmptyString50Brand> {}
 
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
 export type StringId = string & StringIdBrand
 
-const makeStringId = (s?: string): StringId =>
-  s !== undefined ? S.decodeSync(StringId)(s) : nanoid() as unknown as StringId
 const minLength = 6
 const maxLength = 50
 const size = 21
 const length = 10 * size
+const StringIdSchemaBase = pipe(
+  S.String,
+  S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
+  fromBrand<StringId>(nominal<StringId>(), {
+    identifier: "StringId",
+    toArbitrary: () => (fc) => StringIdArb()(fc),
+    jsonSchema: {}
+  })
+)
+const makeStringId = (s?: string): StringId =>
+  s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
 const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
   fc
     .uint8Array({ minLength: length, maxLength: length })
@@ -161,16 +187,16 @@ const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
  * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
  * applied during decode — see file-level note).
  */
-export const StringId = extendM(
-  pipe(
-    S.String,
-    S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
-    fromBrand<StringId>(nominal<StringId>(), {
-      identifier: "StringId",
-      toArbitrary: () => (fc) => StringIdArb()(fc),
-      jsonSchema: {}
-    })
-  ),
+export interface StringIdSchema extends BrandedSchema<S.String, StringId> {
+  (i: string, options?: SchemaAST.ParseOptions): StringId
+  /** Generate fresh `nanoid()`-shaped `StringId`. */
+  make(): StringId
+  /** Construct a `StringId` from a known string (validated via decodeSync). */
+  make(input: string, options?: S.MakeOptions): StringId
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.String, StringId>>
+}
+export const StringId: StringIdSchema = extendM(
+  StringIdSchemaBase,
   (s) => ({
     make: makeStringId,
     /**
@@ -183,10 +209,6 @@ export const StringId = extendM(
   })
 )
   .pipe(withDefaultMake)
-
-// const prefixedStringIdUnsafe = (prefix: string) => StringId(prefix + StringId.make())
-
-// const prefixedStringIdUnsafeThunk = (prefix: string) => () => prefixedStringIdUnsafe(prefix)
 
 /**
  * Build a `StringId` schema whose values are required to start with a fixed
@@ -209,7 +231,7 @@ export function prefixedStringId<Type extends StringId>() {
         (x) => (pref + x.substring(0, 50 - pref.length)) as Type
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s = StringId
+    const s = StringIdSchemaBase
       .pipe(
         S.refine((x: string): x is Type => x.startsWith(pref), {
           identifier: name
@@ -256,20 +278,9 @@ export function prefixedStringId<Type extends StringId>() {
  * Exposes `.withConstructorDefault` that mints a fresh `nanoid()`-shaped id.
  * Construction-only — not applied during decode; see file-level note.
  */
-export const brandedStringId = <
-  Id
->() =>
+export const brandedStringId = <Id extends string & B.Brand<any>>(): BrandedStringIdSchema<Id> =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
-      /**
-       * Construction-only default: fresh `nanoid()`-shaped id. Applied only
-       * when the field is omitted from `.make(...)` input. NOT applied
-       * during decode — cannot be used to JIT-migrate database fields. See
-       * file-level note.
-       */
-      withConstructorDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
-      make: () => Id
-    } & WithDefaults<S.Codec<Id, string>>
+    Object.assign(Object.create(StringId), StringId) as BrandedStringIdSchema<Id>
   )
 
 export interface PrefixedStringUtils<
@@ -289,7 +300,16 @@ export interface PrefixedStringUtils<
   readonly withConstructorDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
 }
 
-export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}
+export interface BrandedStringIdSchema<Id extends string & B.Brand<any>> extends BrandedSchema<S.String, Id> {
+  (i: string, options?: SchemaAST.ParseOptions): Id
+  /** Generate fresh `nanoid()`-shaped id (inherited from `StringId`). */
+  make(): Id
+  /** Construct an `Id` from a known string (validated via decodeSync). */
+  make(input: string, options?: S.MakeOptions): Id
+  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.String, Id>>
+}
+
+export interface UrlBrand extends Simplify<SchemaB.Brand<"Url"> & NonEmptyStringBrand> {}
 
 export type Url = string & UrlBrand
 
@@ -297,7 +317,10 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
   return validator.default.isURL(s, { require_tld: false })
 }
 
-export const Url = S
+export interface UrlSchema extends S.refine<Url, S.String> {
+  (i: string, options?: SchemaAST.ParseOptions): Url
+}
+export const Url: UrlSchema = S
   .String
   .pipe(
     S.annotate({

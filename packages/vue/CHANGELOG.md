@@ -1,5 +1,105 @@
 # @effect-app/vue
 
+## 4.0.0-beta.257
+
+### Patch Changes
+
+- Updated dependencies [e71eb78]
+  - effect-app@4.0.0-beta.257
+
+## 4.0.0-beta.256
+
+### Patch Changes
+
+- Updated dependencies [347af48]
+  - effect-app@4.0.0-beta.256
+
+## 4.0.0-beta.255
+
+### Patch Changes
+
+- Updated dependencies [52a31dd]
+  - effect-app@4.0.0-beta.255
+
+## 4.0.0-beta.254
+
+### Patch Changes
+
+- Updated dependencies [29a1e57]
+  - effect-app@4.0.0-beta.254
+
+## 4.0.0-beta.253
+
+### Patch Changes
+
+- Updated dependencies [b90fa30]
+  - effect-app@4.0.0-beta.253
+
+## 4.0.0-beta.252
+
+### Patch Changes
+
+- Updated dependencies [a788432]
+  - effect-app@4.0.0-beta.252
+
+## 4.0.0-beta.251
+
+### Patch Changes
+
+- Updated dependencies [1c858d3]
+  - effect-app@4.0.0-beta.251
+
+## 4.0.0-beta.250
+
+### Patch Changes
+
+- Updated dependencies [3053760]
+  - effect-app@4.0.0-beta.250
+
+## 4.0.0-beta.249
+
+### Minor Changes
+
+- ba789a2: Move core service contracts and runtime-agnostic modules into `effect-app`, keep `infra` and `vue` focused on adapters, and drop the temporary `infra` compatibility re-export paths in favor of the new canonical imports.
+
+  `@effect-app/infra` no longer re-exports moved core modules such as `./Model`, `./Emailer/service`, `./QueueMaker/service`, `./Store/service`, `./adapters/*`, or `./api/*` entrypoints.
+
+### Patch Changes
+
+- Updated dependencies [ba789a2]
+  - effect-app@4.0.0-beta.249
+
+## 4.0.0-beta.248
+
+### Patch Changes
+
+- 2a86a17: improve tsgo compat: avoid deferred `Schema.Type`/`Codec.Encoded`/`Codec.DecodingServices`/`Codec.EncodingServices` conditional helpers in generic positions where the type parameter is already constrained to `Schema.Top`. Index the property directly (`X["Type"]`, `X["Encoded"]`, `X["DecodingServices"]`, …) so tsgo doesn't leak `unknown` into `Effect` channels (notably `R`).
+
+  Sites: `client/clientFor.ts` (`RequestHandlerFor`, `FinalTypeOf`, `ExtractResponse`, `ExtractEResponse`), `client/makeClient.ts` (`InputFromPayload`, `OutputFromSuccess`, `InvalidationConfigForCommand`, `TaggedRequestWithMeta` overloads), `rpc/MiddlewareMaker.ts` (`Errors`), `rpc/RpcMiddleware.ts` (`Failure`, `FailureContext`), `Schema/ext.ts` (`ReadonlySetFromArray`, `ReadonlyMapFromArray`), `infra/routing.ts` (`GetSuccessShape`, handlers, route matcher), `vue/makeClient.ts` (`MutationExt.project`, `MutationWithExtensions`, `QueryProjection`), `vue/routeParams.ts` (`parseRouteParams*`).
+
+- Updated dependencies [2a86a17]
+  - effect-app@4.0.0-beta.248
+
+## 4.0.0-beta.247
+
+### Patch Changes
+
+- 01bab22: Work around tsgo failing to reduce `S.Codec.DecodingServices<X>` (`X extends Top ? X["DecodingServices"] : never`) in generic positions, which left `unknown` and polluted the `R` channel of client handlers and RPC middleware failure context. Since the schemas involved are already constrained to `S.Top`, read `["DecodingServices"]` directly in `RequestHandlerFor`, `TagClass.FailureContext`, and the Vue `MutationExt` / `QueryProjection` types.
+- Updated dependencies [01bab22]
+  - effect-app@4.0.0-beta.247
+
+## 4.0.0-beta.246
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.246
+
+## 4.0.0-beta.245
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.245
+
 ## 4.0.0-beta.244
 
 ### Patch Changes

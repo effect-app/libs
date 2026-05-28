@@ -6,8 +6,8 @@ import * as Option from "effect-app/Option"
 import * as Fiber from "effect/Fiber"
 import * as FiberSet from "effect/FiberSet"
 import type * as Tracer from "effect/Tracer"
-import { reportRequestError, reportUnknownRequestError } from "./api/reportError.js"
 import { InfraLogger } from "./logger.js"
+import { reportRequestError, reportUnknownRequestError } from "./reportError.js"
 
 const getRootParentSpan = Effect.gen(function*() {
   let span: Tracer.AnySpan | null = yield* Effect.currentSpan.pipe(

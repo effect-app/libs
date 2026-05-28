@@ -1,19 +1,19 @@
-import { getRequestContext, setupRequestContextWithCustomSpan } from "@effect-app/infra/api/setupRequest"
 import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors"
-import { type QueueBase, QueueMeta } from "@effect-app/infra/QueueMaker/service"
 import { subMinutes } from "date-fns"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
+import { type QueueBase, QueueMeta } from "effect-app/QueueMaker"
 import * as S from "effect-app/Schema"
 import { type NonEmptyString255 } from "effect-app/Schema"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "effect-app/setupRequest"
 import { pretty } from "effect-app/utils"
 import * as Fiber from "effect/Fiber"
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
-import { SQLModel } from "../adapters/SQL.js"
 import { InfraLogger } from "../logger.js"
 import { messagingSpanArgs } from "../otel.js"
+import { SQLModel } from "../SQL.js"
 
 export const QueueId = S.Finite.pipe(S.brand("QueueId"))
 export type QueueId = typeof QueueId.Type

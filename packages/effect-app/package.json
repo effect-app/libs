@@ -1,6 +1,6 @@
 {
   "name": "effect-app",
-  "version": "4.0.0-beta.244",
+  "version": "4.0.0-beta.257",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -24,7 +24,7 @@
     "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-beta.70"
+    "effect": "^4.0.0-beta.71"
   },
   "typesVersions": {
     "*": {
@@ -66,6 +66,10 @@
       "types": "./dist/Effect.d.ts",
       "default": "./dist/Effect.js"
     },
+    "./Emailer": {
+      "types": "./dist/Emailer.d.ts",
+      "default": "./dist/Emailer.js"
+    },
     "./Function": {
       "types": "./dist/Function.d.ts",
       "default": "./dist/Function.js"
@@ -78,6 +82,90 @@
       "types": "./dist/Layer.d.ts",
       "default": "./dist/Layer.js"
     },
+    "./Model": {
+      "types": "./dist/Model.d.ts",
+      "default": "./dist/Model.js"
+    },
+    "./Model/Repository": {
+      "types": "./dist/Model/Repository.d.ts",
+      "default": "./dist/Model/Repository.js"
+    },
+    "./Model/Repository/Registry": {
+      "types": "./dist/Model/Repository/Registry.d.ts",
+      "default": "./dist/Model/Repository/Registry.js"
+    },
+    "./Model/Repository/ext": {
+      "types": "./dist/Model/Repository/ext.d.ts",
+      "default": "./dist/Model/Repository/ext.js"
+    },
+    "./Model/Repository/legacy": {
+      "types": "./dist/Model/Repository/legacy.d.ts",
+      "default": "./dist/Model/Repository/legacy.js"
+    },
+    "./Model/Repository/makeRepo": {
+      "types": "./dist/Model/Repository/makeRepo.d.ts",
+      "default": "./dist/Model/Repository/makeRepo.js"
+    },
+    "./Model/Repository/service": {
+      "types": "./dist/Model/Repository/service.d.ts",
+      "default": "./dist/Model/Repository/service.js"
+    },
+    "./Model/Repository/validation": {
+      "types": "./dist/Model/Repository/validation.d.ts",
+      "default": "./dist/Model/Repository/validation.js"
+    },
+    "./Model/dsl": {
+      "types": "./dist/Model/dsl.d.ts",
+      "default": "./dist/Model/dsl.js"
+    },
+    "./Model/filter/filterApi": {
+      "types": "./dist/Model/filter/filterApi.d.ts",
+      "default": "./dist/Model/filter/filterApi.js"
+    },
+    "./Model/filter/types": {
+      "types": "./dist/Model/filter/types.d.ts",
+      "default": "./dist/Model/filter/types.js"
+    },
+    "./Model/filter/types/errors": {
+      "types": "./dist/Model/filter/types/errors.d.ts",
+      "default": "./dist/Model/filter/types/errors.js"
+    },
+    "./Model/filter/types/fields": {
+      "types": "./dist/Model/filter/types/fields.d.ts",
+      "default": "./dist/Model/filter/types/fields.js"
+    },
+    "./Model/filter/types/path/common": {
+      "types": "./dist/Model/filter/types/path/common.d.ts",
+      "default": "./dist/Model/filter/types/path/common.js"
+    },
+    "./Model/filter/types/path/eager": {
+      "types": "./dist/Model/filter/types/path/eager.d.ts",
+      "default": "./dist/Model/filter/types/path/eager.js"
+    },
+    "./Model/filter/types/path/index": {
+      "types": "./dist/Model/filter/types/path/index.d.ts",
+      "default": "./dist/Model/filter/types/path/index.js"
+    },
+    "./Model/filter/types/utils": {
+      "types": "./dist/Model/filter/types/utils.d.ts",
+      "default": "./dist/Model/filter/types/utils.js"
+    },
+    "./Model/filter/types/validator": {
+      "types": "./dist/Model/filter/types/validator.d.ts",
+      "default": "./dist/Model/filter/types/validator.js"
+    },
+    "./Model/query": {
+      "types": "./dist/Model/query.d.ts",
+      "default": "./dist/Model/query.js"
+    },
+    "./Model/query/dsl": {
+      "types": "./dist/Model/query/dsl.d.ts",
+      "default": "./dist/Model/query/dsl.js"
+    },
+    "./Model/query/new-kid-interpreter": {
+      "types": "./dist/Model/query/new-kid-interpreter.d.ts",
+      "default": "./dist/Model/query/new-kid-interpreter.js"
+    },
     "./NonEmptySet": {
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
@@ -89,6 +177,14 @@
     "./Pure": {
       "types": "./dist/Pure.d.ts",
       "default": "./dist/Pure.js"
+    },
+    "./QueueMaker": {
+      "types": "./dist/QueueMaker.d.ts",
+      "default": "./dist/QueueMaker.js"
+    },
+    "./RequestContext": {
+      "types": "./dist/RequestContext.d.ts",
+      "default": "./dist/RequestContext.js"
     },
     "./Schema": {
       "types": "./dist/Schema.d.ts",
@@ -153,6 +249,10 @@
     "./Set": {
       "types": "./dist/Set.d.ts",
       "default": "./dist/Set.js"
+    },
+    "./Store": {
+      "types": "./dist/Store.d.ts",
+      "default": "./dist/Store.js"
     },
     "./TypeTest": {
       "types": "./dist/TypeTest.d.ts",
@@ -254,6 +354,18 @@
       "types": "./dist/rpc/RpcMiddleware.d.ts",
       "default": "./dist/rpc/RpcMiddleware.js"
     },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
+    },
+    "./setupRequest": {
+      "types": "./dist/setupRequest.d.ts",
+      "default": "./dist/setupRequest.js"
+    },
+    "./toast": {
+      "types": "./dist/toast.d.ts",
+      "default": "./dist/toast.js"
+    },
     "./transform": {
       "types": "./dist/transform.d.ts",
       "default": "./dist/transform.js"
@@ -289,6 +401,10 @@
     "./validation/validators": {
       "types": "./dist/validation/validators.d.ts",
       "default": "./dist/validation/validators.js"
+    },
+    "./withToast": {
+      "types": "./dist/withToast.d.ts",
+      "default": "./dist/withToast.js"
     }
   },
   "scripts": {

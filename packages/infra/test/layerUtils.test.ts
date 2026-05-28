@@ -1,6 +1,6 @@
 import { expectTypeOf, it } from "@effect/vitest"
 import type * as Layer from "effect/Layer"
-import { type LayerUtils } from "../src/api/layerUtils.js"
+import { type LayerUtils } from "../src/layerUtils.js"
 
 it("works", () => {
   // not supported atm, resolves to unknown!

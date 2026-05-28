@@ -65,14 +65,17 @@ export declare namespace TagClass {
    */
   export type Failure<Options> = Options extends { readonly error: S.Codec<infer _A>; readonly optional?: false } ? _A
     // actually not, the Failure depends on Dynamic Middleware Configuration!
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]["Type"]
     : never
 
   /**
    * @since 1.0.0
    * @category models
    */
-  export type FailureContext<Options> = S.Codec.DecodingServices<FailureSchema<Options>>
+  // Avoid `S.Codec.DecodingServices<X> = X extends Top ? X["DecodingServices"] : never`:
+  // tsgo fails to reduce it here and leaves `unknown`. `FailureSchema<Options>` is
+  // always `S.Top` (either `Options["error"]` or `typeof S.Never`), so read directly.
+  export type FailureContext<Options> = FailureSchema<Options>["DecodingServices"]
 
   /**
    * @since 1.0.0

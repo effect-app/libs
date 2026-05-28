@@ -1,5 +1,96 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.257
+
+### Minor Changes
+
+- e71eb78: Tighten typing of query DSL builders so field/path parameters are constrained to actual field paths instead of bare `string`:
+
+  - `relation(path)` now infers the relation's element type and constrains `distinctCount`/`sum`/`collect`/`collectDistinct`/`collectFields`/`collectDistinctFields` and the `unit` of `sumExprBy`/`sumExprNormalized` to `FieldPath<Element>`.
+  - `relation(path).expr` exposes a scope-bound math-expression builder so `expr.field(...)` inside `sumExpr`/`sumExprBy`/`sumExprNormalized` is typed against the relation element.
+  - Top-level `expr.field` accepts an optional generic for opt-in tightening (`expr.field<E>("x")`).
+  - `aggregate(schema, build)` accepts a builder callback whose `agg` argument is bound to the source row inferred from the pipe — paths are checked without any explicit generic: `make<Row>().pipe(aggregate(schema, ($) => ({ city: $.field("address.city") })))`. Plain `AggregateMap` form still accepted.
+  - `projectComputed(schema, build, mode?)` accepts a builder callback whose `{ relation }` argument is bound to the source row inferred from the pipe: `make<Row>().pipe(projectComputed(out, ({ relation }) => ({ total: relation("items").sum("qty") })))`. Plain `ComputedProjectionMap` form still accepted.
+  - `agg<Row>()` factory remains as an escape hatch when the builder is built outside a pipe.
+
+## 4.0.0-beta.256
+
+### Patch Changes
+
+- 347af48: Fix schema interface widening regression introduced in 4.0.0-beta.255 (changeset `olive-onions-lose`).
+
+  The original refactor annotated branded schema constants with interfaces extending `S.Codec<A, primitive> & WithDefaults<...>`. That widened the underlying `BrandedSchema<...>` chain and dropped phantom slots (`Iso`, `~type.make.in`, `~type.parameters`, `Rebuild`, etc.) that downstream combinators read. In consumer projects this surfaced as `DecodingServices` / `EncodingServices` leaking as `unknown` — for example `Q.project(schema, "project")` failing with `Type 'unknown' is not assignable to type 'never'`, and RPC handler / generator-return shape mismatches against `Effect<any, ..., CurrentSettings | ...>`.
+
+  Each `*Schema` interface now extends the concrete underlying chain (e.g. `BrandedSchema<S.NonEmptyString, NonEmptyString64>`) and adds a call signature for `withDefaultMake` (and an explicit `withConstructorDefault` field for the numeric and `StringId` schemas). The runtime values are unchanged and the type-display improvement is preserved.
+
+  Affected: `NonEmptyString*`, `Min3String255`, `StringId`, `Url`, `PositiveInt`, `NonNegativeInt`, `Int`, `PositiveNumber`, `NonNegativeNumber`, and `brandedStringId`.
+
+## 4.0.0-beta.255
+
+### Patch Changes
+
+- 52a31dd: Reduce schema type complexity by exposing explicit interfaces for branded string and number schemas.
+
+  Each branded constant in `Schema/strings.ts`, `Schema/moreStrings.ts`, and `Schema/numbers.ts` now has a named interface (e.g. `NonEmptyStringSchema`, `StringIdSchema`, `PositiveIntSchema`, `UrlSchema`) annotating its `export const`. Mirrors the pattern used in `effect/Schema` itself — TypeScript reports the interface name instead of expanding the full pipe/brand/extension chain, which shrinks inferred types in consumer code and speeds up type display.
+
+  No runtime or API surface changes; `brandedStringId` now returns `BrandedStringIdSchema<Id>` (same shape as before, just named).
+
+## 4.0.0-beta.254
+
+### Patch Changes
+
+- 29a1e57: Repository `changeFeed` is now namespace-aware. Events carry the `storeId` namespace as a third tuple element (`ChangeFeedEvent<T> = [items, op, namespace]`). `subscribe` accepts `options.namespace` to register a per-namespace handler; omitting it registers a wildcard handler that receives events from every namespace. Per-namespace handler buckets eliminate cross-namespace fan-out and avoid waking handlers for irrelevant tenants.
+
+## 4.0.0-beta.253
+
+### Patch Changes
+
+- b90fa30: Repository `changeFeed` now broadcasts synchronously: `publish` awaits every subscribed handler before resolving. Replaces `PubSub.PubSub` with a `ChangeFeed<T>` interface (`publish` + scoped `subscribe`). Handlers are auto-removed when the subscriber's scope closes, and the full handler set is cleared when the repository's scope closes. Repository construction now requires `Scope` — wire `makeRepo` through `Layer.scoped` / `Effect.scoped`.
+
+## 4.0.0-beta.252
+
+### Patch Changes
+
+- a788432: fix circular
+
+## 4.0.0-beta.251
+
+### Patch Changes
+
+- 1c858d3: fix request scope problems
+
+## 4.0.0-beta.250
+
+### Patch Changes
+
+- 3053760: fix: restore context map container behavior
+
+## 4.0.0-beta.249
+
+### Minor Changes
+
+- ba789a2: Move core service contracts and runtime-agnostic modules into `effect-app`, keep `infra` and `vue` focused on adapters, and drop the temporary `infra` compatibility re-export paths in favor of the new canonical imports.
+
+  `@effect-app/infra` no longer re-exports moved core modules such as `./Model`, `./Emailer/service`, `./QueueMaker/service`, `./Store/service`, `./adapters/*`, or `./api/*` entrypoints.
+
+## 4.0.0-beta.248
+
+### Patch Changes
+
+- 2a86a17: improve tsgo compat: avoid deferred `Schema.Type`/`Codec.Encoded`/`Codec.DecodingServices`/`Codec.EncodingServices` conditional helpers in generic positions where the type parameter is already constrained to `Schema.Top`. Index the property directly (`X["Type"]`, `X["Encoded"]`, `X["DecodingServices"]`, …) so tsgo doesn't leak `unknown` into `Effect` channels (notably `R`).
+
+  Sites: `client/clientFor.ts` (`RequestHandlerFor`, `FinalTypeOf`, `ExtractResponse`, `ExtractEResponse`), `client/makeClient.ts` (`InputFromPayload`, `OutputFromSuccess`, `InvalidationConfigForCommand`, `TaggedRequestWithMeta` overloads), `rpc/MiddlewareMaker.ts` (`Errors`), `rpc/RpcMiddleware.ts` (`Failure`, `FailureContext`), `Schema/ext.ts` (`ReadonlySetFromArray`, `ReadonlyMapFromArray`), `infra/routing.ts` (`GetSuccessShape`, handlers, route matcher), `vue/makeClient.ts` (`MutationExt.project`, `MutationWithExtensions`, `QueryProjection`), `vue/routeParams.ts` (`parseRouteParams*`).
+
+## 4.0.0-beta.247
+
+### Patch Changes
+
+- 01bab22: Work around tsgo failing to reduce `S.Codec.DecodingServices<X>` (`X extends Top ? X["DecodingServices"] : never`) in generic positions, which left `unknown` and polluted the `R` channel of client handlers and RPC middleware failure context. Since the schemas involved are already constrained to `S.Top`, read `["DecodingServices"]` directly in `RequestHandlerFor`, `TagClass.FailureContext`, and the Vue `MutationExt` / `QueryProjection` types.
+
+## 4.0.0-beta.246
+
+## 4.0.0-beta.245
+
 ## 4.0.0-beta.244
 
 ### Patch Changes

@@ -2,7 +2,7 @@ import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringId
 import type { B } from "effect-app/Schema/schema"
 import * as Effect from "effect/Effect"
 import type { Simplify } from "effect/Types"
-import { S } from "./index.js"
+import * as S from "./Schema.js"
 import { extendM } from "./utils.js"
 
 export interface RequestIdBrand extends StringIdBrand {
@@ -24,7 +24,12 @@ export const RequestId = extendM(
   Object
     .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as unknown as Codec<NonEmptyString255, string>),
   (s) => {
-    const make = StringId.make as () => NonEmptyString255
+    function make(): NonEmptyString255
+    function make(input: string, options?: S.MakeOptions): NonEmptyString255
+    function make(input?: string, options?: S.MakeOptions): NonEmptyString255 {
+      const id = input === undefined ? StringId.make() : StringId.make(input, options)
+      return id as NonEmptyString255
+    }
     return ({
       make,
       /**

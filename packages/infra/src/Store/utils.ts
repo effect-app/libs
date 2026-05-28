@@ -1,8 +1,8 @@
 import crypto from "crypto"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
+import type { PersistenceModelType, SupportedValues2 } from "effect-app/Store"
 import { OptimisticConcurrencyException } from "../errors.js"
-import type { PersistenceModelType, SupportedValues2 } from "./service.js"
 
 export const makeETag = <E extends PersistenceModelType<{}>>(
   { _etag, ...e }: E

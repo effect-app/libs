@@ -1,6 +1,5 @@
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
-import type { Schema } from "effect-app/Schema"
 import { typedKeysOf } from "effect-app/utils"
 import { flow } from "effect/Function"
 import type { ParsedQuery } from "query-string"
@@ -17,7 +16,7 @@ export const getQueryParamO = flow(getQueryParam, Option.fromNullishOr)
 
 export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, any>>>(query: Record<string, any>, t: NER // enforce non empty
 ): {
-  [K in keyof NER]: Option.Option<Schema.Type<NER[K]>>
+  [K in keyof NER]: Option.Option<NER[K]["Type"]>
 } {
   return typedKeysOf(t).reduce(
     (prev, cur) => {
@@ -29,7 +28,7 @@ export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, a
       return prev
     },
     {} as {
-      [K in keyof NER]: Option.Option<Schema.Type<NER[K]>>
+      [K in keyof NER]: Option.Option<NER[K]["Type"]>
     }
   )
 }
@@ -38,7 +37,7 @@ export function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(
   query: Record<string, any>,
   t: NER // enforce non empty
 ): {
-  [K in keyof NER]: Schema.Type<NER[K]>
+  [K in keyof NER]: NER[K]["Type"]
 } {
   return typedKeysOf(t).reduce(
     (prev, cur) => {
@@ -50,7 +49,7 @@ export function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(
       return prev
     },
     {} as {
-      [K in keyof NER]: Schema.Type<NER[K]>
+      [K in keyof NER]: NER[K]["Type"]
     }
   )
 }

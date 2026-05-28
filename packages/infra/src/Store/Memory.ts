@@ -2,10 +2,12 @@
 
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
-import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
+import type { FilterResult } from "effect-app/Model/filter/filterApi"
+import type { FieldValues } from "effect-app/Model/filter/types"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { NonEmptyString255 } from "effect-app/Schema"
+import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
 import { flow, pipe } from "effect/Function"
 import * as Order from "effect/Order"
@@ -14,12 +16,8 @@ import * as Result from "effect/Result"
 import * as Semaphore from "effect/Semaphore"
 import * as Struct from "effect/Struct"
 import { InfraLogger } from "../logger.js"
-import type { FilterResult } from "../Model/filter/filterApi.js"
-import type { FieldValues } from "../Model/filter/types.js"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../Model/query.js"
 import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
-import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
 
 /** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
@@ -314,9 +312,6 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
     return selectPerRow(r)
   })
 }
-
-const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
-export class storeId extends Context.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger

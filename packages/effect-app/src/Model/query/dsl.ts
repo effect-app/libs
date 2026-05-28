@@ -506,9 +506,42 @@ export const project: {
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 } = (schema: any, mode = "transform") => (current: any) => new Project({ current, schema, mode } as any)
 
-export const relation = <TFieldValues extends FieldValues>(
-  path: FieldPath<TFieldValues>
+/**
+ * Element type of an array-valued field path on `TFieldValues`. Falls back to
+ * `FieldValues` when the path does not resolve to an array of structs so that
+ * `FieldPath<...>` stays defined (it just degrades to `string`).
+ *
+ * Uses `Extract` so that when `P` defaults to the full `FieldPath<TFieldValues>`
+ * union, only the array-valued branches contribute to the element type.
+ */
+export type RelationElement<
+  TFieldValues extends FieldValues,
+  P extends FieldPath<TFieldValues>
+> = Extract<FieldPathValue<TFieldValues, P>, ReadonlyArray<unknown>> extends ReadonlyArray<infer E>
+  ? (E extends FieldValues ? E : FieldValues)
+  : FieldValues
+
+export const relation = <
+  TFieldValues extends FieldValues,
+  const P extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>(
+  path: P
 ) => ({
+  /**
+   * Typed math-expression builder bound to the relation's element scope:
+   * `relation("items").expr.field("weight")` constrains the field path to
+   * `FieldPath<RelationElement<TFieldValues, P>>`.
+   */
+  expr: {
+    field: (field: FieldPath<RelationElement<TFieldValues, P>>): ComputedProjectionMathExpression => ({
+      _tag: "field",
+      field: field as string
+    }),
+    mul: (
+      left: ComputedProjectionMathExpression,
+      right: ComputedProjectionMathExpression
+    ): ComputedProjectionMathExpression => ({ _tag: "mul", left, right })
+  },
   length: (): ComputedProjectionExpression => ({
     _tag: "relation-length",
     path: path as string
@@ -540,31 +573,37 @@ export const relation = <TFieldValues extends FieldValues>(
     path: path as string,
     operation
   }),
-  distinctCount: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  distinctCount: (
+    field: FieldPath<RelationElement<TFieldValues, P>>,
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
     operation
       ? {
         _tag: "relation-distinct-count",
         path: path as string,
-        field,
+        field: field as string,
         operation
       }
       : {
         _tag: "relation-distinct-count",
         path: path as string,
-        field
+        field: field as string
       },
-  sum: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  sum: (
+    field: FieldPath<RelationElement<TFieldValues, P>>,
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
     operation
       ? {
         _tag: "relation-sum",
         path: path as string,
-        field,
+        field: field as string,
         operation
       }
       : {
         _tag: "relation-sum",
         path: path as string,
-        field
+        field: field as string
       },
   sumExpr: (
     expression: ComputedProjectionMathExpression,
@@ -584,7 +623,7 @@ export const relation = <TFieldValues extends FieldValues>(
       },
   sumExprBy: (
     expression: ComputedProjectionMathExpression,
-    options: { unit: string },
+    options: { unit: FieldPath<RelationElement<TFieldValues, P>> },
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression =>
     operation
@@ -592,18 +631,22 @@ export const relation = <TFieldValues extends FieldValues>(
         _tag: "relation-sum-expr-by",
         path: path as string,
         expression,
-        unit: options.unit,
+        unit: options.unit as string,
         operation
       }
       : {
         _tag: "relation-sum-expr-by",
         path: path as string,
         expression,
-        unit: options.unit
+        unit: options.unit as string
       },
   sumExprNormalized: (
     expression: ComputedProjectionMathExpression,
-    options: { unit: string; toBase: string; factors: Readonly<Record<string, number>> },
+    options: {
+      unit: FieldPath<RelationElement<TFieldValues, P>>
+      toBase: string
+      factors: Readonly<Record<string, number>>
+    },
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression =>
     operation
@@ -611,7 +654,7 @@ export const relation = <TFieldValues extends FieldValues>(
         _tag: "relation-sum-expr-normalized",
         path: path as string,
         expression,
-        unit: options.unit,
+        unit: options.unit as string,
         toBase: options.toBase,
         factors: options.factors,
         operation
@@ -620,77 +663,96 @@ export const relation = <TFieldValues extends FieldValues>(
         _tag: "relation-sum-expr-normalized",
         path: path as string,
         expression,
-        unit: options.unit,
+        unit: options.unit as string,
         toBase: options.toBase,
         factors: options.factors
       },
-  collect: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  collect: (
+    field: FieldPath<RelationElement<TFieldValues, P>>,
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
     operation
       ? {
         _tag: "relation-collect",
         path: path as string,
-        field,
+        field: field as string,
         distinct: false,
         operation
       }
       : {
         _tag: "relation-collect",
         path: path as string,
-        field,
+        field: field as string,
         distinct: false
       },
-  collectDistinct: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  collectDistinct: (
+    field: FieldPath<RelationElement<TFieldValues, P>>,
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
     operation
       ? {
         _tag: "relation-collect",
         path: path as string,
-        field,
+        field: field as string,
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect",
         path: path as string,
-        field,
+        field: field as string,
         distinct: true
       },
-  collectFields: (fields: readonly string[], operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
-    operation
-      ? {
-        _tag: "relation-collect-fields",
-        path: path as string,
-        fields,
-        distinct: false,
-        operation
-      }
-      : {
-        _tag: "relation-collect-fields",
-        path: path as string,
-        fields,
-        distinct: false
-      },
-  collectDistinctFields: (
-    fields: readonly string[],
+  collectFields: (
+    fields: readonly FieldPath<RelationElement<TFieldValues, P>>[],
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression =>
     operation
       ? {
         _tag: "relation-collect-fields",
         path: path as string,
-        fields,
+        fields: fields as readonly string[],
+        distinct: false,
+        operation
+      }
+      : {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields: fields as readonly string[],
+        distinct: false
+      },
+  collectDistinctFields: (
+    fields: readonly FieldPath<RelationElement<TFieldValues, P>>[],
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-collect-fields",
+        path: path as string,
+        fields: fields as readonly string[],
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect-fields",
         path: path as string,
-        fields,
+        fields: fields as readonly string[],
         distinct: true
       }
 })
 
+/**
+ * Untyped math-expression builder. Field paths are not statically validated —
+ * prefer the scope-bound `relation(path).expr` builder when the element type
+ * is known, since it constrains the field argument to `FieldPath<E>`.
+ *
+ * The generic parameter is accepted for symmetry with the scoped builder so
+ * callers may opt into a tighter check via `expr.field<E>("x")`.
+ */
 export const expr = {
-  field: (field: string): ComputedProjectionMathExpression => ({ _tag: "field", field }),
+  field: <T extends FieldValues = FieldValues>(
+    field: FieldPath<T>
+  ): ComputedProjectionMathExpression => ({ _tag: "field", field: field as string }),
   mul: (
     left: ComputedProjectionMathExpression,
     right: ComputedProjectionMathExpression
@@ -699,7 +761,49 @@ export const expr = {
 
 export const computed = <T extends ComputedProjectionMap>(value: T): T => value
 
+/**
+ * Helpers passed to the inline-builder form of {@link projectComputed}. The
+ * `relation` factory is bound to the source row shape so paths/fields inside
+ * the projection are validated against the document shape inferred from the
+ * pipe.
+ */
+export interface ComputedHelpers<TFieldValues extends FieldValues> {
+  relation: <const P extends FieldPath<TFieldValues>>(path: P) => ReturnType<typeof relation<TFieldValues, P>>
+}
+
+const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelpers<TFieldValues> => ({
+  relation: (path) => relation<TFieldValues, typeof path>(path)
+})
+
 export const projectComputed: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<Option.Option<A>, I, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    mode: "collect"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    mode?: "project"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends Record<string, unknown>,
@@ -727,40 +831,62 @@ export const projectComputed: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, computedProjection: ComputedProjectionMap, mode = "project") => (current: any) =>
-  new Project({ current, schema, mode, computed: computedProjection } as any)
+} = (
+  schema: any,
+  mapOrBuild:
+    | ComputedProjectionMap
+    | ((helpers: ComputedHelpers<FieldValues>) => ComputedProjectionMap),
+  mode = "project"
+) =>
+(current: any) => {
+  const computedProjection = typeof mapOrBuild === "function"
+    ? mapOrBuild(makeComputedHelpers())
+    : mapOrBuild
+  return new Project({ current, schema, mode, computed: computedProjection } as any)
+}
 
 /**
- * DSL helpers for building aggregate expressions used with {@link aggregate}.
- *
- * - `agg.field(path)` — references a document field for GROUP BY (with optional output alias)
- * - `agg.count()` — COUNT(*) across all rows in the group
- * - `agg.countWhen(op)` — COUNT of rows matching the filter operation
- * - `agg.sum(field)` — SUM of a numeric document field
- * - `agg.min(field)` / `agg.max(field)` — MIN/MAX of a document field
+ * Builder shape returned by {@link agg}. Field-taking methods are constrained
+ * to `FieldPath<TFieldValues>` so paths are validated against the document
+ * shape.
  */
-export const agg = {
-  field: (path: string): AggregateExpression => ({ _tag: "agg-field", path }),
-  count: (): AggregateExpression => ({ _tag: "agg-count" }),
-  countWhen: (operation: ComputedProjectionOperation): AggregateExpression => ({
-    _tag: "agg-count-when",
-    operation
-  }),
-  sum: (field: string): AggregateExpression => ({ _tag: "agg-sum", field }),
-  min: (field: string): AggregateExpression => ({ _tag: "agg-min", field }),
-  max: (field: string): AggregateExpression => ({ _tag: "agg-max", field })
-} as const
+export interface AggBuilder<TFieldValues extends FieldValues> {
+  field: (path: FieldPath<TFieldValues>) => AggregateExpression
+  count: () => AggregateExpression
+  countWhen: (operation: ComputedProjectionOperation) => AggregateExpression
+  sum: (field: FieldPath<TFieldValues>) => AggregateExpression
+  min: (field: FieldPath<TFieldValues>) => AggregateExpression
+  max: (field: FieldPath<TFieldValues>) => AggregateExpression
+}
+
+const makeAggBuilder = <TFieldValues extends FieldValues>(): AggBuilder<TFieldValues> => ({
+  field: (path) => ({ _tag: "agg-field", path: path as string }),
+  count: () => ({ _tag: "agg-count" }),
+  countWhen: (operation) => ({ _tag: "agg-count-when", operation }),
+  sum: (field) => ({ _tag: "agg-sum", field: field as string }),
+  min: (field) => ({ _tag: "agg-min", field: field as string }),
+  max: (field) => ({ _tag: "agg-max", field: field as string })
+})
+
+/**
+ * Scope-bound aggregate-expression builder factory. Invoke with the source
+ * document field-value shape to get a builder whose `field`/`sum`/`min`/`max`
+ * arguments are constrained to `FieldPath<TFieldValues>`.
+ *
+ * Prefer the inline callback form of {@link aggregate} (`aggregate(schema,
+ * ($) => ({...}))`) — there the source shape is inferred from the pipe so no
+ * explicit type argument is needed. This factory is the escape hatch when
+ * the builder is constructed outside the pipe.
+ */
+export const agg = <TFieldValues extends FieldValues = FieldValues>(): AggBuilder<TFieldValues> =>
+  makeAggBuilder<TFieldValues>()
 
 /**
  * Attach an aggregate projection to a query, performing GROUP BY + aggregate functions at the
  * database level instead of fetching all rows and grouping in memory.
  *
- * The `aggregateMap` maps each output field name to either:
- * - `agg.field(path)` — a group-by field (document path → output alias)
- * - `agg.count()` / `agg.countWhen(op)` / `agg.sum(f)` / `agg.min(f)` / `agg.max(f)` — an aggregate
- *
- * The output is decoded directly with `schema` (no PM reverse-mapping, no etag tracking).
- * Decode failures surface as `S.SchemaError`.
+ * Pass a builder callback to get a typed `agg` bound to the source row shape
+ * (inferred from the pipe — no explicit generic needed):
  *
  * @example
  * ```ts
@@ -768,15 +894,33 @@ export const agg = {
  *   where("status", "active"),
  *   aggregate(
  *     S.Struct({ city: S.String, count: S.Number }),
- *     {
- *       city: agg.field("address.city"),
- *       count: agg.countWhen((q) => q.pipe(where("active", true)))
- *     }
+ *     ($) => ({
+ *       city: $.field("address.city"),
+ *       count: $.countWhen((q) => q.pipe(where("active", true)))
+ *     })
  *   )
  * )
  * ```
+ *
+ * A plain {@link AggregateMap} is also accepted for the rare case where the
+ * map is built outside the pipe (loses path inference).
+ *
+ * The output is decoded directly with `schema` (no PM reverse-mapping, no etag tracking).
+ * Decode failures surface as `S.SchemaError`.
  */
 export const aggregate: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    build: (agg: AggBuilder<ExtractFieldValuesRefined<Q>>) => AggregateMap
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends Record<string, unknown>,
@@ -789,8 +933,12 @@ export const aggregate: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, aggregateMap: AggregateMap) => (current: any) =>
-  new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
+} = (schema: any, mapOrBuild: AggregateMap | ((agg: AggBuilder<FieldValues>) => AggregateMap)) => (current: any) => {
+  const aggregateMap = typeof mapOrBuild === "function"
+    ? mapOrBuild(makeAggBuilder())
+    : mapOrBuild
+  return new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
+}
 
 type GetArV<T> = T extends readonly (infer R)[] ? R : never
 

@@ -1,14 +1,14 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Context, Effect, Exit, Fiber, Latch, Layer, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
-import { EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerStorage, ShardId, ShardingConfig, Snowflake } from "effect/unstable/cluster"
+import { ClusterSchema, Entity, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerHealth, Runners, RunnerStorage, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/unstable/cluster"
 import { Headers } from "effect/unstable/http"
 import { Rpc, RpcSchema } from "effect/unstable/rpc"
 import { layerCosmos } from "../src/ClusterCosmos.js"
 
 const cosmosUrl = process.env["COSMOS_TEST_URL"]
 const cosmosDb = process.env["COSMOS_TEST_DB"] ?? "cluster-test"
-const testRunId = `${Date.now()}-${process.pid}`
+const testRunId = `${Date.now()}-${process.pid}-${Math.random().toString(16).slice(2)}`
 const runnerPortBase = 10000 + Date.now() % 40000
 
 const layerFor = () =>
@@ -64,8 +64,8 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
         const shardId = testShardId("message-unprocessed")
         const request1 = yield* makeRequest({ payload: { id: 1 }, shardId })
         const request2 = yield* makeRequest({ payload: { id: 2 }, shardId })
-        yield* storage.saveRequest(request1)
-        yield* storage.saveRequest(request2)
+        assert.strictEqual((yield* storage.saveRequest(request1))._tag, "Success")
+        assert.strictEqual((yield* storage.saveRequest(request2))._tag, "Success")
 
         let messages = yield* storage.unprocessedMessages([request1.envelope.address.shardId])
         assert.deepStrictEqual(messages.map((message) => requestPayloadId(message)).sort(), [1, 2])
@@ -166,9 +166,65 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos RunnerStorage", () => {
       .pipe(Effect.provide(layerFor())))
 })
 
+describe.skipIf(!cosmosUrl)("ClusterCosmos Sharding RPC", () => {
+  it.effect("runs persisted entity RPCs through Cosmos-backed cluster storage", () =>
+    Effect
+      .gen(function*() {
+        yield* TestClock.adjust(1)
+        const sharding = yield* Sharding.Sharding
+        const makeClient = yield* CosmosRpcEntity.client
+        const entityId = `entity/${testRunId}\\with?illegal#chars`
+        const shardId = sharding.getShardId(EntityId.make(entityId), testShardGroup("rpc"))
+        yield* waitForShard(sharding, shardId)
+        assert.isTrue(sharding.hasShardId(shardId))
+        const client = makeClient(entityId)
+
+        const user = yield* client.GetCosmosUser({ id: 42 })
+        expect(user).toEqual(new CosmosRpcUser({ id: 42, name: "User 42" }))
+
+        const primaryKey = `rpc/${testRunId}\\with?illegal#chars`
+        const first = yield* client.CosmosRequestWithKey({ key: primaryKey })
+        const duplicate = yield* client.CosmosRequestWithKey({ key: primaryKey })
+
+        assert.strictEqual(first, primaryKey)
+        assert.strictEqual(duplicate, primaryKey)
+      })
+      .pipe(Effect.provide(clusterRpcLayer("rpc"))), 20000)
+})
+
 const GetUserRpc = Rpc.make("GetUser", {
   payload: { id: Schema.Number }
 })
+
+class CosmosRpcUser extends Schema.Class<CosmosRpcUser>("CosmosRpcUser")({
+  id: Schema.Number,
+  name: Schema.String
+}) {}
+
+const CosmosRpcEntity = Entity
+  .make("CosmosRpcEntity", [
+    Rpc.make("GetCosmosUser", {
+      success: CosmosRpcUser,
+      payload: { id: Schema.Number }
+    }),
+    Rpc.make("CosmosRequestWithKey", {
+      success: Schema.String,
+      payload: { key: Schema.String },
+      primaryKey: ({ key }) => key
+    })
+  ])
+  .annotate(ClusterSchema.ShardGroup, () => testShardGroup("rpc"))
+  .annotateRpcs(ClusterSchema.Persisted, true)
+
+const CosmosRpcEntityLayer = CosmosRpcEntity.toLayer(
+  Effect.succeed(
+    CosmosRpcEntity.of({
+      GetCosmosUser: (envelope) =>
+        Effect.succeed(new CosmosRpcUser({ id: envelope.payload.id, name: `User ${envelope.payload.id}` })),
+      CosmosRequestWithKey: (envelope) => Effect.succeed(envelope.payload.key)
+    })
+  )
+)
 
 class StreamRpc extends Rpc.make("StreamTest", {
   success: RpcSchema.Stream(Schema.Void, Schema.Never),
@@ -307,9 +363,44 @@ const requestPayloadId = (message: Message.Incoming<never>) => {
 
 const testShardId = (label: string, id = 1) => ShardId.make(`cluster-cosmos-${testRunId}-${label}`, id)
 
+const testShardGroup = (label: string) => `cluster-cosmos-${testRunId}-${label}`
+
 const testRunnerAddress = (offset: number) => RunnerAddress.make("localhost", runnerPortBase + offset)
 
 const runnerStatus = (
   runners: ReadonlyArray<readonly [Runner.Runner, boolean]>,
   address: RunnerAddress.RunnerAddress
 ) => runners.find(([runner]) => runner.address.host === address.host && runner.address.port === address.port)
+
+const clusterRpcLayer = (label: string) => {
+  const shardGroup = testShardGroup(label)
+  return CosmosRpcEntityLayer.pipe(
+    Layer.provideMerge(Sharding.layer),
+    Layer.provide(Runners.layerNoop),
+    Layer.provide(RunnerHealth.layerNoop),
+    Layer.provide(layerCosmos({
+      url: Redacted.make(cosmosUrl ?? ""),
+      dbName: cosmosDb,
+      prefix: "test-cluster-"
+    })),
+    Layer.provide(ShardingConfig.layer({
+      runnerAddress: Option.some(testRunnerAddress(10)),
+      shardsPerGroup: 1,
+      availableShardGroups: [shardGroup],
+      assignedShardGroups: [shardGroup],
+      entityTerminationTimeout: 0,
+      entityMessagePollInterval: 50,
+      entityReplyPollInterval: 50,
+      refreshAssignmentsInterval: 0,
+      sendRetryInterval: 50
+    }))
+  )
+}
+
+const waitForShard = (sharding: Sharding.Sharding["Service"], shardId: ShardId.ShardId) =>
+  Effect.gen(function*() {
+    for (let i = 0; i < 30; i++) {
+      if (sharding.hasShardId(shardId)) return
+      yield* Effect.promise<void>(() => new Promise((resolve) => setTimeout(resolve, 100)))
+    }
+  })

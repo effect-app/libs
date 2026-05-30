@@ -486,7 +486,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         .gen(function*() {
           const id = String(requestId)
           const replies = yield* queryReplies(
-            "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'Chunk'",
+            "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'WithExit'",
             [
               { name: "@requestId", value: id }
             ]

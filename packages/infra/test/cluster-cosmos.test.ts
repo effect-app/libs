@@ -1,9 +1,10 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Context, Effect, Exit, Fiber, Latch, Layer, Option, Redacted, Schema } from "effect"
+import { Context, Duration, Effect, Exit, Fiber, Latch, Layer, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
-import { ClusterSchema, Entity, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerHealth, Runners, RunnerStorage, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/unstable/cluster"
+import { ClusterSchema, ClusterWorkflowEngine, Entity, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerHealth, Runners, RunnerStorage, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/unstable/cluster"
 import { Headers } from "effect/unstable/http"
 import { Rpc, RpcSchema } from "effect/unstable/rpc"
+import { DurableDeferred, Workflow } from "effect/unstable/workflow"
 import { layerCosmos } from "../src/ClusterCosmos.js"
 
 const cosmosUrl = process.env["COSMOS_TEST_URL"]
@@ -192,6 +193,31 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos Sharding RPC", () => {
       .pipe(Effect.provide(clusterRpcLayer("rpc"))), 20000)
 })
 
+describe.skipIf(!cosmosUrl)("ClusterCosmos Workflow", () => {
+  it.live("resumes a running workflow suspended on a durable deferred", () =>
+    Effect
+      .gen(function*() {
+        const sharding = yield* Sharding.Sharding
+        const payload = { id: `deferred/${testRunId}\\with?illegal#chars` }
+        const executionId = yield* CosmosDeferredWorkflow.executionId(payload)
+
+        const fiber = yield* CosmosDeferredWorkflow.execute(payload).pipe(Effect.forkScoped)
+        yield* waitForDeferredWorkflowSuspended(executionId)
+
+        const token = yield* DurableDeferred.tokenFromPayload(CosmosDeferred, {
+          workflow: CosmosDeferredWorkflow,
+          payload
+        })
+        yield* DurableDeferred.done(CosmosDeferred, { token, exit: Exit.succeed("resolved") })
+        yield* sharding.pollStorage
+
+        const value = yield* Fiber.join(fiber).pipe(Effect.timeout(Duration.seconds(15)))
+        assert.strictEqual(value, `${payload.id}:resolved`)
+        assert.strictEqual(yield* waitForDeferredWorkflowComplete(executionId), `${payload.id}:resolved`)
+      })
+      .pipe(Effect.provide(clusterWorkflowLayer())), 30000)
+})
+
 const GetUserRpc = Rpc.make("GetUser", {
   payload: { id: Schema.Number }
 })
@@ -225,6 +251,22 @@ const CosmosRpcEntityLayer = CosmosRpcEntity.toLayer(
     })
   )
 )
+
+const CosmosDeferred = DurableDeferred.make("ClusterCosmos/Deferred", { success: Schema.String })
+
+const CosmosDeferredWorkflow = Workflow
+  .make({
+    name: "ClusterCosmos/DeferredWorkflow",
+    payload: { id: Schema.String },
+    success: Schema.String,
+    idempotencyKey: ({ id }) => id
+  })
+  .annotate(ClusterSchema.ShardGroup, () => testShardGroup("workflow"))
+
+const CosmosDeferredWorkflowLayer = CosmosDeferredWorkflow.toLayer(Effect.fnUntraced(function*({ id }) {
+  const value = yield* DurableDeferred.await(CosmosDeferred)
+  return `${id}:${value}`
+}))
 
 class StreamRpc extends Rpc.make("StreamTest", {
   success: RpcSchema.Stream(Schema.Void, Schema.Never),
@@ -396,6 +438,61 @@ const clusterRpcLayer = (label: string) => {
     }))
   )
 }
+
+const clusterWorkflowLayer = () =>
+  CosmosDeferredWorkflowLayer.pipe(
+    Layer.provideMerge(
+      ClusterWorkflowEngine.layer.pipe(
+        Layer.provideMerge(Sharding.layer),
+        Layer.provide(Runners.layerNoop),
+        Layer.provide(RunnerHealth.layerNoop),
+        Layer.provide(layerCosmos({
+          url: Redacted.make(cosmosUrl ?? ""),
+          dbName: cosmosDb,
+          prefix: "test-cluster-"
+        })),
+        Layer.provide(ShardingConfig.layer({
+          runnerAddress: Option.some(testRunnerAddress(20)),
+          shardsPerGroup: 1,
+          availableShardGroups: [testShardGroup("workflow")],
+          assignedShardGroups: [testShardGroup("workflow")],
+          entityTerminationTimeout: 0,
+          entityMessagePollInterval: 50,
+          entityReplyPollInterval: 50,
+          refreshAssignmentsInterval: 0,
+          sendRetryInterval: 50
+        }))
+      )
+    )
+  )
+
+const waitForDeferredWorkflowSuspended = (executionId: string) =>
+  Effect.gen(function*() {
+    const sharding = yield* Sharding.Sharding
+    for (let i = 0; i < 100; i++) {
+      yield* sharding.pollStorage
+      const polled = yield* CosmosDeferredWorkflow.poll(executionId)
+      if (Option.isSome(polled) && polled.value._tag === "Suspended") return
+      yield* Effect.sleep(Duration.millis(100))
+    }
+    return yield* Effect.fail(new Error(`Workflow ${executionId} did not suspend`))
+  })
+
+const waitForDeferredWorkflowComplete = (executionId: string) =>
+  Effect.gen(function*() {
+    const sharding = yield* Sharding.Sharding
+    for (let i = 0; i < 100; i++) {
+      yield* sharding.pollStorage
+      const polled = yield* CosmosDeferredWorkflow.poll(executionId)
+      if (Option.isSome(polled) && polled.value._tag === "Complete") {
+        const exit = polled.value.exit
+        assert(Exit.isSuccess(exit))
+        return exit.value
+      }
+      yield* Effect.sleep(Duration.millis(100))
+    }
+    return yield* Effect.fail(new Error(`Workflow ${executionId} did not complete`))
+  })
 
 const waitForShard = (sharding: Sharding.Sharding["Service"], shardId: ShardId.ShardId) =>
   Effect.gen(function*() {

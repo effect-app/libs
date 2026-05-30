@@ -23,15 +23,15 @@ This document explains what they provide, how they differ from
 Both engines persist the complete durable-execution state and recover it after a
 restart. They are at **parity with `ClusterWorkflowEngine` on durability**:
 
-| Capability                         | Provided | How                                                                       |
-| ---------------------------------- | -------- | ------------------------------------------------------------------------- |
-| Durable execution state            | ✅        | exec / activity / deferred / clock rows, schema-encoded payloads+results  |
-| Restart recovery                   | ✅        | recovery poller re-drives `running` executions with an expired lease      |
-| Activity replay                    | ✅        | keyed by `(executionId, name, attempt)`; completed results replay         |
-| Durable clocks (`DurableClock`)    | ✅        | clock row + clock poller; survives restart                                |
-| Suspend / resume                   | ✅        | deferred completions persisted, polled, re-drive on completion            |
-| Idempotency / exactly-once writes  | ✅        | first-writer-wins (`ON CONFLICT DO NOTHING` / batch `Create`)             |
-| Multi-process safety               | ✅\*      | etag optimistic-concurrency (OCC) + worker lease                          |
+| Capability                        | Provided | How                                                                      |
+| --------------------------------- | -------- | ------------------------------------------------------------------------ |
+| Durable execution state           | ✅       | exec / activity / deferred / clock rows, schema-encoded payloads+results |
+| Restart recovery                  | ✅       | recovery poller re-drives `running` executions with an expired lease     |
+| Activity replay                   | ✅       | keyed by `(executionId, name, attempt)`; completed results replay        |
+| Durable clocks (`DurableClock`)   | ✅       | clock row + clock poller; survives restart                               |
+| Suspend / resume                  | ✅       | deferred completions persisted, polled, re-drive on completion           |
+| Idempotency / exactly-once writes | ✅       | first-writer-wins (`ON CONFLICT DO NOTHING` / batch `Create`)            |
+| Multi-process safety              | ✅\*     | etag optimistic-concurrency (OCC) + worker lease                         |
 
 \* With caveats — see [§4 split-brain](#4-concurrency--split-brain) and
 [§5 blue/green](#5-bluegreen-deployment-behavior).
@@ -98,18 +98,18 @@ Sources: [sqlite:137-141](../src/WorkflowEngineSqlite.ts#L137-L141),
 Durability is matched. The gaps are about **routing efficiency, latency, and
 targeting** — the things cluster sharding exists to provide.
 
-| Aspect                       | These engines                                    | `ClusterWorkflowEngine`                                  |
-| ---------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
-| Work routing                 | poll-and-race; every process scans the table     | hash-ring routes each execution to one owning runner     |
-| Resume / signal latency      | pull-based; up to poll interval (5–15s)          | push-based; near-instant via entity messages             |
-| Interrupt across processes   | flag in storage; remote fiber sees it on poll    | interrupt message to owning runner; immediate            |
-| Load balancing               | none; first claimer wins, recovery herds         | even distribution by shard ownership                     |
-| Node traits / host targeting | none; all processes are equal pollers            | shard groups pin workloads to specific hosts (see §3.1)  |
-| Entity message ordering      | concurrent `driveById` + OCC to resolve          | serialized per-entity mailbox                            |
-| Backpressure / capacity      | none                                             | mailbox capacity, termination timeout, poll intervals    |
-| Failover speed               | wait lease expiry (~30s) then re-drive           | fast shard rebalance on node leave                       |
-| Split-brain window           | wider (lease-expiry racing)                      | narrower (shard lock)                                    |
-| Operational cost             | **just a DB**                                    | full cluster stack (ShardManager, Runners, MessageStorage) |
+| Aspect                       | These engines                                 | `ClusterWorkflowEngine`                                    |
+| ---------------------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| Work routing                 | poll-and-race; every process scans the table  | hash-ring routes each execution to one owning runner       |
+| Resume / signal latency      | pull-based; up to poll interval (5–15s)       | push-based; near-instant via entity messages               |
+| Interrupt across processes   | flag in storage; remote fiber sees it on poll | interrupt message to owning runner; immediate              |
+| Load balancing               | none; first claimer wins, recovery herds      | even distribution by shard ownership                       |
+| Node traits / host targeting | none; all processes are equal pollers         | shard groups pin workloads to specific hosts (see §3.1)    |
+| Entity message ordering      | concurrent `driveById` + OCC to resolve       | serialized per-entity mailbox                              |
+| Backpressure / capacity      | none                                          | mailbox capacity, termination timeout, poll intervals      |
+| Failover speed               | wait lease expiry (~30s) then re-drive        | fast shard rebalance on node leave                         |
+| Split-brain window           | wider (lease-expiry racing)                   | narrower (shard lock)                                      |
+| Operational cost             | **just a DB**                                 | full cluster stack (ShardManager, Runners, MessageStorage) |
 
 **Cost at scale:** with N processes, every process recovery-polls the whole
 executions table (15s) and clocks table (5s). On Cosmos the recovery scan is a
@@ -150,7 +150,7 @@ conflict.
 
 - **Persisted activity results** are protected — first-writer-wins
   (`ON CONFLICT DO NOTHING`), so the stored result is single-valued.
-- **The activity *effect itself*** can still fire twice inside that window.
+- **The activity _effect itself_** can still fire twice inside that window.
   → **Activities must be idempotent.** Same caveat applies to
   `ClusterWorkflowEngine` (at-least-once during rebalance), but the lease-racing
   window here is wider.
@@ -205,7 +205,7 @@ sidestepping cross-version replay entirely.
 
 `ClusterWorkflowEngine` does the opposite: as soon as a blue runner deregisters,
 its shards rebalance onto green (new-code) runners, so mid-flight cross-version
-replay is the *default* path during a deploy, not an edge case.
+replay is the _default_ path during a deploy, not an edge case.
 
 > ⚠️ **Missing drain hook.** Neither engine currently has a "stop claiming new
 > executions" flag. To get the safe drain story above, this must be added (a flag
@@ -246,17 +246,17 @@ Neither these engines nor `ClusterWorkflowEngine` solve this. Mitigations:
 
 ## 7. Summary cheat-sheet
 
-| Dimension                       | These engines               | ClusterWorkflowEngine        |
-| ------------------------------- | --------------------------- | ---------------------------- |
-| Durability / restart recovery   | ✅ parity                    | ✅                            |
-| Activity replay & idempotency   | ✅ parity                    | ✅                            |
-| Failover speed                  | ~30–45s (poll)              | fast (push rebalance)        |
-| Resume / interrupt latency      | 5–15s (pull)                | near-instant (push)          |
-| Load balancing                  | ❌                           | ✅ (shard ownership)          |
-| Host targeting / node traits    | ❌                           | ✅ (shard groups)             |
-| Split-brain window              | wider (lease race)          | narrower (shard lock)        |
-| Activity double-fire on cutover | possible — need idempotency | possible — need idempotency  |
-| Version-skew replay safety      | unsolved — discipline only  | unsolved — discipline only   |
+| Dimension                       | These engines               | ClusterWorkflowEngine             |
+| ------------------------------- | --------------------------- | --------------------------------- |
+| Durability / restart recovery   | ✅ parity                   | ✅                                |
+| Activity replay & idempotency   | ✅ parity                   | ✅                                |
+| Failover speed                  | ~30–45s (poll)              | fast (push rebalance)             |
+| Resume / interrupt latency      | 5–15s (pull)                | near-instant (push)               |
+| Load balancing                  | ❌                          | ✅ (shard ownership)              |
+| Host targeting / node traits    | ❌                          | ✅ (shard groups)                 |
+| Split-brain window              | wider (lease race)          | narrower (shard lock)             |
+| Activity double-fire on cutover | possible — need idempotency | possible — need idempotency       |
+| Version-skew replay safety      | unsolved — discipline only  | unsolved — discipline only        |
 | In-flight version stickiness    | sticky to starter (+ drain) | migrates to new code on rebalance |
-| SQLite blue/green               | needs shared storage        | n/a                          |
-| Operational cost                | just a DB                   | full cluster stack           |
+| SQLite blue/green               | needs shared storage        | n/a                               |
+| Operational cost                | just a DB                   | full cluster stack                |

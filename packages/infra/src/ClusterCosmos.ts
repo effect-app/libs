@@ -2,6 +2,7 @@ import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
+import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Redacted from "effect/Redacted"
 import { PersistenceError } from "effect/unstable/cluster/ClusterError"
@@ -96,16 +97,19 @@ interface LockDoc {
 
 const withTracerDisabled = Effect.withTracerEnabled(false)
 const refailPersistence = <A, E, R>(effect: Effect.Effect<A, E, R>) => PersistenceError.refail(effect)
+const cosmosId = (id: string) => encodeURIComponent(id)
 const messagePartition = (shardId: string) => `message::${shardId}`
 const messageDocId = (envelope: Envelope.Encoded, primaryKey: string | null) =>
-  primaryKey === null ? envelopeId(envelope) : `primary::${primaryKey}`
+  cosmosId(primaryKey === null ? envelopeId(envelope) : `primary::${primaryKey}`)
 const replyPartition = (requestId: string) => `reply::${requestId}`
-const runnerDocId = (address: string) => `runner::${address}`
-const lockDocId = (shardId: string) => `lock::${shardId}`
+const runnerDocId = (address: string) => cosmosId(`runner::${address}`)
+const lockDocId = (shardId: string) => cosmosId(`lock::${shardId}`)
 const tenMinutes = Duration.toMillis(Duration.minutes(10))
 
-const isCosmosStatus = (u: unknown, code: number) =>
-  typeof u === "object" && u !== null && "code" in u && u.code === code
+const isCosmosStatus = (u: unknown, code: number): boolean =>
+  Cause.isUnknownError(u)
+    ? isCosmosStatus(u.cause, code)
+    : typeof u === "object" && u !== null && "code" in u && u.code === code
 
 const isConflict = (u: unknown) => isCosmosStatus(u, 409)
 const isNotFound = (u: unknown) => isCosmosStatus(u, 404)
@@ -175,7 +179,7 @@ const envelopeToDoc = (
       }
     case "AckChunk":
       return {
-        id: envelope.id,
+        id: cosmosId(envelope.id),
         _partitionKey: messagePartition(ShardId.toString(envelope.address.shardId)),
         type: "message",
         rowid: envelope.id,
@@ -196,7 +200,7 @@ const envelopeToDoc = (
       }
     case "Interrupt":
       return {
-        id: envelope.id,
+        id: cosmosId(envelope.id),
         _partitionKey: messagePartition(ShardId.toString(envelope.address.shardId)),
         type: "message",
         rowid: envelope.id,
@@ -251,7 +255,7 @@ const envelopeFromDoc = (
       return {
         envelope: {
           _tag: "AckChunk",
-          id: doc.id,
+          id: doc.rowid,
           requestId: doc.requestId,
           replyId: doc.replyId ?? "",
           address: {
@@ -266,7 +270,7 @@ const envelopeFromDoc = (
       return {
         envelope: {
           _tag: "Interrupt",
-          id: doc.id,
+          id: doc.rowid,
           requestId: doc.requestId,
           address: {
             shardId: shardIdFromString(doc.shardId),
@@ -282,7 +286,7 @@ const envelopeFromDoc = (
 const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
   reply._tag === "WithExit"
     ? {
-      id: reply.id,
+      id: cosmosId(reply.id),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
@@ -293,7 +297,7 @@ const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
       acked: false
     }
     : {
-      id: reply.id,
+      id: cosmosId(reply.id),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
@@ -308,13 +312,13 @@ const replyFromDoc = (doc: ReplyDoc): Reply.Encoded =>
   doc.kind === "WithExit"
     ? {
       _tag: "WithExit",
-      id: doc.id,
+      id: doc.rowid,
       requestId: doc.requestId,
       exit: doc.payload
     }
     : {
       _tag: "Chunk",
-      id: doc.id,
+      id: doc.rowid,
       requestId: doc.requestId,
       values: doc.payload,
       sequence: doc.sequence ?? 0
@@ -336,7 +340,7 @@ const createContainer = (prefix: string) =>
     const { db } = yield* CosmosClient
     const containerId = `${prefix}cluster`
     yield* Effect
-      .promise(() =>
+      .tryPromise(() =>
         db.containers.create({
           id: containerId,
           partitionKey: { paths: ["/_partitionKey"], version: 2 }
@@ -350,13 +354,13 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
   readonly prefix?: string | undefined
 }) {
   const prefix = options?.prefix ?? "cluster-"
-  const container = yield* createContainer(prefix)()
+  const container = yield* createContainer(prefix)().pipe(Effect.orDie)
   const containerId = `${prefix}cluster`
   const annotate = (operation: string) =>
     annotateDb({ operation, system: "cosmosdb", collection: containerId, entity: "cluster-message-storage" })
 
   const readMessage = (id: string, partitionKey: string) =>
-    Effect.promise(() => container.item(id, partitionKey).read<MessageDoc>()).pipe(
+    Effect.tryPromise(() => container.item(id, partitionKey).read<MessageDoc>()).pipe(
       Effect.tap(annotateItem),
       Effect.map((resp) => Option.fromNullishOr(resp.resource)),
       Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
@@ -364,7 +368,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
 
   const queryMessages = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
     Effect
-      .promise(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
+      .tryPromise(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
       .pipe(
         Effect.tap(annotateFeed),
         Effect.map((resp) => resp.resources)
@@ -372,7 +376,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
 
   const queryReplies = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
     Effect
-      .promise(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
+      .tryPromise(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
       .pipe(
         Effect.tap(annotateFeed),
         Effect.map((resp) => resp.resources)
@@ -381,19 +385,20 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
   const lastReply = (replyId: string | null) =>
     replyId === null
       ? Effect.succeed(Option.none<Reply.Encoded>())
-      : queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND c.id = @id", [{ name: "@id", value: replyId }]).pipe(
-        Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]), replyFromDoc))
-      )
+      : queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND c.rowid = @id", [{ name: "@id", value: replyId }])
+        .pipe(
+          Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]), replyFromDoc))
+        )
 
   const markReplyAcked = (requestId: string, replyId: string) =>
-    Effect.promise(() => container.item(replyId, replyPartition(requestId)).read<ReplyDoc>()).pipe(
+    Effect.tryPromise(() => container.item(cosmosId(replyId), replyPartition(requestId)).read<ReplyDoc>()).pipe(
       Effect.flatMap((resp) => {
         const doc = resp.resource
         if (!doc) return Effect.void
         doc.acked = true
         return Effect
-          .promise(() =>
-            container.item(replyId, replyPartition(requestId)).replace(doc, {
+          .tryPromise(() =>
+            container.item(cosmosId(replyId), replyPartition(requestId)).replace(doc, {
               accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
             })
           )
@@ -405,7 +410,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
 
   const replaceMessage = (doc: MessageDoc) =>
     Effect
-      .promise(() =>
+      .tryPromise(() =>
         container.item(doc.id, doc._partitionKey).replace(doc, {
           accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
         })
@@ -428,7 +433,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
               return replaceMessage(ack)
             }, { discard: true })
           }
-          return yield* Effect.promise(() => container.items.create(doc)).pipe(
+          return yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),
             Effect.as<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
             Effect.catchIf(isConflict, () =>
@@ -456,7 +461,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
       Effect
         .gen(function*() {
           const doc = replyToDoc(reply)
-          yield* Effect.promise(() => container.items.create(doc)).pipe(
+          yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),
             Effect.catchIf(isConflict, () => Effect.void)
           )
@@ -488,7 +493,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           )
           yield* Effect.forEach(replies, (reply) =>
             Effect
-              .promise(() => container.item(reply.id, reply._partitionKey).delete())
+              .tryPromise(() => container.item(reply.id, reply._partitionKey).delete())
               .pipe(
                 Effect.tap(annotateItem),
                 Effect.catchIf(isNotFound, () => Effect.void)
@@ -499,7 +504,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           )
           yield* Effect.forEach(messages, (message) => {
             if (message.kind === "Interrupt") {
-              return Effect.promise(() => container.item(message.id, message._partitionKey).delete()).pipe(
+              return Effect.tryPromise(() => container.item(message.id, message._partitionKey).delete()).pipe(
                 Effect.tap(annotateItem),
                 Effect.catchIf(isNotFound, () => Effect.void)
               )
@@ -623,7 +628,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
                       Effect
                         .forEach(replies, (reply) =>
                           Effect
-                            .promise(() =>
+                            .tryPromise(() =>
                               container.item(reply.id, reply._partitionKey).delete()
                             )
                             .pipe(
@@ -632,7 +637,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
                             ), { discard: true })
                     ),
                   Effect.andThen(
-                    Effect.promise(() => container.item(message.id, message._partitionKey).delete()).pipe(
+                    Effect.tryPromise(() => container.item(message.id, message._partitionKey).delete()).pipe(
                       Effect.tap(annotateItem),
                       Effect.catchIf(isNotFound, () => Effect.void)
                     )
@@ -665,15 +670,15 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
   })
 })
 
-const collectUnprocessed = (
+const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,
   now: number,
-  lastReply: (replyId: string | null) => Effect.Effect<Option.Option<Reply.Encoded>>,
-  replaceMessage: (doc: MessageDoc) => Effect.Effect<void>,
+  lastReply: (replyId: string | null) => Effect.Effect<Option.Option<Reply.Encoded>, E>,
+  replaceMessage: (doc: MessageDoc) => Effect.Effect<void, E>,
   queryReplies: (
     query: string,
     parameters: ReadonlyArray<CosmosParameter>
-  ) => Effect.Effect<Array<ReplyDoc>>
+  ) => Effect.Effect<Array<ReplyDoc>, E>
 ) =>
   Effect.gen(function*() {
     const messages: Array<{
@@ -698,7 +703,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
   readonly prefix?: string | undefined
 }) {
   const prefix = options?.prefix ?? "cluster-"
-  const container = yield* createContainer(prefix)()
+  const container = yield* createContainer(prefix)().pipe(Effect.orDie)
   const config = yield* ShardingConfig.ShardingConfig
   const expires = Duration.toMillis(Duration.fromInputUnsafe(config.shardLockExpiration))
   const containerId = `${prefix}cluster`
@@ -707,7 +712,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
 
   const queryRunners = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
     Effect
-      .promise(() =>
+      .tryPromise(() =>
         container
           .items
           .query<RunnerDoc>({ query, parameters: Array.from(parameters) }, { partitionKey: "runner" })
@@ -716,7 +721,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       .pipe(Effect.tap(annotateFeed), Effect.map((resp) => resp.resources))
 
   const readLock = (shardId: string) =>
-    Effect.promise(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
+    Effect.tryPromise(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
       Effect.tap(annotateItem),
       Effect.map((resp) => Option.fromNullishOr(resp.resource)),
       Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
@@ -724,7 +729,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
 
   const writeLock = (doc: LockDoc) =>
     Effect
-      .promise(() =>
+      .tryPromise(() =>
         container.item(doc.id, "lock").replace(doc, {
           accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
         })
@@ -737,7 +742,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
 
   const createLock = (address: string, shardId: string, now: number) =>
     Effect
-      .promise(() =>
+      .tryPromise(() =>
         container.items.create<LockDoc>({
           id: lockDocId(shardId),
           _partitionKey: "lock",
@@ -788,7 +793,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       Effect.sync(() => Date.now()).pipe(
         Effect.flatMap((now) =>
           Effect
-            .promise(() =>
+            .tryPromise(() =>
               container.items.upsert<RunnerDoc>({
                 id: runnerDocId(address),
                 _partitionKey: "runner",
@@ -808,7 +813,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       ),
 
     unregister: (address) =>
-      Effect.promise(() => container.item(runnerDocId(address), "runner").delete()).pipe(
+      Effect.tryPromise(() => container.item(runnerDocId(address), "runner").delete()).pipe(
         Effect.tap(annotateItem),
         Effect.catchIf(isNotFound, () => Effect.void),
         annotate("unregister"),
@@ -817,12 +822,12 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       ),
 
     setRunnerHealth: (address, healthy) =>
-      Effect.promise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
+      Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
         Effect.flatMap((resp) => {
           const doc = resp.resource
           if (!doc) return Effect.void
           doc.healthy = healthy
-          return Effect.promise(() => container.item(doc.id, "runner").replace(doc)).pipe(Effect.tap(annotateItem))
+          return Effect.tryPromise(() => container.item(doc.id, "runner").replace(doc)).pipe(Effect.tap(annotateItem))
         }),
         Effect.asVoid,
         Effect.catchIf(isNotFound, () => Effect.void),
@@ -844,12 +849,14 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       Effect
         .gen(function*() {
           const now = Date.now()
-          yield* Effect.promise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
+          yield* Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
             Effect.flatMap((resp) => {
               const doc = resp.resource
               if (!doc) return Effect.void
               doc.lastHeartbeat = now
-              return Effect.promise(() => container.item(doc.id, "runner").replace(doc)).pipe(Effect.tap(annotateItem))
+              return Effect.tryPromise(() => container.item(doc.id, "runner").replace(doc)).pipe(
+                Effect.tap(annotateItem)
+              )
             }),
             Effect.catchIf(isNotFound, () => Effect.void)
           )
@@ -877,7 +884,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
             onNone: () => Effect.void,
             onSome: (doc) =>
               doc.address === address
-                ? Effect.promise(() => container.item(doc.id, "lock").delete()).pipe(
+                ? Effect.tryPromise(() => container.item(doc.id, "lock").delete()).pipe(
                   Effect.tap(annotateItem),
                   Effect.catchIf(isNotFound, () => Effect.void),
                   Effect.asVoid
@@ -892,7 +899,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
 
     releaseAll: (address) =>
       Effect
-        .promise(() =>
+        .tryPromise(() =>
           container
             .items
             .query<LockDoc>({
@@ -905,7 +912,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
           Effect.tap(annotateFeed),
           Effect.flatMap((resp) =>
             Effect.forEach(resp.resources, (doc) =>
-              Effect.promise(() => container.item(doc.id, "lock").delete()).pipe(
+              Effect.tryPromise(() => container.item(doc.id, "lock").delete()).pipe(
                 Effect.tap(annotateItem),
                 Effect.catchIf(isNotFound, () => Effect.void)
               ), { discard: true })

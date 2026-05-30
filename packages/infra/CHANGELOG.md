@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 4.0.0-beta.259
+
+### Minor Changes
+
+- 6884a32: Add Azure Service Bus topic notifications for persisted cluster storage polling.
+
+### Patch Changes
+
+- 6821fc5: Add Cosmos DB backed storage layers for Effect Cluster message and runner state.
+- b6cb25b: Fix Cosmos cluster workflow resume after durable deferred completion.
+  - effect-app@4.0.0-beta.259
+
 ## 4.0.0-beta.258
 
 ### Minor Changes

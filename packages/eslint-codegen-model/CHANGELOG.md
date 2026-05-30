@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- bogus
+
 ## 2.0.0-beta.19
 
 ### Patch Changes

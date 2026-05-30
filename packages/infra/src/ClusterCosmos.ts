@@ -335,12 +335,14 @@ const createContainer = (prefix: string) =>
   Effect.fnUntraced(function*() {
     const { db } = yield* CosmosClient
     const containerId = `${prefix}cluster`
-    yield* Effect.promise(() =>
-      db.containers.createIfNotExists({
-        id: containerId,
-        partitionKey: { paths: ["/_partitionKey"], version: 2 }
-      })
-    )
+    yield* Effect
+      .promise(() =>
+        db.containers.create({
+          id: containerId,
+          partitionKey: { paths: ["/_partitionKey"], version: 2 }
+        })
+      )
+      .pipe(Effect.catchIf(isConflict, () => Effect.void))
     return db.container(containerId)
   })
 

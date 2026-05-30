@@ -28,7 +28,8 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
       .gen(function*() {
         const storage = yield* MessageStorage.MessageStorage
         const shardId = testShardId("message-duplicate")
-        const request = yield* makeStreamRequest(123, shardId)
+        const primaryKey = `primary/${testRunId}\\with?illegal#chars`
+        const request = yield* makeStreamRequest(primaryKey, shardId)
 
         const saved = yield* storage.saveRequest(request)
         assert.strictEqual(saved._tag, "Success")
@@ -37,7 +38,7 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
         yield* storage.saveReply(chunk)
 
         const duplicateWithChunk = yield* storage.saveRequest(
-          yield* makeStreamRequest(123, shardId)
+          yield* makeStreamRequest(primaryKey, shardId)
         )
         assert(duplicateWithChunk._tag === "Duplicate" && Option.isSome(duplicateWithChunk.lastReceivedReply))
         assert.strictEqual(duplicateWithChunk.lastReceivedReply.value._tag, "Chunk")
@@ -49,7 +50,7 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
 
         yield* storage.saveReply(yield* makeStreamReply(request))
         const duplicateWithExit = yield* storage.saveRequest(
-          yield* makeStreamRequest(123, shardId)
+          yield* makeStreamRequest(primaryKey, shardId)
         )
         assert(duplicateWithExit._tag === "Duplicate" && Option.isSome(duplicateWithExit.lastReceivedReply))
         assert.strictEqual(duplicateWithExit.lastReceivedReply.value._tag, "WithExit")
@@ -172,7 +173,7 @@ const GetUserRpc = Rpc.make("GetUser", {
 class StreamRpc extends Rpc.make("StreamTest", {
   success: RpcSchema.Stream(Schema.Void, Schema.Never),
   payload: {
-    id: Schema.Number
+    id: Schema.String
   },
   primaryKey: (value) => value.id.toString()
 }) {}
@@ -207,7 +208,7 @@ const makeRequest = Effect.fnUntraced(function*(options?: {
   })
 })
 
-const makeStreamRequest = Effect.fnUntraced(function*(id: number, shardId = testShardId("stream")) {
+const makeStreamRequest = Effect.fnUntraced(function*(id: string, shardId = testShardId("stream")) {
   const snowflake = yield* Snowflake.Generator
   return new Message.OutgoingRequest({
     envelope: Envelope.makeRequest<typeof StreamRpc>({

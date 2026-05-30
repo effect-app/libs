@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.259
+
+### Patch Changes
+
+- b5a02d1: Add Cosmos DB backed storage layers for Effect Cluster message and runner state.
+  - effect-app@4.0.0-beta.259
+
 ## 4.0.0-beta.258
 
 ### Minor Changes

@@ -29,6 +29,13 @@ const codegenRule: CreateRule = {
   meta: {
     type: "suggestion",
     fixable: "code",
+    schema: [{
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        additionalProperties: true
+      }
+    }],
     docs: {
       description: "Ensure codegen blocks are up to date"
     }

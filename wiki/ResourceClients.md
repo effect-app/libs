@@ -12,6 +12,8 @@ Queries are for reading data from the api. No writing/mutating allowed. Queries 
 Mutations are for writing data to the api, return values should at most include identifiers, and often `void`.
 Mutations auto invalidate Queries in their namespace, so that a Users.Index Query will be invalidated upon a Users.Delete or Update mutation.
 This only occurs within the same namespace, like "Users".
+Queries can also be invalidated automatically from data dependencies recorded at runtime: repository reads by queries are matched with repository writes by commands.
+See [Repository-derived query invalidation](./repository-derived-query-invalidation.md) for the full architecture and trade-offs.
 If you need to invalidate queries in another namespace, you can pass the following option to the Mutation constructor:
 
 ```ts

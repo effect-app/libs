@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [b2e0f62]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.22
+
 ## 0.6.0-beta.29
 
 ### Patch Changes

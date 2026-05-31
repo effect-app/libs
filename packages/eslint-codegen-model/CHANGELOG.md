@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- b2e0f62: Allow oxlint codegen rule options so shared preset defaults can be configured.
+
 ## 2.0.0-beta.21
 
 ### Patch Changes

@@ -46,6 +46,7 @@
     "cli-preserve-trailing-newline",
     "client-fetch-property",
     "cluster-servicebus-notifications",
+    "codegen-rule-options",
     "cold-brooms-ski",
     "cold-rabbits-pay",
     "command-button-optional-input",

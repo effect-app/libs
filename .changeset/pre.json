@@ -182,6 +182,7 @@
     "major-drinks-stop",
     "many-ideas-report",
     "meta-codegen-no-export",
+    "meta-module-name-override",
     "metal-mammals-smell",
     "middleware-error-from-dynamic-rcm",
     "middleware-errors-via-rpc-tag",

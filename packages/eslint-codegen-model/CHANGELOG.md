@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- 22be885: Add `stripSuffixes` option to the meta codegen preset and configure `.Queries` stripping in the shared oxlint config.
+
 ## 2.0.0-beta.20
 
 ### Patch Changes

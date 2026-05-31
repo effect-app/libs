@@ -5,3 +5,4 @@ export * from "./client/errors.ts"
 export * from "./client/InvalidationKeys.ts"
 export * from "./client/makeClient.ts"
 // codegen:end
+export * as DataDependencies from "./DataDependencies.js"

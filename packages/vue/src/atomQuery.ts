@@ -17,14 +17,17 @@ import { defaultRegistry } from "@effect/atom-vue"
 import { makeQueryKey } from "effect-app/client"
 import type { ClientForOptions } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
+import * as DataDependencies from "effect-app/DataDependencies"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
+import { isReadonlyArrayNonEmpty } from "effect/Array"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -83,7 +86,9 @@ const trackWritableByKeys =
     )
   }
 
-const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
+const atomsForKeys = (
+  keys: ReadonlyArray<ReadonlyArray<unknown>>
+): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
   for (const key of keys) {
     const set = keyAtoms.get(Hash.hash(key))
@@ -92,23 +97,64 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   return [...atoms]
 }
 
+// --- derived invalidation (repo read/write tracking) ----------------------------------------
+// Per-atom read dependencies, recorded by the query effect (repos it read from). A mutation's
+// write dependencies are intersected against these to find queries that must be refetched even
+// when no explicit invalidation key covers them.
+const atomReadDependencies = new WeakMap<
+  Atom.Atom<AsyncResult.AsyncResult<any, any>>,
+  DataDependencies.DataDependencies
+>()
+
+const setAtomReadDependencies = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  reads: DataDependencies.DataDependencies
+) => atomReadDependencies.set(atom, reads)
+
+const atomsForWriteDependencies = (
+  writes: ReadonlyArray<DataDependencies.DataDependency>
+): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
+  const out = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
+  for (const set of keyAtoms.values()) {
+    for (const a of set) {
+      const reads = atomReadDependencies.get(a)
+      if (reads !== undefined && isReadonlyArrayNonEmpty(reads) && DataDependencies.intersects(reads, writes)) {
+        out.add(a)
+      }
+    }
+  }
+  return [...out]
+}
+
 /**
  * Invalidate the given keys and AWAIT the result. The invalidation (refetch trigger) goes through
  * the built-in `Reactivity` service — the same one query atoms register against via
  * `factory.withReactivity`, shared via the runtime memoMap. The await uses our own `keyAtoms`
  * tracking + `awaitAtomResult`, since `Reactivity.invalidate` returns void and can't be awaited.
  *
+ * When `writeDependencies` is non-empty, additionally refreshes every live query atom whose
+ * recorded read dependencies intersect the writes (derived invalidation), so mutations that touch
+ * repos invalidate the queries that read from them — without an explicit `queryInvalidation` rule.
+ *
  * Resolves once the affected queries have settled, so a mutation can `yield*` this and know the
  * affected queries are fresh. (The await reads via the module-global default registry — the one the
  * vue composables resolve via `injectRegistry`'s fallback.)
  */
-export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void, never, Reactivity.Reactivity> =>
+export const invalidateAndAwait = (
+  keys: ReadonlyArray<ReadonlyArray<unknown>>,
+  writeDependencies?: ReadonlyArray<DataDependencies.DataDependency>
+): Effect.Effect<void, never, Reactivity.Reactivity> =>
   Effect.gen(function*() {
     yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
     const atoms = atomsForKeys(keys)
+    const derivedAtoms = writeDependencies && isReadonlyArrayNonEmpty(writeDependencies)
+      ? atomsForWriteDependencies(writeDependencies)
+      : []
+    for (const a of derivedAtoms) defaultRegistry.refresh(a) // force refetch (Reactivity.invalidate didn't cover these keys)
+    const allAtoms = new Set([...atoms, ...derivedAtoms])
     //    for (const a of atoms) defaultRegistry.refresh(a) // refreshes everything even when not mounted
-    if (atoms.length === 0) return
-    yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
+    if (allAtoms.size === 0) return
+    yield* Effect.forEach(allAtoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
   })
 
 const isPlainObject = (o: unknown): o is Record<string, unknown> => {
@@ -319,14 +365,27 @@ export const buildQueryFamily = <I, A, E>(
   const baseKey = makeQueryKey(self) // hierarchical, input-independent
 
   return Atom.family((input: I) => {
+    // The query effect runs lazily when the atom is read; `trackedAtom` is assigned below before
+    // that ever happens, so the effect can record its read dependencies against the atom that ends
+    // up registered in `keyAtoms` (=> reachable by derived invalidation).
+    let trackedAtom: Atom.Atom<AsyncResult.AsyncResult<A, E>> | undefined
     let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
-      self
-        .handler(input)
-        .pipe(
-          Effect.retry({ times: 5, while: isRetryable }),
-          Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-          Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
-        )
+      Effect.gen(function*() {
+        const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+        const result = yield* self
+          .handler(input)
+          .pipe(
+            Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
+            Effect.retry({ times: 5, while: isRetryable }),
+            Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+            Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
+          )
+        const reads = yield* Ref.get(readsRef)
+        if (trackedAtom !== undefined) setAtomReadDependencies(trackedAtom, reads)
+        return result
+      })
     )
     // Register under every prefix of the full key => hierarchical (prefix) invalidation. Two roles:
     //   - withReactivity: `Reactivity.invalidate(key)` refreshes this atom (the actual refetch).
@@ -337,6 +396,7 @@ export const buildQueryFamily = <I, A, E>(
       : [...baseKey, self.queryKeyProjectionHash, input]
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
+    trackedAtom = atom
     atom = trackByKeys(reactivityKeys)(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.

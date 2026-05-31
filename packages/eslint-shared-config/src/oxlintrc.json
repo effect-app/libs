@@ -24,7 +24,11 @@
     "**/CHANGELOG.md"
   ],
   "rules": {
-    "codegen/codegen": "error",
+    "codegen/codegen": ["error", {
+      "meta": {
+        "stripSuffixes": [".Queries", ".Commands"]
+      }
+    }],
     "typescript/consistent-type-imports": ["error", {
       "fixStyle": "inline-type-imports"
     }],

@@ -10,6 +10,7 @@ import * as Struct from "effect/Struct"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "../Config.ts"
 import * as Context from "../Context.ts"
+import * as DataDependencies from "../DataDependencies.ts"
 import * as Effect from "../Effect.ts"
 import { HttpClient, HttpClientRequest } from "../http.ts"
 import { Invalidation } from "../rpc.ts"
@@ -142,7 +143,12 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
               stream: true as const
             })
             : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
-          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
+          : Rpc.make(r._tag, {
+            payload: r,
+            success: isStream ? r.success : Invalidation.QueryResponseWithMetaData(r.success),
+            error: r.error,
+            stream: isStream
+          })) as any
       })
     )
     .prefix(`${moduleName}.`)
@@ -211,6 +217,20 @@ const makeApiClientFactory = Effect
       // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
       // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
       // strip) — the `else` branch passes them through.
+      const forwardDependencies = (
+        dependencies: DataDependencies.DataDependencySet | undefined,
+        options?: { readonly reads?: boolean }
+      ) =>
+        dependencies === undefined
+          ? Effect.void
+          : Effect.gen(function*() {
+            const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+            if (options?.reads) {
+              yield* Effect.forEach(dependencies.reads, dependencyRecorder.read, { discard: true })
+            }
+            yield* Effect.forEach(dependencies.writes, dependencyRecorder.write, { discard: true })
+          })
+
       const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
         eff.pipe(
           Effect.flatMap((result: any) =>
@@ -218,6 +238,7 @@ const makeApiClientFactory = Effect
               const keys: ReadonlyArray<Invalidation.InvalidationKey> = result?.metadata?.invalidateQueries ?? []
               const invalidationKeys = yield* InvalidationKeysFromServer
               yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+              yield* forwardDependencies(result?.metadata?.dataDependencies)
               return result.payload
             })
           ),
@@ -227,9 +248,20 @@ const makeApiClientFactory = Effect
                 const keys: ReadonlyArray<Invalidation.InvalidationKey> = result.metadata?.invalidateQueries ?? []
                 const invalidationKeys = yield* InvalidationKeysFromServer
                 yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+                yield* forwardDependencies(result.metadata?.dataDependencies)
                 return yield* Effect.fail(result.error)
               })
               : Effect.fail(result)
+          )
+        )
+
+      const unwrapQuery = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
+        eff.pipe(
+          Effect.flatMap((result: any) =>
+            Effect.gen(function*() {
+              yield* forwardDependencies(result?.metadata?.dataDependencies, { reads: true })
+              return result.payload
+            })
           )
         )
 
@@ -275,7 +307,7 @@ const makeApiClientFactory = Effect
                       Effect.provide(layers, { local: true }),
                       Effect.provide(svcs)
                     )
-                  return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
+                  return isCommand ? unwrapCommand(rpcEffect) : isStream ? rpcEffect : unwrapQuery(rpcEffect)
                 })
               )
 
@@ -292,13 +324,24 @@ const makeApiClientFactory = Effect
                           // Collect server invalidation keys from the "done" chunk, then discard it.
                           Stream.tap((item: any) =>
                             item._tag === "done" || item._tag === "metadata"
-                              ? InvalidationKeysFromServer.use((svc) =>
-                                Effect.forEach(
-                                  (item.metadata as Invalidation.CommandMetaData).invalidateQueries,
-                                  svc.add,
+                              ? Effect.gen(function*() {
+                                const metadata = item.metadata as Invalidation.CommandMetaData
+                                const invalidationKeys = yield* InvalidationKeysFromServer
+                                yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
+                                  discard: true
+                                })
+                                const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+                                yield* Effect.forEach(
+                                  metadata.dataDependencies.reads,
+                                  dependencyRecorder.read,
                                   { discard: true }
                                 )
-                              )
+                                yield* Effect.forEach(
+                                  metadata.dataDependencies.writes,
+                                  dependencyRecorder.write,
+                                  { discard: true }
+                                )
+                              })
                               : Effect.void
                           ),
                           Stream.filter((item: any) => item._tag === "value"),
@@ -309,15 +352,20 @@ const makeApiClientFactory = Effect
                           Stream.catch((err: any) =>
                             err?._tag === "error" && err?.metadata
                               ? Stream.fromEffect(
-                                InvalidationKeysFromServer.use((svc) =>
-                                  Effect
-                                    .forEach(
-                                      (err.metadata as Invalidation.CommandMetaData).invalidateQueries,
-                                      svc.add,
-                                      { discard: true }
-                                    )
-                                    .pipe(Effect.flatMap(() => Effect.fail(err.error)))
-                                )
+                                Effect.gen(function*() {
+                                  const metadata = err.metadata as Invalidation.CommandMetaData
+                                  const invalidationKeys = yield* InvalidationKeysFromServer
+                                  yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
+                                    discard: true
+                                  })
+                                  const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+                                  yield* Effect.forEach(
+                                    metadata.dataDependencies.writes,
+                                    dependencyRecorder.write,
+                                    { discard: true }
+                                  )
+                                  return yield* Effect.fail(err.error)
+                                })
                               )
                               : Stream.fail(err)
                           ),

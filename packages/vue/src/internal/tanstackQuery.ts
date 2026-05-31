@@ -1,6 +1,6 @@
 import { injectRegistry } from "@effect/atom-vue"
 import { QueryClient, useQuery as useTanstackQuery } from "@tanstack/vue-query"
-import { makeQueryKey, type Req } from "effect-app/client"
+import { DataDependencies, makeQueryKey, type Req } from "effect-app/client"
 import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
 import type * as Context from "effect-app/Context"
@@ -8,11 +8,13 @@ import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import * as Cause from "effect/Cause"
+import * as Ref from "effect/Ref"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
 import { replaceEqualDeep } from "../atomQuery.ts"
+import { clearQueryReadDependencies, setQueryReadDependencies } from "../dependencyMetadata.ts"
 import { reportRuntimeError } from "../lib.ts"
 import type { QueryInvalidator } from "../mutate.ts"
 import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryCacheUpdater, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
@@ -131,6 +133,12 @@ export const makeTanstackQuery = <R>(
   getRuntime: () => Context.Context<R>,
   queryClient: QueryClient
 ): MakeQuery2<R> => {
+  // Drop a query's recorded read-dependencies when tanstack evicts it from the cache, so the
+  // registry mirrors the live queries (mirrors the atom engine's `trackReadDependencies` finalizer).
+  queryClient.getQueryCache().subscribe((event) => {
+    if (event.type === "removed") clearQueryReadDependencies(event.query.queryKey)
+  })
+
   const useQuery: MakeQuery2<R> = <I, A, E, Request extends Req, Name extends string>(
     q: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) =>
@@ -161,12 +169,24 @@ export const makeTanstackQuery = <R>(
       }),
       queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
         runPromise(
-          q
-            .handler(resolveInput(arg, options?.mode)!)
-            .pipe(
-              Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-              Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false })
-            ),
+          Effect.gen(function*() {
+            const input = resolveInput(arg, options?.mode)!
+            // Record the repository/server read-dependencies seen while fetching, keyed by the
+            // tanstack queryKey, so a later mutation whose writes intersect them derives this query
+            // as an invalidation target (the tanstack invalidator invalidates by this same key).
+            const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+            const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+            const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+            const result = yield* q
+              .handler(input)
+              .pipe(
+                Effect.provideService(DataDependencies.DataDependencyRecorder, recorder),
+                Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+                Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false })
+              )
+            setQueryReadDependencies(fullQueryKey(q, queryKey, input), yield* Ref.get(readsRef))
+            return result
+          }),
           { signal }
         )
     }, queryClient)

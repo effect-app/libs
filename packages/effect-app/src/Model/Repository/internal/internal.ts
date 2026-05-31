@@ -16,6 +16,7 @@ import { toNonEmptyArray } from "../../../Array.ts"
 import * as Chunk from "../../../Chunk.ts"
 import { NotFoundError } from "../../../client/errors.ts"
 import * as Context from "../../../Context.ts"
+import * as DataDependencies from "../../../DataDependencies.ts"
 import * as Effect from "../../../Effect.ts"
 import { flatMapOption } from "../../../Effect.ts"
 import * as Option from "../../../Option.ts"
@@ -100,6 +101,9 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
+          const repoDependency = DataDependencies.repo(name)
+          const recordRead = DataDependencies.read(repoDependency)
+          const recordWrite = DataDependencies.write(repoDependency)
           const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
             get: (id: string) => _.get(`${name}.${id}`),
             set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
@@ -162,6 +166,7 @@ export function makeRepoInternal<
               (_) => decodeMany(_).pipe(Effect.orDie)
             )
             .pipe(
+              Effect.tap(() => recordRead),
               Effect.map((_) => _ as T[]),
               Effect.withSpan("Repository.all", {
                 kind: "client",
@@ -231,6 +236,7 @@ export function makeRepoInternal<
             kind: "client",
             attributes: { "app.entity": name }
           })(function*(id: T[IdKey]) {
+            yield* recordRead
             yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
             return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
@@ -258,6 +264,7 @@ export function makeRepoInternal<
 
           const saveAndPublish = Effect.fn("Repository.saveAndPublish", { attributes: { "app.entity": name } })(
             function*(items: Iterable<T>, events: Iterable<Evt> = []) {
+              yield* recordWrite
               const it = Chunk.fromIterable(items)
               const evts = [...events]
               yield* Effect.annotateCurrentSpan({
@@ -277,6 +284,7 @@ export function makeRepoInternal<
 
           const removeAndPublish = Effect.fn("Repository.removeAndPublish", { attributes: { "app.entity": name } })(
             function*(a: Iterable<T>, events: Iterable<Evt> = []) {
+              yield* recordWrite
               const { set } = yield* cms
               const it = [...a]
               const evts = [...events]
@@ -305,6 +313,7 @@ export function makeRepoInternal<
 
           const removeById = Effect.fn("Repository.removeById", { attributes: { "app.entity": name } })(
             function*(idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) {
+              yield* recordWrite
               const ids = globalThis.Array.isArray(idOrIds)
                 ? idOrIds as readonly T[IdKey][]
                 : [idOrIds as T[IdKey]]
@@ -460,6 +469,7 @@ export function makeRepoInternal<
                   "db.response.returned_rows": Array.isArray(r) ? r.length : 1
                 })
               ),
+              Effect.tap(() => recordRead),
               Effect.withSpan("Repository.query", {
                 kind: "client",
                 attributes: { "app.entity": name }
@@ -552,6 +562,7 @@ export function makeRepoInternal<
               const dec = S.decodeEffectConcurrently(S.Array(schema))
               return store.queryRaw(q).pipe(
                 Effect.flatMap(dec),
+                Effect.tap(() => recordRead),
                 Effect.withSpan("Repository.queryRaw", {
                   kind: "client",
                   attributes: { "app.entity": name }
@@ -573,11 +584,13 @@ export function makeRepoInternal<
               return {
                 all: allE.pipe(
                   Effect.flatMap(decMany),
+                  Effect.tap(() => recordRead),
                   Effect.map((_) => _ as any[]),
                   Effect.withSpan("Repository.mapped.all", spanAttrs, { captureStackTrace: false })
                 ),
                 find: (id: T[IdKey]) =>
                   flatMapOption(findE(id), dec).pipe(
+                    Effect.tap(() => recordRead),
                     Effect.withSpan("Repository.mapped.find", {
                       ...spanAttrs,
                       attributes: { ...spanAttrs.attributes, "app.entity.id": id }
@@ -601,6 +614,7 @@ export function makeRepoInternal<
                 // },
                 save: (...xes: any[]) =>
                   Effect.flatMap(encMany(xes), (_) => saveAllE(_)).pipe(
+                    Effect.tap(() => recordWrite),
                     Effect.withSpan("Repository.mapped.save", spanAttrs, { captureStackTrace: false })
                   )
               }

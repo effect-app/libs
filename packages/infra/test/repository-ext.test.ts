@@ -1,10 +1,12 @@
 import { describe, expect, it } from "@effect/vitest"
+import * as DataDependencies from "effect-app/DataDependencies"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import { makeRepo } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
+import * as Ref from "effect/Ref"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 class BatchItem extends S.Class<BatchItem>("BatchItem")({
@@ -54,6 +56,31 @@ describe("repository ext save/remove batching", () => {
         const all = yield* repo.all
         expect(all).toHaveLength(1)
         expect(all[0]?.id).toBe("4")
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("records repository read and write dependencies", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {})
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* repo.all
+            yield* repo.find("1")
+            yield* repo.removeById("1")
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual([DataDependencies.repo("DependencyItem")])
+        expect(yield* Ref.get(writesRef)).toEqual([DataDependencies.repo("DependencyItem")])
       })
       .pipe(
         setupRequestContextFromCurrent(),

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.261
+
+### Patch Changes
+
+- c31c673: Tighten Cosmos cluster OCC handling for concurrent node polling.
+  - effect-app@4.0.0-beta.261
+
 ## 4.0.0-beta.260
 
 ### Patch Changes

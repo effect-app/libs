@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.264
+
+### Patch Changes
+
+- 1587bfc: Batch more Cosmos cluster storage updates.
+  - effect-app@4.0.0-beta.264
+
 ## 4.0.0-beta.263
 
 ### Patch Changes

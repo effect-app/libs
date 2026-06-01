@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.263
+
+### Patch Changes
+
+- abb9c99: Batch Cosmos ack message processing updates.
+  - effect-app@4.0.0-beta.263
+
 ## 4.0.0-beta.262
 
 ### Patch Changes

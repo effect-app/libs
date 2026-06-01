@@ -71,8 +71,8 @@ const ensureCache = Effect.fnUntraced(function*(lockfile: SharedLockfile) {
 const resolveLatestSha = Effect.fnUntraced(function*(cachePath: string, requestedRef?: string) {
   const { runGetExitCode, runGetString } = yield* RunCommandService
 
-  const target = requestedRef ??
-    (yield* runGetString("git rev-parse --abbrev-ref origin/HEAD", cachePath)).trim()
+  const target = requestedRef
+    ?? (yield* runGetString("git rev-parse --abbrev-ref origin/HEAD", cachePath)).trim()
 
   const candidates = target.includes("/") ? [target] : [`origin/${target}`, target]
   for (const candidate of candidates) {

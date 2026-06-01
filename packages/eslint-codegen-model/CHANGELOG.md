@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- 55c6572: update packages
+
 ## 2.0.0-beta.22
 
 ### Patch Changes

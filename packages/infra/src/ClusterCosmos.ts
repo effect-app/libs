@@ -1,4 +1,4 @@
-import type { OperationInput } from "@azure/cosmos"
+import type { OperationInput, PatchRequestBody } from "@azure/cosmos"
 import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -395,29 +395,26 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         )
 
   const markReplyAcked = (requestId: string, replyId: string) =>
-    Effect.tryPromise(() => container.item(cosmosId(replyId), replyPartition(requestId)).read<ReplyDoc>()).pipe(
-      Effect.flatMap((resp) => {
-        const doc = resp.resource
-        if (!doc) return Effect.void
-        doc.acked = true
-        return Effect
-          .tryPromise(() =>
-            container.item(cosmosId(replyId), replyPartition(requestId)).replace(doc, {
-              accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-            })
-          )
-          .pipe(Effect.tap(annotateItem), Effect.asVoid)
-      }),
-      Effect.catchIf(isNotFound, () => Effect.void),
-      Effect.catchIf(isPreconditionFailed, () => Effect.void)
-    )
-
-  const replaceMessage = (doc: MessageDoc) =>
     Effect
       .tryPromise(() =>
-        container.item(doc.id, doc._partitionKey).replace(doc, {
-          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-        })
+        container.item(cosmosId(replyId), replyPartition(requestId)).patch<ReplyDoc>([
+          { op: "set", path: "/acked", value: true }
+        ])
+      )
+      .pipe(
+        Effect.tap(annotateItem),
+        Effect.asVoid,
+        Effect.catchIf(isNotFound, () => Effect.void),
+        Effect.catchIf(isPreconditionFailed, () => Effect.void)
+      )
+
+  const claimMessageRead = (doc: MessageDoc, now: number) =>
+    Effect
+      .tryPromise(() =>
+        container.item(doc.id, doc._partitionKey).patch<MessageDoc>(
+          [{ op: "set", path: "/lastRead", value: now }],
+          { accessCondition: { type: "IfMatch", condition: doc._etag ?? "" } }
+        )
       )
       .pipe(
         Effect.tap(annotateItem),
@@ -425,28 +422,27 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
       )
 
-  const markAckMessagesProcessed = (docs: ReadonlyArray<MessageDoc>) =>
+  const batchDocs = <A extends { readonly id: string; readonly _partitionKey: string }>(
+    docs: ReadonlyArray<A>,
+    operation: (doc: A) => OperationInput,
+    fallback: (doc: A) => Effect.Effect<void, unknown, never>
+  ): Effect.Effect<void, unknown, never> =>
     Effect.forEach(
       Arr.groupByT(docs, (doc) => doc._partitionKey),
       ([partitionKey, partitionDocs]) =>
         Effect.forEach(
           Arr.chunksOf(partitionDocs, maxCosmosBatchOperations),
           (chunk) => {
-            const operations: Array<OperationInput> = chunk.map((doc) => ({
-              operationType: "Patch" as const,
-              id: doc.id,
-              resourceBody: [{ op: "set" as const, path: "/processed", value: true }]
-            }))
+            const operations: Array<OperationInput> = chunk.map(operation)
             return Effect
               .tryPromise(() => container.items.batch(operations, partitionKey))
               .pipe(
                 Effect.tap(annotateItem),
                 Effect.flatMap((resp) => {
                   const failed = resp.result?.find((result) => !isSuccessfulStatus(result.statusCode))
-                  return failed === undefined
-                    ? Effect.void
-                    : Effect.fail(new Error(`cluster cosmos ack batch failed: ${failed.statusCode}`))
-                })
+                  return failed === undefined ? Effect.void : Effect.fail(failed.statusCode)
+                }),
+                Effect.catchIf(() => true, () => Effect.forEach(chunk, fallback, { discard: true }))
               )
           },
           { discard: true }
@@ -454,27 +450,50 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
       { discard: true }
     )
 
-  const updateMessage = (
-    doc: MessageDoc,
-    update: (doc: MessageDoc) => boolean
-  ): Effect.Effect<void, unknown> =>
-    Effect.suspend(function loop(current = doc): Effect.Effect<void, unknown> {
-      if (!update(current)) return Effect.void
-      return replaceMessage(current).pipe(
-        Effect.flatMap((replaced) =>
-          replaced
-            ? Effect.void
-            : readMessage(current.id, current._partitionKey).pipe(
-              Effect.flatMap((found) =>
-                Option.match(found, {
-                  onNone: () => Effect.void,
-                  onSome: loop
-                })
-              )
-            )
-        )
-      )
-    })
+  const patchDoc = <A extends { readonly id: string; readonly _partitionKey: string }>(
+    doc: A,
+    resourceBody: PatchRequestBody
+  ): Effect.Effect<void, unknown, never> =>
+    Effect.tryPromise(() => container.item(doc.id, doc._partitionKey).patch(resourceBody)).pipe(
+      Effect.tap(annotateItem),
+      Effect.asVoid,
+      Effect.catchIf(isNotFound, () => Effect.void)
+    )
+
+  const patchDocs = <A extends { readonly id: string; readonly _partitionKey: string }>(
+    docs: ReadonlyArray<A>,
+    resourceBody: (doc: A) => PatchRequestBody
+  ): Effect.Effect<void, unknown, never> =>
+    batchDocs(
+      docs,
+      (doc) => ({
+        operationType: "Patch" as const,
+        id: doc.id,
+        resourceBody: resourceBody(doc)
+      }),
+      (doc) => patchDoc(doc, resourceBody(doc))
+    )
+
+  const deleteDoc = <A extends { readonly id: string; readonly _partitionKey: string }>(
+    doc: A
+  ): Effect.Effect<void, unknown, never> =>
+    Effect.tryPromise(() => container.item(doc.id, doc._partitionKey).delete()).pipe(
+      Effect.tap(annotateItem),
+      Effect.asVoid,
+      Effect.catchIf(isNotFound, () => Effect.void)
+    )
+
+  const deleteDocs = <A extends { readonly id: string; readonly _partitionKey: string }>(
+    docs: ReadonlyArray<A>
+  ): Effect.Effect<void, unknown, never> =>
+    batchDocs(
+      docs,
+      (doc) => ({
+        operationType: "Delete" as const,
+        id: doc.id
+      }),
+      deleteDoc
+    )
 
   return yield* MessageStorage.makeEncoded({
     saveEnvelope: ({ deliverAt, envelope, primaryKey }) =>
@@ -487,7 +506,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
               "SELECT * FROM c WHERE c.type = 'message' AND c.kind = 'AckChunk' AND c.processed = false AND c.requestId = @requestId",
               [{ name: "@requestId", value: envelope.requestId }]
             )
-            yield* markAckMessagesProcessed(pendingAcks)
+            yield* patchDocs(pendingAcks, () => [{ op: "set", path: "/processed", value: true }])
           }
           return yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),
@@ -525,17 +544,16 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
             "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
             [{ name: "@requestId", value: reply.requestId }]
           )
-          yield* Effect.forEach(messages, (message) => {
-            return updateMessage(message, (doc) => {
-              if (reply._tag === "WithExit") {
-                doc.processed = true
-              } else if (doc.id !== reply.requestId && doc.kind !== "Request") {
-                return false
-              }
-              doc.lastReplyId = reply.id
-              return true
-            })
-          }, { discard: true })
+          const updatedMessages = reply._tag === "WithExit"
+            ? messages
+            : messages.filter((message) => message.id === reply.requestId || message.kind === "Request")
+          yield* patchDocs(updatedMessages, () =>
+            reply._tag === "WithExit"
+              ? [
+                { op: "set", path: "/processed", value: true },
+                { op: "set", path: "/lastReplyId", value: reply.id }
+              ]
+              : [{ op: "set", path: "/lastReplyId", value: reply.id }])
         })
         .pipe(annotate("saveReply"), refailPersistence, withTracerDisabled),
 
@@ -549,29 +567,20 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
               { name: "@requestId", value: id }
             ]
           )
-          yield* Effect.forEach(replies, (reply) =>
-            Effect
-              .tryPromise(() => container.item(reply.id, reply._partitionKey).delete())
-              .pipe(
-                Effect.tap(annotateItem),
-                Effect.catchIf(isNotFound, () => Effect.void)
-              ), { discard: true })
+          yield* deleteDocs(replies)
           const messages = yield* queryMessages(
             "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
             [{ name: "@requestId", value: id }]
           )
-          yield* Effect.forEach(messages, (message) => {
-            if (message.kind === "Interrupt") {
-              return Effect.tryPromise(() => container.item(message.id, message._partitionKey).delete()).pipe(
-                Effect.tap(annotateItem),
-                Effect.catchIf(isNotFound, () => Effect.void)
-              )
-            }
-            message.processed = false
-            message.lastReplyId = null
-            message.lastRead = null
-            return replaceMessage(message).pipe(Effect.asVoid)
-          }, { discard: true })
+          yield* deleteDocs(messages.filter((message) => message.kind === "Interrupt"))
+          yield* patchDocs(
+            messages.filter((message) => message.kind !== "Interrupt"),
+            () => [
+              { op: "set", path: "/processed", value: false },
+              { op: "set", path: "/lastReplyId", value: null },
+              { op: "set", path: "/lastRead", value: null }
+            ]
+          )
         })
         .pipe(annotate("clearReplies"), refailPersistence, withTracerDisabled),
 
@@ -620,7 +629,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, replaceMessage, queryReplies)),
+          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, claimMessageRead, queryReplies)),
           annotate("unprocessedMessages"),
           refailPersistence,
           withTracerDisabled
@@ -635,7 +644,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, replaceMessage, queryReplies)),
+          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, claimMessageRead, queryReplies)),
           annotate("unprocessedMessagesById"),
           refailPersistence,
           withTracerDisabled
@@ -651,12 +660,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((docs) =>
-            Effect.forEach(docs, (doc) => {
-              doc.lastRead = null
-              return replaceMessage(doc).pipe(Effect.asVoid)
-            }, { discard: true })
-          ),
+          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
           annotate("resetAddress"),
           refailPersistence,
           withTracerDisabled
@@ -671,37 +675,18 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((messages) =>
-            Effect.forEach(messages, (message) =>
-              queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId", [
-                {
-                  name: "@requestId",
-                  value: message
-                    .requestId
-                }
-              ])
-                .pipe(
-                  Effect
-                    .flatMap((replies) =>
-                      Effect
-                        .forEach(replies, (reply) =>
-                          Effect
-                            .tryPromise(() =>
-                              container.item(reply.id, reply._partitionKey).delete()
-                            )
-                            .pipe(
-                              Effect.tap(annotateItem),
-                              Effect.catchIf(isNotFound, () => Effect.void)
-                            ), { discard: true })
-                    ),
-                  Effect.andThen(
-                    Effect.tryPromise(() => container.item(message.id, message._partitionKey).delete()).pipe(
-                      Effect.tap(annotateItem),
-                      Effect.catchIf(isNotFound, () => Effect.void)
-                    )
-                  )
-                ), { discard: true })
-          ),
+          Effect.flatMap((messages) => {
+            if (!Arr.isArrayNonEmpty(messages)) return Effect.void
+            const requestIds = Array.from(new Set(messages.map((message) => message.requestId)))
+            return queryReplies(
+              "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+              [{ name: "@requestIds", value: requestIds }]
+            )
+              .pipe(
+                Effect.flatMap((replies) => deleteDocs(replies)),
+                Effect.andThen(deleteDocs(messages))
+              )
+          }),
           annotate("clearAddress"),
           refailPersistence,
           withTracerDisabled
@@ -713,12 +698,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         [{ name: "@shardIds", value: Array.from(shardIds) }]
       )
         .pipe(
-          Effect.flatMap((docs) =>
-            Effect.forEach(docs, (doc) => {
-              doc.lastRead = null
-              return replaceMessage(doc).pipe(Effect.asVoid)
-            }, { discard: true })
-          ),
+          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
           annotate("resetShards"),
           refailPersistence,
           withTracerDisabled
@@ -732,7 +712,7 @@ const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,
   now: number,
   lastReply: (replyId: string | null) => Effect.Effect<Option.Option<Reply.Encoded>, E>,
-  replaceMessage: (doc: MessageDoc) => Effect.Effect<boolean, E>,
+  claimMessageRead: (doc: MessageDoc, now: number) => Effect.Effect<boolean, E>,
   queryReplies: (
     query: string,
     parameters: ReadonlyArray<CosmosParameter>
@@ -750,10 +730,9 @@ const collectUnprocessed = <E>(
       )
       if (Arr.isArrayNonEmpty(replies)) continue
       const sentReply = yield* lastReply(doc.lastReplyId)
-      doc.lastRead = now
-      const replaced = yield* replaceMessage(doc)
-      if (replaced) {
-        messages.push(envelopeFromDoc(doc, sentReply))
+      const claimed = yield* claimMessageRead(doc, now)
+      if (claimed) {
+        messages.push(envelopeFromDoc({ ...doc, lastRead: now }, sentReply))
       }
     }
     return messages
@@ -882,19 +861,20 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       ),
 
     setRunnerHealth: (address, healthy) =>
-      Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
-        Effect.flatMap((resp) => {
-          const doc = resp.resource
-          if (!doc) return Effect.void
-          doc.healthy = healthy
-          return Effect.tryPromise(() => container.item(doc.id, "runner").replace(doc)).pipe(Effect.tap(annotateItem))
-        }),
-        Effect.asVoid,
-        Effect.catchIf(isNotFound, () => Effect.void),
-        annotate("setRunnerHealth"),
-        refailPersistence,
-        withTracerDisabled
-      ),
+      Effect
+        .tryPromise(() =>
+          container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
+            { op: "set", path: "/healthy", value: healthy }
+          ])
+        )
+        .pipe(
+          Effect.tap(annotateItem),
+          Effect.asVoid,
+          Effect.catchIf(isNotFound, () => Effect.void),
+          annotate("setRunnerHealth"),
+          refailPersistence,
+          withTracerDisabled
+        ),
 
     acquire: (address, shardIds) =>
       Effect.sync(() => Date.now()).pipe(
@@ -909,17 +889,17 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       Effect
         .gen(function*() {
           const now = Date.now()
-          yield* Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
-            Effect.flatMap((resp) => {
-              const doc = resp.resource
-              if (!doc) return Effect.void
-              doc.lastHeartbeat = now
-              return Effect.tryPromise(() => container.item(doc.id, "runner").replace(doc)).pipe(
-                Effect.tap(annotateItem)
-              )
-            }),
-            Effect.catchIf(isNotFound, () => Effect.void)
-          )
+          yield* Effect
+            .tryPromise(() =>
+              container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
+                { op: "set", path: "/lastHeartbeat", value: now }
+              ])
+            )
+            .pipe(
+              Effect.tap(annotateItem),
+              Effect.asVoid,
+              Effect.catchIf(isNotFound, () => Effect.void)
+            )
           const refreshed = yield* Effect.forEach(shardIds, (shardId) =>
             readLock(shardId).pipe(
               Effect.flatMap((lock) =>

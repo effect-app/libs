@@ -84,6 +84,7 @@ interface RunnerDoc {
   runner: string
   healthy: boolean
   lastHeartbeat: number
+  readonly _etag?: string
 }
 
 interface LockDoc {
@@ -629,7 +630,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, claimMessageRead, queryReplies)),
+          Effect.flatMap((docs) => collectUnprocessed(docs, now, claimMessageRead, queryReplies)),
           annotate("unprocessedMessages"),
           refailPersistence,
           withTracerDisabled
@@ -644,7 +645,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         ]
       )
         .pipe(
-          Effect.flatMap((docs) => collectUnprocessed(docs, now, lastReply, claimMessageRead, queryReplies)),
+          Effect.flatMap((docs) => collectUnprocessedById(docs, queryReplies)),
           annotate("unprocessedMessagesById"),
           refailPersistence,
           withTracerDisabled
@@ -711,7 +712,6 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
 const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,
   now: number,
-  lastReply: (replyId: string | null) => Effect.Effect<Option.Option<Reply.Encoded>, E>,
   claimMessageRead: (doc: MessageDoc, now: number) => Effect.Effect<boolean, E>,
   queryReplies: (
     query: string,
@@ -723,13 +723,11 @@ const collectUnprocessed = <E>(
       readonly envelope: Envelope.Encoded
       readonly lastSentReply: Option.Option<Reply.Encoded>
     }> = []
+    const activeRequestIds = yield* activeReplyRequestIds(docs, queryReplies)
+    const lastReplies = yield* lastRepliesById(docs, activeRequestIds, queryReplies)
     for (const doc of docs) {
-      const replies = yield* queryReplies(
-        "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND (c.kind = 'WithExit' OR (c.kind = 'Chunk' AND c.acked = false))",
-        [{ name: "@requestId", value: doc.requestId }]
-      )
-      if (Arr.isArrayNonEmpty(replies)) continue
-      const sentReply = yield* lastReply(doc.lastReplyId)
+      if (activeRequestIds.has(doc.requestId)) continue
+      const sentReply = Option.fromNullishOr(doc.lastReplyId === null ? undefined : lastReplies.get(doc.lastReplyId))
       const claimed = yield* claimMessageRead(doc, now)
       if (claimed) {
         messages.push(envelopeFromDoc({ ...doc, lastRead: now }, sentReply))
@@ -737,6 +735,64 @@ const collectUnprocessed = <E>(
     }
     return messages
   })
+
+const collectUnprocessedById = <E>(
+  docs: ReadonlyArray<MessageDoc>,
+  queryReplies: (
+    query: string,
+    parameters: ReadonlyArray<CosmosParameter>
+  ) => Effect.Effect<Array<ReplyDoc>, E>
+) =>
+  Effect.gen(function*() {
+    const messages: Array<{
+      readonly envelope: Envelope.Encoded
+      readonly lastSentReply: Option.Option<Reply.Encoded>
+    }> = []
+    const activeRequestIds = yield* activeReplyRequestIds(docs, queryReplies)
+    const lastReplies = yield* lastRepliesById(docs, activeRequestIds, queryReplies)
+    for (const doc of docs) {
+      if (activeRequestIds.has(doc.requestId)) continue
+      const sentReply = Option.fromNullishOr(doc.lastReplyId === null ? undefined : lastReplies.get(doc.lastReplyId))
+      messages.push(envelopeFromDoc(doc, sentReply))
+    }
+    return messages
+  })
+
+const activeReplyRequestIds = <E>(
+  docs: ReadonlyArray<MessageDoc>,
+  queryReplies: (
+    query: string,
+    parameters: ReadonlyArray<CosmosParameter>
+  ) => Effect.Effect<Array<ReplyDoc>, E>
+) => {
+  const requestIds = Array.from(new Set(docs.map((doc) => doc.requestId)))
+  if (!Arr.isArrayNonEmpty(requestIds)) return Effect.succeed(new Set<string>())
+  return queryReplies(
+    "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId) AND (c.kind = 'WithExit' OR (c.kind = 'Chunk' AND c.acked = false))",
+    [{ name: "@requestIds", value: requestIds }]
+  )
+    .pipe(Effect.map((replies) => new Set(replies.map((reply) => reply.requestId))))
+}
+
+const lastRepliesById = <E>(
+  docs: ReadonlyArray<MessageDoc>,
+  activeRequestIds: ReadonlySet<string>,
+  queryReplies: (
+    query: string,
+    parameters: ReadonlyArray<CosmosParameter>
+  ) => Effect.Effect<Array<ReplyDoc>, E>
+) => {
+  const replyIds = Array.from(
+    new Set(docs
+      .flatMap((doc) => activeRequestIds.has(doc.requestId) || doc.lastReplyId === null ? [] : [doc.lastReplyId]))
+  )
+  if (!Arr.isArrayNonEmpty(replyIds)) return Effect.succeed(new Map<string, Reply.Encoded>())
+  return queryReplies(
+    "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@replyIds, c.rowid)",
+    [{ name: "@replyIds", value: replyIds }]
+  )
+    .pipe(Effect.map((replies) => new Map(replies.map((reply) => [reply.rowid, replyFromDoc(reply)]))))
+}
 
 export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
   readonly prefix?: string | undefined
@@ -759,6 +815,20 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       )
       .pipe(Effect.tap(annotateFeed), Effect.map((resp) => resp.resources))
 
+  const deleteRunner = (doc: RunnerDoc) =>
+    Effect
+      .tryPromise(() =>
+        container.item(doc.id, "runner").delete({
+          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+        })
+      )
+      .pipe(
+        Effect.tap(annotateItem),
+        Effect.asVoid,
+        Effect.catchIf(isNotFound, () => Effect.void),
+        Effect.catchIf(isPreconditionFailed, () => Effect.void)
+      )
+
   const readLock = (shardId: string) =>
     Effect.tryPromise(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
       Effect.tap(annotateItem),
@@ -777,6 +847,20 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
         Effect.tap(annotateItem),
         Effect.as(true),
         Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
+      )
+
+  const deleteLock = (doc: LockDoc) =>
+    Effect
+      .tryPromise(() =>
+        container.item(doc.id, "lock").delete({
+          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+        })
+      )
+      .pipe(
+        Effect.tap(annotateItem),
+        Effect.asVoid,
+        Effect.catchIf(isNotFound, () => Effect.void),
+        Effect.catchIf(isPreconditionFailed, () => Effect.void)
       )
 
   const createLock = (address: string, shardId: string, now: number) =>
@@ -852,9 +936,17 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
       ),
 
     unregister: (address) =>
-      Effect.tryPromise(() => container.item(runnerDocId(address), "runner").delete()).pipe(
-        Effect.tap(annotateItem),
-        Effect.catchIf(isNotFound, () => Effect.void),
+      Effect.sync(() => Date.now()).pipe(
+        Effect.flatMap((now) =>
+          queryRunners(
+            "SELECT * FROM c WHERE c.type = 'runner' AND (c.address = @address OR c.lastHeartbeat < @expiresAt)",
+            [
+              { name: "@address", value: address },
+              { name: "@expiresAt", value: now - expires }
+            ]
+          )
+        ),
+        Effect.flatMap((docs) => Effect.forEach(docs, deleteRunner, { discard: true })),
         annotate("unregister"),
         refailPersistence,
         withTracerDisabled
@@ -924,11 +1016,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
             onNone: () => Effect.void,
             onSome: (doc) =>
               doc.address === address
-                ? Effect.tryPromise(() => container.item(doc.id, "lock").delete()).pipe(
-                  Effect.tap(annotateItem),
-                  Effect.catchIf(isNotFound, () => Effect.void),
-                  Effect.asVoid
-                )
+                ? deleteLock(doc)
                 : Effect.void
           })
         ),
@@ -950,13 +1038,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
         )
         .pipe(
           Effect.tap(annotateFeed),
-          Effect.flatMap((resp) =>
-            Effect.forEach(resp.resources, (doc) =>
-              Effect.tryPromise(() => container.item(doc.id, "lock").delete()).pipe(
-                Effect.tap(annotateItem),
-                Effect.catchIf(isNotFound, () => Effect.void)
-              ), { discard: true })
-          ),
+          Effect.flatMap((resp) => Effect.forEach(resp.resources, deleteLock, { discard: true })),
           annotate("releaseAll"),
           refailPersistence,
           withTracerDisabled

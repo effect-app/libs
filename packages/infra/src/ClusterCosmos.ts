@@ -415,7 +415,33 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
         })
       )
-      .pipe(Effect.tap(annotateItem), Effect.asVoid)
+      .pipe(
+        Effect.tap(annotateItem),
+        Effect.as(true),
+        Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
+      )
+
+  const updateMessage = (
+    doc: MessageDoc,
+    update: (doc: MessageDoc) => boolean
+  ): Effect.Effect<void, unknown> =>
+    Effect.suspend(function loop(current = doc): Effect.Effect<void, unknown> {
+      if (!update(current)) return Effect.void
+      return replaceMessage(current).pipe(
+        Effect.flatMap((replaced) =>
+          replaced
+            ? Effect.void
+            : readMessage(current.id, current._partitionKey).pipe(
+              Effect.flatMap((found) =>
+                Option.match(found, {
+                  onNone: () => Effect.void,
+                  onSome: loop
+                })
+              )
+            )
+        )
+      )
+    })
 
   return yield* MessageStorage.makeEncoded({
     saveEnvelope: ({ deliverAt, envelope, primaryKey }) =>
@@ -470,13 +496,15 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
             [{ name: "@requestId", value: reply.requestId }]
           )
           yield* Effect.forEach(messages, (message) => {
-            if (reply._tag === "WithExit") {
-              message.processed = true
-            } else if (message.id !== reply.requestId && message.kind !== "Request") {
-              return Effect.void
-            }
-            message.lastReplyId = reply.id
-            return replaceMessage(message).pipe(Effect.catchIf(isPreconditionFailed, () => Effect.void))
+            return updateMessage(message, (doc) => {
+              if (reply._tag === "WithExit") {
+                doc.processed = true
+              } else if (doc.id !== reply.requestId && doc.kind !== "Request") {
+                return false
+              }
+              doc.lastReplyId = reply.id
+              return true
+            })
           }, { discard: true })
         })
         .pipe(annotate("saveReply"), refailPersistence, withTracerDisabled),
@@ -512,7 +540,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
             message.processed = false
             message.lastReplyId = null
             message.lastRead = null
-            return replaceMessage(message).pipe(Effect.catchIf(isPreconditionFailed, () => Effect.void))
+            return replaceMessage(message).pipe(Effect.asVoid)
           }, { discard: true })
         })
         .pipe(annotate("clearReplies"), refailPersistence, withTracerDisabled),
@@ -596,7 +624,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           Effect.flatMap((docs) =>
             Effect.forEach(docs, (doc) => {
               doc.lastRead = null
-              return replaceMessage(doc).pipe(Effect.catchIf(isPreconditionFailed, () => Effect.void))
+              return replaceMessage(doc).pipe(Effect.asVoid)
             }, { discard: true })
           ),
           annotate("resetAddress"),
@@ -658,7 +686,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           Effect.flatMap((docs) =>
             Effect.forEach(docs, (doc) => {
               doc.lastRead = null
-              return replaceMessage(doc).pipe(Effect.catchIf(isPreconditionFailed, () => Effect.void))
+              return replaceMessage(doc).pipe(Effect.asVoid)
             }, { discard: true })
           ),
           annotate("resetShards"),
@@ -674,7 +702,7 @@ const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,
   now: number,
   lastReply: (replyId: string | null) => Effect.Effect<Option.Option<Reply.Encoded>, E>,
-  replaceMessage: (doc: MessageDoc) => Effect.Effect<void, E>,
+  replaceMessage: (doc: MessageDoc) => Effect.Effect<boolean, E>,
   queryReplies: (
     query: string,
     parameters: ReadonlyArray<CosmosParameter>
@@ -693,8 +721,10 @@ const collectUnprocessed = <E>(
       if (Arr.isArrayNonEmpty(replies)) continue
       const sentReply = yield* lastReply(doc.lastReplyId)
       doc.lastRead = now
-      yield* replaceMessage(doc).pipe(Effect.catchIf(isPreconditionFailed, () => Effect.void))
-      messages.push(envelopeFromDoc(doc, sentReply))
+      const replaced = yield* replaceMessage(doc)
+      if (replaced) {
+        messages.push(envelopeFromDoc(doc, sentReply))
+      }
     }
     return messages
   })

@@ -85,6 +85,53 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
       })
       .pipe(Effect.provide(layerFor())))
 
+  it.effect("returns each unprocessed message to only one concurrent node poll", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const shardId = testShardId("message-concurrent-poll")
+        const expectedIds = Array.from({ length: 20 }, (_, index) => index + 1)
+        const requests = yield* Effect.forEach(expectedIds, (id) => makeRequest({ payload: { id }, shardId }))
+        yield* Effect.forEach(requests, (request) => storage.saveRequest(request), { discard: true })
+
+        const polls = yield* Effect.forEach(
+          Array.from({ length: 8 }, () => void 0),
+          () => storage.unprocessedMessages([shardId]),
+          { concurrency: "unbounded" }
+        )
+        const receivedIds = polls
+          .flatMap((messages) => messages.map(requestPayloadId))
+          .sort((a, b) => a - b)
+
+        assert.deepStrictEqual(receivedIds, expectedIds)
+        assert.strictEqual((yield* storage.unprocessedMessages([shardId])).length, 0)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("preserves terminal reply state after concurrent node polling", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const shardId = testShardId("message-concurrent-reply")
+        const primaryKey = `concurrent-reply/${testRunId}`
+        const request = yield* makeStreamRequest(primaryKey, shardId)
+        assert.strictEqual((yield* storage.saveRequest(request))._tag, "Success")
+
+        const polls = yield* Effect.forEach(
+          Array.from({ length: 8 }, () => void 0),
+          () => storage.unprocessedMessages([shardId]),
+          { concurrency: "unbounded" }
+        )
+        assert.strictEqual(polls.flat().length, 1)
+
+        yield* storage.saveReply(yield* makeStreamReply(request))
+
+        const duplicate = yield* storage.saveRequest(yield* makeStreamRequest(primaryKey, shardId))
+        assert(duplicate._tag === "Duplicate" && Option.isSome(duplicate.lastReceivedReply))
+        assert.strictEqual(duplicate.lastReceivedReply.value._tag, "WithExit")
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
   it.effect("notifies registered reply handlers", () =>
     Effect
       .gen(function*() {
@@ -134,6 +181,46 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos RunnerStorage", () => {
         expect(runnerStatus(yield* storage.getRunners, runnerAddress)).toBeUndefined()
       })
       .pipe(Effect.provide(layerFor())))
+
+  it.effect("preserves shard lock ownership when two runners acquire concurrently", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* RunnerStorage.RunnerStorage
+        const runnerAddress1 = testRunnerAddress(4)
+        const runnerAddress2 = testRunnerAddress(5)
+        const runner1 = Runner.make({
+          address: runnerAddress1,
+          groups: ["default"],
+          weight: 1
+        })
+        const runner2 = Runner.make({
+          address: runnerAddress2,
+          groups: ["default"],
+          weight: 1
+        })
+        const shards = Array.from({ length: 16 }, (_, index) => testShardId("runner-occ", index + 1))
+
+        yield* storage.register(runner1, true)
+        yield* storage.register(runner2, true)
+
+        const [acquired1, acquired2] = yield* Effect.all([
+          storage.acquire(runnerAddress1, shards),
+          storage.acquire(runnerAddress2, shards)
+        ], { concurrency: "unbounded" })
+        const acquiredIds = [...acquired1, ...acquired2].map((shard) => shard.id).sort((a, b) => a - b)
+
+        assert.deepStrictEqual(acquiredIds, shards.map((shard) => shard.id))
+        assert.strictEqual(new Set(acquiredIds).size, shards.length)
+        assert.deepStrictEqual(
+          (yield* storage.refresh(runnerAddress1, shards)).map((shard) => shard.id).sort((a, b) => a - b),
+          acquired1.map((shard) => shard.id).sort((a, b) => a - b)
+        )
+        assert.deepStrictEqual(
+          (yield* storage.refresh(runnerAddress2, shards)).map((shard) => shard.id).sort((a, b) => a - b),
+          acquired2.map((shard) => shard.id).sort((a, b) => a - b)
+        )
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
 
   it.effect("acquires, refreshes, releases, and re-acquires shard locks", () =>
     Effect

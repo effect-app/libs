@@ -21,14 +21,14 @@
   },
   "dependencies": {
     "glob": "8.1.0",
-    "js-yaml": "4.1.1",
-    "oxc-parser": "0.129.0"
+    "js-yaml": "4.2.0",
+    "oxc-parser": "0.133.0"
   },
   "devDependencies": {
     "@types/glob": "8.1.0",
     "@types/js-yaml": "4.0.9",
     "madge": "8.0.0",
-    "oxlint": "1.63.0",
+    "oxlint": "1.67.0",
     "typescript": "~6.0.3",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"

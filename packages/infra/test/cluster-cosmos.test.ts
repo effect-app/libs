@@ -11,6 +11,7 @@ const cosmosUrl = process.env["COSMOS_TEST_URL"]
 const cosmosDb = process.env["COSMOS_TEST_DB"] ?? "cluster-test"
 const testRunId = `${Date.now()}-${process.pid}-${Math.random().toString(16).slice(2)}`
 const runnerPortBase = 10000 + Date.now() % 40000
+const liveSnowflake = Layer.effect(Snowflake.Generator, TestClock.withLive(Snowflake.makeGenerator))
 
 const layerFor = () =>
   layerCosmos({
@@ -19,7 +20,7 @@ const layerFor = () =>
     prefix: "test-cluster-"
   })
     .pipe(
-      Layer.provideMerge(Snowflake.layerGenerator),
+      Layer.provideMerge(liveSnowflake),
       Layer.provide(ShardingConfig.layerDefaults)
     )
 

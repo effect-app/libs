@@ -1,3 +1,4 @@
+import type { OperationInput } from "@azure/cosmos"
 import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -105,6 +106,9 @@ const replyPartition = (requestId: string) => `reply::${requestId}`
 const runnerDocId = (address: string) => cosmosId(`runner::${address}`)
 const lockDocId = (shardId: string) => cosmosId(`lock::${shardId}`)
 const tenMinutes = Duration.toMillis(Duration.minutes(10))
+const maxCosmosBatchOperations = 100
+const isSuccessfulStatus = (statusCode: number | undefined): boolean =>
+  statusCode !== undefined && statusCode >= 200 && statusCode < 300
 
 const isCosmosStatus = (u: unknown, code: number): boolean =>
   Cause.isUnknownError(u)
@@ -421,6 +425,35 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
       )
 
+  const markAckMessagesProcessed = (docs: ReadonlyArray<MessageDoc>) =>
+    Effect.forEach(
+      Arr.groupByT(docs, (doc) => doc._partitionKey),
+      ([partitionKey, partitionDocs]) =>
+        Effect.forEach(
+          Arr.chunksOf(partitionDocs, maxCosmosBatchOperations),
+          (chunk) => {
+            const operations: Array<OperationInput> = chunk.map((doc) => ({
+              operationType: "Patch" as const,
+              id: doc.id,
+              resourceBody: [{ op: "set" as const, path: "/processed", value: true }]
+            }))
+            return Effect
+              .tryPromise(() => container.items.batch(operations, partitionKey))
+              .pipe(
+                Effect.tap(annotateItem),
+                Effect.flatMap((resp) => {
+                  const failed = resp.result?.find((result) => !isSuccessfulStatus(result.statusCode))
+                  return failed === undefined
+                    ? Effect.void
+                    : Effect.fail(new Error(`cluster cosmos ack batch failed: ${failed.statusCode}`))
+                })
+              )
+          },
+          { discard: true }
+        ),
+      { discard: true }
+    )
+
   const updateMessage = (
     doc: MessageDoc,
     update: (doc: MessageDoc) => boolean
@@ -454,10 +487,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
               "SELECT * FROM c WHERE c.type = 'message' AND c.kind = 'AckChunk' AND c.processed = false AND c.requestId = @requestId",
               [{ name: "@requestId", value: envelope.requestId }]
             )
-            yield* Effect.forEach(pendingAcks, (ack) => {
-              ack.processed = true
-              return replaceMessage(ack)
-            }, { discard: true })
+            yield* markAckMessagesProcessed(pendingAcks)
           }
           return yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),

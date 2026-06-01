@@ -63,6 +63,30 @@ const ensureCache = Effect.fnUntraced(function*(lockfile: SharedLockfile) {
 })
 
 /**
+ * Resolve `requestedRef` (or the remote default branch HEAD if omitted) to a
+ * concrete commit sha in the fetched cache. Accepts branch names, tags, or
+ * shas; bare branch names are resolved against `origin/` first so the result
+ * is the latest remote commit, not a stale local ref.
+ */
+const resolveLatestSha = Effect.fnUntraced(function*(cachePath: string, requestedRef?: string) {
+  const { runGetExitCode, runGetString } = yield* RunCommandService
+
+  const target = requestedRef ??
+    (yield* runGetString("git rev-parse --abbrev-ref origin/HEAD", cachePath)).trim()
+
+  const candidates = target.includes("/") ? [target] : [`origin/${target}`, target]
+  for (const candidate of candidates) {
+    const rev = JSON.stringify(`${candidate}^{commit}`)
+    const code = yield* runGetExitCode(`git rev-parse --verify --quiet ${rev}`, cachePath)
+    if (code === 0) {
+      return (yield* runGetString(`git rev-parse ${rev}`, cachePath)).trim()
+    }
+  }
+
+  return yield* Effect.fail(new Error(`Cannot resolve ref: ${target}`))
+})
+
+/**
  * Walk artifact files. For each file in the artifact map (respecting excludes),
  * yields `{ srcRel, srcAbs, destAbs }`.
  */
@@ -114,18 +138,32 @@ const walkArtifacts = Effect.fnUntraced(function*(
  * MVP: overwrites destination files. Caller is expected to inspect `git status`
  * after sync to review local changes. Conflict handling lands in a follow-up.
  */
-export const syncShared = Effect.fnUntraced(function*(opts: { lockfilePath?: string } = {}) {
+export const syncShared = Effect.fnUntraced(function*(
+  opts: { lockfilePath?: string; update?: boolean; ref?: string | undefined } = {}
+) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const { runGetExitCode } = yield* RunCommandService
 
   const lockfilePath = opts.lockfilePath ?? ".shared.json"
-  const { content: lockfileContent, lockfile } = yield* readLockfile(lockfilePath)
+  const { content: lockfileContent, lockfile: pinned } = yield* readLockfile(lockfilePath)
 
-  yield* Effect.logInfo(`Syncing from ${lockfile.repo} @ ${lockfile.ref}`)
+  yield* Effect.logInfo(`Syncing from ${pinned.repo} @ ${pinned.ref}`)
 
-  const cachePath = yield* ensureCache(lockfile)
+  const cachePath = yield* ensureCache(pinned)
   yield* Effect.logInfo(`Cache: ${cachePath}`)
+
+  let lockfile = pinned
+  if (opts.update) {
+    const newRef = yield* resolveLatestSha(cachePath, opts.ref)
+    if (newRef === pinned.ref) {
+      yield* Effect.logInfo(`Already at latest: ${newRef.slice(0, 12)}`)
+    } else {
+      yield* Effect.logInfo(`Updating ref ${pinned.ref.slice(0, 12)} → ${newRef.slice(0, 12)}`)
+      yield* runGetExitCode(`git checkout ${JSON.stringify(newRef)}`, cachePath)
+    }
+    lockfile = { ...pinned, ref: newRef }
+  }
 
   const files = yield* walkArtifacts(lockfile, cachePath)
 

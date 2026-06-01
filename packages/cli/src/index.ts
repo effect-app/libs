@@ -760,10 +760,21 @@ NodeRuntime.runMain(
       const sync = Command
         .make(
           "sync",
-          { lockfile: SharedLockfileFlag },
-          Effect.fn("effa-cli.sync")(function*({ lockfile }) {
+          {
+            lockfile: SharedLockfileFlag,
+            update: Flag.boolean("update").pipe(
+              Flag.withDescription("Bump the pinned ref to the latest sha before syncing")
+            ),
+            ref: Flag.string("ref").pipe(
+              Flag.optional,
+              Flag.withDescription("Ref (branch/tag/sha) to update to; default: remote default branch HEAD")
+            )
+          },
+          Effect.fn("effa-cli.sync")(function*({ lockfile, ref, update }) {
             yield* syncShared({
-              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json")
+              lockfilePath: Option.getOrElse(lockfile, () => ".shared.json"),
+              update,
+              ref: Option.getOrUndefined(ref)
             })
           })
         )

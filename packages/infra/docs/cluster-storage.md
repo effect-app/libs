@@ -39,3 +39,14 @@ The goal is API parity with Effect SQL cluster storage, with explicit notes wher
 SQL storage can run arbitrary multi-step storage effects inside one DB transaction.
 Cosmos only supports transactional scope in limited shapes (primarily same logical partition and explicit batch APIs).
 The cluster storage API expects a broader transaction abstraction, so this adapter keeps `withTransaction` as pass-through and relies on idempotency, OCC, and partition-scoped batches.
+
+## Current Cosmos limitations
+
+These limitations apply to fresh Cosmos containers too; they are adapter semantics, not migration concerns.
+
+- Multi-step writes are not atomic across partitions. `saveReply`, `clearReplies`, `clearAddress`, and chunk acknowledgements can complete one Cosmos operation and fail before the remaining state changes are applied. SQL storage wraps the equivalent flows in a database transaction.
+- `saveReply` writes the reply before patching message state. If the reply write succeeds but message patching fails, a retry can hit the deterministic reply id and fail with `PersistenceError` while `lastReplyId` / `processed` are still stale.
+- Runner and message lease expiry use application clocks. SQL storage mostly evaluates lock expiry, heartbeats, and read lease age with database time, while Cosmos uses `Date.now()` / caller-provided time; clock skew between runners can affect lease timing.
+- Shard locks are persisted `_etag`-guarded documents, not advisory locks. They survive process death until expiry or explicit release.
+- `unprocessedMessagesById` matches both Cosmos document id and request id. This is needed for keyed request docs whose document id is derived from the primary key, but it is broader than SQL's `id` lookup and should be considered when adding ack / interrupt edge cases.
+- Cosmos runner `machineId` values are derived from a hash of runner address instead of a database-assigned id. This keeps re-registration stable, but collisions are possible and Snowflake still only uses the low 10 bits.

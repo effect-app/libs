@@ -24,3 +24,18 @@ The closest baseline in Effect is `SqlMessageStorage` + `SqlRunnerStorage`.
 
 - Pick **`ClusterCosmos`** when your platform standard is Cosmos and you want to avoid introducing SQL just for cluster storage.
 - Pick **SQL storage** when you already have strong SQL ops tooling and prefer table/migration based durability.
+
+## Parity notes
+
+The goal is API parity with Effect SQL cluster storage, with explicit notes where backend semantics differ.
+
+- Reply uniqueness: Cosmos enforces one terminal `WithExit` reply per request and one `Chunk` per `(request, sequence)` via deterministic reply document ids. Duplicate writes fail with `PersistenceError`, matching SQL behavior.
+- OCC: Cosmos uses `_etag` + `IfMatch` for lock updates and message read claims.
+- Batching: Cosmos groups operations by partition key and uses transactional batch per partition (chunked at 100 operations).
+- `withTransaction`: intentionally a no-op in Cosmos storage. Unlike SQL, Cosmos does not expose a general cross-operation transaction boundary that matches cluster storage semantics across partitions and mixed operations.
+
+### Why `withTransaction` stays a no-op
+
+SQL storage can run arbitrary multi-step storage effects inside one DB transaction.
+Cosmos only supports transactional scope in limited shapes (primarily same logical partition and explicit batch APIs).
+The cluster storage API expects a broader transaction abstraction, so this adapter keeps `withTransaction` as pass-through and relies on idempotency, OCC, and partition-scoped batches.

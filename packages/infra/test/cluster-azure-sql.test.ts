@@ -120,6 +120,87 @@ describe.skipIf(!azureSqlUrl)("ClusterAzureSql MessageStorage", () => {
 
         const error = yield* Effect.flip(storage.saveReply(yield* makeStreamReply(request)))
         assert.strictEqual(error._tag, "PersistenceError")
+
+        const duplicate = yield* storage.saveRequest(yield* makeStreamRequest(`duplicate-with-exit/${testRunId}`))
+        assert(duplicate._tag === "Duplicate" && Option.isSome(duplicate.lastReceivedReply))
+        assert.strictEqual(duplicate.lastReceivedReply.value._tag, "WithExit")
+        assert.strictEqual((yield* storage.unprocessedMessagesById([request.envelope.requestId])).length, 0)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("fails on duplicate chunk sequence", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const request = yield* makeStreamRequest(`duplicate-chunk-sequence/${testRunId}`)
+        yield* storage.saveRequest(request)
+        yield* storage.saveReply(yield* makeChunkReply(request, 0))
+
+        const error = yield* Effect.flip(storage.saveReply(yield* makeChunkReply(request, 0)))
+        assert.strictEqual(error._tag, "PersistenceError")
+        assert.strictEqual((yield* storage.repliesFor([request])).length, 1)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("returns only the request by id after an acked chunk", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const request = yield* makeStreamRequest(`ack-by-id/${testRunId}`, testShardId("ak"))
+        yield* storage.saveRequest(request)
+
+        const chunk = yield* makeChunkReply(request, 0)
+        yield* storage.saveReply(chunk)
+        yield* storage.saveEnvelope(yield* makeAckChunk(request, chunk))
+
+        const messages = yield* storage.unprocessedMessagesById([request.envelope.requestId])
+        assert.strictEqual(messages.length, 1)
+        assert.strictEqual(messages[0]?.envelope._tag, "Request")
+        assert.strictEqual(messages[0]?.envelope.requestId, request.envelope.requestId)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("clears terminal replies and makes the request processable again", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const request = yield* makeStreamRequest(`clear-replies/${testRunId}`, testShardId("cr"))
+        yield* storage.saveRequest(request)
+        yield* storage.saveReply(yield* makeStreamReply(request))
+
+        assert.strictEqual((yield* storage.unprocessedMessagesById([request.envelope.requestId])).length, 0)
+        assert.strictEqual((yield* storage.repliesFor([request])).length, 1)
+
+        yield* storage.clearReplies(request.envelope.requestId)
+
+        const messages = yield* storage.unprocessedMessagesById([request.envelope.requestId])
+        assert.strictEqual(messages.length, 1)
+        assert.strictEqual(messages[0]?.envelope._tag, "Request")
+        assert.strictEqual((yield* storage.repliesFor([request])).length, 0)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("clears all message and reply state for an address", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const primaryKey = `clear-address/${testRunId}`
+        const request = yield* makeStreamRequest(primaryKey, testShardId("ca"), EntityId.make(`clear-${testRunId}`))
+        yield* storage.saveRequest(request)
+        yield* storage.saveReply(yield* makeChunkReply(request, 0))
+        yield* storage.saveReply(yield* makeStreamReply(request))
+
+        yield* storage.clearAddress(request.envelope.address)
+
+        assert.strictEqual((yield* storage.unprocessedMessagesById([request.envelope.requestId])).length, 0)
+        assert.strictEqual((yield* storage.repliesForUnfiltered([request.envelope.requestId])).length, 0)
+        assert.isTrue(Option.isNone(
+          yield* storage.requestIdForPrimaryKey({
+            address: request.envelope.address,
+            tag: request.envelope.tag,
+            id: primaryKey
+          })
+        ))
       })
       .pipe(Effect.provide(layerFor())), 20000)
 })
@@ -166,6 +247,30 @@ describe.skipIf(!azureSqlUrl)("ClusterAzureSql RunnerStorage", () => {
 
         assert.deepStrictEqual(acquiredIds, shards.map((shard) => shard.id))
         assert.strictEqual(new Set(acquiredIds).size, shards.length)
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
+  it.effect("acquires, refreshes, releases, and re-acquires shard locks", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* RunnerStorage.RunnerStorage
+        const runnerAddress1 = testRunnerAddress(4)
+        const runnerAddress2 = testRunnerAddress(5)
+        const shards = [
+          testShardId("rr", 1),
+          testShardId("rr", 2),
+          testShardId("rr", 3)
+        ]
+
+        assert.deepStrictEqual((yield* storage.acquire(runnerAddress1, shards)).map((shard) => shard.id), [1, 2, 3])
+        assert.deepStrictEqual((yield* storage.acquire(runnerAddress2, shards)).map((shard) => shard.id), [])
+        assert.deepStrictEqual((yield* storage.refresh(runnerAddress1, shards)).map((shard) => shard.id), [1, 2, 3])
+
+        yield* storage.release(runnerAddress1, testShardId("rr", 2))
+        assert.deepStrictEqual((yield* storage.acquire(runnerAddress2, shards)).map((shard) => shard.id), [2])
+
+        yield* storage.releaseAll(runnerAddress1)
+        assert.deepStrictEqual((yield* storage.acquire(runnerAddress2, shards)).map((shard) => shard.id), [1, 2, 3])
       })
       .pipe(Effect.provide(layerFor())), 20000)
 })
@@ -303,7 +408,11 @@ const makeRequest = Effect.fnUntraced(function*(options?: {
   })
 })
 
-const makeStreamRequest = Effect.fnUntraced(function*(id: string, shardId = testShardId("st")) {
+const makeStreamRequest = Effect.fnUntraced(function*(
+  id: string,
+  shardId = testShardId("st"),
+  entityId = EntityId.make("1")
+) {
   const snowflake = yield* Snowflake.Generator
   return new Message.OutgoingRequest({
     envelope: Envelope.makeRequest<typeof StreamRpc>({
@@ -311,7 +420,7 @@ const makeStreamRequest = Effect.fnUntraced(function*(id: string, shardId = test
       address: EntityAddress.make({
         shardId,
         entityType: EntityType.make("test"),
-        entityId: EntityId.make("1")
+        entityId
       }),
       tag: StreamRpc._tag,
       payload: StreamRpc.payloadSchema.make({ id }),

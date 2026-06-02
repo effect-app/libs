@@ -1,0 +1,87 @@
+diff --git a/src/unstable/cluster/SqlMessageStorage.ts b/src/unstable/cluster/SqlMessageStorage.ts
+index 69319a0c0e93a90f8aa53d02d4fb5e4dbc0369e2..f98a7237d236b79122f87639334bd25075902fc5 100644
+--- a/src/unstable/cluster/SqlMessageStorage.ts
++++ b/src/unstable/cluster/SqlMessageStorage.ts
+@@ -308,37 +308,16 @@ export const make: (options?: {
+         ON target.message_id = source.message_id
+         WHEN NOT MATCHED THEN
+           INSERT ${sql.insert(row)}
+-        OUTPUT
+-          inserted.id,
+-          CASE
+-            WHEN inserted.id IS NULL THEN (
+-              SELECT r.id, r.kind, r.payload
+-              FROM ${repliesTableSql} r
+-              WHERE r.id = target.last_reply_id
+-            )
+-          END as reply_id,
+-          CASE
+-            WHEN inserted.id IS NULL THEN (
+-              SELECT r.kind
+-              FROM ${repliesTableSql} r
+-              WHERE r.id = target.last_reply_id
+-            )
+-          END as reply_kind,
+-          CASE
+-            WHEN inserted.id IS NULL THEN (
+-              SELECT r.payload
+-              FROM ${repliesTableSql} r
+-              WHERE r.id = target.last_reply_id
+-            )
+-          END as reply_payload,
+-          CASE
+-            WHEN inserted.id IS NULL THEN (
+-              SELECT r.sequence
+-              FROM ${repliesTableSql} r
+-              WHERE r.id = target.last_reply_id
+-            )
+-          END as reply_sequence;
+-      `,
++        OUTPUT inserted.id;
++      `.pipe(Effect.flatMap((rows) => {
++        if (rows.length > 0) return Effect.succeed([])
++        return sql`
++          SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
++          FROM ${messagesTableSql} m
++          LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
++          WHERE m.message_id = ${message_id}
++        `
++      }), sql.withTransaction),
+     orElse: () => (row, message_id) =>
+       sql`
+         SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
+@@ -401,6 +380,34 @@ export const make: (options?: {
+         )
+         SELECT * FROM messages ORDER BY rowid ASC
+       `,
++    mssql: () => (shardIds: ReadonlyArray<string>, now: number) =>
++      sql<MessageJoinRow>`
++        SELECT m.*, r.id as reply_reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
++        FROM ${messagesTableSql} m WITH (UPDLOCK, READPAST, ROWLOCK)
++        LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
++        WHERE m.shard_id IN (${sql.literal(shardIds.map(wrapString).join(","))})
++        AND NOT EXISTS (
++          SELECT 1 FROM ${repliesTableSql}
++          WHERE request_id = m.request_id
++          AND (kind = ${replyKindWithExit} OR acked = ${sqlFalse})
++        )
++        AND processed = ${sqlFalse}
++        AND (m.last_read IS NULL OR m.last_read < ${tenMinutesAgo})
++        AND (m.deliver_at IS NULL OR m.deliver_at <= ${sql.literal(String(now))})
++        ORDER BY m.rowid ASC
++      `.unprepared.pipe(
++        Effect.tap((rows) => {
++          if (rows.length === 0) {
++            return Effect.void
++          }
++          return sql`
++            UPDATE ${messagesTableSql}
++            SET last_read = ${sqlNow}
++            WHERE id IN (${sql.literal(rows.map((row) => row.id).join(","))})
++          `.unprepared
++        }),
++        sql.withTransaction
++      ),
+     orElse: () => (shardIds: ReadonlyArray<string>, now: number) =>
+       sql<MessageJoinRow>`
+         SELECT m.*, r.id as reply_reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence

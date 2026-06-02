@@ -1,7 +1,8 @@
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Context, Effect, Exit, Headers, Layer, Option, Schema } from "effect"
-import { Envelope, EntityAddress, EntityId, EntityType, Message, MessageStorage, Reply, ShardId, ShardingConfig, Snowflake, SqlMessageStorage } from "effect/unstable/cluster"
+import { Context, Effect, Exit, Layer, Option, Schema } from "effect"
+import { HttpHeaders } from "effect-app/http"
+import { EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, ShardId, ShardingConfig, Snowflake, SqlMessageStorage } from "effect/unstable/cluster"
 import { Rpc, RpcSchema } from "effect/unstable/rpc"
 
 const testRunId = `${Date.now()}-${process.pid}-${Math.random().toString(16).slice(2)}`
@@ -66,7 +67,7 @@ const makeStreamRequest = Effect.fnUntraced(function*(id: string) {
       traceId: "noop",
       spanId: "noop",
       sampled: false,
-      headers: Headers.empty
+      headers: HttpHeaders.empty
     }),
     annotations: StreamRpc.annotations,
     context: Context.empty(),

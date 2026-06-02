@@ -406,24 +406,25 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         { name: "@requestId", value: requestId },
         { name: "@replyId", value: replyId }
       ]
-    ).pipe(
-      Effect.flatMap((docs) => {
-        const doc = docs[0]
-        if (doc === undefined) return Effect.void
-        return Effect
-          .tryPromise(() =>
-            container.item(doc.id, replyPartition(requestId)).patch<ReplyDoc>([
-              { op: "set", path: "/acked", value: true }
-            ])
-          )
-          .pipe(
-            Effect.tap(annotateItem),
-            Effect.asVoid,
-            Effect.catchIf(isNotFound, () => Effect.void),
-            Effect.catchIf(isPreconditionFailed, () => Effect.void)
-          )
-      })
     )
+      .pipe(
+        Effect.flatMap((docs) => {
+          const doc = docs[0]
+          if (doc === undefined) return Effect.void
+          return Effect
+            .tryPromise(() =>
+              container.item(doc.id, replyPartition(requestId)).patch<ReplyDoc>([
+                { op: "set", path: "/acked", value: true }
+              ])
+            )
+            .pipe(
+              Effect.tap(annotateItem),
+              Effect.asVoid,
+              Effect.catchIf(isNotFound, () => Effect.void),
+              Effect.catchIf(isPreconditionFailed, () => Effect.void)
+            )
+        })
+      )
 
   const claimMessageRead = (doc: MessageDoc, now: number) =>
     Effect

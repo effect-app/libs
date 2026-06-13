@@ -1,79 +1,10 @@
 /**
- * Provides the data source layer for the `Config` module. A `ConfigProvider`
- * knows how to load raw configuration nodes from a backing store (environment
- * variables, JSON objects, `.env` files, file trees) and expose them through a
- * uniform `Node` interface that `Config` schemas consume.
- *
- * ## Mental model
- *
- * - **Node** – a discriminated union (`Value | Record | Array`) that describes
- *   what lives at a given path in the configuration tree.
- * - **Path** – an array of string or numeric segments used to address a node
- *   (e.g. `["database", "host"]`).
- * - **ConfigProvider** – an object with a `load(path)` method that resolves a
- *   path to a `Node | undefined`. Providers can be composed and transformed.
- * - **Context.Reference** – `ConfigProvider` is registered as a reference
- *   service that defaults to `fromEnv()`, so it works without explicit
- *   provision.
- * - **SourceError** – the typed error returned when a backing store is
- *   unreadable (I/O failure, permission error, etc.).
- *
- * ## Common tasks
- *
- * - Read from environment variables → {@link fromEnv}
- * - Read from a JSON / plain object → {@link fromUnknown}
- * - Parse a `.env` string → {@link fromDotEnvContents}
- * - Load a `.env` file → {@link fromDotEnv}
- * - Read from a directory tree → {@link fromDir}
- * - Build a custom provider → {@link make}
- * - Fall back to another provider → {@link orElse}
- * - Scope a provider under a prefix → {@link nested}
- * - Convert path segments to `CONSTANT_CASE` → {@link constantCase}
- * - Transform path segments arbitrarily → {@link mapInput}
- * - Install a provider as a Layer → {@link layer} / {@link layerAdd}
- *
- * ## Gotchas
- *
- * - `fromEnv` joins path segments with `_` for lookup **and** splits env var
- *   names on `_` to discover child keys. `DATABASE_HOST=x` is therefore
- *   accessible at both `["DATABASE_HOST"]` and `["DATABASE", "HOST"]`.
- * - Because of `_` splitting, querying a parent path like `["DATABASE"]`
- *   returns a `Record` node with child key `"HOST"`, even if no env var
- *   named `DATABASE` exists.
- * - When using `fromEnv` with schemas that use camelCase keys, pipe the
- *   provider through {@link constantCase} so `databaseHost` resolves to
- *   `DATABASE_HOST`.
- * - `orElse` only falls back when the primary provider returns `undefined`
- *   (path not found). It does **not** catch `SourceError`.
- * - `nested` prepends segments to the path *after* `mapInput` has run, so
- *   the order of composition matters.
- *
- * ## Quickstart
- *
- * **Example** (Reading config from environment variables)
- *
- * ```ts
- * import { Config, ConfigProvider, Effect } from "effect"
- *
- * const provider = ConfigProvider.fromEnv({
- *   env: { APP_PORT: "3000", APP_HOST: "localhost" }
- * })
- *
- * const port = Config.number("port")
- *
- * const program = port.parse(
- *   provider.pipe(
- *     ConfigProvider.nested("app"),
- *     ConfigProvider.constantCase
- *   )
- * )
- *
- * // Effect.runSync(program) // 3000
- * ```
- *
- * @see {@link make} – build a provider from a lookup function
- * @see {@link fromEnv} – the default provider backed by `process.env`
- * @see {@link fromUnknown} – provider backed by a plain JS object
+ * Data sources used by `Config` to load raw configuration values. A
+ * `ConfigProvider` reads paths from places such as environment variables,
+ * JavaScript objects, `.env` contents, or directories, and returns a uniform
+ * `Node` shape that config schemas can decode. The module also includes helpers
+ * for composing providers, changing paths, and installing providers through
+ * layers.
  *
  * @since 4.0.0
  */
@@ -99,7 +30,7 @@ import * as Str from "./String.ts"
  *
  * **When to use**
  *
- * Use `Node` when implementing a custom `ConfigProvider` by returning raw
+ * Use when implementing a custom `ConfigProvider` by returning raw
  * nodes from the `get` callback passed to {@link make}, or when inspecting raw
  * provider output before schema parsing.
  *
@@ -141,12 +72,12 @@ export type Node =
  *
  * **When to use**
  *
- * Use this when building nodes inside a custom `ConfigProvider`'s `get`
+ * Use when building nodes inside a custom `ConfigProvider`'s `get`
  * callback.
  *
  * **Details**
  *
- * The function does not mutate input and returns a new plain object.
+ * The function returns a new plain object.
  *
  * **Example** (Creating a value node)
  *
@@ -173,7 +104,7 @@ export function makeValue(value: string): Node {
  *
  * **When to use**
  *
- * Use this when describing a directory or JSON object inside a custom
+ * Use when you need to describe a directory or JSON object inside a custom
  * provider.
  *
  * **Details**
@@ -207,8 +138,8 @@ export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
  *
  * **When to use**
  *
- * Use this when describing a JSON array or a set of numerically-indexed env
- * vars inside a custom provider.
+ * Use when you need to describe a JSON array or numerically indexed env vars
+ * inside a custom provider.
  *
  * **Details**
  *
@@ -239,9 +170,8 @@ export function makeArray(length: number, value?: string): Node {
  *
  * **When to use**
  *
- * Use this from a custom provider's `get` callback when the underlying store
- * is unreachable or produces an I/O error, or match on it in error channels
- * when consuming provider output directly.
+ * Use when you need to report that a custom provider's underlying store is
+ * unreachable or produced an I/O error while reading configuration data.
  *
  * **Gotchas**
  *
@@ -276,6 +206,11 @@ export class SourceError extends Data.TaggedError("SourceError")<{
  * the configuration tree. String segments name object keys; numeric segments
  * index into arrays.
  *
+ * **When to use**
+ *
+ * Use to address raw configuration nodes when implementing or transforming a
+ * `ConfigProvider`.
+ *
  * **Example** (A typical config path)
  *
  * ```ts
@@ -294,7 +229,7 @@ export type Path = ReadonlyArray<string | number>
  *
  * **When to use**
  *
- * Use this to type-annotate variables that hold a provider or to implement a
+ * Use to type-annotate variables that hold a provider or to implement a
  * custom provider via {@link make}.
  *
  * **Details**
@@ -317,37 +252,53 @@ export interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
    * Fails with `SourceError` when the underlying source cannot be read.
+   *
+   * **When to use**
+   *
+   * Use to resolve a path through this provider's path transformations before
+   * reading the backing source.
    */
   readonly load: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Raw access to the underlying source.
+   *
+   * **When to use**
+   *
+   * Use to read from the backing source without applying this provider's path
+   * transformations.
    */
   readonly get: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Function to map the input path.
+   *
+   * **When to use**
+   *
+   * Use to store the path transformation applied before raw provider lookup.
    */
   readonly mapInput: ((path: Path) => Path) | undefined
 
   /**
    * Prefix to add to the input path.
+   *
+   * **When to use**
+   *
+   * Use to store the path prefix applied before raw provider lookup.
    */
   readonly prefix: Path | undefined
 }
 
 /**
- * The `ConfigProvider` service reference, registered in the context with a
+ * Context reference for the active raw configuration provider, registered in the context with a
  * default value of `fromEnv()`. Because it is a `Context.Reference`, it is
  * available without explicit provision; `Config` schemas automatically resolve
  * it.
  *
  * **When to use**
  *
- * Use this to override the provider for an entire program via
- * `Effect.provideService(ConfigProvider.ConfigProvider, myProvider)`, or to
- * retrieve the current provider inside an Effect with
- * `yield* ConfigProvider.ConfigProvider`.
+ * Use to override the active raw configuration provider for an entire program,
+ * or retrieve the current provider inside an Effect.
  *
  * **Example** (Providing a custom provider)
  *
@@ -389,7 +340,7 @@ const Proto = {
  *
  * **When to use**
  *
- * Use this when implementing a provider backed by a custom store, such as a
+ * Use when implementing a provider backed by a custom store, such as a
  * database, remote API, or in-memory map.
  *
  * **Details**
@@ -450,8 +401,8 @@ export function make(
  *
  * **When to use**
  *
- * Use this to layer multiple config sources, such as env vars plus a defaults
- * file, or to provide partial overrides on top of a base config.
+ * Use to layer multiple config sources, such as env vars plus a defaults file,
+ * or provide partial overrides on top of a base config.
  *
  * **Details**
  *
@@ -494,9 +445,8 @@ export const orElse: {
  *
  * **When to use**
  *
- * Use this for renaming or re-casing path segments, or for adding suffixes and
- * other per-segment transformations. See {@link constantCase} for a common
- * specialization.
+ * Use when you need to rename, re-case, or otherwise transform config path
+ * segments before lookup.
  *
  * **Details**
  *
@@ -542,7 +492,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * Use this to bridge camelCase schema keys to `SCREAMING_SNAKE_CASE`
+ * Use to bridge camelCase schema keys to `SCREAMING_SNAKE_CASE`
  * environment variables.
  *
  * **Details**
@@ -577,8 +527,8 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  *
  * **When to use**
  *
- * Use this to namespace config under a prefix like `"app"` or `"database"`, or
- * to reuse the same provider shape for multiple sub-configs.
+ * Use to namespace config under a prefix like `"app"` or `"database"`, or
+ * reuse the same provider shape for multiple sub-configs.
  *
  * **Details**
  *
@@ -621,12 +571,12 @@ export const nested: {
 )
 
 /**
- * Installs a `ConfigProvider` as the active provider for all downstream
- * effects, replacing any previously installed provider.
+ * Provides a layer that installs a `ConfigProvider` as the active provider for
+ * all downstream effects, replacing any previously installed provider.
  *
  * **When to use**
  *
- * Use this to set the config source for an entire application or test suite.
+ * Use to set the config source for an entire application or test suite.
  *
  * **Details**
  *
@@ -666,9 +616,9 @@ export const layer = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use this to add defaults that should only apply when the primary provider
- * has no value for a path, or to override specific keys while keeping the rest
- * from the existing provider by setting `asPrimary: true`.
+ * Use to add defaults that should only apply when the primary provider has no
+ * value for a path, or override specific keys while keeping the rest from the
+ * existing provider by setting `asPrimary: true`.
  *
  * **Details**
  *
@@ -716,9 +666,8 @@ export const layerAdd = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use this in unit or integration tests where you want deterministic config
- * without touching the environment, or when embedding config directly in code
- * or reading a JSON file.
+ * Use when you need deterministic config from an in-memory JavaScript value,
+ * such as in tests, embedded config, or parsed JSON.
  *
  * **Details**
  *
@@ -803,8 +752,8 @@ function describeUnknown(u: unknown): Node | undefined {
  *
  * **When to use**
  *
- * Use this to read configuration from `process.env`, which is the default when
- * no provider is explicitly set, or to pass a custom env record for testing or
+ * Use to read configuration from `process.env`, which is the default when no
+ * provider is explicitly set, or pass a custom env record for testing or
  * non-Node runtimes.
  *
  * **Details**
@@ -923,9 +872,8 @@ function trieNodeAt(root: EnvTrieNode, path: Path): EnvTrieNode | undefined {
  *
  * **When to use**
  *
- * Use this when you already have the `.env` contents as a string, such as
- * contents fetched from a remote store or embedded in a test. Use
- * {@link fromDotEnv} instead if you want to read a `.env` file from disk.
+ * Use when you already have the `.env` contents as a string, such as contents
+ * fetched from a remote store or embedded in a test.
  *
  * **Details**
  *
@@ -1065,9 +1013,7 @@ function searchLast(str: string, rgx: RegExp): number {
  *
  * **When to use**
  *
- * Use this to load environment config from a `.env` file at application
- * startup. Use {@link fromDotEnvContents} if you already have the file
- * contents as a string.
+ * Use to load environment config from a `.env` file at application startup.
  *
  * **Details**
  *
@@ -1111,8 +1057,8 @@ export const fromDotEnv: (options?: {
  *
  * **When to use**
  *
- * Use this for Kubernetes ConfigMap or Secret volume mounts, where each key is
- * a file under a mount path, or for any file-per-key configuration layout.
+ * Use when you expose each config key as a file under a directory, such as
+ * Kubernetes ConfigMap or Secret volume mounts.
  *
  * **Details**
  *

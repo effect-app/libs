@@ -343,8 +343,7 @@ const CosmosRpcEntityLayer = CosmosRpcEntity.toLayer(
 const CosmosDeferred = DurableDeferred.make("ClusterCosmos/Deferred", { success: Schema.String })
 
 const CosmosDeferredWorkflow = Workflow
-  .make({
-    name: "ClusterCosmos/DeferredWorkflow",
+  .make("ClusterCosmos/DeferredWorkflow", {
     payload: { id: Schema.String },
     success: Schema.String,
     idempotencyKey: ({ id }) => id

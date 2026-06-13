@@ -29,8 +29,7 @@ class CounterRef extends Context.Service<CounterRef, { count: number }>()("Count
 
 // --- Workflow definitions ----------------------------------------------
 
-const IncrementWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/IncrementWorkflow",
+const IncrementWorkflow = Workflow.make("WorkflowEngineCosmos/IncrementWorkflow", {
   payload: { value: Schema.Number },
   success: Schema.Number,
   idempotencyKey: ({ value }) => String(value)
@@ -40,8 +39,7 @@ const IncrementHandler = IncrementWorkflow.toLayer(({ value }) => Effect.succeed
 
 // Counts activity body invocations across re-executes so the test can
 // prove side-effects don't repeat when a persisted result is available.
-const CounterWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/CounterWorkflow",
+const CounterWorkflow = Workflow.make("WorkflowEngineCosmos/CounterWorkflow", {
   payload: { id: Schema.String },
   success: Schema.Number,
   idempotencyKey: ({ id }) => id
@@ -63,8 +61,7 @@ const CounterHandler = CounterWorkflow.toLayer(Effect.fn(function*() {
 // with the resumed deferred value. Exercises Result/Exit round-trip.
 const Trigger = DurableDeferred.make("WorkflowEngineCosmos/Trigger", { success: Schema.String })
 
-const SuspendWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/SuspendWorkflow",
+const SuspendWorkflow = Workflow.make("WorkflowEngineCosmos/SuspendWorkflow", {
   payload: { id: Schema.String },
   success: Schema.String,
   idempotencyKey: ({ id }) => id
@@ -81,8 +78,7 @@ const SuspendHandler = SuspendWorkflow.toLayer(Effect.fn(function*({ id }) {
 }))
 
 // Plain durable-deferred await — used to assert first-writer-wins on done().
-const AwaitOnly = Workflow.make({
-  name: "WorkflowEngineCosmos/AwaitOnly",
+const AwaitOnly = Workflow.make("WorkflowEngineCosmos/AwaitOnly", {
   payload: { id: Schema.String },
   success: Schema.String,
   idempotencyKey: ({ id }) => id

@@ -33,7 +33,7 @@ describe("Class", () => {
 
       const decoded = S.decodeUnknownSync(A)({ a: "hello" })
       expect(decoded).toBeInstanceOf(A)
-      expect((decoded as A).a).toBe("hello")
+      expect(decoded.a).toBe("hello")
 
       expect(() => S.decodeUnknownSync(A)(null)).toThrow()
       expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
@@ -119,7 +119,7 @@ describe("Class constructor", () => {
 
       const decoded = S.decodeUnknownSync(A)({ a: "hello" })
       expect(decoded).toBeInstanceOf(A)
-      expect((decoded as A).a).toBe("hello")
+      expect(decoded.a).toBe("hello")
 
       expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
     })
@@ -176,8 +176,8 @@ describe("TaggedStruct constructor", () => {
       S.decodeSync(S.toType(X))({ _tag: "X", n: "a" /* not length 3 */ })
       expect.fail("expected decode to fail with a SchemaError")
     } catch (error) {
-      expect(error).toBeInstanceOf(Error)
-      if (error instanceof Error) {
+      expect(S.isSchemaError(error)).toBe(true)
+      if (S.isSchemaError(error)) {
         expect(error.message).toContain("n")
         expect(error.message.toLowerCase()).toContain("length")
       }
@@ -435,7 +435,7 @@ describe("SpecialJsonSchema", () => {
     const structFromNullOr = Schema.Struct({ status: fromNullOr })
 
     const encode = Schema.encodeUnknownSync(structFromNullOr as any)
-    const encodedNull = encode({ status: null }) as any
+    const encodedNull = encode({ status: null })
     expect("status" in encodedNull).toBe(false)
     expect(encode({ status: "test" })).toStrictEqual({ status: "test" })
 

@@ -122,7 +122,7 @@ const isOptimisticStatus = (code: number) => code === 409 || code === 412 || cod
 // opaque (mirrors the cluster engine's `AnyOrVoid` usage).
 const AnyOrVoid = S.Union([S.Any, S.Void])
 const ActivityResultCodec = S.fromJsonString(S.toCodecJson(Workflow.Result({ success: AnyOrVoid, error: AnyOrVoid })))
-const DeferredExitCodec = S.fromJsonString(S.toCodecJson(S.Exit(AnyOrVoid, AnyOrVoid, S.Defect)))
+const DeferredExitCodec = S.fromJsonString(S.toCodecJson(S.Exit(AnyOrVoid, AnyOrVoid, S.Defect())))
 
 const encodeActivityResult = (r: Workflow.Result<unknown, unknown>) =>
   Effect.orDie(S.encodeEffect(ActivityResultCodec)(r))
@@ -183,10 +183,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const makePayloadCodec = (workflow: Workflow.Any) => S.fromJsonString(S.toCodecJson(workflow.payloadSchema))
   const payloadCodecCache = new Map<string, ReturnType<typeof makePayloadCodec>>()
   const payloadCodecFor = (workflow: Workflow.Any) => {
-    let c = payloadCodecCache.get(workflow.name)
+    let c = payloadCodecCache.get(workflow._tag)
     if (!c) {
       c = makePayloadCodec(workflow)
-      payloadCodecCache.set(workflow.name, c)
+      payloadCodecCache.set(workflow._tag, c)
     }
     return c
   }
@@ -195,10 +195,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     S.fromJsonString(S.toCodecJson(Workflow.Result({ success: workflow.successSchema, error: workflow.errorSchema })))
   const resultCodecCache = new Map<string, ReturnType<typeof makeResultCodec>>()
   const resultCodecFor = (workflow: Workflow.Any) => {
-    let c = resultCodecCache.get(workflow.name)
+    let c = resultCodecCache.get(workflow._tag)
     if (!c) {
       c = makeResultCodec(workflow)
-      resultCodecCache.set(workflow.name, c)
+      resultCodecCache.set(workflow._tag, c)
     }
     return c
   }
@@ -453,23 +453,23 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
 
   const encoded: Encoded = {
     register: Effect.fnUntraced(function*(workflow, execute) {
-      workflows.set(workflow.name, {
+      workflows.set(workflow._tag, {
         workflow,
         execute,
         scope: yield* Effect.scope
       })
     }),
     execute: Effect.fnUntraced(function*(workflow, options) {
-      const entry = workflows.get(workflow.name)
+      const entry = workflows.get(workflow._tag)
       if (!entry) {
-        return yield* Effect.orDie(Effect.fail(`Workflow ${workflow.name} is not registered`))
+        return yield* Effect.orDie(Effect.fail(`Workflow ${workflow._tag} is not registered`))
       }
 
       const initial: ExecDoc = {
         id: execId,
         _partitionKey: options.executionId,
         type: "exec",
-        workflowName: workflow.name,
+        workflowName: workflow._tag,
         payload: yield* encodePayload(workflow, options.payload),
         parent: options.parent?.executionId,
         status: "running",
@@ -602,7 +602,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         id: clockKey(options.clock.name),
         _partitionKey: options.executionId,
         type: "clock",
-        workflowName: workflow.name,
+        workflowName: workflow._tag,
         deferredName: options.clock.deferred.name,
         fireAt
       }

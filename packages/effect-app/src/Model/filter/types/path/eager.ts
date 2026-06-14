@@ -7,33 +7,63 @@ import type { ArrayKey, IsTuple, TupleKeys } from "./common.js"
 
 /**
  * Helper type for recursively constructing paths through a type.
- * See {@link Path}
+ * `Seen` carries the set of object types already entered on this branch so
+ * recursion terminates on self-referential types (see {@link Path}).
  */
-type PathImpl<K extends string | number, V> = V extends
+type PathImpl<K extends string | number, V, Seen> = V extends
   | Primitive
   | BrowserNativeObject ? `${K}`
-  : `${K}` | `${K}.${Path<V>}`
+  // Stop before re-entering a type already on this branch. Recursive types
+  // (notably `Json`, the encoded form of `Schema.Defect()`:
+  // `JsonObject = { [x: string]: Json }`) would otherwise descend forever and
+  // blow past TS's instantiation limit => TS2589. The key itself stays a valid
+  // leaf path; only the unbounded descent is cut.
+  : [V] extends [Seen] ? `${K}`
+  : `${K}` | `${K}.${Path<V, Seen | V>}`
 
 /**
  * Type which eagerly collects all paths through a type
- * @typeParam T - type which should be introspected
+ * @typeParam T    - type which should be introspected
+ * @typeParam Seen - object types already entered on this recursion branch;
+ *                   used to terminate on self-referential types
  * @example
  * ```
  * Path<{foo: {bar: string}}> = 'foo' | 'foo.bar'
  * ```
  */
-export type Path<T> = T extends ReadonlyArray<infer V> ? IsTuple<T> extends true ? {
-      [K in TupleKeys<T>]-?: PathImpl<K & string, T[K]> | "length"
+export type Path<T, Seen = never> = T extends ReadonlyArray<infer V> ? IsTuple<T> extends true ? {
+      [K in TupleKeys<T>]-?: PathImpl<K & string, T[K], Seen> | "length"
     }[TupleKeys<T>]
-  : PathImpl<ArrayKey, V> | "length"
+  : PathImpl<ArrayKey, V, Seen | T> | "length"
   : {
-    [K in keyof T]-?: PathImpl<K & string, T[K]>
+    [K in keyof T]-?: PathImpl<K & string, T[K], Seen | T>
   }[keyof T]
 
 /**
  * See {@link Path}
  */
 export type FieldPath<TFieldValues extends FieldValues> = Path<TFieldValues>
+
+export namespace PathRecursionTests {
+  // Regression: self-referential types must terminate instead of blowing past
+  // TS's instantiation limit (TS2589). `JsonLike` mirrors effect's `Json` — the
+  // encoded form of `Schema.Defect()` — whose `{ [x: string]: Json }` index
+  // signature previously made `Path` recurse forever. These aliases failing to
+  // compile (rather than resolving to a string union) signals the regression.
+  type JsonLike =
+    | string
+    | number
+    | boolean
+    | null
+    | ReadonlyArray<JsonLike>
+    | { readonly [x: string]: JsonLike }
+  export type _RawDefect = Path<{ id: string; raw: JsonLike }>
+  export type _NestedDefect = Path<{ a: { b: { error: { raw: JsonLike } } } }>
+  export type _ArrayOfDefect = Path<{ items: ReadonlyArray<{ raw: JsonLike }> }>
+  // finite paths are still produced
+  expectTypeOf<"id">().toExtend<_RawDefect>()
+  expectTypeOf<"raw">().toExtend<_RawDefect>()
+}
 
 /**
  * Type to evaluate the type which the given path points to.

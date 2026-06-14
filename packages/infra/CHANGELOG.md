@@ -1,5 +1,37 @@
 # @effect-app/infra
 
+## 4.0.0-beta.266
+
+### Patch Changes
+
+- Updated dependencies [bbaa67e]
+  - effect-app@4.0.0-beta.266
+
+## 4.0.0-beta.265
+
+### Patch Changes
+
+- fce6ee9: Fix machine-id allocation in the Cosmos cluster `RunnerStorage`. It derived the machine id from a 31-multiplier string hash of the runner address, so two distinct runners could hash to the same value mod 1024 — and since the machine id feeds the Snowflake generator mod 1024, those runners would emit colliding Snowflake ids (corrupting request/reply identity across the cluster).
+
+  Machine ids are now allocated from a single counter document via an atomic server-side `incr`, mirroring SQL's auto-increment `machine_id` primary key: unique across distinct runners and stable per address (a re-registering runner reuses its persisted id). Verified against a live Cosmos account.
+
+- be3300d: Fix correctness bugs in the Cosmos `WorkflowEngine`, found by running the adapter against a real Cosmos account. The Cosmos workflow engine now passes the same conformance suite as the in-memory and SQLite engines.
+
+  - **OCC conflicts were fatal.** `replaceExec` used `Effect.promise` + a `statusCode` check, but single-item Cosmos `replace` _throws_ on 409/412/404 (only `read` and batch ops surface the code), so every conflict became an unrecoverable defect and the `OptimisticConcurrencyException` catch was dead code. It now uses `Effect.tryPromise` and matches the thrown error (mirrors `ClusterCosmos`), so lease claims, completions, and interrupts lose gracefully under contention.
+  - **Illegal resource ids.** Activity/deferred/clock doc ids embedded workflow/deferred names containing `/`, which Cosmos rejects. Ids are now URI-encoded via `cosmosId` (mirrors `ClusterCosmos`).
+  - **Interrupt could be lost under Cosmos latency.** A concurrent `interrupt` racing a suspending driver's `onComplete` could have its `interrupted` flag swallowed (OCC) or downgraded, leaving the re-drive unable to collapse the suspension. `interrupt`/`interruptUnsafe` now persist the flag with OCC retry (`markInterrupted`), and `onComplete` never downgrades a persisted `interrupted: true`.
+  - **`execute` now drives unconditionally** (matching SQLite), letting `drive`'s own guard short-circuit a running/completed fiber and re-drive a suspended one, instead of skipping re-drive when a stale local entry existed.
+
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- Updated dependencies [3e855bc]
+  - effect-app@4.0.0-beta.265
+
 ## 4.0.0-beta.264
 
 ### Patch Changes

@@ -67,8 +67,7 @@ class StepLog extends Context.Service<StepLog, { readonly steps: Array<string> }
 const SqliteDeferred = DurableDeferred.make("ClusterSqlite/Deferred", { success: Schema.String })
 
 const SqliteDeferredWorkflow = Workflow
-  .make({
-    name: "ClusterSqlite/DeferredWorkflow",
+  .make("ClusterSqlite/DeferredWorkflow", {
     payload: { id: Schema.String },
     success: Schema.String,
     idempotencyKey: ({ id }) => id
@@ -85,8 +84,7 @@ const SequentialStep2 = DurableDeferred.make("ClusterSqlite/SequentialStep2", { 
 const SequentialStep3 = DurableDeferred.make("ClusterSqlite/SequentialStep3", { success: Schema.String })
 
 const SequentialDeferredWorkflow = Workflow
-  .make({
-    name: "ClusterSqlite/SequentialDeferredWorkflow",
+  .make("ClusterSqlite/SequentialDeferredWorkflow", {
     payload: { id: Schema.String },
     success: Schema.String,
     idempotencyKey: ({ id }) => id

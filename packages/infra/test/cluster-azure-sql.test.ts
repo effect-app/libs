@@ -359,8 +359,7 @@ const AzureSqlRpcEntityLayer = AzureSqlRpcEntity.toLayer(
 const AzureSqlDeferred = DurableDeferred.make("ClusterAzureSql/Deferred", { success: Schema.String })
 
 const AzureSqlDeferredWorkflow = Workflow
-  .make({
-    name: "ClusterAzureSql/DeferredWorkflow",
+  .make("ClusterAzureSql/DeferredWorkflow", {
     payload: { id: Schema.String },
     success: Schema.String,
     idempotencyKey: ({ id }) => id

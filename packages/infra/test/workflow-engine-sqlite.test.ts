@@ -21,8 +21,7 @@ class CounterRef extends Context.Service<CounterRef, { count: number }>()("Count
 
 // --- Workflow definitions --------------------------------------------
 
-const Increment = Workflow.make({
-  name: "Sqlite/Increment",
+const Increment = Workflow.make("Sqlite/Increment", {
   payload: { value: Schema.Number },
   success: Schema.Number,
   idempotencyKey: ({ value }) => `inc-${value}`
@@ -45,8 +44,7 @@ const TickHandler = Increment.toLayer(({ value }) => Effect.succeed(value + 1))
 
 const EmailReceived = DurableDeferred.make("EmailReceived", { success: Schema.String })
 
-const AwaitEmail = Workflow.make({
-  name: "Sqlite/AwaitEmail",
+const AwaitEmail = Workflow.make("Sqlite/AwaitEmail", {
   payload: { id: Schema.String },
   success: Schema.String,
   idempotencyKey: ({ id }) => `email-${id}`

@@ -10,7 +10,7 @@
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.3": "patches/typescript.patch",
       "@sendgrid/mail": "patches/@sendgrid__mail.patch",
-      "effect@4.0.0-beta.74": "patches/effect@4.0.0-beta.74.patch"
+      "effect@4.0.0-beta.83": "patches/effect@4.0.0-beta.83.patch"
     }
   },
   "engines": {
@@ -66,8 +66,8 @@
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.86.2",
-    "@effect/platform-node": "4.0.0-beta.74",
-    "@effect/vitest": "4.0.0-beta.74",
+    "@effect/platform-node": "4.0.0-beta.83",
+    "@effect/vitest": "4.0.0-beta.83",
     "@tsconfig/strictest": "^2.0.8",
     "@types/lodash": "^4.17.24",
     "@types/node": "25.9.1",
@@ -78,7 +78,7 @@
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^10.0.1",
     "dprint": "^0.54.0",
-    "effect": "4.0.0-beta.74",
+    "effect": "4.0.0-beta.83",
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.22.1",
     "eslint": "^10.4.1",

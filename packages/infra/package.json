@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "4.0.0-beta.264",
+  "version": "4.0.0-beta.266",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -18,8 +18,8 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-mssql": "4.0.0-beta.74",
-    "@effect/sql-sqlite-node": "4.0.0-beta.74",
+    "@effect/sql-mssql": "4.0.0-beta.83",
+    "@effect/sql-sqlite-node": "4.0.0-beta.83",
     "@sentry/node": "10.55.0",
     "@sentry/opentelemetry": "10.55.0",
     "@types/better-sqlite3": "^7.6.13",
@@ -39,13 +39,13 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-mssql": "4.0.0-beta.74",
-    "@effect/vitest": "^4.0.0-beta.74",
+    "@effect/sql-mssql": "4.0.0-beta.83",
+    "@effect/vitest": "^4.0.0-beta.83",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.55.0",
     "@sentry/opentelemetry": "10.55.0",
-    "effect": "^4.0.0-beta.74",
+    "effect": "^4.0.0-beta.83",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0"

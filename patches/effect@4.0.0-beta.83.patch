@@ -1,8 +1,8 @@
 diff --git a/src/unstable/cluster/SqlMessageStorage.ts b/src/unstable/cluster/SqlMessageStorage.ts
-index 69319a0c0e93a90f8aa53d02d4fb5e4dbc0369e2..f98a7237d236b79122f87639334bd25075902fc5 100644
+index 63c1c38c4800ab03903100b8d04ce5e25791ebdd..254d39c6666cfd536371f71ebca8bd34a91d8105 100644
 --- a/src/unstable/cluster/SqlMessageStorage.ts
 +++ b/src/unstable/cluster/SqlMessageStorage.ts
-@@ -308,37 +308,16 @@ export const make: (options?: {
+@@ -279,37 +279,16 @@
          ON target.message_id = source.message_id
          WHEN NOT MATCHED THEN
            INSERT ${sql.insert(row)}
@@ -50,7 +50,7 @@ index 69319a0c0e93a90f8aa53d02d4fb5e4dbc0369e2..f98a7237d236b79122f87639334bd250
      orElse: () => (row, message_id) =>
        sql`
          SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
-@@ -401,6 +380,34 @@ export const make: (options?: {
+@@ -372,6 +351,34 @@
          )
          SELECT * FROM messages ORDER BY rowid ASC
        `,

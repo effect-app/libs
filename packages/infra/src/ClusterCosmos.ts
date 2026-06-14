@@ -84,6 +84,16 @@ interface RunnerDoc {
   runner: string
   healthy: boolean
   lastHeartbeat: number
+  /** Unique, stable machine id (mirrors SQL's auto-increment `machine_id`). */
+  readonly machineId: number
+  readonly _etag?: string
+}
+
+interface MachineIdCounterDoc {
+  readonly id: string
+  readonly _partitionKey: "runner"
+  readonly type: "machine-id-counter"
+  value: number
   readonly _etag?: string
 }
 
@@ -332,13 +342,7 @@ const replyFromDoc = (doc: ReplyDoc): Reply.Encoded =>
 const shardIdFromString = (shardId: string): Envelope.Encoded["address"]["shardId"] =>
   ShardId.fromStringEncoded(shardId)
 
-const makeMachineId = (address: string) => {
-  let hash = 0
-  for (let i = 0; i < address.length; i++) {
-    hash = Math.imul(31, hash) + address.charCodeAt(i) | 0
-  }
-  return Math.abs(hash)
-}
+const machineIdCounterDocId = cosmosId("machine-id-counter")
 
 const createContainer = (prefix: string) =>
   Effect.fnUntraced(function*() {
@@ -829,6 +833,38 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
         Effect.catchIf(isPreconditionFailed, () => Effect.void)
       )
 
+  const readRunner = (address: string) =>
+    Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
+      Effect.tap(annotateItem),
+      Effect.map((resp) => Option.fromNullishOr(resp.resource)),
+      Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
+    )
+
+  // Allocate a unique, monotonically increasing machine id via an atomic
+  // server-side `incr` on a single counter doc — mirrors SQL's auto-increment
+  // `machine_id` PK. A per-address string hash (the previous approach) could
+  // collide mod 1024 across distinct runners, yielding duplicate Snowflake ids.
+  // The counter doc is seeded at init below, so it always exists here.
+  const allocateMachineId = Effect
+    .tryPromise(() =>
+      container.item(machineIdCounterDocId, "runner").patch<MachineIdCounterDoc>([
+        { op: "incr", path: "/value", value: 1 }
+      ])
+    )
+    .pipe(Effect.tap(annotateItem), Effect.map((resp) => resp.resource!.value))
+
+  // Seed the counter once (create-if-missing); a lost create race is fine.
+  yield* Effect
+    .tryPromise(() =>
+      container.items.create<MachineIdCounterDoc>({
+        id: machineIdCounterDocId,
+        _partitionKey: "runner",
+        type: "machine-id-counter",
+        value: 0
+      })
+    )
+    .pipe(Effect.catchIf(isConflict, () => Effect.void), Effect.orDie)
+
   const readLock = (shardId: string) =>
     Effect.tryPromise(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
       Effect.tap(annotateItem),
@@ -913,9 +949,17 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
     ),
 
     register: (address, runner, healthy) =>
-      Effect.sync(() => Date.now()).pipe(
-        Effect.flatMap((now) =>
-          Effect
+      Effect
+        .gen(function*() {
+          const now = Date.now()
+          // Reuse a previously-allocated machine id for this address (stable per
+          // address, like SQL's RETURNING on conflict); allocate a fresh unique
+          // one on first registration.
+          const existing = yield* readRunner(address)
+          const machineId = Option.isSome(existing) && existing.value.machineId !== undefined
+            ? existing.value.machineId
+            : yield* allocateMachineId
+          yield* Effect
             .tryPromise(() =>
               container.items.upsert<RunnerDoc>({
                 id: runnerDocId(address),
@@ -924,16 +968,14 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
                 address,
                 runner,
                 healthy,
-                lastHeartbeat: now
+                lastHeartbeat: now,
+                machineId
               })
             )
             .pipe(Effect.tap(annotateItem))
-        ),
-        Effect.as(makeMachineId(address)),
-        annotate("register"),
-        refailPersistence,
-        withTracerDisabled
-      ),
+          return machineId
+        })
+        .pipe(annotate("register"), refailPersistence, withTracerDisabled),
 
     unregister: (address) =>
       Effect.sync(() => Date.now()).pipe(

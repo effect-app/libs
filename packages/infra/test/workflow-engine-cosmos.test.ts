@@ -29,8 +29,7 @@ class CounterRef extends Context.Service<CounterRef, { count: number }>()("Count
 
 // --- Workflow definitions ----------------------------------------------
 
-const IncrementWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/IncrementWorkflow",
+const IncrementWorkflow = Workflow.make("WorkflowEngineCosmos/IncrementWorkflow", {
   payload: { value: Schema.Number },
   success: Schema.Number,
   idempotencyKey: ({ value }) => String(value)
@@ -40,8 +39,7 @@ const IncrementHandler = IncrementWorkflow.toLayer(({ value }) => Effect.succeed
 
 // Counts activity body invocations across re-executes so the test can
 // prove side-effects don't repeat when a persisted result is available.
-const CounterWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/CounterWorkflow",
+const CounterWorkflow = Workflow.make("WorkflowEngineCosmos/CounterWorkflow", {
   payload: { id: Schema.String },
   success: Schema.Number,
   idempotencyKey: ({ id }) => id
@@ -63,8 +61,7 @@ const CounterHandler = CounterWorkflow.toLayer(Effect.fn(function*() {
 // with the resumed deferred value. Exercises Result/Exit round-trip.
 const Trigger = DurableDeferred.make("WorkflowEngineCosmos/Trigger", { success: Schema.String })
 
-const SuspendWorkflow = Workflow.make({
-  name: "WorkflowEngineCosmos/SuspendWorkflow",
+const SuspendWorkflow = Workflow.make("WorkflowEngineCosmos/SuspendWorkflow", {
   payload: { id: Schema.String },
   success: Schema.String,
   idempotencyKey: ({ id }) => id
@@ -81,8 +78,7 @@ const SuspendHandler = SuspendWorkflow.toLayer(Effect.fn(function*({ id }) {
 }))
 
 // Plain durable-deferred await — used to assert first-writer-wins on done().
-const AwaitOnly = Workflow.make({
-  name: "WorkflowEngineCosmos/AwaitOnly",
+const AwaitOnly = Workflow.make("WorkflowEngineCosmos/AwaitOnly", {
   payload: { id: Schema.String },
   success: Schema.String,
   idempotencyKey: ({ id }) => id
@@ -201,16 +197,11 @@ const runSuite = (engineLayer: Layer.Layer<WorkflowEngine.WorkflowEngine>) => {
         yield* Effect.sleep(Duration.millis(50))
         yield* AwaitOnly.interrupt(executionId)
 
-        // The execution should stop reporting as "running" — a subsequent poll
-        // returns either Complete (engine collapses the interrupt into a
-        // completion) or None (engine surfaces it as not-yet-complete and the
-        // wrapper sleep loop eventually ends). Both are acceptable as long as
-        // the workflow no longer makes forward progress.
-        yield* Effect.sleep(Duration.millis(150))
-        const polled = yield* AwaitOnly.poll(executionId)
-        if (Option.isSome(polled)) {
-          assert.strictEqual(polled.value._tag, "Complete")
-        }
+        // Interrupt collapses the suspended execution into a completion. A
+        // durable engine re-drives across several storage round-trips, so poll
+        // until it reports Complete rather than asserting a fixed delay.
+        const done = yield* waitForComplete(AwaitOnly, executionId)
+        assert(done !== undefined && done._tag === "Complete")
       })
       .pipe(Effect.provide(TestLayer)))
 }
@@ -278,7 +269,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "exec",
             _partitionKey: "recover-1",
             type: "exec",
-            workflowName: IncrementWorkflow.name,
+            workflowName: IncrementWorkflow._tag,
             payload: JSON.stringify({ value: 99 }),
             status: "running",
             suspended: false,
@@ -318,7 +309,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "exec",
             _partitionKey: "exec-clock",
             type: "exec",
-            workflowName: AwaitOnly.name,
+            workflowName: AwaitOnly._tag,
             payload: JSON.stringify({ id: "wake" }),
             status: "running",
             suspended: false,
@@ -331,7 +322,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "clock::wake",
             _partitionKey: "exec-clock",
             type: "clock",
-            workflowName: AwaitOnly.name,
+            workflowName: AwaitOnly._tag,
             deferredName: Trigger.name,
             fireAt: new Date(Date.now() - 60_000).toISOString()
           })
@@ -342,7 +333,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
         // The clock fire is a deferred-complete; assert the deferred row
         // now exists for this execution.
         const deferred = yield* Effect.promise(() =>
-          container.item(`deferred::${Trigger.name}`, "exec-clock").read<{ exit: string }>()
+          container.item(encodeURIComponent(`deferred::${Trigger.name}`), "exec-clock").read<{ exit: string }>()
         )
         assert(deferred.resource !== undefined)
         // And the clock doc has been deleted.

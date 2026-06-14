@@ -183,6 +183,28 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos RunnerStorage", () => {
       })
       .pipe(Effect.provide(layerFor())))
 
+  it.effect("allocates distinct machine ids for distinct runners", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* RunnerStorage.RunnerStorage
+        const address1 = testRunnerAddress(6)
+        const address2 = testRunnerAddress(7)
+        const runner1 = Runner.make({ address: address1, groups: ["default"], weight: 1 })
+        const runner2 = Runner.make({ address: address2, groups: ["default"], weight: 1 })
+
+        const id1 = yield* storage.register(runner1, true)
+        const id2 = yield* storage.register(runner2, true)
+        // Distinct runners must get distinct machine ids (would otherwise risk
+        // colliding Snowflake ids).
+        assert(id1 !== id2)
+        // Re-registration is stable per address.
+        assert.deepStrictEqual(yield* storage.register(runner1, true), id1)
+
+        yield* storage.unregister(address1)
+        yield* storage.unregister(address2)
+      })
+      .pipe(Effect.provide(layerFor())))
+
   it.effect("preserves shard lock ownership when two runners acquire concurrently", () =>
     Effect
       .gen(function*() {

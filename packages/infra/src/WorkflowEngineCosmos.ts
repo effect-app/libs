@@ -34,6 +34,7 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
+import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -109,12 +110,24 @@ interface ClockDoc {
   readonly fireAt: string
 }
 
+// Cosmos forbids '/', '\', '#', '?' in a resource id; workflow/deferred/clock
+// names routinely contain '/', so every doc id is URI-encoded (mirrors
+// `cosmosId` in ClusterCosmos). Partition keys (executionId) are exempt.
+const cosmosId = (id: string) => encodeURIComponent(id)
 const execId = "exec" as const
-const activityKey = (name: string, attempt: number) => `activity::${name}::${attempt}`
-const deferredKey = (name: string) => `deferred::${name}`
-const clockKey = (name: string) => `clock::${name}`
+const activityKey = (name: string, attempt: number) => cosmosId(`activity::${name}::${attempt}`)
+const deferredKey = (name: string) => cosmosId(`deferred::${name}`)
+const clockKey = (name: string) => cosmosId(`clock::${name}`)
 
-const isOptimisticStatus = (code: number) => code === 409 || code === 412 || code === 404
+// Single-item Cosmos writes (`replace`) *throw* on 409/412/404 rather than
+// returning the status code (only `read` and batch ops surface codes), so OCC
+// conflicts must be matched on the thrown error — mirrors ClusterCosmos.
+const isCosmosStatus = (u: unknown, code: number): boolean =>
+  Cause.isUnknownError(u)
+    ? isCosmosStatus(u.cause, code)
+    : typeof u === "object" && u !== null && "code" in u && u.code === code
+
+const isOptimisticError = (u: unknown) => isCosmosStatus(u, 409) || isCosmosStatus(u, 412) || isCosmosStatus(u, 404)
 
 // --- Storage codecs ----------------------------------------------------------
 // Values flowing through the engine's activity / deferred boundary are already
@@ -228,22 +241,24 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const replaceExec = (doc: ExecDoc) =>
     Effect
       .gen(function*() {
-        const resp = yield* Effect.promise(() =>
+        const resp = yield* Effect.tryPromise(() =>
           container.item(execId, doc._partitionKey).replace<ExecDoc>(doc, {
             accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
           })
         )
         yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
-        if (isOptimisticStatus(resp.statusCode)) {
-          return yield* new OptimisticConcurrencyException({
-            type: "workflow.exec",
-            id: doc._partitionKey,
-            code: resp.statusCode
-          })
-        }
         return { ...doc, _etag: resp.etag }
       })
-      .pipe(annotate("replaceExec", doc._partitionKey))
+      .pipe(
+        Effect.catch((u) =>
+          isOptimisticError(u)
+            ? Effect.fail(
+              new OptimisticConcurrencyException({ type: "workflow.exec", id: doc._partitionKey, code: 412 })
+            )
+            : Effect.die(u)
+        ),
+        annotate("replaceExec", doc._partitionKey)
+      )
 
   // Atomic create-or-noop using a single-op batch — returns true if created.
   const createIfMissing = <T extends { readonly id: string; readonly _partitionKey: string }>(
@@ -390,7 +405,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
           ...current.value,
           status: isComplete ? "complete" : current.value.status,
           suspended: result._tag === "Suspended",
-          interrupted: instance.interrupted,
+          // Never downgrade a persisted interrupt: a concurrent `interrupt` may
+          // have set the flag while this driver was suspending. Losing it would
+          // leave a re-drive unable to collapse the suspension.
+          interrupted: instance.interrupted || current.value.interrupted,
           completedResult,
           // Release lease on completion so the doc isn't seen as orphaned.
           worker: isComplete ? undefined : current.value.worker,
@@ -449,6 +467,28 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       )
     })
 
+  // Persist `interrupted: true`, retrying on OCC. A suspending driver's
+  // onComplete (or a heartbeat renewal) can win the etag race; silently
+  // dropping the flag would leave the subsequent re-drive reading
+  // `interrupted: false` and re-suspending forever. Retry until the flag is
+  // durably set (or the exec is already complete/gone). Unlike SQLite — whose
+  // synchronous writes never interleave here — Cosmos round-trips open a real
+  // race window, so the write must converge rather than swallow the conflict.
+  const markInterrupted = (executionId: string): Effect.Effect<void> =>
+    Effect.gen(function*() {
+      while (true) {
+        const current = yield* readExec(executionId)
+        if (Option.isNone(current) || current.value.status === "complete" || current.value.interrupted) {
+          return
+        }
+        const persisted = yield* replaceExec({ ...current.value, interrupted: true }).pipe(
+          Effect.as(true),
+          Effect.catchTag("OptimisticConcurrencyException", () => Effect.succeed(false))
+        )
+        if (persisted) return
+      }
+    })
+
   // --- Encoded engine ----------------------------------------------------
 
   const encoded: Encoded = {
@@ -476,11 +516,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         suspended: false,
         interrupted: false
       }
-      const created = yield* createIfMissing(initial).pipe(annotate("execute.claim", options.executionId))
-
-      if (created || !locals.has(options.executionId)) {
-        yield* drive(options.executionId, options.payload, options.parent?.executionId, entry)
-      }
+      yield* createIfMissing(initial).pipe(annotate("execute.claim", options.executionId))
+      // Drive unconditionally; `drive`'s own guard short-circuits a still-running
+      // or completed fiber and re-drives a suspended one (matches Sqlite).
+      yield* drive(options.executionId, options.payload, options.parent?.executionId, entry)
 
       if (options.discard) return undefined as any
 
@@ -515,22 +554,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
-      const current = yield* readExec(executionId)
-      if (Option.isNone(current) || current.value.status === "complete") return
-      yield* replaceExec({ ...current.value, interrupted: true }).pipe(
-        Effect.catchTag("OptimisticConcurrencyException", () => Effect.void)
-      )
+      yield* markInterrupted(executionId)
       yield* driveById(executionId)
     }),
     interruptUnsafe: Effect.fnUntraced(function*(_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
-      const current = yield* readExec(executionId)
-      if (Option.isSome(current) && current.value.status !== "complete") {
-        yield* replaceExec({ ...current.value, interrupted: true }).pipe(
-          Effect.catchTag("OptimisticConcurrencyException", () => Effect.void)
-        )
-      }
+      yield* markInterrupted(executionId)
       if (local?.fiber) yield* Fiber.interrupt(local.fiber)
     }),
     resume: (_workflow, executionId) => driveById(executionId),

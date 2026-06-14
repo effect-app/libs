@@ -197,16 +197,11 @@ const runSuite = (engineLayer: Layer.Layer<WorkflowEngine.WorkflowEngine>) => {
         yield* Effect.sleep(Duration.millis(50))
         yield* AwaitOnly.interrupt(executionId)
 
-        // The execution should stop reporting as "running" — a subsequent poll
-        // returns either Complete (engine collapses the interrupt into a
-        // completion) or None (engine surfaces it as not-yet-complete and the
-        // wrapper sleep loop eventually ends). Both are acceptable as long as
-        // the workflow no longer makes forward progress.
-        yield* Effect.sleep(Duration.millis(150))
-        const polled = yield* AwaitOnly.poll(executionId)
-        if (Option.isSome(polled)) {
-          assert.strictEqual(polled.value._tag, "Complete")
-        }
+        // Interrupt collapses the suspended execution into a completion. A
+        // durable engine re-drives across several storage round-trips, so poll
+        // until it reports Complete rather than asserting a fixed delay.
+        const done = yield* waitForComplete(AwaitOnly, executionId)
+        assert(done !== undefined && done._tag === "Complete")
       })
       .pipe(Effect.provide(TestLayer)))
 }
@@ -274,7 +269,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "exec",
             _partitionKey: "recover-1",
             type: "exec",
-            workflowName: IncrementWorkflow.name,
+            workflowName: IncrementWorkflow._tag,
             payload: JSON.stringify({ value: 99 }),
             status: "running",
             suspended: false,
@@ -314,7 +309,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "exec",
             _partitionKey: "exec-clock",
             type: "exec",
-            workflowName: AwaitOnly.name,
+            workflowName: AwaitOnly._tag,
             payload: JSON.stringify({ id: "wake" }),
             status: "running",
             suspended: false,
@@ -327,7 +322,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
             id: "clock::wake",
             _partitionKey: "exec-clock",
             type: "clock",
-            workflowName: AwaitOnly.name,
+            workflowName: AwaitOnly._tag,
             deferredName: Trigger.name,
             fireAt: new Date(Date.now() - 60_000).toISOString()
           })
@@ -338,7 +333,7 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
         // The clock fire is a deferred-complete; assert the deferred row
         // now exists for this execution.
         const deferred = yield* Effect.promise(() =>
-          container.item(`deferred::${Trigger.name}`, "exec-clock").read<{ exit: string }>()
+          container.item(encodeURIComponent(`deferred::${Trigger.name}`), "exec-clock").read<{ exit: string }>()
         )
         assert(deferred.resource !== undefined)
         // And the clock doc has been deleted.

@@ -116,6 +116,7 @@
     "fix-jsonschema-postprocess",
     "fix-onedsl-r-inference",
     "fix-pascalcase-barrel",
+    "fix-path-recursive-index-signature",
     "fix-project-encodekeys-selection",
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",

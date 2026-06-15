@@ -41,6 +41,14 @@ export interface RepositoryOptions<
    * use the config.defaultValues instead for simple default values
    */
   jitM?: (pm: Encoded) => Encoded
+  /**
+   * Repository storage options.
+   *
+   * `rootLevelFieldsWhenAvailable` switches SQL repositories from reading/writing
+   * derived root fields via `data` to reading/writing those fields via dedicated
+   * root columns instead. Existing table/data migrations are expected to be handled
+   * offline rather than as runtime fallback behavior.
+   */
   config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
     partitionValue?: (e?: Encoded) => string
   }

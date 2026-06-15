@@ -25,8 +25,27 @@ export interface UniqueKey {
   readonly paths: string[]
 }
 
+export type RootLevelFieldColumnKind = "string" | "number" | "boolean" | "json"
+
+export interface RootLevelFieldColumn {
+  readonly key: string
+  readonly columnName: string
+  readonly kind: RootLevelFieldColumnKind
+}
+
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
+  /**
+   * For SQL adapters, switch storage/querying for derived root-level fields from the
+   * document `data` column to dedicated root columns.
+   *
+   * When disabled, reads/writes/queries use `data`.
+   * When enabled, derived root fields are read/written/queried via dedicated columns
+   * instead. Schema/data migrations for existing tables are expected to happen
+   * offline rather than on the fly.
+   */
+  rootLevelFieldsWhenAvailable?: boolean
+  rootLevelFieldColumns?: readonly RootLevelFieldColumn[]
   /**
    * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
    * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
@@ -274,4 +293,9 @@ export interface StorageConfig {
   url: Redacted.Redacted
   prefix: string
   dbName: string
+  /**
+   * Adapter default for switching derived root-level fields from the `data` column
+   * to dedicated SQL columns. Repositories can still opt in / out per table.
+   */
+  rootLevelFieldsWhenAvailable?: boolean
 }

@@ -19,6 +19,7 @@ import * as Context from "../../../Context.js"
 import * as Effect from "../../../Effect.js"
 import { flatMapOption } from "../../../Effect.js"
 import * as Option from "../../../Option.js"
+import { makeRootLevelFieldColumns } from "../../../rootLevelFields.js"
 import * as S from "../../../Schema.js"
 import { type Codec, NonNegativeInt } from "../../../Schema.js"
 import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
@@ -640,6 +641,8 @@ export function makeStore<Encoded extends FieldValues>() {
     mapTo: (e: E, etag: string | undefined) => Encoded,
     idKey: IdKey
   ) => {
+    const rootLevelFieldColumns = makeRootLevelFieldColumns(schema, idKey)
+
     function makeStore<RInitial = never, EInitial = never>(
       makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial>,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
@@ -679,6 +682,7 @@ export function makeStore<Encoded extends FieldValues>() {
             : undefined,
           {
             ...config,
+            rootLevelFieldColumns,
             partitionValue: config?.partitionValue
               ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
           }

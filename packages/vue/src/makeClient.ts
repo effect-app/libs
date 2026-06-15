@@ -22,6 +22,7 @@ import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
 import { type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
+import { awaitResolvedSuspenseResult } from "./suspense.js"
 import { type Toast } from "./toast.js"
 
 export type { Progress }
@@ -405,7 +406,7 @@ export class QueryImpl<R> {
         if (!isMounted.value) {
           return yield* Effect.interrupt
         }
-        const result = resultRef.value
+        const result = yield* awaitResolvedSuspenseResult(resultRef)
         if (AsyncResult.isInitial(result)) {
           console.error("Internal Error: Promise should be resolved already", {
             self,

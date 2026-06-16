@@ -486,8 +486,13 @@ export function OpaqueFacadeClass<
     schema: SchemaS
   ):
     & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-    schema as SchemaS & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS> => {
+    // Make the result constructable (like `S.Opaque`), so the private `_X` may be a
+    // plain `S.Struct`/`S.TaggedStruct` (lighter type) — not only an `S.Opaque` class —
+    // while `export class X extends ...(_X)` still works.
+    class Facade {}
+    return Object.setPrototypeOf(Facade, schema)
+  }
 }
 
 /**
@@ -539,6 +544,8 @@ export function OpaqueErrorFacadeClass<
     schema: SchemaS
   ):
     & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-    schema as SchemaS & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS> => {
+    class Facade {}
+    return Object.setPrototypeOf(Facade, schema)
+  }
 }

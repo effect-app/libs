@@ -240,6 +240,34 @@ function facadeClassLine(name: string, prefix: string): string {
   return `export class ${name} extends ${prefix}OpaqueFacadeClass<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(_${name}) {}`
 }
 
+// If `classText` is a no-statics `export class X extends (S.)Opaque<X, X.Encoded>()(STRUCT) {}`
+// (empty body), return the private as a plain struct const `const _X = STRUCT`
+// (lighter than the Opaque class). Returns null for any body content (statics,
+// getters, methods) or non-Opaque bases — those keep the class form.
+function tryStructPrivate(classText: string, name: string, indent: string): string | null {
+  const open = findClassBodyOpen(classText, 0)
+  if (open === -1) return null
+  const close = findMatchingBrace(classText, open)
+  if (close === -1) return null
+  const body = classText.slice(open + 1, close).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim()
+  if (body.length > 0) return null // has statics/getters/methods -> keep class
+  // Extract STRUCT from `extends (prefix)Opaque<X, X.Encoded>()(STRUCT)`.
+  const m = /\bextends\s+(?:[A-Za-z_$][\w$]*\.)?Opaque\s*<[^(]*>\s*\(\s*\)\s*\(/.exec(classText.slice(0, open))
+  if (!m) return null // OpaqueType/OpaqueShape/Class/etc -> keep class form
+  const argOpen = m.index + m[0].length - 1 // index of the `(` before STRUCT
+  let depth = 0
+  let k = argOpen
+  for (; k < classText.length; k++) {
+    if (classText[k] === "(") depth++
+    else if (classText[k] === ")") {
+      depth--
+      if (depth === 0) break
+    }
+  }
+  const struct = classText.slice(argOpen + 1, k).trim()
+  return `${indent}const _${name} = ${struct}`
+}
+
 function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: boolean): string {
   let out = source
   for (const name of modelNames) {
@@ -261,7 +289,10 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
           const start = privateMatch.index + privateMatch[1]!.length
           const end = findClassEnd(out, start)
           if (end !== -1) {
-            out = `${out.slice(0, start)}${syncFacadeSourceCtor(out.slice(start, end), name)}${out.slice(end)}`
+            const pIndent = privateMatch[2]!
+            const ct = out.slice(start, end)
+            const replacement = tryStructPrivate(ct, name, pIndent) ?? syncFacadeSourceCtor(ct, name)
+            out = `${out.slice(0, start)}${replacement}${out.slice(end)}`
           }
         }
         const facadeBlock = new RegExp(`// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\bclassName:\\s*_${n}\\b[^}]*\\}[\\s\\S]*?export\\s+(?:const|class)\\s+${n}\\b`)
@@ -291,7 +322,10 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
       const classText = out.slice(start, end)
       const indent = match[2]!
       const prefix = modelSchemaPrefix(classText)
-      const privateClass = syncFacadeSourceCtor(
+      // No-statics `S.Opaque` model -> emit the private as a plain `S.Struct` const
+      // (lighter type; ~-14.5% definition instantiations). The facade class still
+      // wraps it and is constructable (OpaqueFacadeClass uses setPrototypeOf).
+      const privateClass = tryStructPrivate(classText, name, indent) ?? syncFacadeSourceCtor(
         classText.replace(new RegExp(`^${indent}export\\s+class\\s+${n}\\b`), `${indent}class _${name}`),
         name
       )

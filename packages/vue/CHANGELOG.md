@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.267
+
+### Patch Changes
+
+- 1df5cf5: Wait for Vue query result refs to settle after TanStack suspense resolves.
+- Updated dependencies [23a7167]
+  - effect-app@4.0.0-beta.267
+
 ## 4.0.0-beta.266
 
 ### Patch Changes

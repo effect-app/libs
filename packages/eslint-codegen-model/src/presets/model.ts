@@ -33,6 +33,8 @@ export function getExportedModelNames(code: string): Array<string> {
       baseClassWithEncodedRe.test(extendsWindow)
       || (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow))
       || opaqueFacadeRe.test(extendsWindow)
+      // base mode: `export class X extends __X` (facade lives on the generated `__X`)
+      || new RegExp(`extends\\s+__${name}\\b`).test(extendsWindow)
     ) {
       add(name)
     }
@@ -47,7 +49,9 @@ export function getExportedModelNames(code: string): Array<string> {
 // The extends-clause text of a model's defining class — checks the private `_X`
 // (post-rewrite) first, then the exported `X` (pre-rewrite / already-facade).
 function modelExtendsWindow(code: string, name: string): string | null {
-  for (const decl of [`class _${name}`, `export class ${name}`, `class ${name}`]) {
+  // `class __X` first: base mode (`export class X extends __X`) where the facade
+  // lives on the generated base `class __X extends OpaqueFacadeClass<...>()(_X)`.
+  for (const decl of [`class __${name}`, `class _${name}`, `export class ${name}`, `class ${name}`]) {
     const re = new RegExp(`(^|\\n)\\s*${decl.replace(/[$]/g, "\\$&")}\\b`)
     const m = re.exec(code)
     if (!m) continue

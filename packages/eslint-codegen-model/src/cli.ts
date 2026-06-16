@@ -273,6 +273,11 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
   for (const name of modelNames) {
     const n = escapeRe(name)
     if (enabled) {
+      // Base mode: the facade is the generated `class __X extends OpaqueFacadeClass<...>()(_X)`
+      // (owned by its modelFacade block); the user owns `export class X extends __X { ...statics... }`.
+      // Leave both alone — only the block preset regenerates `__X`.
+      const baseMode = new RegExp(`(^|\\n)\\s*class\\s+__${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacadeClass\\s*<`)
+      if (baseMode.test(out)) continue
       const existingClass = new RegExp(`(^|\\n)\\s*export\\s+class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`)
       const existingConst = new RegExp(`(^|\\n)\\s*export\\s+const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=`)
       if (existingClass.test(out) || existingConst.test(out)) {

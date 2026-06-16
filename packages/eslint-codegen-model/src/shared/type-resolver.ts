@@ -89,35 +89,42 @@ export function createModelTypeResolver(args: {
       if (!sf) return null
 
       const wanted = new Set(modelNames)
-      const classByName = new Map<string, import("typescript").ClassDeclaration>()
-      // The private `_X` class holds the real struct schema; the exported facade
-      // `X extends OpaqueFacadeClass<X, X.Encoded, ...>` is self-referential and
-      // cannot resolve `Encoded`/`Type`/`Make`. When both exist, prefer `_X`.
+      // Name identifier of the schema that backs each model. The private `_X`
+      // (class `class _X extends S.Opaque(...)` OR const `const _X = S.Struct(...)`,
+      // the base-mode form) holds the real schema; the exported facade
+      // `X extends OpaqueFacadeClass<X, X.Encoded, ...>` / `extends __X` is
+      // self-referential and can't resolve `Encoded`/`Type`/`Make`. Prefer `_X`.
+      const schemaByName = new Map<string, import("typescript").Node>()
       const privateNames = new Set<string>()
+      const consider = (text: string, nameNode: import("typescript").Node) => {
+        if (text.startsWith("_") && !text.startsWith("__") && wanted.has(text.slice(1))) {
+          schemaByName.set(text.slice(1), nameNode)
+          privateNames.add(text.slice(1))
+        } else if (wanted.has(text) && !privateNames.has(text)) {
+          schemaByName.set(text, nameNode)
+        }
+      }
       sf.forEachChild((n) => {
-        if (ts.isClassDeclaration(n) && n.name) {
-          const text = n.name.text
-          if (text.startsWith("_") && wanted.has(text.slice(1))) {
-            classByName.set(text.slice(1), n)
-            privateNames.add(text.slice(1))
-          } else if (wanted.has(text) && !privateNames.has(text)) {
-            classByName.set(text, n)
+        if (ts.isClassDeclaration(n) && n.name) consider(n.name.text, n.name)
+        else if (ts.isVariableStatement(n)) {
+          for (const d of n.declarationList.declarations) {
+            if (ts.isIdentifier(d.name)) consider(d.name.text, d.name)
           }
         }
       })
-      if (classByName.size === 0) return null
+      if (schemaByName.size === 0) return null
 
       const printer = makePrinter(ts, checker, wanted)
       const blocks: Array<string> = []
       const facadeType = (body: string) =>
         body.replace(/\.Type\b/g, "").replace(/\n    /g, "\n  ").replace(/\n  }$/, "\n}")
       for (const name of modelNames) {
-        const cls = classByName.get(name)
-        if (!cls || !cls.name) return null
-        const sym = checker.getSymbolAtLocation(cls.name)
+        const nameNode = schemaByName.get(name)
+        if (!nameNode) return null
+        const sym = checker.getSymbolAtLocation(nameNode)
         if (!sym) return null
-        const schemaType = checker.getTypeOfSymbolAtLocation(sym, cls.name)
-        const encoded = printer.member(schemaType, "Encoded", cls.name)
+        const schemaType = checker.getTypeOfSymbolAtLocation(sym, nameNode)
+        const encoded = printer.member(schemaType, "Encoded", nameNode)
         if (encoded === null) return null
         const emitType = opts.facade || opts.type || opts.make
         const emitMake = opts.facade || opts.make
@@ -125,7 +132,7 @@ export function createModelTypeResolver(args: {
           ? []
           : [`export namespace ${name} {`, `  export interface Encoded ${encoded}`]
         if (emitType) {
-          const typ = printer.member(schemaType, "Type", cls.name)
+          const typ = printer.member(schemaType, "Type", nameNode)
           if (typ === null) return null
           if (opts.facade) {
             // Note: instance getters/methods are already included by `member(...)`
@@ -139,15 +146,15 @@ export function createModelTypeResolver(args: {
           }
         }
         if (emitMake) {
-          const mk = printer.makeMember(schemaType, cls.name)
+          const mk = printer.makeMember(schemaType, nameNode)
           if (mk === null) return null
           // A leading `= ` marks a type-alias emission (e.g. `{...} | void`, which
           // an interface can't express); otherwise it's an interface body.
           lines.push(mk.startsWith("=") ? `  export type Make ${mk}` : `  export interface Make ${mk}`)
         }
         if (opts.facade) {
-          const decodingServices = printer.serviceMember(schemaType, "DecodingServices", cls.name)
-          const encodingServices = printer.serviceMember(schemaType, "EncodingServices", cls.name)
+          const decodingServices = printer.serviceMember(schemaType, "DecodingServices", nameNode)
+          const encodingServices = printer.serviceMember(schemaType, "EncodingServices", nameNode)
           if (decodingServices === null || encodingServices === null) return null
           lines.push(`  export type DecodingServices = ${decodingServices}`)
           lines.push(`  export type EncodingServices = ${encodingServices}`)

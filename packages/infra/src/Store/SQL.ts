@@ -12,11 +12,11 @@ import * as Layer from "effect/Layer"
 import * as LayerMap from "effect/LayerMap"
 import * as Struct from "effect/Struct"
 import { SqlClient } from "effect/unstable/sql"
-import { DatabaseError, OptimisticConcurrencyException } from "../errors.js"
-import { InfraLogger } from "../logger.js"
-import { annotateDb, type DbSystem } from "../otel.js"
-import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
-import { makeETag } from "./utils.js"
+import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
+import { InfraLogger } from "../logger.ts"
+import { annotateDb, type DbSystem } from "../otel.ts"
+import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
+import { makeETag } from "./utils.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
 const sqlIsTransient = (e: unknown) =>

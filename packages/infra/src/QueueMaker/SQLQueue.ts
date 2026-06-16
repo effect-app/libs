@@ -11,9 +11,9 @@ import { pretty } from "effect-app/utils"
 import * as Fiber from "effect/Fiber"
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
-import { InfraLogger } from "../logger.js"
-import { messagingSpanArgs } from "../otel.js"
-import { SQLModel } from "../SQL.js"
+import { InfraLogger } from "../logger.ts"
+import { messagingSpanArgs } from "../otel.ts"
+import { SQLModel } from "../SQL.ts"
 
 export const QueueId = S.Finite.pipe(S.brand("QueueId"))
 export type QueueId = typeof QueueId.Type

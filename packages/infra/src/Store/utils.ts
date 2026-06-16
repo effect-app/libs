@@ -2,7 +2,7 @@ import crypto from "crypto"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import type { PersistenceModelType, SupportedValues2 } from "effect-app/Store"
-import { OptimisticConcurrencyException } from "../errors.js"
+import { OptimisticConcurrencyException } from "../errors.ts"
 
 /** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
 export function get(obj: any, path: string): any {

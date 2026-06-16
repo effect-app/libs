@@ -1,7 +1,7 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
-import { I18n } from "./intl.js"
+import { I18n } from "./intl.ts"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Confirm extends Context.Service<Confirm>()("Confirm", {

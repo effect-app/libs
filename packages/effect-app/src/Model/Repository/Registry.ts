@@ -1,6 +1,6 @@
-import type { DatabaseError } from "../../client/errors.js"
-import * as Context from "../../Context.js"
-import * as Effect from "../../Effect.js"
+import type { DatabaseError } from "../../client/errors.ts"
+import * as Context from "../../Context.ts"
+import * as Effect from "../../Effect.ts"
 
 export interface RegisteredRepository {
   readonly seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>

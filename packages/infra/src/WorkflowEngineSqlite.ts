@@ -47,8 +47,8 @@ import { SqlClient } from "effect/unstable/sql"
 import * as Workflow from "effect/unstable/workflow/Workflow"
 import { type Encoded, makeUnsafe, WorkflowEngine, WorkflowInstance } from "effect/unstable/workflow/WorkflowEngine"
 import { randomUUID } from "node:crypto"
-import { OptimisticConcurrencyException } from "./errors.js"
-import { annotateDb } from "./otel.js"
+import { OptimisticConcurrencyException } from "./errors.ts"
+import { annotateDb } from "./otel.ts"
 
 export interface WorkflowEngineSqliteConfig {
   /** Optional prefix for table names (e.g. `tenant_`). */

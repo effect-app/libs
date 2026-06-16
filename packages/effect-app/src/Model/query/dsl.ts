@@ -5,12 +5,12 @@ import * as Data from "effect/Data"
 import { flow } from "effect/Function"
 import * as Pipeable from "effect/Pipeable"
 import type { Covariant } from "effect/Types"
-import type * as Option from "../../Option.js"
-import type * as S from "../../Schema.js"
-import type { NonNegativeInt } from "../../Schema.js"
-import type { Ops } from "../filter/filterApi.js"
-import type { FieldValues } from "../filter/types.js"
-import type { FieldPath, FieldPathValue, RefineFieldPathValue } from "../filter/types/path/eager.js"
+import type * as Option from "../../Option.ts"
+import type * as S from "../../Schema.ts"
+import type { NonNegativeInt } from "../../Schema.ts"
+import type { Ops } from "../filter/filterApi.ts"
+import type { FieldValues } from "../filter/types.ts"
+import type { FieldPath, FieldPathValue, RefineFieldPathValue } from "../filter/types/path/eager.ts"
 
 export type QAll<
   TFieldValues extends FieldValues,

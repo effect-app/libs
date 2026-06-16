@@ -1,7 +1,7 @@
 import type * as Scope from "effect/Scope"
-import type { NonEmptyReadonlyArray } from "./Array.js"
-import type * as Effect from "./Effect.js"
-import { RequestContext } from "./RequestContext.js"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import type * as Effect from "./Effect.ts"
+import { RequestContext } from "./RequestContext.ts"
 
 export interface QueueBase<Evt, DrainEvt> {
   drain: <DrainE, DrainR>(

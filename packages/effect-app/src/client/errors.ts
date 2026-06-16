@@ -1,7 +1,7 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
-import * as S from "../Schema.js"
+import * as S from "../Schema.ts"
 
 export const tryToJson = (error: unknown) => {
   try {

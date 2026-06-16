@@ -8,7 +8,7 @@ import type * as Scope from "effect/Scope"
 
 import { type HttpRouter } from "effect-app/http"
 import { type EffectGenUtils } from "effect-app/utils/gen"
-import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
+import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.ts"
 
 export interface ContextProviderId {
   _tag: "ContextProvider"

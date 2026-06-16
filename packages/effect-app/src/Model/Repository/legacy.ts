@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import type { DatabaseError, OptimisticConcurrencyException } from "../../client/errors.js"
-import type * as Effect from "../../Effect.js"
-import type * as Option from "../../Option.js"
-import type * as S from "../../Schema.js"
+import type { DatabaseError, OptimisticConcurrencyException } from "../../client/errors.ts"
+import type * as Effect from "../../Effect.ts"
+import type * as Option from "../../Option.ts"
+import type * as S from "../../Schema.ts"
 
 export interface Mapped1<A, IdKey extends keyof A, R> {
   all: Effect.Effect<A[], S.SchemaError | DatabaseError, R>

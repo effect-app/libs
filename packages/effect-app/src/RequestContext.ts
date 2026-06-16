@@ -1,7 +1,7 @@
-import * as Context from "./Context.js"
-import { UserProfileId } from "./ids.js"
-import * as S from "./Schema.js"
-import { NonEmptyString255 } from "./Schema.js"
+import * as Context from "./Context.ts"
+import { UserProfileId } from "./ids.ts"
+import * as S from "./Schema.ts"
+import { NonEmptyString255 } from "./Schema.ts"
 
 export const Locale = S.Literals(["en", "de"])
 export type Locale = typeof Locale.Type

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expectTypeOf } from "@effect/vitest"
-import type { FieldValues } from "../fields.js"
-import type { BrowserNativeObject, Equals, IsLiteral, IsNever, Primitive } from "../utils.js"
+import type { FieldValues } from "../fields.ts"
+import type { BrowserNativeObject, Equals, IsLiteral, IsNever, Primitive } from "../utils.ts"
 
-import type { ArrayKey, IsTuple, TupleKeys } from "./common.js"
+import type { ArrayKey, IsTuple, TupleKeys } from "./common.ts"
 
 /**
  * Helper type for recursively constructing paths through a type.

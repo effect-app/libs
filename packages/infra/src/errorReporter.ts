@@ -4,8 +4,8 @@ import { getRC } from "effect-app/setupRequest"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import type * as LogLevel from "effect/LogLevel"
-import { CauseException, tryToJson, tryToReport } from "./errors.js"
-import { InfraLogger } from "./logger.js"
+import { CauseException, tryToJson, tryToReport } from "./errors.ts"
+import { InfraLogger } from "./logger.ts"
 
 const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
   try {

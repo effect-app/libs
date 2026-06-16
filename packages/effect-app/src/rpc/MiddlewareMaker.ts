@@ -7,12 +7,12 @@ import type * as Scope from "effect/Scope"
 import { type Simplify } from "effect/Types"
 import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
-import * as Context from "../Context.js"
-import { PreludeLogger } from "../logger.js"
-import { type TypeTestId } from "../TypeTest.js"
-import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
-import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
-import * as RpcMiddlewareX from "./RpcMiddleware.js"
+import * as Context from "../Context.ts"
+import { PreludeLogger } from "../logger.ts"
+import { type TypeTestId } from "../TypeTest.ts"
+import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.ts"
+import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.ts"
+import * as RpcMiddlewareX from "./RpcMiddleware.ts"
 
 // adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's just a Service Identifier, no tags.)
 // hm?

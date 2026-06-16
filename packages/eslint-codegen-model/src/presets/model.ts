@@ -9,10 +9,14 @@ import type { ModelTypeResolver } from "../shared/type-resolver.js"
 // extends expressions without bleeding into the next class declaration.
 const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|TaggedErrorClass)\s*<\s*\w[\w.]*\s*,/
 const opaqueWithEncodedRe = /(?:^|[\s.])Opaque\s*<\s*\w[\w.]*\s*,/
+const opaqueFacadeRe = /(?:^|[\s.])OpaqueFacade(?:Class)?\s*</
 const contextOpaqueRe = /(?:^|[\s.])Context\s*\.\s*Opaque\s*</
 
 export function getExportedModelNames(code: string): Array<string> {
   const result: Array<string> = []
+  const add = (name: string) => {
+    if (!result.includes(name)) result.push(name)
+  }
   const classRe = /(^|\n)\s*export\s+class\s+(\w+)/g
   const matches = Array.from(code.matchAll(classRe))
   for (const [index, match] of matches.entries()) {
@@ -28,9 +32,14 @@ export function getExportedModelNames(code: string): Array<string> {
     if (
       baseClassWithEncodedRe.test(extendsWindow)
       || (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow))
+      || opaqueFacadeRe.test(extendsWindow)
     ) {
-      result.push(name)
+      add(name)
     }
+  }
+  const facadeRe = /(^|\n)\s*export\s+const\s+(\w+)\s*:\s*\2\.Schema\s*=/g
+  for (const match of code.matchAll(facadeRe)) {
+    add(match[2]!)
   }
   return result
 }
@@ -57,6 +66,12 @@ export type ModelOptions = {
    * rewritten to `S.OpaqueShape<X.Type, X.Encoded, X.Make>`. Implies `type`.
    */
   make?: boolean
+  /**
+   * With `static`, emit a shallow exported facade for private model classes. Implies
+   * `type` and `make`; the CLI rewrites `export class X` into private `class _X`
+   * plus `export class X extends S.OpaqueFacadeClass<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
+   */
+  facade?: boolean
   /** @deprecated unused */
   writeFullTypes?: boolean
 }
@@ -80,13 +95,17 @@ export function model(
     }
 
     let expectedContent: string
-    if (options?.static) {
+    if (options?.static || options?.facade) {
       if (!resolver) {
         // No type checker available (e.g. oxlint). Leave the block as-is so we don't
         // clobber CLI-generated static interfaces with the conditional form.
         return meta.existingContent
       }
-      const block = resolver.generate(meta.filename, modelNames, { type: options.type ?? false, make: options.make ?? false })
+      const block = resolver.generate(meta.filename, modelNames, {
+        facade: options.facade ?? false,
+        make: options.facade || (options.make ?? false),
+        type: options.facade || options.type || options.make || false
+      })
       if (block === null) {
         // Could not resolve (file outside program, etc.) — leave existing content.
         return meta.existingContent

@@ -351,6 +351,19 @@ type ExtendedShape<SchemaS extends S.Top, Encoded, MakeIn> =
   & Omit<SchemaS, "Encoded" | "~type.make.in">
   & { readonly Encoded: Encoded; readonly "~type.make.in": MakeIn }
 
+type OpaqueFacadeConstructorArgs<MakeIn> = {} extends MakeIn ? [props?: MakeIn, options?: S.MakeOptions]
+  : [props: MakeIn, options?: S.MakeOptions]
+
+type OpaqueFacadeInput<DecodingServices, EncodingServices> = S.Top & {
+  readonly DecodingServices: DecodingServices
+  readonly EncodingServices: EncodingServices
+  readonly copy: {}
+  readonly fields: S.Struct.Fields
+  readonly mapFields: {}
+}
+
+type OpaqueFacadeStatics<SchemaS extends S.Top> = Omit<SchemaS, keyof S.Top | "prototype">
+
 /**
  * Like {@link OpaqueType}, but ALSO supplies a static **make-input** shape, so
  * `make`/`copy` resolve a named `MakeIn` interface instead of re-deriving the struct's
@@ -374,7 +387,108 @@ export interface OpaqueShape<Self, Encoded, MakeIn, SchemaS extends S.Top, Brand
   new(_: never): Self
 }
 
-export const OpaqueShape: <Self, Encoded, MakeIn, Brand = {}>() =>
-  <S extends S.Top>(
-    schema: S
-  ) => OpaqueShape<Self, Encoded, MakeIn, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
+export const OpaqueShape: <Self, Encoded, MakeIn, Brand = {}>() => <S extends S.Top>(
+  schema: S
+) => OpaqueShape<Self, Encoded, MakeIn, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
+
+/**
+ * Shallow public view for generated model facades.
+ *
+ * The runtime value can still be the full private schema class, but emitted
+ * declarations expose only named `Type` / `Encoded` / `Make` interfaces and a
+ * small static surface. This keeps downstream project references from pulling
+ * the private struct field map back through `typeof Model`.
+ */
+export interface OpaqueFacade<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+> extends
+  S.Bottom<
+    Self,
+    Encoded,
+    DecodingServices,
+    EncodingServices,
+    SchemaAST.AST,
+    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+    MakeIn,
+    Self,
+    readonly [],
+    MakeIn
+  >
+{
+  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Self & Brand
+  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  readonly fields: S.Struct.Fields
+  mapFields<To extends S.Struct.Fields>(
+    f: (fields: S.Struct.Fields) => To,
+    options?: {
+      readonly unsafePreserveChecks?: boolean | undefined
+    } | undefined
+  ): S.Struct<To>
+}
+
+export function OpaqueFacade<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+>() {
+  return <SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
+    schema: SchemaS
+  ): OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand> & OpaqueFacadeStatics<SchemaS> =>
+    schema as SchemaS & OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+}
+
+export interface OpaqueFacadeClass<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+> extends
+  S.Bottom<
+    Self,
+    Encoded,
+    DecodingServices,
+    EncodingServices,
+    SchemaAST.AST,
+    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+    MakeIn,
+    Self,
+    readonly [],
+    MakeIn
+  >
+{
+  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
+  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  readonly fields: S.Struct.Fields
+  mapFields<To extends S.Struct.Fields>(
+    f: (fields: S.Struct.Fields) => To,
+    options?: {
+      readonly unsafePreserveChecks?: boolean | undefined
+    } | undefined
+  ): S.Struct<To>
+}
+
+export function OpaqueFacadeClass<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+>() {
+  return <SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
+    schema: SchemaS
+  ):
+    & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS> =>
+    schema as SchemaS & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+}

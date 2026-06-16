@@ -29,6 +29,8 @@ export interface ResolveOptions {
   readonly type?: boolean
   /** Also emit a static `Make` interface (make-input side), enabling `S.OpaqueShape<X.Type, X.Encoded, X.Make>`. Implies `type`. */
   readonly make?: boolean
+  /** Emit a shallow public `Schema` facade and top-level instance interface. Implies `type` and `make`. */
+  readonly facade?: boolean
 }
 
 export interface ModelTypeResolver {
@@ -89,14 +91,21 @@ export function createModelTypeResolver(args: {
       const wanted = new Set(modelNames)
       const classByName = new Map<string, import("typescript").ClassDeclaration>()
       sf.forEachChild((n) => {
-        if (ts.isClassDeclaration(n) && n.name && wanted.has(n.name.text)) {
-          classByName.set(n.name.text, n)
+        if (ts.isClassDeclaration(n) && n.name) {
+          const text = n.name.text
+          if (wanted.has(text)) {
+            classByName.set(text, n)
+          } else if (text.startsWith("_") && wanted.has(text.slice(1))) {
+            classByName.set(text.slice(1), n)
+          }
         }
       })
       if (classByName.size === 0) return null
 
       const printer = makePrinter(ts, checker, wanted)
       const blocks: Array<string> = []
+      const facadeType = (body: string) =>
+        body.replace(/\.Type\b/g, "").replace(/\n    /g, "\n  ").replace(/\n  }$/, "\n}")
       for (const name of modelNames) {
         const cls = classByName.get(name)
         if (!cls || !cls.name) return null
@@ -105,16 +114,33 @@ export function createModelTypeResolver(args: {
         const schemaType = checker.getTypeOfSymbolAtLocation(sym, cls.name)
         const encoded = printer.member(schemaType, "Encoded", cls.name)
         if (encoded === null) return null
-        const lines = [`export namespace ${name} {`, `  export interface Encoded ${encoded}`]
-        if (opts.type || opts.make) {
+        const emitType = opts.facade || opts.type || opts.make
+        const emitMake = opts.facade || opts.make
+        const lines = opts.facade
+          ? []
+          : [`export namespace ${name} {`, `  export interface Encoded ${encoded}`]
+        if (emitType) {
           const typ = printer.member(schemaType, "Type", cls.name)
           if (typ === null) return null
-          lines.push(`  export interface Type ${typ}`)
+          if (opts.facade) {
+            lines.push(`export interface ${name} ${facadeType(typ)}`)
+            lines.push(`export namespace ${name} {`)
+            lines.push(`  export interface Encoded ${encoded}`)
+          } else {
+            lines.push(`  export interface Type ${typ}`)
+          }
         }
-        if (opts.make) {
+        if (emitMake) {
           const mk = printer.makeMember(schemaType, cls.name)
           if (mk === null) return null
           lines.push(`  export interface Make ${mk}`)
+        }
+        if (opts.facade) {
+          const decodingServices = printer.serviceMember(schemaType, "DecodingServices", cls.name)
+          const encodingServices = printer.serviceMember(schemaType, "EncodingServices", cls.name)
+          if (decodingServices === null || encodingServices === null) return null
+          lines.push(`  export type DecodingServices = ${decodingServices}`)
+          lines.push(`  export type EncodingServices = ${encodingServices}`)
         }
         lines.push("}")
         blocks.push(lines.join("\n"))
@@ -267,6 +293,12 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         return `    readonly ${propKey(p.name)}${opt}: ${value}`
       }).join("\n")
       return `{\n${body}\n  }`
+    },
+
+    serviceMember(schemaType: Type, key: "DecodingServices" | "EncodingServices", atNode: Node): string | null {
+      const memberSym = checker.getPropertyOfType(schemaType, key)
+      if (!memberSym) return null
+      return checker.typeToString(checker.getTypeOfSymbolAtLocation(memberSym, atNode), atNode, FF)
     }
   }
 

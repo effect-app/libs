@@ -1,0 +1,9 @@
+export type ModelFacadeOptions = {
+    readonly className?: string;
+    readonly name?: string;
+    readonly schema?: string;
+};
+export declare function modelFacade({ options }: {
+    options: ModelFacadeOptions;
+}): string;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW9kZWwtZmFjYWRlLmQudHMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvcHJlc2V0cy9tb2RlbC1mYWNhZGUudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsTUFBTSxNQUFNLGtCQUFrQixHQUFHO0lBQy9CLFFBQVEsQ0FBQyxTQUFTLENBQUMsRUFBRSxNQUFNLENBQUE7SUFDM0IsUUFBUSxDQUFDLElBQUksQ0FBQyxFQUFFLE1BQU0sQ0FBQTtJQUN0QixRQUFRLENBQUMsTUFBTSxDQUFDLEVBQUUsTUFBTSxDQUFBO0NBQ3pCLENBQUE7QUFFRCx3QkFBZ0IsV0FBVyxDQUFDLEVBQUUsT0FBTyxFQUFFLEVBQUU7SUFBRSxPQUFPLEVBQUUsa0JBQWtCLENBQUE7Q0FBRSxHQUFHLE1BQU0sQ0FZaEYifQ==

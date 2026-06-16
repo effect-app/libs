@@ -1,0 +1,11 @@
+export function modelFacade({ options }) {
+    const className = options.className;
+    if (typeof className !== "string" || className.length === 0) {
+        return "/** modelFacade requires `className` */";
+    }
+    const name = typeof options.name === "string" && options.name.length > 0 ? options.name : className.startsWith("_") ? className.slice(1) : className;
+    const schema = typeof options.schema === "string" ? options.schema : "S";
+    const prefix = schema.length > 0 ? `${schema}.` : "";
+    return `export class ${name} extends ${prefix}OpaqueFacadeClass<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(${className}) {}`;
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW9kZWwtZmFjYWRlLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vc3JjL3ByZXNldHMvbW9kZWwtZmFjYWRlLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQU1BLE1BQU0sVUFBVSxXQUFXLENBQUMsRUFBRSxPQUFPLEVBQW1DO0lBQ3RFLE1BQU0sU0FBUyxHQUFHLE9BQU8sQ0FBQyxTQUFTLENBQUE7SUFDbkMsSUFBSSxPQUFPLFNBQVMsS0FBSyxRQUFRLElBQUksU0FBUyxDQUFDLE1BQU0sS0FBSyxDQUFDLEVBQUUsQ0FBQztRQUM1RCxPQUFPLHlDQUF5QyxDQUFBO0lBQ2xELENBQUM7SUFDRCxNQUFNLElBQUksR0FDUixPQUFPLE9BQU8sQ0FBQyxJQUFJLEtBQUssUUFBUSxJQUFJLE9BQU8sQ0FBQyxJQUFJLENBQUMsTUFBTSxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsU0FBUyxDQUFDLFVBQVUsQ0FBQyxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUMsU0FBUyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsU0FBUyxDQUFBO0lBQ3pJLE1BQU0sTUFBTSxHQUFHLE9BQU8sT0FBTyxDQUFDLE1BQU0sS0FBSyxRQUFRLENBQUMsQ0FBQyxDQUFDLE9BQU8sQ0FBQyxNQUFNLENBQUMsQ0FBQyxDQUFDLEdBQUcsQ0FBQTtJQUN4RSxNQUFNLE1BQU0sR0FBRyxNQUFNLENBQUMsTUFBTSxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUMsR0FBRyxNQUFNLEdBQUcsQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFBO0lBQ3BELE9BQU8sZ0JBQWdCLElBQUksWUFBWSxNQUFNLHFCQUFxQixJQUFJLEtBQUssSUFBSSxhQUFhLElBQUksVUFBVSxJQUFJLHNCQUFzQixJQUFJLHdCQUF3QixTQUFTLE1BQU0sQ0FBQTtBQUNqTCxDQUFDIn0=

@@ -16,14 +16,14 @@ import type * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
-import { type Commander, CommanderStatic, type Progress } from "./commander.js"
-import { type I18n } from "./intl.js"
-import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
-import { type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
-import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.js"
-import { makeRunPromise } from "./runtime.js"
-import { awaitResolvedSuspenseResult } from "./suspense.js"
-import { type Toast } from "./toast.js"
+import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
+import { type I18n } from "./intl.ts"
+import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
+import { type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.ts"
+import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.ts"
+import { makeRunPromise } from "./runtime.ts"
+import { awaitResolvedSuspenseResult } from "./suspense.ts"
+import { type Toast } from "./toast.ts"
 
 export type { Progress }
 
@@ -329,7 +329,10 @@ export const useMutationInt = (): typeof _useMutation => {
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
 export class QueryImpl<R> {
-  constructor(readonly getRuntime: () => Context.Context<R>) {
+  readonly getRuntime: () => Context.Context<R>
+
+  constructor(getRuntime: () => Context.Context<R>) {
+    this.getRuntime = getRuntime
     this.useQuery = makeQuery(this.getRuntime)
     this.useStreamQuery = makeStreamQuery(this.getRuntime)
   }

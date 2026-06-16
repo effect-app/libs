@@ -1,2 +1,2 @@
 export * from "@effect/vitest"
-export * from "./test.js"
+export * from "./test.ts"

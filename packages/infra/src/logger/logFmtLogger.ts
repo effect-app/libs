@@ -1,6 +1,6 @@
 import { spanAttributes } from "effect-app/RequestContext"
 import * as Logger from "effect/Logger"
-import { getRequestContextFromFiber } from "./shared.js"
+import { getRequestContextFromFiber } from "./shared.ts"
 
 export const logfmtLogger = Logger.make<unknown, void>(
   (options) => {

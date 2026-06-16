@@ -45,9 +45,9 @@ import type * as Scope from "effect/Scope"
 import * as Workflow from "effect/unstable/workflow/Workflow"
 import { type Encoded, makeUnsafe, WorkflowEngine, WorkflowInstance } from "effect/unstable/workflow/WorkflowEngine"
 import { randomUUID } from "node:crypto"
-import { CosmosClient, CosmosClientLayer } from "./cosmos-client.js"
-import { OptimisticConcurrencyException } from "./errors.js"
-import { annotateCosmosResponse, annotateDb } from "./otel.js"
+import { CosmosClient, CosmosClientLayer } from "./cosmos-client.ts"
+import { OptimisticConcurrencyException } from "./errors.ts"
+import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
 export interface WorkflowEngineCosmosConfig {
   readonly url: Redacted.Redacted<string>

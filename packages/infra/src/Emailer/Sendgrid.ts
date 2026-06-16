@@ -7,7 +7,7 @@ import { dropUndefinedT } from "effect-app/utils"
 import * as Equivalence from "effect/Equivalence"
 import * as Redacted from "effect/Redacted"
 import { inspect } from "util"
-import { InfraLogger } from "../logger.js"
+import { InfraLogger } from "../logger.ts"
 
 export interface SendgridConfig {
   defaultReplyTo?: EmailData

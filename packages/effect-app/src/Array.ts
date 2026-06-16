@@ -2,8 +2,8 @@ import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 import * as Array from "effect/Array"
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
-import { dual, type Predicate } from "./Function.js"
-import * as Option from "./Option.js"
+import { dual, type Predicate } from "./Function.ts"
+import * as Option from "./Option.ts"
 
 export const toNonEmptyArray = Option.liftPredicate(Array.isReadonlyArrayNonEmpty)
 

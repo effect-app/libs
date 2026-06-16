@@ -9,6 +9,7 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
     "lib": ["esnext", "dom"],
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -17,6 +18,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "types": [
+      "node",
       "vite/client"
     ]
   },

@@ -1,9 +1,9 @@
 import * as Ref from "effect/Ref"
 import { Rpc } from "effect/unstable/rpc"
-import { type ClientForOptions, makeQueryKey } from "../client/clientFor.js"
-import * as Context from "../Context.js"
-import * as Effect from "../Effect.js"
-import * as S from "../Schema.js"
+import { type ClientForOptions, makeQueryKey } from "../client/clientFor.ts"
+import * as Context from "../Context.ts"
+import * as Effect from "../Effect.ts"
+import * as S from "../Schema.ts"
 
 /**
  * Shorthand for a handler-derived invalidation key.
@@ -111,7 +111,7 @@ export type StreamFailureChunk<E> = { readonly _tag: "error"; readonly error: E;
  * ```ts
  * import { makeQueryKey } from "effect-app/client"
  * import { Invalidation } from "effect-app/rpc"
- * import * as UserRsc from "../User/index.js"  // separate module to avoid circular deps
+ * import * as UserRsc from "../User/index.ts"  // separate module to avoid circular deps
  *
  * class UpdateProfile extends Rpc.make("UpdateProfile", { ... })
  *   .annotate(Invalidation.Invalidates, [makeQueryKey(UserRsc.GetMe), makeQueryKey(UserRsc.GetProfile)]) {}
@@ -160,8 +160,8 @@ export interface InvalidationSetService {
  * ```ts
  * import * as Effect from "effect/Effect"
  * import { Invalidation } from "effect-app/rpc"
- * import * as CartRsc from "../Cart/queries.js"
- * import * as UserRsc from "../User/queries.js"
+ * import * as CartRsc from "../Cart/queries.ts"
+ * import * as UserRsc from "../User/queries.ts"
  *
  * const handler = Effect.fnUntraced(function*(req: UpdateCartRequest) {
  *   const cart = yield* CartRepo.save(req.cart)

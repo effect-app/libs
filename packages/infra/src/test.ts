@@ -1,6 +1,6 @@
 import * as S from "effect-app/Schema"
 import { copy } from "effect-app/utils"
-import { generate } from "./arbs.js"
+import { generate } from "./arbs.ts"
 
 /**
  * Given the schema for an object-like structure, creates a function that generates random instances of that object with some values provided.
@@ -27,4 +27,4 @@ export const createRandomInstanceI = <A extends object, I>(s: S.Codec<A, I> & { 
   }
 }
 
-export * from "./arbs.js"
+export * from "./arbs.ts"

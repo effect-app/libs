@@ -5,9 +5,9 @@ import * as Option from "effect/Option"
 import * as S from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as SchemaIssue from "effect/SchemaIssue"
-import { copyOrigin } from "../utils.js"
-import { concurrencyUnbounded } from "./ext.js"
-import * as SchemaParser from "./SchemaParser.js"
+import { copyOrigin } from "../utils.ts"
+import { concurrencyUnbounded } from "./ext.ts"
+import * as SchemaParser from "./SchemaParser.ts"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
@@ -91,7 +91,7 @@ function makeRelaxedDeclaration(
  * @example
  * ```ts
  * import * as Schema from "effect/Schema"
- * import { Class } from "./Class.js"
+ * import { Class } from "./Class.ts"
  *
  * class A extends Class<A>("A")({ a: Schema.String }) {}
  *
@@ -160,7 +160,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}
  * @example
  * ```ts
  * import * as Schema from "effect/Schema"
- * import { TaggedClass } from "./Class.js"
+ * import { TaggedClass } from "./Class.ts"
  *
  * class Circle extends TaggedClass<Circle>()("Circle", {
  *   radius: Schema.Number

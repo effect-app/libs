@@ -1,7 +1,7 @@
-import * as Context from "./Context.js"
-import { accessEffectFn } from "./Context.js"
-import * as Effect from "./Effect.js"
-import * as Option from "./Option.js"
+import * as Context from "./Context.ts"
+import { accessEffectFn } from "./Context.ts"
+import * as Effect from "./Effect.ts"
+import * as Option from "./Option.ts"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number; groupId?: string; requestId?: string }

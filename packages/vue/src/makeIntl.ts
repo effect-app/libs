@@ -3,8 +3,8 @@ import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type
 import { typedKeysOf } from "effect-app/utils"
 import { type FormatXMLElementFn, type Options as IntlMessageFormatOptions, type PrimitiveType } from "intl-messageformat"
 import { type Ref, watch } from "vue"
-import { translate } from "./form.js"
-import { makeContext } from "./makeContext.js"
+import { translate } from "./form.ts"
+import { makeContext } from "./makeContext.ts"
 
 export interface MakeIntlReturn<Locale extends string> extends ReturnType<typeof makeIntl<Locale>> {}
 

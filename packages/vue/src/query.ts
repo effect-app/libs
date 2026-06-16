@@ -22,8 +22,8 @@ import { type Span } from "effect/Tracer"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
-import { reportRuntimeError } from "./lib.js"
-import { makeRunPromise } from "./runtime.js"
+import { reportRuntimeError } from "./lib.ts"
+import { makeRunPromise } from "./runtime.ts"
 
 // we must use interface extends, or we get the dreaded typescript error of isn't portable blabla @tanstack/vue-query/build/modern/types.js
 // but because how they are dealing with some extends clause, we loose all properties except initialData

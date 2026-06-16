@@ -4,6 +4,11 @@ import * as Option from "effect-app/Option"
 import type { PersistenceModelType, SupportedValues2 } from "effect-app/Store"
 import { OptimisticConcurrencyException } from "../errors.js"
 
+/** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
+export function get(obj: any, path: string): any {
+  return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
+}
+
 export const makeETag = <E extends PersistenceModelType<{}>>(
   { _etag, ...e }: E
 ): E =>

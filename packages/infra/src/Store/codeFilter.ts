@@ -6,8 +6,7 @@ import type { FieldValues } from "effect-app/Model/filter/types"
 import * as Option from "effect-app/Option"
 import type { Filter } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
-import { get } from "./Memory.js"
-import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
+import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
 
 const vAsArr = (v: string) => v as unknown as any[]
 

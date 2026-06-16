@@ -90,13 +90,18 @@ export function createModelTypeResolver(args: {
 
       const wanted = new Set(modelNames)
       const classByName = new Map<string, import("typescript").ClassDeclaration>()
+      // The private `_X` class holds the real struct schema; the exported facade
+      // `X extends OpaqueFacadeClass<X, X.Encoded, ...>` is self-referential and
+      // cannot resolve `Encoded`/`Type`/`Make`. When both exist, prefer `_X`.
+      const privateNames = new Set<string>()
       sf.forEachChild((n) => {
         if (ts.isClassDeclaration(n) && n.name) {
           const text = n.name.text
-          if (wanted.has(text)) {
-            classByName.set(text, n)
-          } else if (text.startsWith("_") && wanted.has(text.slice(1))) {
+          if (text.startsWith("_") && wanted.has(text.slice(1))) {
             classByName.set(text.slice(1), n)
+            privateNames.add(text.slice(1))
+          } else if (wanted.has(text) && !privateNames.has(text)) {
+            classByName.set(text, n)
           }
         }
       })
@@ -123,6 +128,9 @@ export function createModelTypeResolver(args: {
           const typ = printer.member(schemaType, "Type", cls.name)
           if (typ === null) return null
           if (opts.facade) {
+            // Note: instance getters/methods are already included by `member(...)`
+            // above — an Opaque/Class `Self` is the class instance type, so the
+            // checker reports getters as properties of `Type`. No re-attach needed.
             lines.push(`export interface ${name} ${facadeType(typ)}`)
             lines.push(`export namespace ${name} {`)
             lines.push(`  export interface Encoded ${encoded}`)
@@ -133,7 +141,9 @@ export function createModelTypeResolver(args: {
         if (emitMake) {
           const mk = printer.makeMember(schemaType, cls.name)
           if (mk === null) return null
-          lines.push(`  export interface Make ${mk}`)
+          // A leading `= ` marks a type-alias emission (e.g. `{...} | void`, which
+          // an interface can't express); otherwise it's an interface body.
+          lines.push(mk.startsWith("=") ? `  export type Make ${mk}` : `  export interface Make ${mk}`)
         }
         if (opts.facade) {
           const decodingServices = printer.serviceMember(schemaType, "DecodingServices", cls.name)
@@ -192,7 +202,10 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
   // Wrap a printed element in parens when used as an array/tuple element and it
   // contains a top-level union/intersection (precedence).
   function asElement(s: string): string {
-    return /[|&]/.test(s) ? `(${s})` : s
+    // Parenthesize unions/intersections AND `readonly`-prefixed elements (nested
+    // arrays/tuples) so `ReadonlyArray<readonly [..]>` prints as
+    // `readonly (readonly [..])[]`, not the invalid `readonly readonly [..][]`.
+    return /[|&]/.test(s) || s.startsWith("readonly ") ? `(${s})` : s
   }
 
   function print(t: Type, atNode: Node, side: "Encoded" | "Type"): string {
@@ -250,6 +263,28 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
   }
 
   return {
+    /**
+     * Non-static instance getters/methods declared on the model class body. They
+     * live on the runtime `_X` (inherited by the facade `X`) but are not schema
+     * fields, so they must be re-attached to the generated `Self` interface.
+     */
+    instanceMembers(cls: import("typescript").ClassDeclaration): Array<string> {
+      const out: Array<string> = []
+      for (const m of cls.members) {
+        const isStatic = (ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Static) !== 0
+        if (isStatic || !m.name || !ts.isIdentifier(m.name)) continue
+        const memberName = m.name.text
+        if (ts.isGetAccessorDeclaration(m)) {
+          const t = checker.getTypeAtLocation(m)
+          out.push(`readonly ${memberName}: ${checker.typeToString(t, m, FF)}`)
+        } else if (ts.isMethodDeclaration(m)) {
+          const t = checker.getTypeAtLocation(m)
+          out.push(`readonly ${memberName}: ${checker.typeToString(t, m, FF)}`)
+        }
+      }
+      return out
+    },
+
     /** Expand the top-level `Encoded`/`Type` interface of `schemaType` one level, nested by name. */
     member(schemaType: Type, key: "Encoded" | "Type", atNode: Node): string | null {
       const memberSym = checker.getPropertyOfType(schemaType, key)
@@ -277,11 +312,23 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
       const makeSym = checker.getPropertyOfType(schemaType, "~type.make.in")
       const typeSym = checker.getPropertyOfType(schemaType, "Type")
       if (!makeSym || !typeSym) return null
-      const makeType = checker.getTypeOfSymbolAtLocation(makeSym, atNode)
+      const rawMakeType = checker.getTypeOfSymbolAtLocation(makeSym, atNode)
       const typeType = checker.getTypeOfSymbolAtLocation(typeSym, atNode)
+      // `withConstructorDefault` makes the make-input `void | { ...all optional }`.
+      // The `void` is NOT cosmetic: effect-app's `make`/`makeEffect` key off it to
+      // make the input argument optional (a no-arg call). So we must preserve it.
+      // A union has no own properties and `interface Make extends void | {...}` is a
+      // syntax error, so when `void`/`undefined` is present we emit a TYPE ALIAS
+      // (`export type Make = { ... } | void`) — signalled by a leading `= `.
+      const isVoidish = (t: Type) => (t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) !== 0
+      const hasVoid = rawMakeType.isUnion() && rawMakeType.types.some(isVoidish)
+      const makeType = rawMakeType.isUnion()
+        ? (rawMakeType.types.find((t) => t.getProperties().length > 0) ?? rawMakeType)
+        : rawMakeType
       const makeProps = makeType.getProperties()
       if (makeProps.length === 0) {
-        return `extends ${checker.typeToString(makeType, atNode, FF)} {}`
+        const printed = checker.typeToString(rawMakeType, atNode, FF)
+        return `= ${printed}`
       }
       const typeByName = new Map(typeType.getProperties().map((p) => [p.name, p] as const))
       const body = makeProps.map((p) => {
@@ -292,7 +339,8 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         const value = printed.replace(/\.Type\b/g, ".Make")
         return `    readonly ${propKey(p.name)}${opt}: ${value}`
       }).join("\n")
-      return `{\n${body}\n  }`
+      // Leading `= ` marks a type-alias emission (model.ts emits `export type Make = ...`).
+      return hasVoid ? `= {\n${body}\n  } | void` : `{\n${body}\n  }`
     },
 
     serviceMember(schemaType: Type, key: "DecodingServices" | "EncodingServices", atNode: Node): string | null {

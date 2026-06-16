@@ -44,6 +44,33 @@ export function getExportedModelNames(code: string): Array<string> {
   return result
 }
 
+// The extends-clause text of a model's defining class — checks the private `_X`
+// (post-rewrite) first, then the exported `X` (pre-rewrite / already-facade).
+function modelExtendsWindow(code: string, name: string): string | null {
+  for (const decl of [`class _${name}`, `export class ${name}`, `class ${name}`]) {
+    const re = new RegExp(`(^|\\n)\\s*${decl.replace(/[$]/g, "\\$&")}\\b`)
+    const m = re.exec(code)
+    if (!m) continue
+    const start = m.index + m[1]!.length
+    const window = code.slice(start, start + 500)
+    const braceIdx = window.indexOf("{")
+    return braceIdx === -1 ? window : window.slice(0, braceIdx)
+  }
+  return null
+}
+
+// Models that can be turned into a shallow facade: those whose underlying schema
+// is `S.Opaque(...)` (or already an `OpaqueFacade`). `Class`/`TaggedClass`/etc.
+// models are nominal (and may carry instance methods) — leave them standard.
+export function getFacadeableModelNames(code: string): Array<string> {
+  return getExportedModelNames(code).filter((name) => {
+    const w = modelExtendsWindow(code, name)
+    if (w === null) return false
+    if (baseClassWithEncodedRe.test(w)) return false
+    return opaqueFacadeRe.test(w) || (/(?:^|[\s.])Opaque\s*</.test(w) && !contextOpaqueRe.test(w))
+  })
+}
+
 function normaliseLines(s: string): string {
   return s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")
 }
@@ -101,16 +128,27 @@ export function model(
         // clobber CLI-generated static interfaces with the conditional form.
         return meta.existingContent
       }
-      const block = resolver.generate(meta.filename, modelNames, {
-        facade: options.facade ?? false,
-        make: options.facade || (options.make ?? false),
-        type: options.facade || options.type || options.make || false
-      })
+      // In facade mode, only Opaque-struct models become facades; Class-based
+      // models (nominal, may carry methods) keep the standard namespace so a
+      // mixed file still converts its facade-able models.
+      const facadeable = options.facade ? new Set(getFacadeableModelNames(targetContent)) : null
+      const resolveNames = facadeable ? modelNames.filter((n) => facadeable.has(n)) : modelNames
+      const standardNames = facadeable ? modelNames.filter((n) => !facadeable.has(n)) : []
+      const block = resolveNames.length > 0
+        ? resolver.generate(meta.filename, resolveNames, {
+          facade: options.facade ?? false,
+          make: options.facade || (options.make ?? false),
+          type: options.facade || options.type || options.make || false
+        })
+        : ""
       if (block === null) {
         // Could not resolve (file outside program, etc.) — leave existing content.
         return meta.existingContent
       }
-      expectedContent = ["//", block, "//"].join("\n")
+      const standardBlock = standardNames.map((n) =>
+        `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
+      ).join("\n")
+      expectedContent = ["//", [block, standardBlock].filter((s) => s.length > 0).join("\n"), "//"].join("\n")
     } else {
       const them = modelNames.map((modelName) => [
         `export namespace ${modelName} {`,

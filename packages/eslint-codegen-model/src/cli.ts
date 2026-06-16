@@ -5,7 +5,7 @@ import * as path from "node:path"
 import glob from "glob"
 
 import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
-import { getExportedModelNames } from "./presets/model.js"
+import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
 import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.js"
 
 const CONFIG_FILENAMES = ["codegen.config.json"]
@@ -221,7 +221,19 @@ function syncFacadeSourceCtor(classText: string, name: string): string {
     `((?:[A-Za-z_$][\\w$]*\\.)?)(?:Opaque|OpaqueType|OpaqueShape)<\\s*(?:${n}|_${n})(?:\\.Type)?\\s*(?:,\\s*(?:${n}|_${n})\\.Encoded(?:\\s*,\\s*(?:${n}|_${n})\\.Make)?)?\\s*>`,
     "g"
   )
-  return classText.replace(re, `$1Opaque<_${name}>`)
+  const rewritten = classText.replace(re, `$1Opaque<_${name}>`)
+  // The body moves onto the private `_X`, but the public facade `X` is declared
+  // AFTER it. Member-access self-references (`X.fields`, `X.someStatic`) would be
+  // use-before-declaration, so point them at `_X` (structurally equivalent, declared
+  // first). Keep namespace TYPE members (`X.Encoded`/`Make`/`Type`/services) on `X`.
+  // NOTE: only the `X.` (member-access) form is rewritten — a bare `\bX\b` rewrite
+  // would also corrupt `TaggedStruct("X")` tag strings. Bare value self-refs
+  // (`S.decodeTo(X, ...)`) in a static body are rare; such models stay standard.
+  const selfValueRef = new RegExp(
+    `\\b${n}\\.(?!(?:Encoded|Make|Type|DecodingServices|EncodingServices)\\b)`,
+    "g"
+  )
+  return rewritten.replace(selfValueRef, `_${name}.`)
 }
 
 function facadeClassLine(name: string, prefix: string): string {
@@ -319,7 +331,12 @@ function syncModelSource(source: string): string {
       ? "type"
       : "plain"
     const modelNames = getExportedModelNames(source)
-    return facade ? syncFacade(source, modelNames, true) : syncCtor(syncFacade(source, modelNames, false), modelNames, mode)
+    if (facade) {
+      // Only rewrite Opaque-struct models into facades; leave Class-based models
+      // as-is so a mixed file still converts the facade-able ones.
+      return syncFacade(source, getFacadeableModelNames(source), true)
+    }
+    return syncCtor(syncFacade(source, modelNames, false), modelNames, mode)
   }
   return source
 }
@@ -475,31 +492,52 @@ function run() {
       preSynced.add(filePath)
     }
   }
-  let resolver: ModelTypeResolver | undefined
-  if (staticFiles.length > 0) {
-    const tsconfigPath = tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!))
-    if (!tsconfigPath) {
-      throw new Error("static model blocks require a tsconfig; pass --tsconfig <path>")
-    }
-    resolver = createModelTypeResolver({ tsconfigPath, files: staticFiles })
+  const tsconfigPath = staticFiles.length > 0
+    ? (tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!)))
+    : undefined
+  if (staticFiles.length > 0 && !tsconfigPath) {
+    throw new Error("static model blocks require a tsconfig; pass --tsconfig <path>")
   }
 
-  for (const filePath of targetFiles) {
-    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-      throw new Error(`File not found: ${filePath}`)
-    }
+  // Static/facade blocks resolve a model's generated `Encoded`/`Make`/services
+  // from its NESTED models' generated namespaces. A composite model whose nested
+  // models are generated in the same run only resolves correctly once those
+  // namespaces exist, so we iterate until the static files reach a fixed point
+  // (recreating the resolver each round to pick up freshly-written namespaces).
+  const updatedSet = new Set<string>()
+  const MAX_ROUNDS = 5
+  let round = 0
+  let changedStatic = true
+  while (round === 0 || (changedStatic && round < MAX_ROUNDS)) {
+    const firstRound = round === 0
+    round++
+    changedStatic = false
+    const resolver: ModelTypeResolver | undefined = tsconfigPath
+      ? createModelTypeResolver({ tsconfigPath, files: staticFiles })
+      : undefined
 
-    const source = fs.readFileSync(filePath, "utf8")
-    if (!source.includes("// codegen:start")) {
-      continue
+    // First round: process every target (incl. non-static presets). Later rounds:
+    // only re-resolve static files (the rest are already at a fixed point).
+    const filesThisRound = firstRound ? targetFiles : staticFiles
+    for (const filePath of filesThisRound) {
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+        throw new Error(`File not found: ${filePath}`)
+      }
+      const source = fs.readFileSync(filePath, "utf8")
+      if (!source.includes("// codegen:start")) continue
+      if (updateFile(filePath, source, defaults, resolver)) {
+        updatedSet.add(path.relative(process.cwd(), filePath))
+        if (staticFiles.includes(filePath)) changedStatic = true
+      } else if (firstRound && preSynced.has(filePath)) {
+        updatedSet.add(path.relative(process.cwd(), filePath))
+      }
     }
-
-    if (updateFile(filePath, source, defaults, resolver)) {
-      updated.push(path.relative(process.cwd(), filePath))
-    } else if (preSynced.has(filePath)) {
-      updated.push(path.relative(process.cwd(), filePath))
-    } else {
-      untouched.push(path.relative(process.cwd(), filePath))
+  }
+  for (const f of updatedSet) updated.push(f)
+  for (const f of targetFiles) {
+    const rel = path.relative(process.cwd(), f)
+    if (!updatedSet.has(rel) && fs.existsSync(f) && fs.readFileSync(f, "utf8").includes("// codegen:start")) {
+      untouched.push(rel)
     }
   }
 

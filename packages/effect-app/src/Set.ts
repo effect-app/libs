@@ -6,7 +6,7 @@ import * as Option from "effect/Option"
 import type * as Order from "effect/Order"
 import { not } from "effect/Predicate"
 import type * as Result from "effect/Result"
-import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.js"
+import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.ts"
 
 export function find_<A, B extends A>(
   as: ReadonlySet<A>,

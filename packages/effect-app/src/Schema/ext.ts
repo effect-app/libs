@@ -40,10 +40,10 @@ import { isDateValid } from "effect/Schema"
 import type * as SchemaAST from "effect/SchemaAST"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { type NonEmptyReadonlyArray } from "../Array.js"
-import * as Context from "../Context.js"
-import { extendM, typedKeysOf } from "../utils.js"
-import { type AST } from "./schema.js"
+import { type NonEmptyReadonlyArray } from "../Array.ts"
+import * as Context from "../Context.ts"
+import { extendM, typedKeysOf } from "../utils.ts"
+import { type AST } from "./schema.ts"
 
 type ProvidedCodec<Self extends S.Top, R> = S.Codec<
   Self["Type"],

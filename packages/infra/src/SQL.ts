@@ -1,1 +1,1 @@
-export * as SQLModel from "./SQL/Model.js"
+export * as SQLModel from "./SQL/Model.ts"

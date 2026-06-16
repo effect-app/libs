@@ -22,10 +22,10 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
-import { Confirm } from "./confirm.js"
-import { I18n } from "./intl.js"
-import { CurrentToastId, Toast } from "./toast.js"
-import { WithToast } from "./withToast.js"
+import { Confirm } from "./confirm.ts"
+import { I18n } from "./intl.ts"
+import { CurrentToastId, Toast } from "./toast.ts"
+import { WithToast } from "./withToast.ts"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
 

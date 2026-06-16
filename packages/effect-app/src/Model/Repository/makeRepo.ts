@@ -4,19 +4,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// import type { ParserEnv } from "../../Schema/custom/Parser.js"
+// import type { ParserEnv } from "../../Schema/custom/Parser.ts"
 
 import type * as Scope from "effect/Scope"
-import type { NonEmptyReadonlyArray } from "../../Array.js"
-import type * as Context from "../../Context.js"
-import * as Effect from "../../Effect.js"
-import type * as S from "../../Schema.js"
-import type { StoreConfig, StoreMaker } from "../../Store.js"
-import type { FieldValues } from "../filter/types.js"
-import { type ExtendedRepository, extendRepo } from "./ext.js"
-import { makeRepoInternal } from "./internal/internal.js"
-import { RepositoryRegistry } from "./Registry.js"
-import type { Repository } from "./service.js"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import type * as Context from "../../Context.ts"
+import * as Effect from "../../Effect.ts"
+import type * as S from "../../Schema.ts"
+import type { StoreConfig, StoreMaker } from "../../Store.ts"
+import type { FieldValues } from "../filter/types.ts"
+import { type ExtendedRepository, extendRepo } from "./ext.ts"
+import { makeRepoInternal } from "./internal/internal.ts"
+import { RepositoryRegistry } from "./Registry.ts"
+import type { Repository } from "./service.ts"
 
 export interface RepositoryOptions<
   IdKey extends keyof T & keyof Encoded,

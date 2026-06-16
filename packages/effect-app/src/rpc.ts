@@ -1,4 +1,4 @@
-export * as Invalidation from "./rpc/Invalidation.js"
-export * as MiddlewareMaker from "./rpc/MiddlewareMaker.js"
-export * as RpcContextMap from "./rpc/RpcContextMap.js"
-export * as RpcMiddleware from "./rpc/RpcMiddleware.js"
+export * as Invalidation from "./rpc/Invalidation.ts"
+export * as MiddlewareMaker from "./rpc/MiddlewareMaker.ts"
+export * as RpcContextMap from "./rpc/RpcContextMap.ts"
+export * as RpcMiddleware from "./rpc/RpcMiddleware.ts"

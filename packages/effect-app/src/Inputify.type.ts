@@ -1,6 +1,6 @@
 import type { BuiltInObject } from "effect-app/utils"
 
-import type { Primitive } from "./Widen.type.js"
+import type { Primitive } from "./Widen.type.ts"
 
 // Get rid of Date | string, and replace with Date | null
 export type Inputify<T> = Date extends T ? string extends T ? Date | null

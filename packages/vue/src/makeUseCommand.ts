@@ -1,6 +1,6 @@
 import * as Effect from "effect-app/Effect"
 import type * as Layer from "effect-app/Layer"
-import { Commander, type CommanderImpl, CommanderStatic } from "./commander.js"
+import { Commander, type CommanderImpl, CommanderStatic } from "./commander.ts"
 
 type X<X> = X
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Context from "effect-app/Context"
-import { RpcMiddleware } from "./rpc.js"
+import { RpcMiddleware } from "./rpc.ts"
 
 export class DevMode extends Context.Reference("DevMode", { defaultValue: () => false }) {}
 

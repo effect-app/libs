@@ -3,7 +3,7 @@ import { spanAttributes } from "effect-app/RequestContext"
 import * as Cause from "effect/Cause"
 import * as Logger from "effect/Logger"
 import { CurrentLogAnnotations, CurrentLogSpans } from "effect/References"
-import { getRequestContextFromFiber } from "./shared.js"
+import { getRequestContextFromFiber } from "./shared.ts"
 
 export const jsonLogger = Logger.make<unknown, void>(
   ({ cause, date, fiber, logLevel, message }) => {

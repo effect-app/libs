@@ -59,9 +59,9 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && pnpm check",
+    "build:tsc": "pnpm clean-dist && pnpm check && node ../../scripts/rewrite-dist-declaration-imports.mjs dist",
     "check": "tsgo --build",
-    "build:tsc-src": "pnpm clean-dist && tsc --build ./tsconfig.src.json",
+    "build:tsc-src": "pnpm clean-dist && tsc --build ./tsconfig.src.json && node ../../scripts/rewrite-dist-declaration-imports.mjs dist",
     "build:src": "pnpm build:tsc-src",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsgo -w",

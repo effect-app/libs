@@ -8,8 +8,8 @@ import type * as Scope from "effect/Scope"
 import type * as Stream from "effect/Stream"
 import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
 import { type TypeId } from "effect/unstable/rpc/RpcMiddleware"
-import type * as Context from "../Context.js"
-import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
+import type * as Context from "../Context.ts"
+import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.ts"
 
 export type RpcMiddlewareV4<Provides, E, Requires> = RpcMiddleware.RpcMiddleware<Provides, E, Requires>
 

@@ -10,8 +10,8 @@ import * as Option from "effect/Option"
 import { isFunction } from "effect/Predicate"
 import * as Record from "effect/Record"
 import * as Result from "effect/Result"
-import { identity, pipe } from "./Function.js"
-import type { DeepMutable, Equals, Mutable } from "./Types.js"
+import { identity, pipe } from "./Function.ts"
+import type { DeepMutable, Equals, Mutable } from "./Types.ts"
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.ts"

@@ -18,10 +18,10 @@ import * as Ref from "effect/Ref"
 import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/unstable/rpc"
-import { type LayerUtils } from "./layerUtils.js"
-import { RequestType as RequestTypeAnnotation } from "./routing/middleware.js"
+import { type LayerUtils } from "./layerUtils.ts"
+import { RequestType as RequestTypeAnnotation } from "./routing/middleware.ts"
 
-export * from "./routing/middleware.js"
+export * from "./routing/middleware.ts"
 
 export const applyRequestTypeInterruptibility = <A, E, R>(
   requestType: "command" | "query",

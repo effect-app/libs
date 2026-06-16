@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as Scope from "effect/Scope"
-import type { DatabaseError, InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.js"
-import type * as Effect from "../../Effect.js"
-import type * as Option from "../../Option.js"
-import type * as S from "../../Schema.js"
-import type { NonNegativeInt } from "../../Schema/numbers.js"
-import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
-import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
-import type { Mapped } from "./legacy.js"
-import type { ValidationResult } from "./validation.js"
+import type { DatabaseError, InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.ts"
+import type * as Effect from "../../Effect.ts"
+import type * as Option from "../../Option.ts"
+import type * as S from "../../Schema.ts"
+import type { NonNegativeInt } from "../../Schema/numbers.ts"
+import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.ts"
+import type { QAll, Query, QueryProjection, RawQuery } from "../query.ts"
+import type { Mapped } from "./legacy.ts"
+import type { ValidationResult } from "./validation.ts"
 
 /**
  * Event emitted by a repository's ChangeFeed.

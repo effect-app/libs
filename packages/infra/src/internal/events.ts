@@ -7,7 +7,7 @@ import * as Duration from "effect/Duration"
 import { pipe } from "effect/Function"
 import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
-import { reportError } from "../errorReporter.js"
+import { reportError } from "../errorReporter.ts"
 
 // Tell the client to retry every 10 seconds if connectivity is lost
 const setRetry = Stream.succeed("retry: 10000")

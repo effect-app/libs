@@ -3,13 +3,13 @@ import * as SchemaAST from "effect/SchemaAST"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
-import type { NonEmptyReadonlyArray } from "./Array.js"
-import { fakerArb } from "./faker.js"
-import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
-import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.js"
-import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
-import { type AST } from "./Schema/schema.js"
-import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import { fakerArb } from "./faker.ts"
+import { Email as EmailT, type Email as EmailType } from "./Schema/email.ts"
+import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.ts"
+import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.ts"
+import { type AST } from "./Schema/schema.ts"
+import { copy, extendM, type StructuralCopyOrigin } from "./utils.ts"
 
 // ---------------------------------------------------------------------------
 // Default helpers — re-exported from effect/Schema
@@ -109,23 +109,23 @@ export { withDecodingDefaultTypeKey } from "effect/Schema"
 
 export * from "effect/Schema"
 
-export * from "./Schema/Class.js"
-export { Class, ErrorClass, Opaque, TaggedClass, TaggedErrorClass } from "./Schema/Class.js"
+export * from "./Schema/Class.ts"
+export { Class, ErrorClass, Opaque, TaggedClass, TaggedErrorClass } from "./Schema/Class.ts"
 
-export { fromBrand, nominal } from "./Schema/brand.js"
-export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.js"
-export { Int, NonNegativeInt } from "./Schema/numbers.js"
+export { fromBrand, nominal } from "./Schema/brand.ts"
+export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.ts"
+export { Int, NonNegativeInt } from "./Schema/numbers.ts"
 
-export * from "./Schema/email.js"
-export * from "./Schema/ext.js"
-export * from "./Schema/moreStrings.js"
-export * from "./Schema/numbers.js"
-export * from "./Schema/phoneNumber.js"
-export * from "./Schema/schema.js"
-export * from "./Schema/SpecialJsonSchema.js"
-export * from "./Schema/SpecialOpenApi.js"
-export * from "./Schema/strings.js"
-export { NonEmptyString } from "./Schema/strings.js"
+export * from "./Schema/email.ts"
+export * from "./Schema/ext.ts"
+export * from "./Schema/moreStrings.ts"
+export * from "./Schema/numbers.ts"
+export * from "./Schema/phoneNumber.ts"
+export * from "./Schema/schema.ts"
+export * from "./Schema/SpecialJsonSchema.ts"
+export * from "./Schema/SpecialOpenApi.ts"
+export * from "./Schema/strings.ts"
+export { NonEmptyString } from "./Schema/strings.ts"
 
 export * as SchemaIssue from "effect/SchemaIssue"
 
@@ -133,7 +133,7 @@ export const decodeEffectConcurrently: typeof S.decodeEffect = withDefaultParseO
 export const decodeUnknownEffectConcurrently: typeof S.decodeUnknownEffect = withDefaultParseOptions(
   S.decodeUnknownEffect
 )
-export * as SchemaParser from "./Schema/SchemaParser.js"
+export * as SchemaParser from "./Schema/SchemaParser.ts"
 
 export { Void as Void_ } from "effect/Schema"
 

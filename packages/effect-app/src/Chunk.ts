@@ -1,9 +1,9 @@
-import { pipe, type Predicate, type Refinement } from "./Function.js"
-import * as Option from "./Option.js"
+import { pipe, type Predicate, type Refinement } from "./Function.ts"
+import * as Option from "./Option.ts"
 
 import * as Chunk from "effect/Chunk"
 import { type Equivalence } from "effect/Equivalence"
-import * as Array from "./Array.js"
+import * as Array from "./Array.ts"
 
 export * from "effect/Chunk"
 

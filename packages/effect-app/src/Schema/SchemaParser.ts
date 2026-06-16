@@ -1,5 +1,5 @@
 import * as SchemaParser from "effect/SchemaParser"
-import { withDefaultParseOptions } from "./ext.js"
+import { withDefaultParseOptions } from "./ext.ts"
 
 export * from "effect/SchemaParser"
 

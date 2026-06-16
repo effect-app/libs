@@ -4,8 +4,8 @@ import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
 import type * as Types from "effect/Types"
-import type * as Context from "./Context.js"
-import { type EffectGenUtils } from "./utils/gen.js"
+import type * as Context from "./Context.ts"
+import { type EffectGenUtils } from "./utils/gen.ts"
 
 export * from "effect/Layer"
 

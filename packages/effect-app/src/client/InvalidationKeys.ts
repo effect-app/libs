@@ -1,7 +1,7 @@
 import * as Ref from "effect/Ref"
-import * as Context from "../Context.js"
-import * as Effect from "../Effect.js"
-import type { InvalidationKey } from "../rpc/Invalidation.js"
+import * as Context from "../Context.ts"
+import * as Effect from "../Effect.ts"
+import type { InvalidationKey } from "../rpc/Invalidation.ts"
 
 export type { InvalidationKey }
 /** Shape of the per-mutation service that accumulates server-provided invalidation keys. */

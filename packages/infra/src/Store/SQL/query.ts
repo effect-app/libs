@@ -4,8 +4,8 @@ import * as Effect from "effect-app/Effect"
 import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import { assertUnreachable } from "effect-app/utils"
-import { InfraLogger } from "../../logger.js"
-import { isRelationCheck } from "../codeFilter.js"
+import { InfraLogger } from "../../logger.ts"
+import { isRelationCheck } from "../codeFilter.ts"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string

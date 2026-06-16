@@ -14,11 +14,11 @@ import * as Duration from "effect/Duration"
 import { pipe } from "effect/Function"
 import * as Redacted from "effect/Redacted"
 import * as Struct from "effect/Struct"
-import { CosmosClient, CosmosClientLayer } from "../cosmos-client.js"
-import { DatabaseError, OptimisticConcurrencyException } from "../errors.js"
-import { InfraLogger } from "../logger.js"
-import { annotateCosmosResponse, annotateDb } from "../otel.js"
-import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
+import { CosmosClient, CosmosClientLayer } from "../cosmos-client.ts"
+import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
+import { InfraLogger } from "../logger.ts"
+import { annotateCosmosResponse, annotateDb } from "../otel.ts"
+import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
 
 const makeMapId =
   <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) => ({ [idKey]: id, ...e }: Encoded) => ({

@@ -9,6 +9,7 @@
  */
 import crypto from "crypto" // TODO
 import type { Brand } from "effect/Brand"
+import type * as Cause from "effect/Cause"
 import * as DateTime from "effect/DateTime"
 import type { Input } from "effect/Duration"
 import * as Effect from "effect/Effect"
@@ -22,6 +23,7 @@ import * as Transformation from "effect/SchemaTransformation"
 import type { Scope } from "effect/Scope"
 import * as VariantSchema from "effect/unstable/schema/VariantSchema"
 import { SqlClient } from "effect/unstable/sql/SqlClient"
+import type { SqlError } from "effect/unstable/sql/SqlError"
 import * as SqlResolver from "effect/unstable/sql/SqlResolver"
 import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 import { type DbSystem, withDbSpan } from "../otel.js"
@@ -602,26 +604,34 @@ export const makeRepository = <
   {
     readonly insert: (
       insert: S["insert"]["Type"]
-    ) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["insert"]["EncodingServices"]>
+    ) => Effect.Effect<
+      S["Type"],
+      Schema.SchemaError | SqlError,
+      S["DecodingServices"] | S["insert"]["EncodingServices"]
+    >
     readonly insertVoid: (
       insert: S["insert"]["Type"]
-    ) => Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]>
+    ) => Effect.Effect<void, Schema.SchemaError | SqlError, S["insert"]["EncodingServices"]>
     readonly update: (
       update: S["update"]["Type"]
-    ) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["update"]["EncodingServices"]>
+    ) => Effect.Effect<
+      S["Type"],
+      Schema.SchemaError | SqlError,
+      S["DecodingServices"] | S["update"]["EncodingServices"]
+    >
     readonly updateVoid: (
       update: S["update"]["Type"]
-    ) => Effect.Effect<void, Schema.SchemaError, S["update"]["EncodingServices"]>
+    ) => Effect.Effect<void, Schema.SchemaError | SqlError, S["update"]["EncodingServices"]>
     readonly findById: (
       id: S["fields"][Id]["Type"]
     ) => Effect.Effect<
       Option.Option<S["Type"]>,
-      Schema.SchemaError,
+      Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     >
     readonly delete: (
       id: S["fields"][Id]["Type"]
-    ) => Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]>
+    ) => Effect.Effect<void, Schema.SchemaError | SqlError, S["fields"][Id]["EncodingServices"]>
   },
   never,
   SqlClient
@@ -658,11 +668,15 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     })
     const insert = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["insert"]["EncodingServices"]> =>
+    ): Effect.Effect<
+      S["Type"],
+      Schema.SchemaError | SqlError,
+      S["DecodingServices"] | S["insert"]["EncodingServices"]
+    > =>
       insertSchema(insert).pipe(
         Effect.catchTag("NoSuchElementError", Effect.die),
         opSpan("insert")
-      ) as any
+      )
 
     const insertVoidSchema = SqlSchema.void({
       Request: Model.insert,
@@ -670,10 +684,10 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     })
     const insertVoid = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
+    ): Effect.Effect<void, Schema.SchemaError | SqlError, S["insert"]["EncodingServices"]> =>
       insertVoidSchema(insert).pipe(
         opSpan("insertVoid")
-      ) as any
+      )
 
     const updateSchema = SqlSchema.findOne({
       Request: Model.update,
@@ -716,11 +730,15 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     })
     const update = (
       update: S["update"]["Type"]
-    ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["update"]["EncodingServices"]> =>
+    ): Effect.Effect<
+      S["Type"],
+      Schema.SchemaError | SqlError,
+      S["DecodingServices"] | S["update"]["EncodingServices"]
+    > =>
       updateSchema(update).pipe(
         Effect.catchTag("NoSuchElementError", Effect.die),
         opSpan("update", (update as any)[idColumn])
-      ) as any
+      )
 
     const updateVoidSchema = SqlSchema.void({
       Request: Model.update,
@@ -736,10 +754,10 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     })
     const updateVoid = (
       update: S["update"]["Type"]
-    ): Effect.Effect<void, Schema.SchemaError, S["update"]["EncodingServices"]> =>
+    ): Effect.Effect<void, Schema.SchemaError | SqlError, S["update"]["EncodingServices"]> =>
       updateVoidSchema(update).pipe(
         opSpan("updateVoid", (update as any)[idColumn])
-      ) as any
+      )
 
     const findByIdSchema = SqlSchema.findOneOption({
       Request: idSchema,
@@ -750,12 +768,12 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<
       Option.Option<S["Type"]>,
-      Schema.SchemaError,
+      Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdSchema(id).pipe(
         opSpan("findById", id)
-      ) as any
+      )
 
     const deleteSchema = SqlSchema.void({
       Request: idSchema,
@@ -763,10 +781,10 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     })
     const delete_ = (
       id: S["fields"][Id]["Type"]
-    ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
+    ): Effect.Effect<void, Schema.SchemaError | SqlError, S["fields"][Id]["EncodingServices"]> =>
       deleteSchema(id).pipe(
         opSpan("delete", id)
-      ) as any
+      )
 
     return { insert, insertVoid, update, updateVoid, findById, delete: delete_ } as const
   })
@@ -796,22 +814,22 @@ export const makeDataLoaders = <
       insert: S["insert"]["Type"]
     ) => Effect.Effect<
       S["Type"],
-      Schema.SchemaError,
+      Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["insert"]["EncodingServices"]
     >
     readonly insertVoid: (
       insert: S["insert"]["Type"]
-    ) => Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]>
+    ) => Effect.Effect<void, Schema.SchemaError | SqlError, S["insert"]["EncodingServices"]>
     readonly findById: (
       id: S["fields"][Id]["Type"]
     ) => Effect.Effect<
       S["Type"],
-      Schema.SchemaError,
+      Cause.NoSuchElementError | Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     >
     readonly delete: (
       id: S["fields"][Id]["Type"]
-    ) => Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]>
+    ) => Effect.Effect<void, Schema.SchemaError | SqlError, S["fields"][Id]["EncodingServices"]>
   },
   never,
   SqlClient | Scope
@@ -858,13 +876,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       insert: S["insert"]["Type"]
     ): Effect.Effect<
       S["Type"],
-      Schema.SchemaError,
+      Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["insert"]["EncodingServices"]
     > =>
       insertExecute(insert).pipe(
         Effect.catchTag("ResultLengthMismatch", Effect.die),
         opSpan("insert")
-      ) as any
+      )
 
     const insertVoidResolver = SqlResolver
       .void({
@@ -879,10 +897,10 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     const insertVoidExecute = SqlResolver.request(insertVoidResolver)
     const insertVoid = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
+    ): Effect.Effect<void, Schema.SchemaError | SqlError, S["insert"]["EncodingServices"]> =>
       insertVoidExecute(insert).pipe(
         opSpan("insertVoid")
-      ) as any
+      )
 
     const findByIdResolver = SqlResolver
       .findById({
@@ -903,12 +921,12 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<
       S["Type"],
-      Schema.SchemaError,
+      Cause.NoSuchElementError | Schema.SchemaError | SqlError,
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdExecute(id).pipe(
         opSpan("findById", id)
-      ) as any
+      )
 
     const deleteResolver = SqlResolver
       .void({
@@ -923,10 +941,10 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     const deleteExecute = SqlResolver.request(deleteResolver)
     const delete_ = (
       id: S["fields"][Id]["Type"]
-    ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
+    ): Effect.Effect<void, Schema.SchemaError | SqlError, S["fields"][Id]["EncodingServices"]> =>
       deleteExecute(id).pipe(
         opSpan("delete", id)
-      ) as any
+      )
 
     return { insert, insertVoid, findById, delete: delete_ } as const
   })

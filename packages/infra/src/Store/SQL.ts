@@ -147,7 +147,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
             .pipe(
               Effect.orDie,
-              Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+              Effect.map((_) => _ as NonEmptyReadonlyArray<PM>)
             )
 
         const ctx = yield* Effect.context<R>()
@@ -478,7 +478,7 @@ function makeSQLiteStorePerNs(
             .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
             .pipe(
               Effect.orDie,
-              Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+              Effect.map((_) => _ as NonEmptyReadonlyArray<PM>)
             ))
 
       const ctx = yield* Effect.context<R>()

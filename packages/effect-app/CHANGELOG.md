@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.268
+
+### Patch Changes
+
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+
 ## 4.0.0-beta.267
 
 ### Minor Changes

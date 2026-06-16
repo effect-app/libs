@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.268
+
+### Patch Changes
+
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+- Updated dependencies [acfdc9e]
+  - effect-app@4.0.0-beta.268
+
 ## 4.0.0-beta.267
 
 ### Patch Changes

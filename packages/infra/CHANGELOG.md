@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.268
+
+### Patch Changes
+
+- 38289e0: Break the circular dependency between the memory store and code filter modules.
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+- Updated dependencies [acfdc9e]
+  - effect-app@4.0.0-beta.268
+
 ## 4.0.0-beta.267
 
 ### Minor Changes

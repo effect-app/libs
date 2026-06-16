@@ -157,6 +157,45 @@ export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticC
   }
 }
 
+/**
+ * Raised by a store adapter when a database operation fails for an
+ * infrastructure reason (request timeout, throttle, 5xx, dropped socket, or any
+ * non-conflict error). Distinct from `OptimisticConcurrencyException`, which is
+ * an expected etag conflict.
+ *
+ * `transient` is set by the adapter for failures worth retrying (timeout /
+ * throttle / 5xx / network). `cause` is the underlying adapter error, carried
+ * through a `Defect` schema so it serializes (an `Error` encodes to
+ * `{ name, message, cause }`) instead of breaking JSON encoding of the channel.
+ *
+ * Treated by the api/client/FE machinery like an unexpected (500-class) error.
+ */
+export class DatabaseError extends TaggedErrorClass<DatabaseError>()(
+  "DatabaseError",
+  {
+    message: S.String,
+    transient: S.Boolean,
+    cause: S.optional(S.Defect())
+  }
+) {
+  constructor(
+    args: { message?: string; transient?: boolean; cause?: unknown },
+    disableValidation?: boolean
+  ) {
+    super(
+      {
+        message: args.message ?? "Database operation failed",
+        transient: args.transient ?? false,
+        cause: args.cause
+      },
+      disableValidation as any
+    )
+  }
+  override toString() {
+    return `DatabaseError: ${this.message}`
+  }
+}
+
 const MutationOnlyErrors = [
   InvalidStateError,
   OptimisticConcurrencyException
@@ -168,7 +207,8 @@ const GeneralErrors = [
   LoginError,
   UnauthorizedError,
   ValidationError,
-  ServiceUnavailableError
+  ServiceUnavailableError,
+  DatabaseError
 ] as const
 
 export const SupportedErrors = S.Union([

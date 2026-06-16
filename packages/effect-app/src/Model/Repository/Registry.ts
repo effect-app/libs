@@ -1,8 +1,9 @@
+import type { DatabaseError } from "../../client/errors.js"
 import * as Context from "../../Context.js"
 import * as Effect from "../../Effect.js"
 
 export interface RegisteredRepository {
-  readonly seedNamespace: (namespace: string) => Effect.Effect<void>
+  readonly seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
 }
 
 const make = Effect.sync(() => {
@@ -27,7 +28,7 @@ const make = Effect.sync(() => {
 
 export class RepositoryRegistry extends Context.Opaque<RepositoryRegistry, {
   readonly register: (modelName: string, repo: RegisteredRepository) => void
-  readonly seedNamespace: (namespace: string) => Effect.Effect<void>
+  readonly seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
   readonly entries: ReadonlyMap<string, RegisteredRepository>
 }>()("effect-app/RepositoryRegistry", { make }) {}
 

@@ -12,11 +12,19 @@ import * as Layer from "effect/Layer"
 import * as LayerMap from "effect/LayerMap"
 import * as Struct from "effect/Struct"
 import { SqlClient } from "effect/unstable/sql"
-import { OptimisticConcurrencyException } from "../errors.js"
+import { DatabaseError, OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import { annotateDb, type DbSystem } from "../otel.js"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
 import { makeETag } from "./utils.js"
+
+const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
+const sqlIsTransient = (e: unknown) =>
+  /timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|connection|deadlock|too many connections/i.test(sqlErrorMessage(e))
+// Map a SqlError into a typed, serializable DatabaseError (instead of `.orDie`,
+// which would turn it into an opaque, non-serializable defect).
+const toDatabaseError = (e: unknown) =>
+  new DatabaseError({ message: `SQL request failed: ${sqlErrorMessage(e)}`, transient: sqlIsTransient(e), cause: e })
 
 export type WithNsTransactionFn = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 
@@ -101,7 +109,8 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           return { id, _etag: newE._etag!, data, item: newE }
         }
 
-        const exec = (query: string, params?: readonly unknown[]) => sql.unsafe(query, params as any).pipe(Effect.orDie)
+        const exec = (query: string, params?: readonly unknown[]) =>
+          sql.unsafe(query, params as any).pipe(Effect.mapError(toDatabaseError))
 
         const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
           const row = toRow(e)
@@ -151,7 +160,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             )
 
         const ctx = yield* Effect.context<R>()
-        const seedCache = new Map<string, Effect.Effect<void>>()
+        const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
         const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
           yield* ensureTable
           if (!seed) return
@@ -365,8 +374,10 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             )
         }
 
-        // Eagerly seed primary namespace on initialization
-        yield* seedNamespace("primary")
+        // Eagerly seed primary namespace on initialization. A seed failure at
+        // construction is fatal (orDie); the per-call `seedNamespace` still
+        // surfaces DatabaseError to callers.
+        yield* seedNamespace("primary").pipe(Effect.orDie)
 
         return s
       })
@@ -412,7 +423,7 @@ function makeSQLiteStorePerNs(
       }
 
       const exec = (ns: string, query: string, params?: readonly unknown[]) =>
-        withNsSql(ns, (sql) => sql.unsafe(query, params as any).pipe(Effect.orDie))
+        withNsSql(ns, (sql) => sql.unsafe(query, params as any).pipe(Effect.mapError(toDatabaseError)))
 
       const ensureTable = (ns: string) =>
         withNsSql(ns, (sql) =>
@@ -482,7 +493,7 @@ function makeSQLiteStorePerNs(
             ))
 
       const ctx = yield* Effect.context<R>()
-      const seedCache = new Map<string, Effect.Effect<void>>()
+      const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
       const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
         yield* ensureTable(ns)
         if (!seed) return
@@ -696,7 +707,7 @@ function makeSQLiteStorePerNs(
           )
       }
 
-      yield* seedNamespace("primary")
+      yield* seedNamespace("primary").pipe(Effect.orDie)
 
       return s
     })

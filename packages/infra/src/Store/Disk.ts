@@ -175,7 +175,9 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
-        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
+        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues).pipe(
+          Effect.orDie
+        )
         const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
         const ctx = yield* Effect.context<R>()
         const semaphores = new Map<string, Semaphore.Semaphore>()

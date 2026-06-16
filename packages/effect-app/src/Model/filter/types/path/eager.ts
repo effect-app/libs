@@ -44,7 +44,7 @@ export type Path<T, Seen = never> = T extends ReadonlyArray<infer V> ? IsTuple<T
  */
 export type FieldPath<TFieldValues extends FieldValues> = Path<TFieldValues>
 
-export namespace PathRecursionTests {
+{
   // Regression: self-referential types must terminate instead of blowing past
   // TS's instantiation limit (TS2589). `JsonLike` mirrors effect's `Json` — the
   // encoded form of `Schema.Defect()` — whose `{ [x: string]: Json }` index
@@ -57,12 +57,14 @@ export namespace PathRecursionTests {
     | null
     | ReadonlyArray<JsonLike>
     | { readonly [x: string]: JsonLike }
-  export type _RawDefect = Path<{ id: string; raw: JsonLike }>
-  export type _NestedDefect = Path<{ a: { b: { error: { raw: JsonLike } } } }>
-  export type _ArrayOfDefect = Path<{ items: ReadonlyArray<{ raw: JsonLike }> }>
+  type _RawDefect = Path<{ id: string; raw: JsonLike }>
+  type _NestedDefect = Path<{ a: { b: { error: { raw: JsonLike } } } }>
+  type _ArrayOfDefect = Path<{ items: ReadonlyArray<{ raw: JsonLike }> }>
   // finite paths are still produced
   expectTypeOf<"id">().toExtend<_RawDefect>()
   expectTypeOf<"raw">().toExtend<_RawDefect>()
+  expectTypeOf<"a.b.error.raw">().toExtend<_NestedDefect>()
+  expectTypeOf<`items.${number}.raw`>().toExtend<_ArrayOfDefect>()
 }
 
 /**
@@ -191,7 +193,7 @@ export type RefineFieldPathValue<
   Exclde extends boolean = false
 > = EraseNeverContainingUnionElements<RefinePathValue<TFieldValues, TFieldPath, X, Exclde>>
 
-export namespace RefinePathValueTests {
+{
   type test1 = RefineFieldPathValue<{ a: { b: "tag1"; v1: string } | { b: "tag2"; v2: number } }, "a.b", "tag1">
   expectTypeOf<test1>().toEqualTypeOf<{ a: { b: "tag1"; v1: string } }>()
 
@@ -259,7 +261,7 @@ export namespace RefinePathValueTests {
   }>()
 }
 
-export namespace SetFieldPathValueTests {
+{
   type test1 = SetFieldPathValue<{ foo: { bar: string[] } }, `foo.bar`, boolean>
   expectTypeOf<test1>().toEqualTypeOf<{ foo: { bar: boolean } }>()
 

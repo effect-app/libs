@@ -329,7 +329,10 @@ export const useMutationInt = (): typeof _useMutation => {
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
 export class QueryImpl<R> {
-  constructor(readonly getRuntime: () => Context.Context<R>) {
+  readonly getRuntime: () => Context.Context<R>
+
+  constructor(getRuntime: () => Context.Context<R>) {
+    this.getRuntime = getRuntime
     this.useQuery = makeQuery(this.getRuntime)
     this.useStreamQuery = makeStreamQuery(this.getRuntime)
   }

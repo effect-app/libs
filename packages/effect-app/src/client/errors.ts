@@ -243,11 +243,16 @@ export const silenceError = (e: Record<PropertyKey, any>) => {
 }
 
 export class CauseException<E> extends Error {
-  constructor(readonly originalCause: Cause.Cause<E>, readonly _tag: string) {
+  readonly originalCause: Cause.Cause<E>
+  readonly _tag: string
+
+  constructor(originalCause: Cause.Cause<E>, _tag: string) {
     const limit = Error.stackTraceLimit
     Error.stackTraceLimit = 0
     super()
     Error.stackTraceLimit = limit
+    this.originalCause = originalCause
+    this._tag = _tag
     this.cause = Cause.squash(originalCause)
     // v4: makeFiberFailure removed — use Cause.prettyErrors instead
     const errors = Cause.prettyErrors(originalCause)

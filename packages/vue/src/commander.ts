@@ -2530,11 +2530,18 @@ const getStateValues = <
 
 // class preserves JSDoc throughout..
 export class CommanderImpl<RT, RTHooks> {
+  private readonly rt: Context.Context<RT>
+  private readonly intl: I18n
+  private readonly hooks: Layer.Layer<RTHooks, never, RT>
+
   constructor(
-    private readonly rt: Context.Context<RT>,
-    private readonly intl: I18n,
-    private readonly hooks: Layer.Layer<RTHooks, never, RT>
+    rt: Context.Context<RT>,
+    intl: I18n,
+    hooks: Layer.Layer<RTHooks, never, RT>
   ) {
+    this.rt = rt
+    this.intl = intl
+    this.hooks = hooks
   }
 
   readonly makeContext = <const Id extends string, const I18nKey extends string = Id>(

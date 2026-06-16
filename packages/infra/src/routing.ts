@@ -61,12 +61,10 @@ export interface AddAction<Actions extends AnyRequestModule, Accum extends Recor
 // note:
 // "d" stands for decoded i.e. the Type
 // "raw" stands for encoded i.e. the Encoded
-namespace RequestTypes {
-  export const DECODED = "d" as const
-  export type DECODED = typeof DECODED
-  export const RAW = "raw" as const
-  export type RAW = typeof RAW
-}
+const RequestTypes = {
+  DECODED: "d",
+  RAW: "raw"
+} as const
 type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
 type GetSuccess<T> = T extends { success: S.Top } ? T["success"] : typeof S.Void
@@ -168,7 +166,7 @@ export type RouteMatcher<
    * Requires the Type shape
    */
   [Key in keyof FilterRequestModules<Resource>]:
-    & Match<Resource, RequestContextMap, RequestTypes.DECODED, Key>
+    & Match<Resource, RequestContextMap, typeof RequestTypes.DECODED, Key>
     & {
       success: Resource[Key]["success"]
       successRaw: S.Codec<Resource[Key]["success"]["Encoded"]>
@@ -176,7 +174,7 @@ export type RouteMatcher<
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
        */
-      raw: Match<Resource, RequestContextMap, RequestTypes.RAW, Key>
+      raw: Match<Resource, RequestContextMap, typeof RequestTypes.RAW, Key>
     }
 }
 
@@ -308,13 +306,13 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
       ? HandlerWithInputStream<Action, RT>
       : HandlerWithInputGen<Action, RT> | HandlerWithInputEff<Action, RT>
 
-    type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
+    type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, typeof RequestTypes.DECODED>
 
     type HandlersRaw<Action extends AnyRequestModule> = Action extends { stream: true }
-      ? { raw: HandlerWithInputStream<Action, RequestTypes.RAW> }
+      ? { raw: HandlerWithInputStream<Action, typeof RequestTypes.RAW> }
       :
-        | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
-        | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
+        | { raw: HandlerWithInputGen<Action, typeof RequestTypes.RAW> }
+        | { raw: HandlerWithInputEff<Action, typeof RequestTypes.RAW> }
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
@@ -374,7 +372,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
     ) => {
       [K in keyof Impl & keyof FilterRequestModules<Resource>]: Handler<
         FilterRequestModules<Resource>[K],
-        Impl[K] extends { raw: any } ? RequestTypes.RAW : RequestTypes.DECODED,
+        Impl[K] extends { raw: any } ? typeof RequestTypes.RAW : typeof RequestTypes.DECODED,
         Exclude<
           Exclude<
             // retrieves context R from the actual implementation of the handler

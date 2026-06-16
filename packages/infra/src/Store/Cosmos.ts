@@ -408,18 +408,18 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         batchRemove: (ids, partitionKey?: string) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             tryCosmos(() =>
-                execBatch(
-                  mutable(ids.map((id) =>
-                    dropUndefinedT({
-                      operationType: "Delete" as const,
-                      id
-                      // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                      // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
-                    })
-                  )),
-                  partitionKey ?? nsBasePartitionKey(ns)
-                )
+              execBatch(
+                mutable(ids.map((id) =>
+                  dropUndefinedT({
+                    operationType: "Delete" as const,
+                    id
+                    // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                    // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                  })
+                )),
+                partitionKey ?? nsBasePartitionKey(ns)
               )
+            )
               .pipe(
                 annotateDb({
                   operation: "batchRemove",

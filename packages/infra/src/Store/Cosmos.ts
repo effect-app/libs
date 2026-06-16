@@ -15,7 +15,7 @@ import { pipe } from "effect/Function"
 import * as Redacted from "effect/Redacted"
 import * as Struct from "effect/Struct"
 import { CosmosClient, CosmosClientLayer } from "../cosmos-client.js"
-import { OptimisticConcurrencyException } from "../errors.js"
+import { DatabaseError, OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import { annotateCosmosResponse, annotateDb } from "../otel.js"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
@@ -30,9 +30,34 @@ const makeReverseMapId =
   ({ id, ...t }: PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>) =>
     ({ ...t, [idKey]: id }) as any as PersistenceModelType<Encoded>
 
-class CosmosDbOperationError {
-  constructor(readonly message: string, readonly raw?: unknown) {}
-} // TODO: Retry operation when running into RU limit.
+// Cosmos statuses worth retrying: request timeout, throttle, retry-with,
+// internal, and service unavailable.
+const RETRYABLE_COSMOS_STATUS = new Set([408, 429, 449, 500, 503])
+const statusIsTransient = (code: number) => RETRYABLE_COSMOS_STATUS.has(code)
+
+// A thrown SDK error is transient if its status/code is retryable or its message
+// looks like a timeout / throttle / dropped connection.
+const thrownIsTransient = (e: unknown): boolean => {
+  const code = (e as any)?.code ?? (e as any)?.statusCode
+  if (typeof code === "number" && RETRYABLE_COSMOS_STATUS.has(code)) return true
+  const msg = e instanceof Error ? e.message : String(e)
+  return /request timed out|timed out|\btimeout\b|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|ServiceUnavailable|RequestTimeout|TooManyRequests|throttl/i
+    .test(msg)
+}
+
+// Wrap a Cosmos SDK promise so a rejection becomes a typed, serializable
+// `DatabaseError` (transient-classified) instead of a bare-`Error` defect — the
+// latter both bypasses retry and breaks JSON encoding of the failure channel.
+const tryCosmos = <A>(f: () => Promise<A>): Effect.Effect<A, DatabaseError> =>
+  Effect.tryPromise({
+    try: f,
+    catch: (e) =>
+      new DatabaseError({
+        message: `Cosmos request failed: ${e instanceof Error ? e.message : String(e)}`,
+        transient: thrownIsTransient(e),
+        cause: e
+      })
+  })
 
 const respBytes = (
   resp: { diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } } }
@@ -209,8 +234,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               batches
                 .map((x, i) => [i, x] as const),
               ([i, batch]) =>
-                Effect
-                  .promise(() => bulk(batch.map(([, op]) => op)))
+                tryCosmos(() => bulk(batch.map(([, op]) => op)))
                   .pipe(
                     Effect
                       .delay(Duration.millis(i === 0 ? 0 : 150)),
@@ -236,23 +260,21 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                             (x) => x.statusCode !== 424 && (x.statusCode > 299 || x.statusCode < 200)
                           )
                           if (r2) {
-                            return yield* Effect.die(
-                              new CosmosDbOperationError(
-                                "not able to update records: " + r2.statusCode,
-                                responses
-                              )
-                            )
+                            return yield* new DatabaseError({
+                              message: "not able to update records: " + r2.statusCode,
+                              transient: statusIsTransient(r2.statusCode),
+                              cause: responses
+                            })
                           }
                           const r3 = responses.find(
                             (x) => x.statusCode > 299 || x.statusCode < 200
                           )
                           if (r3) {
-                            return yield* Effect.die(
-                              new CosmosDbOperationError(
-                                "not able to update records: " + r3.statusCode,
-                                responses
-                              )
-                            )
+                            return yield* new DatabaseError({
+                              message: "not able to update records: " + r3.statusCode,
+                              transient: statusIsTransient(r3.statusCode),
+                              cause: responses
+                            })
                           }
                           return batch.map(([e], i) => ({
                             ...e,
@@ -317,8 +339,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 
                 const ex = batch.map(([, c]) => c)
 
-                return Effect
-                  .promise(() => execBatch(ex, ex[0]?.resourceBody._partitionKey))
+                return tryCosmos(() => execBatch(ex, ex[0]?.resourceBody._partitionKey))
                   .pipe(Effect.flatMap(Effect.fnUntraced(function*(x) {
                     const result = x.result ?? []
                     const firstFailed = result.find(
@@ -330,9 +351,11 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                         return yield* new OptimisticConcurrencyException({ type: name, id: "batch", code })
                       }
 
-                      return yield* Effect.die(
-                        new CosmosDbOperationError("not able to update record: " + code)
-                      )
+                      return yield* new DatabaseError({
+                        message: "not able to update record: " + code,
+                        transient: statusIsTransient(code),
+                        cause: x
+                      })
                     }
 
                     return batch.map(([e], i) => ({
@@ -362,7 +385,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               Effect.flatMap(({ ns, q }) =>
                 Effect
                   .gen(function*() {
-                    const response = yield* Effect.promise(() =>
+                    const response = yield* tryCosmos(() =>
                       container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                     )
                     yield* annotateFeed(response)
@@ -384,20 +407,19 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             ),
         batchRemove: (ids, partitionKey?: string) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
-            Effect
-              .promise(() =>
-                execBatch(
-                  mutable(ids.map((id) =>
-                    dropUndefinedT({
-                      operationType: "Delete" as const,
-                      id
-                      // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                      // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
-                    })
-                  )),
-                  partitionKey ?? nsBasePartitionKey(ns)
-                )
+            tryCosmos(() =>
+              execBatch(
+                mutable(ids.map((id) =>
+                  dropUndefinedT({
+                    operationType: "Delete" as const,
+                    id
+                    // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                    // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                  })
+                )),
+                partitionKey ?? nsBasePartitionKey(ns)
               )
+            )
               .pipe(
                 annotateDb({
                   operation: "batchRemove",
@@ -421,7 +443,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             Effect.flatMap(({ ns, q }) =>
               Effect
                 .gen(function*() {
-                  const response = yield* Effect.promise(() =>
+                  const response = yield* tryCosmos(() =>
                     container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                   )
                   yield* annotateFeed(response)
@@ -482,7 +504,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   Effect
                     .gen(function*() {
                       if (f.select) {
-                        const response = yield* Effect.promise(() =>
+                        const response = yield* tryCosmos(() =>
                           container.items.query<M>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                         )
                         yield* annotateFeed(response)
@@ -494,7 +516,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           ...mapReverseId(_ as any)
                         }))
                       }
-                      const response = yield* Effect.promise(() =>
+                      const response = yield* tryCosmos(() =>
                         container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                       )
                       yield* annotateFeed(response)
@@ -517,7 +539,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             Effect
               .gen(function*() {
-                const response = yield* Effect.promise(() =>
+                const response = yield* tryCosmos(() =>
                   container
                     .item(id, nsPartitionValue(ns, { [idKey]: id } as Encoded))
                     .read<Encoded>()
@@ -541,20 +563,20 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           )),
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
-            Option
-              .match(
-                Option
-                  .fromNullishOr(e._etag),
-                {
-                  onNone: () =>
-                    Effect.promise(() =>
+            // Annotate the result so the create/replace promise union collapses to
+            // one type (otherwise `A` infers as `unknown` and the chain degrades).
+            tryCosmos((): Promise<{ statusCode: number; etag: string }> =>
+              Option
+                .match(
+                  Option
+                    .fromNullishOr(e._etag),
+                  {
+                    onNone: () =>
                       container.items.create({
                         ...mapId(e),
                         _partitionKey: nsPartitionValue(ns, e)
-                      })
-                    ),
-                  onSome: (eTag) =>
-                    Effect.promise(() =>
+                      }),
+                    onSome: (eTag) =>
                       container.item(e[idKey], nsPartitionValue(ns, e)).replace(
                         { ...mapId(e), _partitionKey: nsPartitionValue(ns, e) },
                         {
@@ -564,22 +586,24 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           }
                         }
                       )
-                    )
-                }
-              )
+                  }
+                )
+            )
               .pipe(
                 Effect
-                  .flatMap((x) => {
+                  .flatMap((x): Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError> => {
                     if (x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409) {
                       return Effect.fail(
                         new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
                       )
                     }
                     if (x.statusCode > 299 || x.statusCode < 200) {
-                      return Effect.die(
-                        new CosmosDbOperationError(
-                          "not able to update record: " + x.statusCode
-                        )
+                      return Effect.fail(
+                        new DatabaseError({
+                          message: "not able to update record: " + x.statusCode,
+                          transient: statusIsTransient(x.statusCode),
+                          cause: x
+                        })
                       )
                     }
                     return Effect.sync(() => ({

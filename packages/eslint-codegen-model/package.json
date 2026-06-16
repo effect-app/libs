@@ -24,6 +24,14 @@
     "js-yaml": "4.2.0",
     "oxc-parser": "0.133.0"
   },
+  "peerDependencies": {
+    "typescript": ">=5.5"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/glob": "8.1.0",
     "@types/js-yaml": "4.0.9",

@@ -110,7 +110,7 @@ export { withDecodingDefaultTypeKey } from "effect/Schema"
 export * from "effect/Schema"
 
 export * from "./Schema/Class.js"
-export { Class, ErrorClass, Opaque, TaggedClass, TaggedErrorClass } from "./Schema/Class.js"
+export { Class, ErrorClass, Opaque, OpaqueShape, OpaqueType, TaggedClass, TaggedErrorClass } from "./Schema/Class.js"
 
 export { fromBrand, nominal } from "./Schema/brand.js"
 export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.js"

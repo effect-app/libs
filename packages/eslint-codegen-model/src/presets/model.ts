@@ -1,9 +1,5 @@
 import * as fs from "fs"
-
-type PresetFn<T = Record<string, unknown>> = (args: {
-  meta: { filename: string; existingContent: string }
-  options: T
-}, context?: unknown) => string
+import type { ModelTypeResolver } from "../shared/type-resolver.js"
 
 // Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
 // `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks
@@ -15,7 +11,7 @@ const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|Tagge
 const opaqueWithEncodedRe = /(?:^|[\s.])Opaque\s*<\s*\w[\w.]*\s*,/
 const contextOpaqueRe = /(?:^|[\s.])Context\s*\.\s*Opaque\s*</
 
-function getExportedModelNames(code: string): Array<string> {
+export function getExportedModelNames(code: string): Array<string> {
   const result: Array<string> = []
   const classRe = /(^|\n)\s*export\s+class\s+(\w+)/g
   const matches = Array.from(code.matchAll(classRe))
@@ -43,33 +39,67 @@ function normaliseLines(s: string): string {
   return s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")
 }
 
-export const model: PresetFn<{
+export type ModelOptions = {
+  /**
+   * Emit expanded literal `Encoded` interfaces (nested models referenced by name) instead of
+   * `interface Encoded extends StructNestedEncoded<typeof X>`. Greatly reduces instantiation
+   * on Encoded-touching consumers. Requires a type resolver (CLI only); without one (e.g. the
+   * oxlint rule) static blocks are left untouched.
+   */
+  static?: boolean
+  /**
+   * With `static`, also emit a literal `Type` interface (decoded side); the class is
+   * rewritten to `S.OpaqueType<X.Type, X.Encoded>` so the instance uses it.
+   */
+  type?: boolean
+  /**
+   * With `static`, also emit a literal `Make` interface (make-input side); the class is
+   * rewritten to `S.OpaqueShape<X.Type, X.Encoded, X.Make>`. Implies `type`.
+   */
+  make?: boolean
+  /** @deprecated unused */
   writeFullTypes?: boolean
-}> = ({ meta }, context) => {
+}
+
+export function model(
+  { meta, options }: { meta: { filename: string; existingContent: string }; options: ModelOptions },
+  context?: unknown,
+  resolver?: ModelTypeResolver
+): string {
   try {
     const targetContent = typeof context === "string" && context.length > 0
       ? context
       : fs.readFileSync(meta.filename).toString()
 
-    const processed = new Set<string>()
-
-    const them = []
+    const modelNames: Array<string> = []
+    const seen = new Set<string>()
     for (const modelName of getExportedModelNames(targetContent)) {
-      if (processed.has(modelName)) continue
-      processed.add(modelName)
+      if (seen.has(modelName)) continue
+      seen.add(modelName)
+      modelNames.push(modelName)
+    }
 
-      them.push([
+    let expectedContent: string
+    if (options?.static) {
+      if (!resolver) {
+        // No type checker available (e.g. oxlint). Leave the block as-is so we don't
+        // clobber CLI-generated static interfaces with the conditional form.
+        return meta.existingContent
+      }
+      const block = resolver.generate(meta.filename, modelNames, { type: options.type ?? false, make: options.make ?? false })
+      if (block === null) {
+        // Could not resolve (file outside program, etc.) — leave existing content.
+        return meta.existingContent
+      }
+      expectedContent = ["//", block, "//"].join("\n")
+    } else {
+      const them = modelNames.map((modelName) => [
         `export namespace ${modelName} {`,
         `  export interface Encoded extends S.StructNestedEncoded<typeof ${modelName}> {}`,
         "}"
       ])
+      expectedContent = ["//", ...them.flat(), "//"].join("\n")
     }
-    const expectedContent = [
-      "//",
-      ...them.flat().filter((x): x is string => !!x),
-      "//"
-    ]
-      .join("\n")
 
     // Fast path: whitespace-normalised comparison (avoids AST parse)
     if (normaliseLines(meta.existingContent) === normaliseLines(expectedContent)) {

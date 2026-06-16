@@ -309,3 +309,72 @@ export interface Opaque<Self, Encoded, SchemaS extends S.Top, Brand>
 export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
   schema: S
 ) => Opaque<Self, Encoded, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
+
+/**
+ * Like {@link Opaque}, but the class **instance type is exactly `Self`** (the supplied
+ * decoded `Type`) instead of the structurally-computed `struct["Type"] & Brand`.
+ *
+ * Stock `Opaque` types the instance as `struct["Type"] & Brand` and only overrides the
+ * schema's `Type`/`Encoded` *members* with `Self`/`Encoded`. So `make`/`copy`/consumers
+ * still resolve the struct's mapped `Type`. With a codegen-supplied pre-expanded literal
+ * `Type` interface, `OpaqueType` lets all of those resolve a single **named** interface
+ * (resolved once per checker) instead of re-deriving the mapped `Type` — cutting
+ * instantiation on `Type`-touching consumers.
+ *
+ * Use with `class X extends OpaqueType<X.Type, X.Encoded>()(struct) {}` where `X.Type`
+ * and `X.Encoded` are generated literal interfaces (see `@effect-app/eslint-codegen-model`,
+ * `static` + `type` mode).
+ *
+ * KNOWN GAP — **no branding**: the instance type is a plain structural `Self`, so opaque
+ * types of identical shape are mutually assignable. (Stock `Opaque` is also structural by
+ * default — `Brand` defaults to `{}` — so this only differs if you passed a non-default
+ * `Brand`.) Re-introducing a nominal brand on top of a supplied `Self` (e.g. branding the
+ * generated `Type` interface) is not yet implemented.
+ *
+ * NOTE: only `Type` (via `Self`) and `Encoded` are supplied statically here; `make`'s input
+ * (`~type.make.in`) and other derived members are still computed from the struct. See
+ * a future `OpaqueShape`-style helper if those also need to be supplied.
+ */
+export interface OpaqueType<Self, Encoded, SchemaS extends S.Top, Brand>
+  extends S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>
+{
+  new(_: never): Self
+}
+
+export const OpaqueType: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
+  schema: S
+) => OpaqueType<Self, Encoded, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
+
+// Override both the `Encoded` and make-input (`~type.make.in`) members in one go,
+// like `ExtendedSchema` does for `Encoded` alone.
+type ExtendedShape<SchemaS extends S.Top, Encoded, MakeIn> =
+  & Omit<SchemaS, "Encoded" | "~type.make.in">
+  & { readonly Encoded: Encoded; readonly "~type.make.in": MakeIn }
+
+/**
+ * Like {@link OpaqueType}, but ALSO supplies a static **make-input** shape, so
+ * `make`/`copy` resolve a named `MakeIn` interface instead of re-deriving the struct's
+ * mapped `~type.make.in`. Use with codegen-supplied `X.Type` / `X.Encoded` / `X.Make`:
+ *
+ * ```ts
+ * class X extends OpaqueShape<X.Type, X.Encoded, X.Make>()(struct) {}
+ * ```
+ *
+ * `decode`/`encode` already use the supplied `Type`/`Encoded` (they read the schema's
+ * `Type`/`Encoded` members, which are `Self`/`Encoded` here) — no separate override needed.
+ *
+ * NOTE — measured gain is modest (~5%): the struct passed to the wrapper is still
+ * constructed in full (definition cost dominates); the static shapes only cheapen
+ * consumer-side reads of `Type`/`Encoded`/`MakeIn`. Same `no-branding` gap as
+ * {@link OpaqueType}.
+ */
+export interface OpaqueShape<Self, Encoded, MakeIn, SchemaS extends S.Top, Brand>
+  extends S.Opaque<Self, ExtendedShape<SchemaS, Encoded, MakeIn>, Brand>
+{
+  new(_: never): Self
+}
+
+export const OpaqueShape: <Self, Encoded, MakeIn, Brand = {}>() =>
+  <S extends S.Top>(
+    schema: S
+  ) => OpaqueShape<Self, Encoded, MakeIn, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any

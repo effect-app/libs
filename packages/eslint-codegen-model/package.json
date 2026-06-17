@@ -20,7 +20,7 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "glob": "8.1.0",
+    "glob": "^11.1.0",
     "js-yaml": "4.2.0",
     "oxc-parser": "0.133.0"
   },
@@ -33,7 +33,6 @@
     }
   },
   "devDependencies": {
-    "@types/glob": "8.1.0",
     "@types/js-yaml": "4.0.9",
     "madge": "8.0.0",
     "oxlint": "1.67.0",

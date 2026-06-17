@@ -1,4 +1,4 @@
-import glob from "glob"
+import { globSync } from "glob"
 import * as path from "path"
 import { normaliseModuleForBarrel } from "../normalise.js"
 
@@ -82,8 +82,7 @@ export const barrel: PresetFn<{
   const ext = meta.filename.split(".").slice(-1)[0]
   const pattern = opts.include || `*.${ext}`
 
-  const relativeFiles = glob
-    .sync(pattern, { cwd, ignore: opts.exclude, nodir })
+  const relativeFiles = globSync(pattern, { cwd, nodir, ...(opts.exclude ? { ignore: opts.exclude } : {}) })
     .filter((f) => path.resolve(cwd, f) !== path.resolve(meta.filename))
     .map((f) => `./${f}`.replace(/(\.\/)+\./g, "."))
     .filter((file) =>

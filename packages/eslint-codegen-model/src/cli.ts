@@ -2,7 +2,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 
-import glob from "glob"
+import { globSync } from "glob"
 
 import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
@@ -478,17 +478,16 @@ function parseArgs(args: ReadonlyArray<string>): ParsedArgs {
 const staticModelBlockRe = /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\b(?:static|facade):\s*true\b/
 
 function defaultFiles(): Array<string> {
-  return glob
-    .sync("**/*.{ts,tsx,mts,cts}", {
-      cwd: process.cwd(),
-      nodir: true,
-      ignore: [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/.git/**"
-      ]
-    })
+  return globSync("**/*.{ts,tsx,mts,cts}", {
+    cwd: process.cwd(),
+    nodir: true,
+    ignore: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.git/**"
+    ]
+  })
     .map((filePath) => path.resolve(process.cwd(), filePath))
 }
 

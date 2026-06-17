@@ -56,16 +56,25 @@
     "src",
     "dist"
   ],
-  "module": "./dist/vue-components.es.js",
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/vue-components.es.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
-    "./dist/vue-components.css": "./dist/vue-components.css",
-    "./reset.css": {
-      "development": "./src/reset.css",
-      "default": "./dist/reset.css"
+    "./reset.css": "./src/reset.css"
+  },
+  "publishConfig": {
+    "module": "./dist/vue-components.es.js",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "import": "./dist/vue-components.es.js"
+      },
+      "./dist/vue-components.css": "./dist/vue-components.css",
+      "./reset.css": {
+        "development": "./src/reset.css",
+        "default": "./dist/reset.css"
+      }
     }
   },
   "dependencies": {

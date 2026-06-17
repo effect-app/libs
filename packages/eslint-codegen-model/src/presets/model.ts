@@ -126,10 +126,12 @@ export function model(
     }
 
     let expectedContent: string
-    if (options?.static || options?.facade) {
+    // Any facade option (static/type/make/facade) needs the type checker. Without a
+    // resolver (e.g. the oxlint rule, no checker) leave the block untouched so we never
+    // revert CLI-generated static Encoded/Type/Make interfaces to the conditional form.
+    const needsResolver = !!(options?.static || options?.type || options?.make || options?.facade)
+    if (needsResolver) {
       if (!resolver) {
-        // No type checker available (e.g. oxlint). Leave the block as-is so we don't
-        // clobber CLI-generated static interfaces with the conditional form.
         return meta.existingContent
       }
       // In facade mode, only Opaque-struct models become facades; Class-based

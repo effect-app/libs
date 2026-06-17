@@ -73,7 +73,7 @@
     "@typescript-eslint/eslint-plugin": "8.60.0",
     "@typescript-eslint/parser": "8.60.0",
     "@typescript-eslint/scope-manager": "8.60.0",
-    "@typescript/native-preview": "beta",
+    "@typescript/native-preview": "7.0.0-dev.20260616.1",
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^10.0.1",
     "dprint": "^0.54.0",

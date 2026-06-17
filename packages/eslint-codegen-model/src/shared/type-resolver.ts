@@ -54,13 +54,28 @@ function loadTs(): TS {
   return tsModule
 }
 
-function parseTsConfig(ts: TS, tsconfigPath: string): { options: import("typescript").CompilerOptions; fileNames: Array<string> } {
+function parseTsConfig(
+  ts: TS,
+  tsconfigPath: string
+): { options: import("typescript").CompilerOptions; fileNames: Array<string> } {
   const read = ts.readConfigFile(tsconfigPath, ts.sys.readFile)
   if (read.error) {
-    throw new Error(`Failed to read tsconfig ${tsconfigPath}: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`)
+    throw new Error(
+      `Failed to read tsconfig ${tsconfigPath}: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`
+    )
   }
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(tsconfigPath))
-  return { options: { ...parsed.options, noEmit: true, composite: false, incremental: false, skipLibCheck: true, declaration: false }, fileNames: parsed.fileNames }
+  return {
+    options: {
+      ...parsed.options,
+      noEmit: true,
+      composite: false,
+      incremental: false,
+      skipLibCheck: true,
+      declaration: false
+    },
+    fileNames: parsed.fileNames
+  }
 }
 
 export function createModelTypeResolver(args: {
@@ -92,7 +107,7 @@ export function createModelTypeResolver(args: {
       // Name identifier of the schema that backs each model. The private `_X`
       // (class `class _X extends S.Opaque(...)` OR const `const _X = S.Struct(...)`,
       // the base-mode form) holds the real schema; the exported facade
-      // `X extends OpaqueFacadeClass<X, X.Encoded, ...>` / `extends __X` is
+      // `X extends OpaqueFacade<X, X.Encoded, ...>` / `extends __X` is
       // self-referential and can't resolve `Encoded`/`Type`/`Make`. Prefer `_X`.
       const schemaByName = new Map<string, import("typescript").Node>()
       const privateNames = new Set<string>()
@@ -302,11 +317,13 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         // Not an expandable object (e.g. opaque already); fall back to a printed reference.
         return `extends ${checker.typeToString(memberType, atNode, FF)} {}`
       }
-      const body = props.map((p) => {
-        const pt = checker.getTypeOfSymbolAtLocation(p, atNode)
-        const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
-        return `    readonly ${propKey(p.name)}${opt}: ${print(pt, atNode, key)}`
-      }).join("\n")
+      const body = props
+        .map((p) => {
+          const pt = checker.getTypeOfSymbolAtLocation(p, atNode)
+          const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
+          return `    readonly ${propKey(p.name)}${opt}: ${print(pt, atNode, key)}`
+        })
+        .join("\n")
       return `{\n${body}\n  }`
     },
 
@@ -338,14 +355,16 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         return `= ${printed}`
       }
       const typeByName = new Map(typeType.getProperties().map((p) => [p.name, p] as const))
-      const body = makeProps.map((p) => {
-        const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
-        const source = typeByName.get(p.name) ?? p
-        const printed = print(checker.getTypeOfSymbolAtLocation(source, atNode), atNode, "Type")
-        // nested model `Foo.Type` becomes `Foo.Make`; scalars / Date / primitives untouched.
-        const value = printed.replace(/\.Type\b/g, ".Make")
-        return `    readonly ${propKey(p.name)}${opt}: ${value}`
-      }).join("\n")
+      const body = makeProps
+        .map((p) => {
+          const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
+          const source = typeByName.get(p.name) ?? p
+          const printed = print(checker.getTypeOfSymbolAtLocation(source, atNode), atNode, "Type")
+          // nested model `Foo.Type` becomes `Foo.Make`; scalars / Date / primitives untouched.
+          const value = printed.replace(/\.Type\b/g, ".Make")
+          return `    readonly ${propKey(p.name)}${opt}: ${value}`
+        })
+        .join("\n")
       // Leading `= ` marks a type-alias emission (model.ts emits `export type Make = ...`).
       return hasVoid ? `= {\n${body}\n  } | void` : `{\n${body}\n  }`
     },

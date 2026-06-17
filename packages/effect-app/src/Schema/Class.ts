@@ -4,7 +4,9 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as S from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
+import * as SchemaGetter from "effect/SchemaGetter"
 import * as SchemaIssue from "effect/SchemaIssue"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import { copyOrigin } from "../utils.ts"
 import { concurrencyUnbounded } from "./ext.ts"
 import * as SchemaParser from "./SchemaParser.ts"
@@ -364,36 +366,65 @@ type OpaqueFacadeInput<DecodingServices, EncodingServices> = S.Top & {
   readonly EncodingServices: EncodingServices
 }
 
-type OpaqueFacadeClassInput<DecodingServices, EncodingServices> =
+type OpaqueClassFacadeInput<DecodingServices, EncodingServices> =
   & OpaqueFacadeInput<
     DecodingServices,
     EncodingServices
   >
   & (abstract new(...args: Array<never>) => unknown)
 
-type OpaqueFacadeEncodeKeyMapping<SchemaS extends { readonly fields: S.Struct.Fields }> = {
-  readonly [K in keyof SchemaS["fields"]]?: PropertyKey
-}
-
 type PrototypeFunction = Function & { prototype: object }
 
-const makeEncodeKeysFacadeAst = <
-  SchemaS extends OpaqueFacadeClassInput<any, any> & { readonly fields: S.Struct.Fields },
-  const Mapping extends OpaqueFacadeEncodeKeyMapping<SchemaS>
->(
-  schema: SchemaS,
-  mapping: Mapping,
+const ClassAnnotationId = "~effect/Schema/Class"
+
+const getOwnOrInheritedPropertyDescriptor = (value: object, property: PropertyKey): PropertyDescriptor | undefined => {
+  let current: object | null = value
+  while (current !== null) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, property)
+    if (descriptor !== undefined) return descriptor
+    current = Object.getPrototypeOf(current)
+  }
+}
+
+const isClassSchemaConstructor = (value: unknown): value is PrototypeFunction => {
+  if (typeof value !== "function") return false
+  const ast = (value as { readonly ast?: unknown }).ast
+  return SchemaAST.isAST(ast) && SchemaAST.isDeclaration(ast) && ast.annotations?.[ClassAnnotationId] !== undefined
+}
+
+const getFacadeClassSchema = (schema: OpaqueFacadeInput<any, any>): PrototypeFunction | undefined => {
+  if (isClassSchemaConstructor(schema)) return schema
+  const target = "to" in schema ? schema.to : undefined
+  return isClassSchemaConstructor(target) ? target : undefined
+}
+
+const makePublicClassTransformation = (Public: PrototypeFunction) =>
+  new SchemaTransformation.Transformation<any, any, never, never>(
+    SchemaGetter.transform((input) => Reflect.construct(Public, [input], Public)),
+    SchemaGetter.passthrough()
+  )
+
+const makeFacadeClassAst = (
+  schema: OpaqueFacadeInput<any, any>,
+  originalAst: SchemaAST.AST,
   Public: PrototypeFunction
 ): SchemaAST.AST => {
-  function DecodeCtor(this: unknown, input: unknown, options?: unknown) {
-    return Reflect.construct(schema, [input, options], Public) as object
+  if (SchemaAST.isDeclaration(schema.ast)) {
+    const schemaEncoding = schema.ast.encoding ?? []
+    if (schemaEncoding.length > 0) {
+      return new SchemaAST.Declaration(
+        schema.ast.typeParameters,
+        schema.ast.run,
+        schema.ast.annotations,
+        schema.ast.checks,
+        [new SchemaAST.Link(schemaEncoding[0]!.to, makePublicClassTransformation(Public)), ...schemaEncoding.slice(1)],
+        schema.ast.context,
+        schema.ast.encodingChecks
+      )
+    }
   }
 
-  Object.setPrototypeOf(DecodeCtor, schema)
-  DecodeCtor.prototype = Public.prototype
-
-  const decodeSchema: SchemaS = DecodeCtor as any
-  return decodeSchema.pipe(S.encodeKeys(mapping)).ast
+  return schema.rebuild(originalAst).ast
 }
 
 // Carry the schema's own statics, dropping the generic `S.Top` machinery and
@@ -436,35 +467,6 @@ export const OpaqueShape: <Self, Encoded, MakeIn, Brand = {}>() => <S extends S.
  * small static surface. This keeps downstream project references from pulling
  * the private struct field map back through `typeof Model`.
  */
-export interface OpaqueSchemaFacade<
-  Self,
-  Encoded,
-  MakeIn,
-  DecodingServices = never,
-  EncodingServices = DecodingServices,
-  Brand = {}
-> extends
-  S.Bottom<
-    Self,
-    Encoded,
-    DecodingServices,
-    EncodingServices,
-    SchemaAST.AST,
-    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
-    MakeIn,
-    Self,
-    readonly [],
-    MakeIn
-  >
-{
-  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Self & Brand
-  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-  // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
-  // carried (precise) from the underlying schema via `OpaqueFacadeStatics`. A wide
-  // `mapFields(f: (fields: S.Struct.Fields) => To)` override would win overload
-  // resolution and erase field precision in `Q.project(X.mapFields(...))`.
-}
-
 export interface OpaqueFacade<
   Self,
   Encoded,
@@ -486,45 +488,15 @@ export interface OpaqueFacade<
     MakeIn
   >
 {
-  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
+  new(_: never): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-}
-export function OpaqueFacade<
-  Self,
-  Encoded,
-  MakeIn,
-  DecodingServices = never,
-  EncodingServices = DecodingServices,
-  Brand = {}
->() {
-  return <SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
-    schema: SchemaS
-  ):
-    & OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-  {
-    class Facade {}
-    return Object.setPrototypeOf(Facade, schema)
-  }
+  // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
+  // carried (precise) from the underlying schema via `OpaqueFacadeStatics`. A wide
+  // `mapFields(f: (fields: S.Struct.Fields) => To)` override would win overload
+  // resolution and erase field precision in `Q.project(X.mapFields(...))`.
 }
 
-export function OpaqueSchemaFacade<
-  Self,
-  Encoded,
-  MakeIn,
-  DecodingServices = never,
-  EncodingServices = DecodingServices,
-  Brand = {}
->() {
-  return <SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
-    schema: SchemaS
-  ):
-    & OpaqueSchemaFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-    schema as SchemaS & OpaqueSchemaFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-}
-
-export interface OpaqueFacadeClass<
+export interface OpaqueClassFacade<
   Self,
   Encoded,
   MakeIn,
@@ -547,11 +519,9 @@ export interface OpaqueFacadeClass<
 {
   new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-  // NOTE: `fields` / `mapFields` intentionally not redeclared — carried precise
-  // from the underlying schema via `OpaqueFacadeStatics` (see OpaqueFacade above).
 }
 
-export function OpaqueFacadeClass<
+export function OpaqueFacade<
   Self,
   Encoded,
   MakeIn,
@@ -559,64 +529,44 @@ export function OpaqueFacadeClass<
   EncodingServices = DecodingServices,
   Brand = {}
 >() {
-  return <SchemaS extends OpaqueFacadeClassInput<DecodingServices, EncodingServices>>(
+  function facade<SchemaS extends OpaqueClassFacadeInput<DecodingServices, EncodingServices>>(
     schema: SchemaS
   ):
-    & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-  {
-    type FacadeSchema =
-      & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-      & OpaqueFacadeStatics<SchemaS>
-
-    if (typeof schema === "function") {
-      return schema as SchemaS & FacadeSchema
-    }
-
-    throw new TypeError("OpaqueFacadeClass requires a class schema")
-  }
-}
-
-export function OpaqueFacadeClassWithEncodeKeys<
-  Self,
-  Encoded,
-  MakeIn,
-  DecodingServices = never,
-  EncodingServices = DecodingServices,
-  Brand = {}
->() {
-  return <
-    SchemaS extends OpaqueFacadeClassInput<DecodingServices, EncodingServices> & { readonly fields: S.Struct.Fields },
-    const Mapping extends OpaqueFacadeEncodeKeyMapping<SchemaS>
-  >(
-    schema: SchemaS,
-    mapping: Mapping
+    & OpaqueClassFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS>
+  function facade<SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
+    schema: SchemaS
   ):
-    & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-  {
-    if (typeof schema !== "function") {
-      throw new TypeError("OpaqueFacadeClassWithEncodeKeys requires a class schema")
+    & OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS>
+  function facade(schema: OpaqueFacadeInput<DecodingServices, EncodingServices>) {
+    const Base = getFacadeClassSchema(schema)
+    if (Base !== undefined) {
+      const astCache = new WeakMap<object, SchemaAST.AST>()
+      const originalAstDescriptor = getOwnOrInheritedPropertyDescriptor(Base, "ast")
+
+      return class extends (Base as any) {
+        static get ast(): SchemaAST.AST {
+          let cached = astCache.get(this)
+          if (cached !== undefined) return cached
+
+          const originalAst = originalAstDescriptor?.get?.call(this) as SchemaAST.AST
+          cached = makeFacadeClassAst(schema, originalAst, this)
+          astCache.set(this, cached)
+          return cached
+        }
+      }
     }
 
-    const astCache = new WeakMap<object, SchemaAST.AST>()
-    const Base = schema as any
-
-    return class extends Base {
-      static get ast(): SchemaAST.AST {
-        let cached = astCache.get(this)
-        if (cached !== undefined) return cached
-
-        cached = makeEncodeKeysFacadeAst(schema, mapping, this)
-        astCache.set(this, cached)
-        return cached
-      }
-    } as any
+    class Facade {}
+    return Object.setPrototypeOf(Facade, schema)
   }
+
+  return facade
 }
 
 /**
- * Like {@link OpaqueFacadeClass}, but for error models (`TaggedErrorClass` /
+ * Like class-schema {@link OpaqueFacade}, but for error models (`TaggedErrorClass` /
  * `ErrorClass`). The decoded instance type carries `Cause.YieldableError`, so
  * `yield* new MyError(...)`, `Effect.fail(myError)`, and `instanceof` all keep
  * working through the facade — the runtime `_X` is the real error class (the
@@ -644,7 +594,7 @@ export interface OpaqueErrorFacadeClass<
     MakeIn
   >
 {
-  // YieldableError (not Self) on the constructed instance — like OpaqueFacadeClass's
+  // YieldableError (not Self) on the constructed instance — like class-schema OpaqueFacade's
   // `new(): Brand`, the data type comes from the declaration-merged `interface X`,
   // so `Self` must NOT appear here (would recurse). Merging `X & YieldableError`
   // makes `yield* new X()` / `Effect.fail` / `instanceof` work without losing data.
@@ -660,7 +610,7 @@ export function OpaqueErrorFacadeClass<
   EncodingServices = DecodingServices,
   Brand = {}
 >() {
-  return <SchemaS extends OpaqueFacadeClassInput<DecodingServices, EncodingServices>>(
+  return <SchemaS extends OpaqueClassFacadeInput<DecodingServices, EncodingServices>>(
     schema: SchemaS
   ):
     & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>

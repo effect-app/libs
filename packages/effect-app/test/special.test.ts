@@ -30,7 +30,7 @@ interface FacadeModelMake {
   readonly value: string
 }
 
-class FacadeModel extends AppSchema.OpaqueFacadeClass<
+class FacadeModel extends AppSchema.OpaqueFacade<
   FacadeModel,
   FacadeModelEncoded,
   FacadeModelMake,
@@ -65,13 +65,13 @@ interface RenamedFacadeModelMake {
   readonly internalName: string
 }
 
-class RenamedFacadeModel extends AppSchema.OpaqueFacadeClassWithEncodeKeys<
+class RenamedFacadeModel extends AppSchema.OpaqueFacade<
   RenamedFacadeModel,
   RenamedFacadeModelEncoded,
   RenamedFacadeModelMake,
   never,
   never
->()(_RenamedFacadeModel, { internalName: "external_name" }) {
+>()(_RenamedFacadeModel.pipe(S.encodeKeys({ internalName: "external_name" }))) {
   declare readonly internalName: string
   declare readonly upperName: string
 
@@ -98,6 +98,45 @@ class StructFacadeModel extends AppSchema.OpaqueFacade<
   never
 >()(_StructFacadeModel) {
   declare readonly value: string
+}
+
+const _RenamedStructFacadeModel = AppSchema.Struct({ internalName: S.String }).pipe(
+  S.encodeKeys({ internalName: "external_name" })
+)
+
+interface RenamedStructFacadeModelEncoded {
+  readonly external_name: string
+}
+
+interface RenamedStructFacadeModelMake {
+  readonly internalName: string
+}
+
+class RenamedStructFacadeModel extends AppSchema.OpaqueFacade<
+  RenamedStructFacadeModel,
+  RenamedStructFacadeModelEncoded,
+  RenamedStructFacadeModelMake,
+  never,
+  never
+>()(_RenamedStructFacadeModel) {
+  declare readonly internalName: string
+}
+
+const _RenamedOpaqueStructFacadeModel = AppSchema
+  .Opaque<
+    { readonly internalName: string },
+    RenamedStructFacadeModelEncoded
+  >()(AppSchema.Struct({ internalName: S.String }))
+  .pipe(S.encodeKeys({ internalName: "external_name" }))
+
+class RenamedOpaqueStructFacadeModel extends AppSchema.OpaqueFacade<
+  RenamedOpaqueStructFacadeModel,
+  RenamedStructFacadeModelEncoded,
+  RenamedStructFacadeModelMake,
+  never,
+  never
+>()(_RenamedOpaqueStructFacadeModel) {
+  declare readonly internalName: string
 }
 
 describe("Class", () => {
@@ -358,7 +397,7 @@ describe("TaggedStruct (opaque).copy", () => {
   })
 })
 
-describe("OpaqueFacadeClass", () => {
+describe("OpaqueFacade", () => {
   it("keeps OpaqueFacade usable with struct schemas", () => {
     const decoded = S.decodeSync(StructFacadeModel)({ value: "hello" })
 
@@ -366,6 +405,26 @@ describe("OpaqueFacadeClass", () => {
     expect(S.encodeSync(StructFacadeModel)(decoded)).toStrictEqual({ value: "hello" })
     expect(S.is(StructFacadeModel)(decoded)).toBe(true)
     expect(S.is(StructFacadeModel)({ value: 1 })).toBe(false)
+  })
+
+  it("keeps encoded-key struct facades on the struct path", () => {
+    const decoded = S.decodeSync(RenamedStructFacadeModel)({ external_name: "fran" })
+
+    expect(decoded).toStrictEqual({ internalName: "fran" })
+    expect(decoded).not.toBeInstanceOf(RenamedStructFacadeModel)
+    expect(S.encodeSync(RenamedStructFacadeModel)(decoded)).toStrictEqual({ external_name: "fran" })
+    expect(S.is(RenamedStructFacadeModel)(decoded)).toBe(true)
+    expect(S.is(RenamedStructFacadeModel)({ external_name: "fran" })).toBe(false)
+  })
+
+  it("keeps encoded-key opaque struct facades on the struct path", () => {
+    const decoded = S.decodeSync(RenamedOpaqueStructFacadeModel)({ external_name: "fran" })
+
+    expect(decoded).toStrictEqual({ internalName: "fran" })
+    expect(decoded).not.toBeInstanceOf(RenamedOpaqueStructFacadeModel)
+    expect(S.encodeSync(RenamedOpaqueStructFacadeModel)(decoded)).toStrictEqual({ external_name: "fran" })
+    expect(S.is(RenamedOpaqueStructFacadeModel)(decoded)).toBe(true)
+    expect(S.is(RenamedOpaqueStructFacadeModel)({ external_name: "fran" })).toBe(false)
   })
 
   it("decodes through the public facade class", () => {
@@ -424,21 +483,7 @@ describe("OpaqueFacadeClass", () => {
     expect(RequestContext.toMonitoring(decoded)).toStrictEqual({ operationName: "operation", locale: "en" })
   })
 
-  it("rejects non-class schemas", () => {
-    const makeStructFacade = () =>
-      AppSchema.OpaqueFacadeClass<
-        { readonly value: string },
-        { readonly value: string },
-        { readonly value: string },
-        never,
-        never
-      >()(
-        // @ts-expect-error OpaqueFacadeClass requires a class schema.
-        AppSchema.Struct({ value: S.String })
-      )
-
-    expect(makeStructFacade).toThrow("OpaqueFacadeClass requires a class schema")
-
+  it("keeps error facades class-only", () => {
     const makeStructErrorFacade = () =>
       AppSchema.OpaqueErrorFacadeClass<
         { readonly value: string },

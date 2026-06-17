@@ -22,7 +22,7 @@ export type ModelOptions = {
     /**
      * With `static`, emit a shallow exported facade for private model classes. Implies
      * `type` and `make`; the CLI rewrites `export class X` into private `class _X`
-     * plus `export class X extends S.OpaqueFacadeClass<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
+    * plus `export class X extends S.OpaqueFacade<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
      */
     facade?: boolean;
     /** @deprecated unused */

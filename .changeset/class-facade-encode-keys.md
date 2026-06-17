@@ -1,5 +1,6 @@
 ---
 "effect-app": patch
+"@effect-app/eslint-codegen-model": patch
 ---
 
-Restore struct-capable opaque facades and add class facade support for encoded key renames.
+Unify generated model facades on `OpaqueFacade` and support class facades through encoded-key schema transforms.

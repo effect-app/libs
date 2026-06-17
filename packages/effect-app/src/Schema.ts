@@ -110,7 +110,7 @@ export { withDecodingDefaultTypeKey } from "effect/Schema"
 export * from "effect/Schema"
 
 export * from "./Schema/Class.ts"
-export { Class, ErrorClass, Opaque, OpaqueErrorFacadeClass, OpaqueFacade, OpaqueFacadeClass, OpaqueFacadeClassWithEncodeKeys, OpaqueSchemaFacade, OpaqueShape, OpaqueType, TaggedClass, TaggedErrorClass } from "./Schema/Class.ts"
+export { Class, ErrorClass, Opaque, OpaqueErrorFacadeClass, OpaqueFacade, OpaqueShape, OpaqueType, TaggedClass, TaggedErrorClass } from "./Schema/Class.ts"
 
 export { fromBrand, nominal } from "./Schema/brand.ts"
 export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.ts"

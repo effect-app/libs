@@ -33,7 +33,7 @@ class _RequestContext extends S.Class<_RequestContext>("RequestContext")({
 
 // codegen:start {preset: modelFacade, className: _RequestContext, schema: S}
 // eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class RequestContext extends S.OpaqueFacadeClass<
+export class RequestContext extends S.OpaqueFacade<
   RequestContext,
   RequestContext.Encoded,
   RequestContext.Make,

@@ -3,7 +3,7 @@ export type ModelFacadeOptions = {
   readonly name?: string
   readonly schema?: string
   /**
-   * Base mode: emit a non-exported base `class __X extends OpaqueFacadeClass<...>()(_X) {}`
+   * Base mode: emit a non-exported base `class __X extends OpaqueFacade<...>()(_X) {}`
    * instead of `export class X`. The user owns `export class X extends __X { ...statics... }`,
    * so static/instance members live on the public class while `_X` stays a light schema.
    */
@@ -11,7 +11,7 @@ export type ModelFacadeOptions = {
 }
 
 // Whitespace-insensitive equality: the generated class line is long, so dprint wraps the
-// `extends OpaqueFacadeClass<...>` type args across multiple lines. Comparing stripped of
+// `extends OpaqueFacade<...>` type args across multiple lines. Comparing stripped of
 // all whitespace lets a dprint-formatted block match the single-line form, so codegen leaves
 // it alone instead of reverting it (which would just re-wrap → codegen/dprint oscillation).
 const stripWs = (s: string): string => s.replace(/\s+/g, "")
@@ -32,7 +32,7 @@ export function modelFacade(
   const prefix = schema.length > 0 ? `${schema}.` : ""
   const lhs = options.base === true ? `class __${name}` : `export class ${name}`
   const decl =
-    `${lhs} extends ${prefix}OpaqueFacadeClass<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(${className}) {}`
+    `${lhs} extends ${prefix}OpaqueFacade<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(${className}) {}`
   // The exported facade `class ${name}` merges with the generated `export interface ${name}`
   // (the top-level instance shape from the `model` facade preset) — that merge is intentional,
   // so suppress no-unsafe-declaration-merging. Base mode emits a private `class __${name}` that

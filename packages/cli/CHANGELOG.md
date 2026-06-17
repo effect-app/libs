@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.30
+
+### Patch Changes
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+
 ## 2.1.0-beta.29
 
 ### Patch Changes

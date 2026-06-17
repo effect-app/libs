@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.270
+
+### Patch Changes
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- Updated dependencies [78d076a]
+  - effect-app@4.0.0-beta.270
+  - @effect-app/vue@4.0.0-beta.270
+
 ## 4.0.0-beta.269
 
 ### Patch Changes

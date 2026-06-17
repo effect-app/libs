@@ -2,6 +2,8 @@ import yaml from "js-yaml"
 import { barrel } from "../presets/barrel.js"
 import { meta as metaPreset } from "../presets/meta.js"
 import { model } from "../presets/model.js"
+import { modelFacade } from "../presets/model-facade.js"
+import type { ModelTypeResolver } from "./type-resolver.js"
 
 export type CodegenMeta = {
   filename: string
@@ -77,7 +79,12 @@ export function applyDefaults(options: BlockOptions, defaults?: CodegenDefaults)
   return { ...presetDefaults, ...options, preset: options.preset }
 }
 
-export function renderPreset(options: BlockOptions, meta: CodegenMeta, fullSource?: string): string {
+export function renderPreset(
+  options: BlockOptions,
+  meta: CodegenMeta,
+  fullSource?: string,
+  resolver?: ModelTypeResolver
+): string {
   const { preset, ...rest } = options
   switch (preset) {
     case "barrel":
@@ -85,7 +92,9 @@ export function renderPreset(options: BlockOptions, meta: CodegenMeta, fullSourc
     case "meta":
       return metaPreset({ meta, options: rest as Parameters<typeof metaPreset>[0]["options"] }, undefined)
     case "model":
-      return model({ meta, options: rest as Parameters<typeof model>[0]["options"] }, fullSource)
+      return model({ meta, options: rest as Parameters<typeof model>[0]["options"] }, fullSource, resolver)
+    case "modelFacade":
+      return modelFacade({ meta, options: rest as Parameters<typeof modelFacade>[0]["options"] })
     default:
       throw new Error(`Unknown codegen preset: ${preset}`)
   }

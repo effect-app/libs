@@ -48,6 +48,8 @@ const normalizeVersion = (range: string) => {
   return match?.[0]
 }
 
+const resolveRequestedRef = (ref: string) => ref === "latest" ? "main" : ref
+
 const parsePackageVersion = (source: string, packagePath: string) => {
   const parsed: unknown = JSON.parse(source)
   if (!isRecord(parsed) || typeof parsed["version"] !== "string") {
@@ -94,12 +96,13 @@ export const syncEffectAppSubtree = Effect.fnUntraced(function*(config: SyncEffe
   })
 
   if (config.ref) {
-    yield* Effect.logInfo(`Using effect-app subtree ref: ${config.ref}`)
+    const ref = resolveRequestedRef(config.ref)
+    yield* Effect.logInfo(`Using effect-app subtree ref: ${ref}`)
     yield* Effect.logInfo(`Using effect-app subtree url: ${config.url}`)
     return yield* run(
       `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} ${
         shellQuote(config.url)
-      } ${shellQuote(config.ref)} --squash`
+      } ${shellQuote(ref)} --squash`
     )
   }
 

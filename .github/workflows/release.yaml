@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: write
+  pull-requests: write
 env:
   CI: true
   PNPM_CACHE_FOLDER: .pnpm-store
@@ -62,6 +65,7 @@ jobs:
           commit: "chore: update versions"
           title: "chore: update versions"
           publish: pnpm ci:publish
+          createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

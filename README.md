@@ -66,7 +66,8 @@ Apps that vendor this repository as `repos/libs` can sync it to the pinned
 effa sync-effect-app
 ```
 
-The command first tries version tags such as `effect-app@4.0.0-beta.271`. If no
+The command first tries Changesets package tags such as
+`effect-app@4.0.0-beta.271` or `@effect-app/infra@4.0.0-beta.271`. If no
 matching tag exists, it fetches `https://github.com/effect-app/libs.git` into a
 local git cache and selects the latest commit on the default branch whose
 package manifest still has the pinned version.
@@ -75,6 +76,7 @@ Escape hatch for manual refs:
 
 ```sh
 effa sync-effect-app --ref main
+effa sync-effect-app --ref latest # latest main
 ```
 
 The clean release convention is to publish git tags for package versions

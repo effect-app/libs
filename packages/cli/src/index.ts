@@ -771,7 +771,7 @@ NodeRuntime.runMain(
             ),
             ref: Flag.string("ref").pipe(
               Flag.optional,
-              Flag.withDescription("Ref escape hatch (branch/tag/sha); skips version resolution")
+              Flag.withDescription("Ref escape hatch (branch/tag/sha/latest); latest means main")
             )
           },
           Effect.fn("effa-cli.sync-effect-app")(function*({ manifests, prefix, ref, url }) {

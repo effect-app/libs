@@ -1,5 +1,13 @@
 # @effect-app/cli
 
+## 2.1.0-beta.31
+
+### Patch Changes
+
+- e7ad78c: Add `sync-effect-app` to sync vendored Effect App libs by pinned package version.
+  The command prefers package-version git tags and supports `--ref latest` for main.
+- e7ad78c: Sync Effect subtrees from a repository URL without requiring a local git remote.
+
 ## 2.1.0-beta.30
 
 ### Patch Changes

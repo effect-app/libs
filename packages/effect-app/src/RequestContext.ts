@@ -32,7 +32,14 @@ class _RequestContext extends S.Opaque<_RequestContext>()(S.Struct({
 }
 
 // codegen:start {preset: modelFacade, className: _RequestContext, schema: S}
-export class RequestContext extends S.OpaqueFacadeClass<RequestContext, RequestContext.Encoded, RequestContext.Make, RequestContext.DecodingServices, RequestContext.EncodingServices>()(_RequestContext) {}
+// eslint-disable-next-line typescript/no-unsafe-declaration-merging
+export class RequestContext extends S.OpaqueFacadeClass<
+  RequestContext,
+  RequestContext.Encoded,
+  RequestContext.Make,
+  RequestContext.DecodingServices,
+  RequestContext.EncodingServices
+>()(_RequestContext) {}
 // codegen:end
 
 export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace"> & Partial<RequestContext>) => ({
@@ -56,29 +63,29 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
 // codegen:start {preset: model, static: true, facade: true}
 //
 export interface RequestContext {
-  readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean; }
+  readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
   readonly name: S.NonEmptyString255
   readonly locale: "en" | "de"
   readonly namespace: S.NonEmptyString255
   readonly sourceId?: undefined | S.NonEmptyString255
-  readonly userProfile?: undefined | { readonly sub: UserProfileId; }
+  readonly userProfile?: undefined | { readonly sub: UserProfileId }
 }
 export namespace RequestContext {
   export interface Encoded {
-    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean; }
+    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
     readonly name: string
     readonly locale: "en" | "de"
     readonly namespace: string
     readonly sourceId?: undefined | string
-    readonly userProfile?: undefined | { readonly sub: string; }
+    readonly userProfile?: undefined | { readonly sub: string }
   }
   export interface Make {
-    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean; }
+    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
     readonly name: S.NonEmptyString255
     readonly locale: "en" | "de"
     readonly namespace: S.NonEmptyString255
     readonly sourceId?: undefined | S.NonEmptyString255
-    readonly userProfile?: undefined | { readonly sub: UserProfileId; }
+    readonly userProfile?: undefined | { readonly sub: UserProfileId }
   }
   export type DecodingServices = never
   export type EncodingServices = never

@@ -94,7 +94,7 @@ export function renderPreset(
     case "model":
       return model({ meta, options: rest as Parameters<typeof model>[0]["options"] }, fullSource, resolver)
     case "modelFacade":
-      return modelFacade({ options: rest as Parameters<typeof modelFacade>[0]["options"] })
+      return modelFacade({ meta, options: rest as Parameters<typeof modelFacade>[0]["options"] })
     default:
       throw new Error(`Unknown codegen preset: ${preset}`)
   }

@@ -1,11 +1,11 @@
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
-import * as Effect from "./Effect.js"
-import * as Layer from "./Layer.js"
-import * as Option from "./Option.js"
-import { LocaleRef, RequestContext, spanAttributes } from "./RequestContext.js"
-import { NonEmptyString255 } from "./Schema.js"
-import { ContextMapContainer, storeId } from "./Store.js"
+import * as Effect from "./Effect.ts"
+import * as Layer from "./Layer.ts"
+import * as Option from "./Option.ts"
+import { LocaleRef, RequestContext, spanAttributes } from "./RequestContext.ts"
+import { NonEmptyString255 } from "./Schema.ts"
+import { ContextMapContainer, storeId } from "./Store.ts"
 
 const withSqlTransaction = <R, E, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.serviceOption(SqlClient.SqlClient).pipe(

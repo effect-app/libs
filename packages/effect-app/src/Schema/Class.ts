@@ -5,9 +5,9 @@ import * as Option from "effect/Option"
 import * as S from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as SchemaIssue from "effect/SchemaIssue"
-import { copyOrigin } from "../utils.js"
-import { concurrencyUnbounded } from "./ext.js"
-import * as SchemaParser from "./SchemaParser.js"
+import { copyOrigin } from "../utils.ts"
+import { concurrencyUnbounded } from "./ext.ts"
+import * as SchemaParser from "./SchemaParser.ts"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
@@ -91,7 +91,7 @@ function makeRelaxedDeclaration(
  * @example
  * ```ts
  * import * as Schema from "effect/Schema"
- * import { Class } from "./Class.js"
+ * import { Class } from "./Class.ts"
  *
  * class A extends Class<A>("A")({ a: Schema.String }) {}
  *
@@ -160,7 +160,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}
  * @example
  * ```ts
  * import * as Schema from "effect/Schema"
- * import { TaggedClass } from "./Class.js"
+ * import { TaggedClass } from "./Class.ts"
  *
  * class Circle extends TaggedClass<Circle>()("Circle", {
  *   radius: Schema.Number
@@ -354,15 +354,20 @@ type ExtendedShape<SchemaS extends S.Top, Encoded, MakeIn> =
 type OpaqueFacadeConstructorArgs<MakeIn> = {} extends MakeIn ? [props?: MakeIn, options?: S.MakeOptions]
   : [props: MakeIn, options?: S.MakeOptions]
 
+// Only the codec channels are required. `copy`/`fields`/`mapFields` are NOT
+// required here: transformed schemas (`.pipe(S.encodeKeys/annotate/filter/...)`)
+// don't expose them at the static level, and requiring them would reject those
+// models from facading. When present they still flow through via
+// `OpaqueFacadeStatics`; when absent the facade simply doesn't offer them.
 type OpaqueFacadeInput<DecodingServices, EncodingServices> = S.Top & {
   readonly DecodingServices: DecodingServices
   readonly EncodingServices: EncodingServices
-  readonly copy: {}
-  readonly fields: S.Struct.Fields
-  readonly mapFields: {}
 }
 
-type OpaqueFacadeStatics<SchemaS extends S.Top> = Omit<SchemaS, keyof S.Top | "prototype">
+// Carry the schema's own statics, dropping the generic `S.Top` machinery and
+// `prototype`. EXCEPT `to`: models compose each other via `X.to.fields` /
+// `X.to.copy` at definition time, so it must survive on the facade.
+type OpaqueFacadeStatics<SchemaS extends S.Top> = Omit<SchemaS, Exclude<keyof S.Top, "to"> | "prototype">
 
 /**
  * Like {@link OpaqueType}, but ALSO supplies a static **make-input** shape, so
@@ -422,13 +427,10 @@ export interface OpaqueFacade<
 {
   new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Self & Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-  readonly fields: S.Struct.Fields
-  mapFields<To extends S.Struct.Fields>(
-    f: (fields: S.Struct.Fields) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
-  ): S.Struct<To>
+  // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
+  // carried (precise) from the underlying schema via `OpaqueFacadeStatics`. A wide
+  // `mapFields(f: (fields: S.Struct.Fields) => To)` override would win overload
+  // resolution and erase field precision in `Q.project(X.mapFields(...))`.
 }
 
 export function OpaqueFacade<
@@ -468,13 +470,8 @@ export interface OpaqueFacadeClass<
 {
   new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-  readonly fields: S.Struct.Fields
-  mapFields<To extends S.Struct.Fields>(
-    f: (fields: S.Struct.Fields) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
-  ): S.Struct<To>
+  // NOTE: `fields` / `mapFields` intentionally not redeclared — carried precise
+  // from the underlying schema via `OpaqueFacadeStatics` (see OpaqueFacade above).
 }
 
 export function OpaqueFacadeClass<
@@ -489,6 +486,66 @@ export function OpaqueFacadeClass<
     schema: SchemaS
   ):
     & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-    schema as SchemaS & OpaqueFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS> => {
+    // Make the result constructable (like `S.Opaque`), so the private `_X` may be a
+    // plain `S.Struct`/`S.TaggedStruct` (lighter type) — not only an `S.Opaque` class —
+    // while `export class X extends ...(_X)` still works.
+    class Facade {}
+    return Object.setPrototypeOf(Facade, schema)
+  }
+}
+
+/**
+ * Like {@link OpaqueFacadeClass}, but for error models (`TaggedErrorClass` /
+ * `ErrorClass`). The decoded instance type carries `Cause.YieldableError`, so
+ * `yield* new MyError(...)`, `Effect.fail(myError)`, and `instanceof` all keep
+ * working through the facade — the runtime `_X` is the real error class (the
+ * facade `X extends ...(_X)` inherits its prototype), and the type reflects it.
+ * Nothing is lost vs the underlying error class.
+ */
+export interface OpaqueErrorFacadeClass<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+> extends
+  S.Bottom<
+    Self,
+    Encoded,
+    DecodingServices,
+    EncodingServices,
+    SchemaAST.AST,
+    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+    MakeIn,
+    Self,
+    readonly [],
+    MakeIn
+  >
+{
+  // YieldableError (not Self) on the constructed instance — like OpaqueFacadeClass's
+  // `new(): Brand`, the data type comes from the declaration-merged `interface X`,
+  // so `Self` must NOT appear here (would recurse). Merging `X & YieldableError`
+  // makes `yield* new X()` / `Effect.fail` / `instanceof` work without losing data.
+  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Cause.YieldableError & Brand
+  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+}
+
+export function OpaqueErrorFacadeClass<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices = never,
+  EncodingServices = DecodingServices,
+  Brand = {}
+>() {
+  return <SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
+    schema: SchemaS
+  ):
+    & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
+    & OpaqueFacadeStatics<SchemaS> => {
+    class Facade {}
+    return Object.setPrototypeOf(Facade, schema)
+  }
 }

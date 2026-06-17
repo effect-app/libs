@@ -3,7 +3,7 @@
 
 import * as Effect from "effect/Effect"
 import type * as LogLevel from "effect/LogLevel"
-import * as Context from "../Context.js"
+import * as Context from "../Context.ts"
 
 type Levels = "info" | "debug" | "warn" | "error"
 

@@ -1,5 +1,5 @@
-import * as S from "../../Schema.js"
-import { NonNegativeInt } from "../../Schema.js"
+import * as S from "../../Schema.ts"
+import { NonNegativeInt } from "../../Schema.ts"
 
 /**
  * Represents a single validation error when decoding a repository item.

@@ -1,1 +1,1 @@
-export * from "./http/internal/lib.js"
+export * from "./http/internal/lib.ts"

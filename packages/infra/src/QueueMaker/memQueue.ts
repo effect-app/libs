@@ -9,10 +9,10 @@ import * as Fiber from "effect/Fiber"
 import { flow } from "effect/Function"
 import * as Q from "effect/Queue"
 import * as Tracer from "effect/Tracer"
-import { InfraLogger } from "../logger.js"
-import { MemQueue } from "../memQueue.js"
-import { messagingSpanArgs } from "../otel.js"
-import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
+import { InfraLogger } from "../logger.ts"
+import { MemQueue } from "../memQueue.ts"
+import { messagingSpanArgs } from "../otel.ts"
+import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.ts"
 
 export const makeMemQueue = Effect.fnUntraced(function*<
   Evt extends { id: S.StringId; _tag: string },

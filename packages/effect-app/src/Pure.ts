@@ -3,8 +3,8 @@ import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Result from "effect/Result"
-import * as Context from "./Context.js"
-import { tuple } from "./Function.js"
+import * as Context from "./Context.ts"
+import { tuple } from "./Function.ts"
 
 const S1 = Symbol()
 const S2 = Symbol()

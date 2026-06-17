@@ -15,15 +15,12 @@ import * as Ref from "effect/Ref"
 import * as Result from "effect/Result"
 import * as Semaphore from "effect/Semaphore"
 import * as Struct from "effect/Struct"
-import { InfraLogger } from "../logger.js"
-import { annotateDb } from "../otel.js"
-import { codeFilter, codeFilter3_ } from "./codeFilter.js"
-import { makeUpdateETag } from "./utils.js"
+import { InfraLogger } from "../logger.ts"
+import { annotateDb } from "../otel.ts"
+import { codeFilter, codeFilter3_ } from "./codeFilter.ts"
+import { get, makeUpdateETag } from "./utils.ts"
 
-/** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
-export function get(obj: any, path: string): any {
-  return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
-}
+export { get } from "./utils.ts"
 
 const stripRelationFilterPaths = (state: readonly FilterResult[], relationPath: string): readonly FilterResult[] => {
   const prefix = `${relationPath}.-1.`

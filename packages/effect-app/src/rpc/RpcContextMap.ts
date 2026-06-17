@@ -4,8 +4,8 @@
 
 import type * as S from "effect/Schema"
 import { type AnyWithProps } from "effect/unstable/rpc/Rpc"
-import * as Context from "../Context.js"
-import { type RpcDynamic } from "./RpcMiddleware.js"
+import * as Context from "../Context.ts"
+import { type RpcDynamic } from "./RpcMiddleware.ts"
 
 type Values<T extends Record<any, any>> = T[keyof T]
 

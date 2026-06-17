@@ -27,6 +27,7 @@
     "moduleResolution": "Node16",
     "noErrorTruncation": true,
     "forceConsistentCasingInFileNames": true,
+    "erasableSyntaxOnly": true,
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true,
     // "preserveSymlinks": true

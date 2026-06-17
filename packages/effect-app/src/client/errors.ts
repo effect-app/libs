@@ -1,7 +1,7 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
-import * as S from "../Schema.js"
+import * as S from "../Schema.ts"
 
 export const tryToJson = (error: unknown) => {
   try {
@@ -157,6 +157,45 @@ export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticC
   }
 }
 
+/**
+ * Raised by a store adapter when a database operation fails for an
+ * infrastructure reason (request timeout, throttle, 5xx, dropped socket, or any
+ * non-conflict error). Distinct from `OptimisticConcurrencyException`, which is
+ * an expected etag conflict.
+ *
+ * `transient` is set by the adapter for failures worth retrying (timeout /
+ * throttle / 5xx / network). `cause` is the underlying adapter error, carried
+ * through a `Defect` schema so it serializes (an `Error` encodes to
+ * `{ name, message, cause }`) instead of breaking JSON encoding of the channel.
+ *
+ * Treated by the api/client/FE machinery like an unexpected (500-class) error.
+ */
+export class DatabaseError extends TaggedErrorClass<DatabaseError>()(
+  "DatabaseError",
+  {
+    message: S.String,
+    transient: S.Boolean,
+    cause: S.optional(S.Defect())
+  }
+) {
+  constructor(
+    args: { message?: string; transient?: boolean; cause?: unknown },
+    disableValidation?: boolean
+  ) {
+    super(
+      {
+        message: args.message ?? "Database operation failed",
+        transient: args.transient ?? false,
+        cause: args.cause
+      },
+      disableValidation as any
+    )
+  }
+  override toString() {
+    return `DatabaseError: ${this.message}`
+  }
+}
+
 const MutationOnlyErrors = [
   InvalidStateError,
   OptimisticConcurrencyException
@@ -168,7 +207,8 @@ const GeneralErrors = [
   LoginError,
   UnauthorizedError,
   ValidationError,
-  ServiceUnavailableError
+  ServiceUnavailableError,
+  DatabaseError
 ] as const
 
 export const SupportedErrors = S.Union([
@@ -203,11 +243,16 @@ export const silenceError = (e: Record<PropertyKey, any>) => {
 }
 
 export class CauseException<E> extends Error {
-  constructor(readonly originalCause: Cause.Cause<E>, readonly _tag: string) {
+  readonly originalCause: Cause.Cause<E>
+  readonly _tag: string
+
+  constructor(originalCause: Cause.Cause<E>, _tag: string) {
     const limit = Error.stackTraceLimit
     Error.stackTraceLimit = 0
     super()
     Error.stackTraceLimit = limit
+    this.originalCause = originalCause
+    this._tag = _tag
     this.cause = Cause.squash(originalCause)
     // v4: makeFiberFailure removed — use Cause.prettyErrors instead
     const errors = Cause.prettyErrors(originalCause)

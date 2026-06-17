@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // eslint-disable-next-line import/no-unassigned-import
-import "./builtin.js"
+import "./builtin.ts"
 import { getOrUndefined as value, type Some } from "effect/Option"
 import * as Option from "effect/Option"
 

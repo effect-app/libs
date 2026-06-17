@@ -7,8 +7,8 @@ import type { FilterR, FilterResult, Ops } from "effect-app/Model/filter/filterA
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import type { SupportedValues } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
-import { InfraLogger } from "../../logger.js"
-import { isRelationCheck } from "../codeFilter.js"
+import { InfraLogger } from "../../logger.ts"
+import { isRelationCheck } from "../codeFilter.ts"
 
 export function logQuery(q: {
   query: string

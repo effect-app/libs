@@ -8,9 +8,9 @@ import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
 import type { Scope } from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
-import type * as Context from "./Context.js"
-import { curry } from "./Function.js"
-import { typedKeysOf } from "./utils.js"
+import type * as Context from "./Context.ts"
+import { curry } from "./Function.ts"
+import { typedKeysOf } from "./utils.ts"
 
 export * from "effect/Effect"
 // v4: Effect interface not re-exported by `export *` due to local binding collision

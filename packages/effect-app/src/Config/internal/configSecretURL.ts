@@ -1,6 +1,6 @@
 import * as Chunk from "effect/Chunk"
 import * as Redacted from "effect/Redacted"
-import type * as SecretURL from "../SecretURL.js"
+import type * as SecretURL from "../SecretURL.ts"
 
 /** @internal */
 export const isSecretURL = (u: unknown): u is SecretURL.SecretURL => {

@@ -5,9 +5,9 @@ import * as Record from "effect/Record"
 import type * as Stream from "effect/Stream"
 import type { Path } from "path-parser"
 import qs from "query-string"
-import type * as Effect from "../Effect.js"
-import type * as S from "../Schema.js"
-import { type Req } from "./apiClientFactory.js"
+import type * as Effect from "../Effect.ts"
+import type * as S from "../Schema.ts"
+import { type Req } from "./apiClientFactory.ts"
 
 export function makePathWithQuery(
   path: Path,

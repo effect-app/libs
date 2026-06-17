@@ -2,9 +2,9 @@
 import * as Test from "@effect-ts/jest/Test"
 import { describe, expect } from "@jest/globals"
 
-import { OptimisticConcurrencyException } from "../../errors.js"
+import { OptimisticConcurrencyException } from "../../errors.ts"
 
-import { makeMemoryStore } from "./Memory.js"
+import { makeMemoryStore } from "./Memory.ts"
 
 const { it } = Test.runtime()
 

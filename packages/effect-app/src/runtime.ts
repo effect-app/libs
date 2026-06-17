@@ -2,10 +2,10 @@ import * as Exit from "effect/Exit"
 import { flow } from "effect/Function"
 import * as Logger from "effect/Logger"
 import * as ManagedRuntime from "effect/ManagedRuntime"
-import { CauseException } from "./client/errors.js"
-import { type Context } from "./Context.js"
-import * as Effect from "./Effect.js"
-import * as Layer from "./Layer.js"
+import { CauseException } from "./client/errors.ts"
+import { type Context } from "./Context.ts"
+import * as Effect from "./Effect.ts"
+import * as Layer from "./Layer.ts"
 
 export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
   const l = layer.pipe(

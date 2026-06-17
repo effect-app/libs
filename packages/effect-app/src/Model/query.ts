@@ -1,5 +1,5 @@
-export * from "./query/dsl.js"
-export * from "./query/new-kid-interpreter.js"
+export * from "./query/dsl.ts"
+export * from "./query/new-kid-interpreter.ts"
 
 export interface RawQuery<Encoded, Out> {
   cosmos: (vals: { name: string }) => {

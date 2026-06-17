@@ -10,9 +10,9 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { type Rpc } from "effect/unstable/rpc"
-import { logError, reportError } from "../../errorReporter.js"
-import { InfraLogger } from "../../logger.js"
-import { WithNsTransaction } from "../../Store/SQL.js"
+import { logError, reportError } from "../../errorReporter.ts"
+import { InfraLogger } from "../../logger.ts"
+import { WithNsTransaction } from "../../Store/SQL.ts"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")

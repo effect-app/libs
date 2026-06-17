@@ -5,7 +5,7 @@ import * as path from "node:path"
 import glob from "glob"
 
 import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
-import { getExportedModelNames } from "./presets/model.js"
+import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
 import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.js"
 
 const CONFIG_FILENAMES = ["codegen.config.json"]
@@ -221,11 +221,51 @@ function syncFacadeSourceCtor(classText: string, name: string): string {
     `((?:[A-Za-z_$][\\w$]*\\.)?)(?:Opaque|OpaqueType|OpaqueShape)<\\s*(?:${n}|_${n})(?:\\.Type)?\\s*(?:,\\s*(?:${n}|_${n})\\.Encoded(?:\\s*,\\s*(?:${n}|_${n})\\.Make)?)?\\s*>`,
     "g"
   )
-  return classText.replace(re, `$1Opaque<_${name}>`)
+  const rewritten = classText.replace(re, `$1Opaque<_${name}>`)
+  // The body moves onto the private `_X`, but the public facade `X` is declared
+  // AFTER it. Member-access self-references (`X.fields`, `X.someStatic`) would be
+  // use-before-declaration, so point them at `_X` (structurally equivalent, declared
+  // first). Keep namespace TYPE members (`X.Encoded`/`Make`/`Type`/services) on `X`.
+  // NOTE: only the `X.` (member-access) form is rewritten — a bare `\bX\b` rewrite
+  // would also corrupt `TaggedStruct("X")` tag strings. Bare value self-refs
+  // (`S.decodeTo(X, ...)`) in a static body are rare; such models stay standard.
+  const selfValueRef = new RegExp(
+    `\\b${n}\\.(?!(?:Encoded|Make|Type|DecodingServices|EncodingServices)\\b)`,
+    "g"
+  )
+  return rewritten.replace(selfValueRef, `_${name}.`)
 }
 
 function facadeClassLine(name: string, prefix: string): string {
   return `export class ${name} extends ${prefix}OpaqueFacadeClass<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(_${name}) {}`
+}
+
+// If `classText` is a no-statics `export class X extends (S.)Opaque<X, X.Encoded>()(STRUCT) {}`
+// (empty body), return the private as a plain struct const `const _X = STRUCT`
+// (lighter than the Opaque class). Returns null for any body content (statics,
+// getters, methods) or non-Opaque bases — those keep the class form.
+function tryStructPrivate(classText: string, name: string, indent: string): string | null {
+  const open = findClassBodyOpen(classText, 0)
+  if (open === -1) return null
+  const close = findMatchingBrace(classText, open)
+  if (close === -1) return null
+  const body = classText.slice(open + 1, close).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim()
+  if (body.length > 0) return null // has statics/getters/methods -> keep class
+  // Extract STRUCT from `extends (prefix)Opaque<X, X.Encoded>()(STRUCT)`.
+  const m = /\bextends\s+(?:[A-Za-z_$][\w$]*\.)?Opaque\s*<[^(]*>\s*\(\s*\)\s*\(/.exec(classText.slice(0, open))
+  if (!m) return null // OpaqueType/OpaqueShape/Class/etc -> keep class form
+  const argOpen = m.index + m[0].length - 1 // index of the `(` before STRUCT
+  let depth = 0
+  let k = argOpen
+  for (; k < classText.length; k++) {
+    if (classText[k] === "(") depth++
+    else if (classText[k] === ")") {
+      depth--
+      if (depth === 0) break
+    }
+  }
+  const struct = classText.slice(argOpen + 1, k).trim()
+  return `${indent}const _${name} = ${struct}`
 }
 
 function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: boolean): string {
@@ -233,6 +273,11 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
   for (const name of modelNames) {
     const n = escapeRe(name)
     if (enabled) {
+      // Base mode: the facade is the generated `class __X extends OpaqueFacadeClass<...>()(_X)`
+      // (owned by its modelFacade block); the user owns `export class X extends __X { ...statics... }`.
+      // Leave both alone — only the block preset regenerates `__X`.
+      const baseMode = new RegExp(`(^|\\n)\\s*class\\s+__${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacadeClass\\s*<`)
+      if (baseMode.test(out)) continue
       const existingClass = new RegExp(`(^|\\n)\\s*export\\s+class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`)
       const existingConst = new RegExp(`(^|\\n)\\s*export\\s+const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=`)
       if (existingClass.test(out) || existingConst.test(out)) {
@@ -249,7 +294,10 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
           const start = privateMatch.index + privateMatch[1]!.length
           const end = findClassEnd(out, start)
           if (end !== -1) {
-            out = `${out.slice(0, start)}${syncFacadeSourceCtor(out.slice(start, end), name)}${out.slice(end)}`
+            const pIndent = privateMatch[2]!
+            const ct = out.slice(start, end)
+            const replacement = tryStructPrivate(ct, name, pIndent) ?? syncFacadeSourceCtor(ct, name)
+            out = `${out.slice(0, start)}${replacement}${out.slice(end)}`
           }
         }
         const facadeBlock = new RegExp(`// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\bclassName:\\s*_${n}\\b[^}]*\\}[\\s\\S]*?export\\s+(?:const|class)\\s+${n}\\b`)
@@ -279,7 +327,10 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
       const classText = out.slice(start, end)
       const indent = match[2]!
       const prefix = modelSchemaPrefix(classText)
-      const privateClass = syncFacadeSourceCtor(
+      // No-statics `S.Opaque` model -> emit the private as a plain `S.Struct` const
+      // (lighter type; ~-14.5% definition instantiations). The facade class still
+      // wraps it and is constructable (OpaqueFacadeClass uses setPrototypeOf).
+      const privateClass = tryStructPrivate(classText, name, indent) ?? syncFacadeSourceCtor(
         classText.replace(new RegExp(`^${indent}export\\s+class\\s+${n}\\b`), `${indent}class _${name}`),
         name
       )
@@ -319,7 +370,12 @@ function syncModelSource(source: string): string {
       ? "type"
       : "plain"
     const modelNames = getExportedModelNames(source)
-    return facade ? syncFacade(source, modelNames, true) : syncCtor(syncFacade(source, modelNames, false), modelNames, mode)
+    if (facade) {
+      // Only rewrite Opaque-struct models into facades; leave Class-based models
+      // as-is so a mixed file still converts the facade-able ones.
+      return syncFacade(source, getFacadeableModelNames(source), true)
+    }
+    return syncCtor(syncFacade(source, modelNames, false), modelNames, mode)
   }
   return source
 }
@@ -475,31 +531,52 @@ function run() {
       preSynced.add(filePath)
     }
   }
-  let resolver: ModelTypeResolver | undefined
-  if (staticFiles.length > 0) {
-    const tsconfigPath = tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!))
-    if (!tsconfigPath) {
-      throw new Error("static model blocks require a tsconfig; pass --tsconfig <path>")
-    }
-    resolver = createModelTypeResolver({ tsconfigPath, files: staticFiles })
+  const tsconfigPath = staticFiles.length > 0
+    ? (tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!)))
+    : undefined
+  if (staticFiles.length > 0 && !tsconfigPath) {
+    throw new Error("static model blocks require a tsconfig; pass --tsconfig <path>")
   }
 
-  for (const filePath of targetFiles) {
-    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-      throw new Error(`File not found: ${filePath}`)
-    }
+  // Static/facade blocks resolve a model's generated `Encoded`/`Make`/services
+  // from its NESTED models' generated namespaces. A composite model whose nested
+  // models are generated in the same run only resolves correctly once those
+  // namespaces exist, so we iterate until the static files reach a fixed point
+  // (recreating the resolver each round to pick up freshly-written namespaces).
+  const updatedSet = new Set<string>()
+  const MAX_ROUNDS = 5
+  let round = 0
+  let changedStatic = true
+  while (round === 0 || (changedStatic && round < MAX_ROUNDS)) {
+    const firstRound = round === 0
+    round++
+    changedStatic = false
+    const resolver: ModelTypeResolver | undefined = tsconfigPath
+      ? createModelTypeResolver({ tsconfigPath, files: staticFiles })
+      : undefined
 
-    const source = fs.readFileSync(filePath, "utf8")
-    if (!source.includes("// codegen:start")) {
-      continue
+    // First round: process every target (incl. non-static presets). Later rounds:
+    // only re-resolve static files (the rest are already at a fixed point).
+    const filesThisRound = firstRound ? targetFiles : staticFiles
+    for (const filePath of filesThisRound) {
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+        throw new Error(`File not found: ${filePath}`)
+      }
+      const source = fs.readFileSync(filePath, "utf8")
+      if (!source.includes("// codegen:start")) continue
+      if (updateFile(filePath, source, defaults, resolver)) {
+        updatedSet.add(path.relative(process.cwd(), filePath))
+        if (staticFiles.includes(filePath)) changedStatic = true
+      } else if (firstRound && preSynced.has(filePath)) {
+        updatedSet.add(path.relative(process.cwd(), filePath))
+      }
     }
-
-    if (updateFile(filePath, source, defaults, resolver)) {
-      updated.push(path.relative(process.cwd(), filePath))
-    } else if (preSynced.has(filePath)) {
-      updated.push(path.relative(process.cwd(), filePath))
-    } else {
-      untouched.push(path.relative(process.cwd(), filePath))
+  }
+  for (const f of updatedSet) updated.push(f)
+  for (const f of targetFiles) {
+    const rel = path.relative(process.cwd(), f)
+    if (!updatedSet.has(rel) && fs.existsSync(f) && fs.readFileSync(f, "utf8").includes("// codegen:start")) {
+      untouched.push(rel)
     }
   }
 

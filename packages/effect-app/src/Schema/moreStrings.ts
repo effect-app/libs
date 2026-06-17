@@ -18,10 +18,10 @@ import type * as SchemaAST from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
-import { type BrandedSchema, fromBrand, nominal } from "./brand.js"
-import { withDefaultMake } from "./ext.js"
-import { type B as SchemaB } from "./schema.js"
-import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
+import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
+import { withDefaultMake } from "./ext.ts"
+import { type B as SchemaB } from "./schema.ts"
+import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.ts"
 
 const nonEmptyString = S.NonEmptyString
 

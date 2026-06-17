@@ -2,7 +2,7 @@
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Option from "effect/Option"
 import type { Misc, Union } from "ts-toolbelt"
-import type * as SET from "./Set.js"
+import type * as SET from "./Set.ts"
 
 // type SomeObject = {
 //   0: Option.Option<string>

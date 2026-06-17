@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as fu from "../fileUtil.js"
+import * as fu from "../fileUtil.ts"
 
 import fs from "fs"
 
@@ -9,8 +9,8 @@ import { type PersistenceModelType, type StorageConfig, type Store, type StoreCo
 import * as Console from "effect/Console"
 import { flow } from "effect/Function"
 import * as Semaphore from "effect/Semaphore"
-import { annotateDb } from "../otel.js"
-import { makeMemoryStoreInt } from "./Memory.js"
+import { annotateDb } from "../otel.ts"
+import { makeMemoryStoreInt } from "./Memory.ts"
 
 function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
   prefix: string,
@@ -175,7 +175,9 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
-        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
+        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues).pipe(
+          Effect.orDie
+        )
         const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
         const ctx = yield* Effect.context<R>()
         const semaphores = new Map<string, Semaphore.Semaphore>()

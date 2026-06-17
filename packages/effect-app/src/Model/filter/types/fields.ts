@@ -1,5 +1,5 @@
-import type { IsFlatObject } from "./utils.js"
-import type { RegisterOptions } from "./validator.js"
+import type { IsFlatObject } from "./utils.ts"
+import type { RegisterOptions } from "./validator.ts"
 
 export type InternalFieldName = string
 

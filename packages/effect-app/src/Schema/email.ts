@@ -2,8 +2,8 @@ import type { Refinement } from "effect-app/Function"
 import { isValidEmail } from "effect-app/validation"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
-import type { B } from "./schema.js"
-import type { NonEmptyStringBrand } from "./strings.js"
+import type { B } from "./schema.ts"
+import type { NonEmptyStringBrand } from "./strings.ts"
 
 export interface EmailBrand extends Simplify<NonEmptyStringBrand & B.Brand<"Email">> {}
 

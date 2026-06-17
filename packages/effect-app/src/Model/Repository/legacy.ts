@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import type { OptimisticConcurrencyException } from "../../client/errors.js"
-import type * as Effect from "../../Effect.js"
-import type * as Option from "../../Option.js"
-import type * as S from "../../Schema.js"
+import type { DatabaseError, OptimisticConcurrencyException } from "../../client/errors.ts"
+import type * as Effect from "../../Effect.ts"
+import type * as Option from "../../Option.ts"
+import type * as S from "../../Schema.ts"
 
 export interface Mapped1<A, IdKey extends keyof A, R> {
-  all: Effect.Effect<A[], S.SchemaError, R>
-  save: (...xes: readonly A[]) => Effect.Effect<void, OptimisticConcurrencyException | S.SchemaError, R>
-  find: (id: A[IdKey]) => Effect.Effect<Option.Option<A>, S.SchemaError, R>
+  all: Effect.Effect<A[], S.SchemaError | DatabaseError, R>
+  save: (...xes: readonly A[]) => Effect.Effect<void, OptimisticConcurrencyException | S.SchemaError | DatabaseError, R>
+  find: (id: A[IdKey]) => Effect.Effect<Option.Option<A>, S.SchemaError | DatabaseError, R>
 }
 
 // TODO: auto use project, and select fields from the From side of schema only
 export interface Mapped2<A, R> {
-  all: Effect.Effect<A[], S.SchemaError, R>
+  all: Effect.Effect<A[], S.SchemaError | DatabaseError, R>
 }
 
 export interface Mapped<Encoded> {

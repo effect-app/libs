@@ -1,8 +1,8 @@
 import * as Data from "effect/Data"
-import type { NonEmptyReadonlyArray } from "./Array.js"
-import * as Context from "./Context.js"
-import type * as Effect from "./Effect.js"
-import type { Email } from "./Schema.js"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import * as Context from "./Context.ts"
+import type * as Effect from "./Effect.ts"
+import type { Email } from "./Schema.ts"
 
 export class SendMailError extends Data.TaggedError("SendMailError")<{
   readonly raw: Error

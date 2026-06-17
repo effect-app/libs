@@ -1,9 +1,9 @@
 import type * as Exit from "effect/Exit"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.js"
-import * as S from "../Schema.js"
-import { AST } from "../Schema.js"
-import type { ClientForOptions } from "./clientFor.js"
+import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.ts"
+import * as S from "../Schema.ts"
+import { AST } from "../Schema.ts"
+import type { ClientForOptions } from "./clientFor.ts"
 
 /**
  * Minimal structural shape for an rpc-client middleware tag.

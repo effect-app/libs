@@ -9,11 +9,11 @@ import * as Option from "effect-app/Option"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
 import * as Struct from "effect/Struct"
 import { SqlClient } from "effect/unstable/sql"
-import { OptimisticConcurrencyException } from "../../errors.js"
-import { InfraLogger } from "../../logger.js"
-import { annotateDb } from "../../otel.js"
-import { makeETag } from "../utils.js"
-import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.js"
+import { OptimisticConcurrencyException } from "../../errors.ts"
+import { InfraLogger } from "../../logger.ts"
+import { annotateDb } from "../../otel.ts"
+import { makeETag } from "../utils.ts"
+import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown },

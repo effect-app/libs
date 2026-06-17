@@ -6,6 +6,7 @@ import { globSync } from "glob"
 
 import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
+import { createNativeModelTypeResolver } from "./shared/native-type-resolver.js"
 import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.js"
 
 const CONFIG_FILENAMES = ["codegen.config.json"]
@@ -281,12 +282,18 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
       const existingClass = new RegExp(`(^|\\n)\\s*export\\s+class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`)
       const existingConst = new RegExp(`(^|\\n)\\s*export\\s+const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=`)
       if (existingClass.test(out) || existingConst.test(out)) {
+        // Upgrade a 3-arg facade (`<X, X.Encoded, X.Make>`) to the 5-arg form by
+        // appending the services. Idempotent: when the services are already
+        // present (group 3), leave the match untouched so we don't collapse a
+        // dprint-wrapped multi-line declaration back to one line (which would
+        // oscillate with the formatter forever).
         out = out.replace(
           new RegExp(
-            `(OpaqueFacade(?:Class)?<\\s*)${n}(?:\\.Type)?(\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make)(?:\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices)?(\\s*>)`,
+            `(OpaqueFacade(?:Class)?<\\s*)${n}(?:\\.Type)?(\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make)((?:\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices)?)(\\s*>)`,
             "g"
           ),
-          `$1${name}$2, ${name}.DecodingServices, ${name}.EncodingServices$3`
+          (match, p1: string, p2: string, services: string, p3: string) =>
+            services ? match : `${p1}${name}${p2}, ${name}.DecodingServices, ${name}.EncodingServices${p3}`
         )
         const privateClassRe = new RegExp(`(^|\\n)(\\s*)class\\s+_${n}\\b`)
         const privateMatch = privateClassRe.exec(out)
@@ -425,12 +432,16 @@ interface ParsedArgs {
   help: boolean
   config?: string
   tsconfig?: string
+  native?: boolean
 }
 
 function parseArgs(args: ReadonlyArray<string>): ParsedArgs {
   const files: Array<string> = []
   let config: string | undefined
   let tsconfig: string | undefined
+  // Native (tsgo) is the default resolver; `--legacy` opts back into the classic
+  // `typescript` Compiler API. `--native` is kept as an accepted no-op.
+  let native = true
 
   for (let index = 0; index < args.length; index++) {
     const part = args[index]!
@@ -464,10 +475,18 @@ function parseArgs(args: ReadonlyArray<string>): ParsedArgs {
       index++
       continue
     }
+    if (part === "--native") {
+      native = true
+      continue
+    }
+    if (part === "--legacy" || part === "--classic") {
+      native = false
+      continue
+    }
     throw new Error(`Unknown argument: ${part}`)
   }
 
-  const result: ParsedArgs = { files, help: false }
+  const result: ParsedArgs = { files, help: false, native }
   if (config !== undefined) result.config = config
   if (tsconfig !== undefined) result.tsconfig = tsconfig
   return result
@@ -503,12 +522,13 @@ function findNearestTsconfig(fromDir: string): string | undefined {
 }
 
 function run() {
-  const { files, help, config, tsconfig } = parseArgs(process.argv.slice(2))
+  const { config, files, help, native, tsconfig } = parseArgs(process.argv.slice(2))
 
   if (help) {
-    console.log("Usage: effect-app-codegen [--file <path>]... [--config <path>] [--tsconfig <path>]")
+    console.log("Usage: effect-app-codegen [--file <path>]... [--config <path>] [--tsconfig <path>] [--legacy]")
     console.log("Runs codegen blocks in the given files, or scans the current working tree when omitted.")
     console.log(`Loads ${CONFIG_FILENAMES.join(", ")} from cwd when present; --config overrides.`)
+    console.log("static/facade blocks resolve via the native tsgo fork by default; --legacy uses the classic typescript API.")
     console.log("--tsconfig enables `static` model blocks (type-checker-backed literal Encoded/Type).")
     return
   }
@@ -551,7 +571,9 @@ function run() {
     round++
     changedStatic = false
     const resolver: ModelTypeResolver | undefined = tsconfigPath
-      ? createModelTypeResolver({ tsconfigPath, files: staticFiles })
+      ? native
+        ? createNativeModelTypeResolver({ tsconfigPath })
+        : createModelTypeResolver({ tsconfigPath, files: staticFiles })
       : undefined
 
     // First round: process every target (incl. non-static presets). Later rounds:

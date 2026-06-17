@@ -60,7 +60,13 @@ function parseTsConfig(ts: TS, tsconfigPath: string): { options: import("typescr
     throw new Error(`Failed to read tsconfig ${tsconfigPath}: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`)
   }
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(tsconfigPath))
-  return { options: { ...parsed.options, noEmit: true, composite: false, incremental: false, skipLibCheck: true, declaration: false }, fileNames: parsed.fileNames }
+  // `stableTypeOrdering` makes tsc order union/intersection constituents by a
+  // structural compare (the same order typescript-go uses), instead of by type
+  // id (creation/source order). Set it so the classic resolver's output matches
+  // the native (tsgo) resolver's — no divergence when switching backends. It is
+  // an internal compiler option (not in the public `CompilerOptions` type).
+  const options = { ...parsed.options, noEmit: true, composite: false, incremental: false, skipLibCheck: true, declaration: false, stableTypeOrdering: true } as import("typescript").CompilerOptions
+  return { options, fileNames: parsed.fileNames }
 }
 
 export function createModelTypeResolver(args: {

@@ -75,8 +75,20 @@ export function getFacadeableModelNames(code: string): Array<string> {
   })
 }
 
+// Whitespace/format-insensitive canonical form, so a dprint-reformatted block
+// compares equal to the freshly-generated one (otherwise codegen and the
+// formatter oscillate forever). Beyond per-line trimming this also absorbs the
+// reformattings dprint applies to generated types:
+//   - line-wrapping (a long union split onto `\n  | A\n  | B` vs one line),
+//   - the leading union/intersection bar dprint adds when wrapping,
+//   - the trailing `;` inside an inline object literal that dprint strips.
+// It only removes insignificant separators/whitespace, so genuine content
+// differences (a renamed type, `S.X` vs `X`, a changed member) still differ.
 function normaliseLines(s: string): string {
-  return s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")
+  return s
+    .replace(/\s+/g, "") // collapse all whitespace incl. newlines/indentation
+    .replace(/;/g, "") // object-member separators: native emits `{ a; b }`, dprint multilines to `{\n a\n b\n}` (no `;`)
+    .replace(/([:=<(,[|&])\|/g, "$1") // leading `|`/`&` bar after a separator (dprint wrap style)
 }
 
 export type ModelOptions = {

@@ -17,7 +17,8 @@
   },
   "scripts": {
     "all": "pnpm -r",
-    "pub": "pnpm ci:version && git commit -am 'chore: update versions' && pnpm ci:publish && git push && git push --follow-tags",
+    "pub": "pnpm ci:version && git commit -am 'chore: update versions' && pnpm pub:only",
+    "pub:only": "pnpm ci:publish && git push && git push --follow-tags",
     "ci:version": "pnpm changeset version",
     "ci:publish": "pnpm build && pnpm changeset publish",
     "preinstall": "npx only-allow pnpm",

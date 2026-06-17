@@ -468,7 +468,7 @@ describe("OpaqueFacade", () => {
     expect(S.is(RenamedFacadeModel)({ external_name: "plain" })).toBe(false)
   })
 
-  it("keeps generated facades constructable and decodable", () => {
+  it("keeps generated struct facades decodable with public statics", () => {
     const input: RequestContext.Encoded = {
       span: { traceId: "trace", spanId: "span", sampled: true },
       name: "operation",
@@ -478,7 +478,7 @@ describe("OpaqueFacade", () => {
 
     const decoded = S.decodeSync(RequestContext)(input)
 
-    expect(decoded).toBeInstanceOf(RequestContext)
+    expect(decoded).not.toBeInstanceOf(RequestContext)
     expect(S.is(RequestContext)(decoded)).toBe(true)
     expect(RequestContext.toMonitoring(decoded)).toStrictEqual({ operationName: "operation", locale: "en" })
   })

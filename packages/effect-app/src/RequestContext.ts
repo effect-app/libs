@@ -8,6 +8,7 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
+// eslint-disable-next-line eslint/no-underscore-dangle
 const _RequestContext = S.Struct({
   span: S.Struct({
     traceId: S.String,

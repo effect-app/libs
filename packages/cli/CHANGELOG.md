@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.32
+
+### Patch Changes
+
+- b9312df: Prevent subtree sync commands from importing upstream git tags.
+
 ## 2.1.0-beta.31
 
 ### Patch Changes

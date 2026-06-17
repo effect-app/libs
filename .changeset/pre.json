@@ -46,6 +46,7 @@
     "clever-breads-enter",
     "clever-pets-follow",
     "cli-preserve-trailing-newline",
+    "cli-sync-no-tags",
     "client-fetch-property",
     "cluster-servicebus-notifications",
     "codegen-rule-options",

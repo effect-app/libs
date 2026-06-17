@@ -15,7 +15,7 @@ class _WorkflowStep extends S.Opaque<_WorkflowStep>()(
 ) {}
 
 // codegen:start {preset: modelFacade, className: _WorkflowStep, schema: S}
-export class WorkflowStep extends S.OpaqueFacadeClass<WorkflowStep, WorkflowStep.Encoded, WorkflowStep.Make, WorkflowStep.DecodingServices, WorkflowStep.EncodingServices>()(_WorkflowStep) {}
+export class WorkflowStep extends S.OpaqueFacade<WorkflowStep, WorkflowStep.Encoded, WorkflowStep.Make, WorkflowStep.DecodingServices, WorkflowStep.EncodingServices>()(_WorkflowStep) {}
 // codegen:end
 
 class _WorkflowRun extends S.Opaque<_WorkflowRun>()(
@@ -54,7 +54,7 @@ class _WorkflowRun extends S.Opaque<_WorkflowRun>()(
 ) {}
 
 // codegen:start {preset: modelFacade, className: _WorkflowRun, schema: S}
-export class WorkflowRun extends S.OpaqueFacadeClass<WorkflowRun, WorkflowRun.Encoded, WorkflowRun.Make, WorkflowRun.DecodingServices, WorkflowRun.EncodingServices>()(_WorkflowRun) {}
+export class WorkflowRun extends S.OpaqueFacade<WorkflowRun, WorkflowRun.Encoded, WorkflowRun.Make, WorkflowRun.DecodingServices, WorkflowRun.EncodingServices>()(_WorkflowRun) {}
 // codegen:end
 
 // codegen:start {preset: model, static: true, facade: true}

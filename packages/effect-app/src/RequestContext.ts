@@ -8,7 +8,7 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
-class _RequestContext extends S.Opaque<_RequestContext>()(S.Struct({
+const _RequestContext = S.Struct({
   span: S.Struct({
     traceId: S.String,
     spanId: S.String,
@@ -20,20 +20,10 @@ class _RequestContext extends S.Opaque<_RequestContext>()(S.Struct({
   namespace: NonEmptyString255,
   /** @deprecated */
   userProfile: S.optional(S.Struct({ sub: UserProfileId })) //
-})) {
-  // static Tag = Context.Tag<RequestContext>()
+})
 
-  static toMonitoring(this: void, self: RequestContext) {
-    return {
-      operationName: self.name,
-      locale: self.locale
-    }
-  }
-}
-
-// codegen:start {preset: modelFacade, className: _RequestContext, schema: S}
-// eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class RequestContext extends S.OpaqueFacadeClass<
+// codegen:start {preset: modelFacade, className: _RequestContext, schema: S, base: true}
+class __RequestContext extends S.OpaqueFacade<
   RequestContext,
   RequestContext.Encoded,
   RequestContext.Make,
@@ -41,6 +31,16 @@ export class RequestContext extends S.OpaqueFacadeClass<
   RequestContext.EncodingServices
 >()(_RequestContext) {}
 // codegen:end
+
+// eslint-disable-next-line typescript/no-unsafe-declaration-merging
+export class RequestContext extends __RequestContext {
+  static toMonitoring(this: void, self: RequestContext) {
+    return {
+      operationName: self.name,
+      locale: self.locale
+    }
+  }
+}
 
 export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace"> & Partial<RequestContext>) => ({
   "code.function.name": ctx.name,

@@ -8,7 +8,7 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
-class _RequestContext extends S.Opaque<_RequestContext>()(S.Struct({
+class _RequestContext extends S.Class<_RequestContext>("RequestContext")({
   span: S.Struct({
     traceId: S.String,
     spanId: S.String,
@@ -20,7 +20,7 @@ class _RequestContext extends S.Opaque<_RequestContext>()(S.Struct({
   namespace: NonEmptyString255,
   /** @deprecated */
   userProfile: S.optional(S.Struct({ sub: UserProfileId })) //
-})) {
+}) {
   // static Tag = Context.Tag<RequestContext>()
 
   static toMonitoring(this: void, self: RequestContext) {

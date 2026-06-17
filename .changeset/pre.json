@@ -58,6 +58,7 @@
     "computed-projections-extensions",
     "computed-projections-infra",
     "concurrent-decode-helpers",
+    "config-nested-native",
     "configurable-barrel-import-extension",
     "configurable-mutation-invalidation",
     "context-map-resolver-cache",

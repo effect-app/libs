@@ -65,6 +65,11 @@ function parseTsConfig(
     )
   }
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(tsconfigPath))
+  // `stableTypeOrdering` makes tsc order union/intersection constituents by a
+  // structural compare (the same order typescript-go uses), instead of by type
+  // id (creation/source order). Set it so the classic resolver's output matches
+  // the native (tsgo) resolver's — no divergence when switching backends. It is
+  // an internal compiler option (not in the public `CompilerOptions` type).
   return {
     options: {
       ...parsed.options,
@@ -72,8 +77,9 @@ function parseTsConfig(
       composite: false,
       incremental: false,
       skipLibCheck: true,
-      declaration: false
-    },
+      declaration: false,
+      stableTypeOrdering: true
+    } as import("typescript").CompilerOptions,
     fileNames: parsed.fileNames
   }
 }
@@ -182,29 +188,66 @@ export function createModelTypeResolver(args: {
   }
 }
 
+interface SchemaRef {
+  readonly sym: Symbol_
+  /** The exact in-scope reference the author wrote (`X`, `ProcessingStates.X`). */
+  readonly name: string
+}
+interface FieldRef {
+  readonly refs: ReadonlyArray<SchemaRef>
+  wrapper: "" | "nonempty" | "array"
+  nullable: boolean
+}
+
 function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<string>) {
   // Note: deliberately NOT using `InTypeAlias` — that flag expands the alias being
   // printed (turning `NonEmptyString255` into `string & ...Brand`). Without it,
   // typeToString prefers the named alias symbol when one exists.
   const FF = ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.UseFullyQualifiedType
+  // A field whose printed expansion is this big (or multi-line) is worth replacing
+  // with a const reference, when one is available.
+  const FIELD_REDIRECT_LIMIT = 200
 
-  // If `t` is a model's `Encoded` namespace interface -> "Name.Encoded".
+  const skipAlias = (s: Symbol_): Symbol_ => (s.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(s) : s
+
+  // Prefix a model symbol with its enclosing namespace(s): a model `Label` nested in
+  // `namespace ProcessingStates` is referenced as `ProcessingStates.Label`. Walks up
+  // namespace/module parents, stopping at the source-file module (a quoted path).
+  function qualify(sym: Symbol_): string {
+    let name = sym.name
+    let p = (sym as Symbol_ & { parent?: Symbol_ }).parent
+    while (p) {
+      if ((p.flags & (ts.SymbolFlags.ValueModule | ts.SymbolFlags.NamespaceModule)) === 0) break
+      if (!p.name || p.name.startsWith("\"") || p.name.startsWith("'")) break
+      name = `${p.name}.${name}`
+      p = (p as Symbol_ & { parent?: Symbol_ }).parent
+    }
+    return name
+  }
+
+  // A symbol whose `X.Encoded`/`X.Type` resolves in this file: one of this file's
+  // models, or any imported class/interface/namespace.
+  function isModelParent(p: Symbol_): boolean {
+    if (modelNames.has(p.name)) return true
+    return (p.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface | ts.SymbolFlags.ValueModule | ts.SymbolFlags.NamespaceModule)) !== 0
+  }
+
+  // If `t` is a model's `Encoded` namespace interface -> "Ns.Name.Encoded".
   function modelEncodedName(t: Type): string | null {
-    const sym = (t.aliasSymbol ?? t.symbol) as Symbol_ | undefined
-    if (!sym || sym.name !== "Encoded") return null
-    const parent = (sym as Symbol_ & { parent?: Symbol_ }).parent
-    if (parent && modelNames.has(parent.name)) return `${parent.name}.Encoded`
+    const sym = (t.aliasSymbol ?? t.symbol) as (Symbol_ & { parent?: Symbol_ }) | undefined
+    if (!sym || sym.name !== "Encoded" || !sym.parent) return null
+    if (isModelParent(sym.parent)) return `${qualify(sym.parent)}.Encoded`
     return null
   }
 
-  // If `t` is a model's instance type -> "Name.Type". Two shapes occur:
+  // If `t` is a model's instance type -> "Ns.Name.Type". Two shapes occur:
   //  - Self = the class (before/without the self-rewrite): symbol name === ModelName.
   //  - Self = `X.Type` (after the self-rewrite): symbol is the `Type` interface,
   //    name === "Type", parent === ModelName.
   function modelTypeName(t: Type): string | null {
     const sym = (t.aliasSymbol ?? t.symbol) as (Symbol_ & { parent?: Symbol_ }) | undefined
     if (!sym) return null
-    if (sym.name === "Type" && sym.parent && modelNames.has(sym.parent.name)) return `${sym.parent.name}.Type`
+    if (sym.name === "Type" && sym.parent && isModelParent(sym.parent)) return `${qualify(sym.parent)}.Type`
     if (modelNames.has(sym.name)) return `${sym.name}.Type`
     return null
   }
@@ -228,6 +271,189 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
     // arrays/tuples) so `ReadonlyArray<readonly [..]>` prints as
     // `readonly (readonly [..])[]`, not the invalid `readonly readonly [..][]`.
     return /[|&]/.test(s) || s.startsWith("readonly ") ? `(${s})` : s
+  }
+  // Parenthesize a reference used as an array element where precedence matters.
+  const parenElem = (s: string): string =>
+    /[|&]/.test(s) || s.startsWith("typeof ") || s.startsWith("readonly ") ? `(${s})` : s
+
+  // A printed field type large enough to be worth replacing with a const reference:
+  // a multi-line object expansion, or a long single line (a huge union that would
+  // otherwise be one formatter-crashing line).
+  const wouldExpandBig = (printed: string): boolean => printed.includes("\n") || printed.length > FIELD_REDIRECT_LIMIT
+
+  // --- schema-AST capture: recover named references for a field, so a big expansion
+  // can be replaced by `X.Encoded` / `typeof X.Encoded` / a union/wrapper of those ---
+
+  const PASSTHROUGH = new Set(["withConstructorDefault", "withDefault", "withDecodingDefault", "annotations"])
+  const isPassthrough = (n: Node | undefined): boolean =>
+    !!n && ts.isIdentifier(n) && PASSTHROUGH.has(n.text)
+
+  function wrapperKind(name: string): "" | "nonempty" | "array" | "nullor" {
+    switch (name) {
+      case "NonEmptyArray":
+      case "NonEmptyReadonlyArray":
+      case "NonEmptyChunk":
+        return "nonempty"
+      case "Array":
+      case "ReadonlyArray":
+      case "Chunk":
+        return "array"
+      case "NullOr":
+      case "NullishOr":
+        return "nullor"
+    }
+    return ""
+  }
+
+  const calleeName = (e: Node | undefined): string =>
+    !e ? "" : ts.isIdentifier(e) ? e.text : ts.isPropertyAccessExpression(e) ? e.name.text : ""
+
+  // The exact source reference (`X`, `ProcessingStates.X`) of an identifier / property
+  // access — guaranteed resolvable in the file we emit into.
+  function nodeRefName(node: Node): string {
+    if (ts.isIdentifier(node)) return node.text
+    if (ts.isPropertyAccessExpression(node)) {
+      const base = nodeRefName(node.expression)
+      return base ? `${base}.${node.name.text}` : ""
+    }
+    return ""
+  }
+
+  // Resolve an uppercase-named schema const a node refers to; null for method names
+  // (`withConstructorDefault`) or non-consts (`Struct`).
+  function resolveConst(node: Node): SchemaRef | null {
+    let s = checker.getSymbolAtLocation(node)
+    if (!s) return null
+    s = skipAlias(s)
+    if (!s.name || s.name[0]! < "A" || s.name[0]! > "Z") return null
+    const name = nodeRefName(node)
+    return name ? { sym: s, name } : null
+  }
+
+  // Recover named references from a field value: a bare/namespaced identifier, a
+  // recognised wrapper (`NonEmptyArray(X)`, `NullOr(X)`), a `Union([A, B, …])`, or any
+  // of those behind a type-preserving accessor (`.withConstructorDefault`).
+  function fieldRefOf(val: Node): FieldRef | null {
+    if (ts.isIdentifier(val) || ts.isPropertyAccessExpression(val)) {
+      const r = resolveConst(val)
+      if (r) return { refs: [r], wrapper: "", nullable: false }
+      if (ts.isPropertyAccessExpression(val) && isPassthrough(val.name)) return fieldRefOf(val.expression)
+      return null
+    }
+    if (ts.isCallExpression(val)) {
+      const callee = val.expression
+      const name = calleeName(callee)
+      const args = val.arguments
+      const wk = wrapperKind(name)
+      if (wk === "nonempty" || wk === "array") {
+        if (args.length === 1) {
+          const inner = fieldRefOf(args[0]!)
+          if (inner && inner.wrapper === "" && !inner.nullable) {
+            inner.wrapper = wk
+            return inner
+          }
+        }
+        return null
+      }
+      if (wk === "nullor") {
+        if (args.length === 1) {
+          const inner = fieldRefOf(args[0]!)
+          if (inner && !inner.nullable) {
+            inner.nullable = true
+            return inner
+          }
+        }
+        return null
+      }
+      const arg0 = args[0]
+      if (name === "Union" && args.length === 1 && arg0 && ts.isArrayLiteralExpression(arg0)) {
+        const refs: Array<SchemaRef> = []
+        for (const el of arg0.elements) {
+          const r = resolveConst(el)
+          if (!r) return null // a non-const member -> can't name them all
+          refs.push(r)
+        }
+        return refs.length > 0 ? { refs, wrapper: "", nullable: false } : null
+      }
+      // fluent method on a schema value: `X.withConstructorDefault(...)` -> receiver
+      if (ts.isPropertyAccessExpression(callee) && isPassthrough(callee.name)) return fieldRefOf(callee.expression)
+    }
+    return null
+  }
+
+  // Map each field of the model's backing schema to its named reference(s), by walking
+  // the `_X` declaration's source AST. Follows object spreads (`...projectedFields`) so
+  // fields merged in by spread are captured too. Robust to `.pipe(encodeKeys/…)`.
+  function structFieldSymbols(nameNode: Node): Map<string, FieldRef> {
+    const out = new Map<string, FieldRef>()
+    const nsym = checker.getSymbolAtLocation(nameNode)
+    const decl = nsym?.valueDeclaration
+    if (!decl || !ts.isVariableDeclaration(decl) || !decl.initializer) return out
+    const visited = new Set<Symbol_>()
+    const walk = (n: Node): void => {
+      n.forEachChild((c) => {
+        if (ts.isPropertyAssignment(c)) {
+          const pn = c.name
+          const fn = ts.isIdentifier(pn) || ts.isStringLiteral(pn) || ts.isNumericLiteral(pn) ? pn.text : undefined
+          if (fn !== undefined && c.initializer && !out.has(fn)) {
+            const ref = fieldRefOf(c.initializer)
+            if (ref) out.set(fn, ref)
+          }
+        } else if (ts.isSpreadAssignment(c) && ts.isIdentifier(c.expression)) {
+          let s = checker.getSymbolAtLocation(c.expression)
+          if (s) {
+            s = skipAlias(s)
+            if (!visited.has(s) && s.valueDeclaration && ts.isVariableDeclaration(s.valueDeclaration) && s.valueDeclaration.initializer) {
+              visited.add(s)
+              walk(s.valueDeclaration.initializer)
+            }
+          }
+        }
+        walk(c)
+        return undefined
+      })
+    }
+    walk(decl.initializer)
+    return out
+  }
+
+  // The const-reference fallback chain for one ref (per `key`):
+  //  1. `X.Encoded` / `X` / `X.Make` when the declaration exists (namespace `Encoded`,
+  //     a `type X` alias / class, namespace `Make`),
+  //  2. else `typeof X.Encoded` / `typeof X.Type` / `typeof X["~type.make.in"]`.
+  function constLeaf(r: SchemaRef, key: "Encoded" | "Type" | "Make"): string {
+    const { name, sym } = r
+    const exports = (sym as Symbol_ & { exports?: import("typescript").SymbolTable }).exports
+    switch (key) {
+      case "Encoded":
+        if (exports?.has("Encoded" as import("typescript").__String)) return `${name}.Encoded`
+        return `typeof ${name}.Encoded`
+      case "Type":
+        // A class/interface/alias name already denotes the decoded type directly.
+        if ((sym.flags & (ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Class | ts.SymbolFlags.Interface)) !== 0) return name
+        return `typeof ${name}.Type`
+      case "Make":
+        if (exports?.has("Make" as import("typescript").__String)) return `${name}.Make`
+        return `typeof ${name}["~type.make.in"]`
+    }
+  }
+
+  // Build the reference type for a field backed by named const(s), rebuilding the shape
+  // (`null | A.Encoded | typeof B.Encoded`, `readonly [X.Encoded, ...]`) around the
+  // leaves. Returns "" when any leaf isn't nameable.
+  function fieldConstRef(ref: FieldRef | undefined, key: "Encoded" | "Type" | "Make"): string {
+    if (!ref || ref.refs.length === 0) return ""
+    const parts: Array<string> = []
+    for (const r of ref.refs) {
+      const leaf = constLeaf(r, key)
+      if (!leaf) return ""
+      parts.push(leaf)
+    }
+    let core = parts.join(" | ")
+    if (ref.wrapper === "nonempty") core = `readonly [${core}, ...${parenElem(core)}[]]`
+    else if (ref.wrapper === "array") core = `readonly ${parenElem(core)}[]`
+    if (ref.nullable) core = `null | ${core}`
+    return core
   }
 
   function print(t: Type, atNode: Node, side: "Encoded" | "Type"): string {
@@ -258,24 +484,34 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
       const el = print(checker.getTypeArguments(t as import("typescript").TypeReference)[0]!, atNode, side)
       return `readonly ${asElement(el)}[]`
     }
-    // anonymous inline object -> expand structurally; named objects (Date, etc.) by name
+    // anonymous inline object -> expand structurally; named objects (Date, etc.) by name.
+    // Multi-line: a deeply-nested inline object on one line can reach 50KB+ and crash the
+    // formatter; the whitespace-insensitive codegen compare keeps this stable vs dprint.
     if (isAnonymousObject(t)) {
       const props = t.getProperties()
-      if (props.length > 0) {
-        const parts = props.map((p) => {
-          const pt = checker.getTypeOfSymbolAtLocation(p, atNode)
-          const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
-          return `readonly ${propKey(p.name)}${opt}: ${print(pt, atNode, side)}`
-        })
-        return `{ ${parts.join("; ")} }`
-      }
+      if (props.length > 0) return expandObject(props, atNode, side)
     }
     // primitives, literals, branded scalars, named library types, etc.
     const printed = checker.typeToString(t, atNode, FF)
+    // Safety net: a large object dump that `isAnonymousObject` didn't catch — expand it
+    // structurally so it's multi-line and the formatter can't OOM on a giant single line.
+    if (printed.length > FIELD_REDIRECT_LIMIT && (t.flags & ts.TypeFlags.Object) !== 0) {
+      const props = t.getProperties()
+      if (props.length > 0) return expandObject(props, atNode, side)
+    }
     // On the Type side a branded scalar prints as `string & Ns.FooBrand`; prefer the
     // schema's companion type alias `Ns.Foo` (nominal, cheaper, what authors wrote).
     if (side === "Type") return namedScalar(printed)
     return printed
+  }
+
+  function expandObject(props: ReadonlyArray<Symbol_>, atNode: Node, side: "Encoded" | "Type"): string {
+    const parts = props.map((p) => {
+      const pt = checker.getTypeOfSymbolAtLocation(p, atNode)
+      const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
+      return `readonly ${propKey(p.name)}${opt}: ${print(pt, atNode, side)}`
+    })
+    return `{\n${parts.join("\n")}\n}`
   }
 
   // `<base> & <Qualified>Brand` -> `<Qualified>` (the schema's companion scalar type).
@@ -317,11 +553,19 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         // Not an expandable object (e.g. opaque already); fall back to a printed reference.
         return `extends ${checker.typeToString(memberType, atNode, FF)} {}`
       }
+      const fieldSyms = structFieldSymbols(atNode)
       const body = props
         .map((p) => {
           const pt = checker.getTypeOfSymbolAtLocation(p, atNode)
           const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
-          return `    readonly ${propKey(p.name)}${opt}: ${print(pt, atNode, key)}`
+          // A field that expands big AND is backed by named schema const(s) -> reference
+          // them (`X.Encoded` / `typeof X.Encoded` / wrapper shape) instead of expanding.
+          let val = print(pt, atNode, key)
+          if (wouldExpandBig(val)) {
+            const ref = fieldConstRef(fieldSyms.get(p.name), key)
+            if (ref) val = ref
+          }
+          return `    readonly ${propKey(p.name)}${opt}: ${val}`
         })
         .join("\n")
       return `{\n${body}\n  }`
@@ -355,13 +599,18 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         return `= ${printed}`
       }
       const typeByName = new Map(typeType.getProperties().map((p) => [p.name, p] as const))
+      const fieldSyms = structFieldSymbols(atNode)
       const body = makeProps
         .map((p) => {
           const opt = (p.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : ""
           const source = typeByName.get(p.name) ?? p
           const printed = print(checker.getTypeOfSymbolAtLocation(source, atNode), atNode, "Type")
           // nested model `Foo.Type` becomes `Foo.Make`; scalars / Date / primitives untouched.
-          const value = printed.replace(/\.Type\b/g, ".Make")
+          let value = printed.replace(/\.Type\b/g, ".Make")
+          if (wouldExpandBig(value)) {
+            const ref = fieldConstRef(fieldSyms.get(p.name), "Make")
+            if (ref) value = ref
+          }
           return `    readonly ${propKey(p.name)}${opt}: ${value}`
         })
         .join("\n")

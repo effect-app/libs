@@ -2,6 +2,15 @@ import { globSync } from "glob"
 import * as path from "path"
 import { normaliseModuleForBarrel } from "../normalise.js"
 
+// dprint's default import/export sort: case-insensitive, then case-sensitive as
+// a tie-break (uppercase before lowercase). Plain lexicographic, not numeric.
+function bySpecifier(a: string, b: string): number {
+  const la = a.toLowerCase()
+  const lb = b.toLowerCase()
+  if (la !== lb) return la < lb ? -1 : 1
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
 type PresetFn<T = Record<string, unknown>> = (args: {
   meta: { filename: string; existingContent: string }
   options: T
@@ -95,6 +104,11 @@ export const barrel: PresetFn<{
       const cleaned = f.replace(/\.\w+$/, "").replace(/\/$/, "")
       return isDir ? `${cleaned}/index` : cleaned
     })
+    // Match dprint's module-specifier sort so the generated barrel and the
+    // formatter agree (otherwise lint-fix reorders the exports and codegen then
+    // flags them as stale). dprint sorts case-insensitively, tie-breaking by the
+    // original case (uppercase first); it is NOT numeric (`a10` before `a2`).
+    .sort(bySpecifier)
 
   let expectedContent: string
 

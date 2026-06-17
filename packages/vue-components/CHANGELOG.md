@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.272
+
+### Patch Changes
+
+- 3bb6770: Point the package `exports` at `src` (`.vue`/`.ts`) for workspace/source consumption, matching `effect-app` and `@effect-app/vue`. The published package is unchanged — `publishConfig.exports` still ships the built `dist` artifacts, so registry consumers keep getting compiled output. This lets linked/source consumers (e.g. via embedded-source mode) load the components from `src` without a build step; runtime `.vue` is compiled by the consumer's bundler and types resolve via `vue-tsc`.
+- Updated dependencies [21ac90a]
+  - effect-app@4.0.0-beta.272
+  - @effect-app/vue@4.0.0-beta.272
+
 ## 4.0.0-beta.271
 
 ### Patch Changes

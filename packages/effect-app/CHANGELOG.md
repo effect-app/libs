@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.272
+
+### Patch Changes
+
+- 21ac90a: Unify generated model facades on `OpaqueFacade` and support class facades through encoded-key schema transforms.
+
 ## 4.0.0-beta.271
 
 ### Patch Changes

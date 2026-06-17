@@ -1,5 +1,16 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.25
+
+### Minor Changes
+
+- 82655fa: feat: add native fork
+
+### Patch Changes
+
+- 21ac90a: Unify generated model facades on `OpaqueFacade` and support class facades through encoded-key schema transforms.
+- d605f3d: Migrate `glob` 8 → 11. Use the named `globSync` export (glob 11 dropped the default export, which broke loading the package as an ESM oxlint plugin), and drop the stale `@types/glob` (glob 11 ships its own types). Also clears the package's pre-existing implicit-`any` typecheck errors.
+
 ## 2.0.0-beta.24
 
 ### Patch Changes

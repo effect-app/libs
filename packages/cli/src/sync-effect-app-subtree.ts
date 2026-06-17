@@ -48,6 +48,8 @@ const normalizeVersion = (range: string) => {
   return match?.[0]
 }
 
+const isFullSha = (ref: string) => /^[0-9a-f]{40}$/i.test(ref)
+
 const resolveRequestedRef = (ref: string) => ref === "latest" ? "main" : ref
 
 const parsePackageVersion = (source: string, packagePath: string) => {
@@ -95,14 +97,57 @@ export const syncEffectAppSubtree = Effect.fnUntraced(function*(config: SyncEffe
     }
   })
 
+  const fetchRemoteRef = Effect.fnUntraced(function*(remoteRef: string, localRef: string) {
+    const rawRef = `${localRef}-raw`
+
+    yield* run(
+      `git fetch --no-tags ${shellQuote(config.url)} ${shellQuote(`+${remoteRef}:${rawRef}`)}`
+    )
+
+    const commit = (yield* runGetString(`git rev-list -n1 ${shellQuote(rawRef)}`)).trim()
+    yield* run(`git update-ref ${shellQuote(localRef)} ${shellQuote(commit)}`)
+  })
+
+  const fetchRequestedRef = Effect.fnUntraced(function*(requestedRef: string, localRef: string) {
+    if (isFullSha(requestedRef)) {
+      const localCommit = yield* runGetString(
+        `git rev-parse --verify ${shellQuote(`${requestedRef}^{commit}`)}`
+      )
+        .pipe(Effect.option)
+
+      if (Option.isSome(localCommit)) {
+        return yield* run(`git update-ref ${shellQuote(localRef)} ${shellQuote(localCommit.value.trim())}`)
+      }
+    }
+
+    const remoteRefs = requestedRef.startsWith("refs/")
+      ? [requestedRef]
+      : [`refs/heads/${requestedRef}`, `refs/tags/${requestedRef}`, requestedRef]
+
+    for (const remoteRef of remoteRefs) {
+      const exists = yield* runGetString(
+        `git ls-remote --exit-code ${shellQuote(config.url)} ${shellQuote(remoteRef)}`
+      )
+        .pipe(Effect.option)
+
+      if (Option.isSome(exists)) {
+        return yield* fetchRemoteRef(remoteRef, localRef)
+      }
+    }
+
+    return yield* Effect.fail(new Error(`Could not resolve effect-app ref: ${requestedRef}`))
+  })
+
   if (config.ref) {
     const ref = resolveRequestedRef(config.ref)
+    const syncRef = "refs/effa-sync/effect-app-requested"
     yield* Effect.logInfo(`Using effect-app subtree ref: ${ref}`)
     yield* Effect.logInfo(`Using effect-app subtree url: ${config.url}`)
+    yield* fetchRequestedRef(ref, syncRef)
     return yield* run(
-      `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} ${
-        shellQuote(config.url)
-      } ${shellQuote(ref)} --squash`
+      `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} . ${
+        shellQuote(syncRef)
+      } --squash`
     )
   }
 
@@ -174,13 +219,15 @@ export const syncEffectAppSubtree = Effect.fnUntraced(function*(config: SyncEffe
   }
 
   if (remoteRef) {
+    const syncRef = "refs/effa-sync/effect-app-tag"
     yield* Effect.logInfo(`Using effect-app package: ${packageName}@${version}`)
     yield* Effect.logInfo(`Using effect-app subtree ref: ${remoteRef}`)
     yield* Effect.logInfo(`Using effect-app subtree url: ${config.url}`)
+    yield* fetchRemoteRef(`refs/tags/${remoteRef}`, syncRef)
     return yield* run(
-      `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} ${
-        shellQuote(config.url)
-      } ${shellQuote(remoteRef)} --squash`
+      `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} . ${
+        shellQuote(syncRef)
+      } --squash`
     )
   }
 
@@ -198,7 +245,7 @@ export const syncEffectAppSubtree = Effect.fnUntraced(function*(config: SyncEffe
   }
 
   yield* run(
-    `git --git-dir=${shellQuote(cachePath)} fetch --prune ${shellQuote(config.url)} ${
+    `git --git-dir=${shellQuote(cachePath)} fetch --no-tags --prune ${shellQuote(config.url)} ${
       shellQuote(`+refs/heads/${defaultBranch}:refs/heads/${defaultBranch}`)
     }`
   )

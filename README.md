@@ -79,6 +79,10 @@ effa sync-effect-app --ref main
 effa sync-effect-app --ref latest # latest main
 ```
 
+Both `sync-effect` and `sync-effect-app` fetch selected commits with
+`--no-tags`, so syncing subtrees does not import upstream package tags into the
+app repository.
+
 The clean release convention is to publish git tags for package versions
 (`effect-app@<version>`, `@effect-app/infra@<version>`, etc.) from the release
 workflow. The history scan exists because this repo still has older `v*` tags

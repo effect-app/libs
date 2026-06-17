@@ -22,6 +22,24 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
   const fs = yield* FileSystem.FileSystem
   const { runGetExitCode, runGetString } = yield* RunCommandService
 
+  const run = Effect.fnUntraced(function*(command: string) {
+    const exitCode = yield* runGetExitCode(command)
+    if (exitCode !== 0) {
+      return yield* Effect.fail(new Error(`Command failed with exit code ${exitCode}: ${command}`))
+    }
+  })
+
+  const fetchRemoteRef = Effect.fnUntraced(function*(remoteRef: string, localRef: string) {
+    const rawRef = `${localRef}-raw`
+
+    yield* run(
+      `git fetch --no-tags ${shellQuote(config.url)} ${shellQuote(`+${remoteRef}:${rawRef}`)}`
+    )
+
+    const commit = (yield* runGetString(`git rev-list -n1 ${shellQuote(rawRef)}`)).trim()
+    yield* run(`git update-ref ${shellQuote(localRef)} ${shellQuote(commit)}`)
+  })
+
   const versionMentions: Array<{
     manifestPath: string
     section: string
@@ -112,9 +130,11 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
   yield* Effect.logInfo(`Using effect version: ${version}`)
   yield* Effect.logInfo(`Using subtree ref: ${ref}`)
   yield* Effect.logInfo(`Using subtree url: ${config.url}`)
-  yield* runGetExitCode(
-    `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} ${url} ${
-      shellQuote(ref)
+  const syncRef = "refs/effa-sync/effect-selected"
+  yield* fetchRemoteRef(`refs/tags/${ref}`, syncRef)
+  yield* run(
+    `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} . ${
+      shellQuote(syncRef)
     } --squash`
   )
 })

@@ -3,7 +3,7 @@ export type ModelFacadeOptions = {
     readonly name?: string;
     readonly schema?: string;
     /**
-    * Base mode: emit a non-exported base `class __X extends OpaqueFacade<...>()(_X) {}`
+     * Base mode: emit a non-exported base `class __X extends OpaqueFacade<...>()(_X) {}`
      * instead of `export class X`. The user owns `export class X extends __X { ...statics... }`,
      * so static/instance members live on the public class while `_X` stays a light schema.
      */

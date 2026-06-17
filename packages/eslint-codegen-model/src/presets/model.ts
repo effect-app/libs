@@ -50,7 +50,7 @@ export function getExportedModelNames(code: string): Array<string> {
 // (post-rewrite) first, then the exported `X` (pre-rewrite / already-facade).
 function modelExtendsWindow(code: string, name: string): string | null {
   // `class __X` first: base mode (`export class X extends __X`) where the facade
-  // lives on the generated base `class __X extends OpaqueFacadeClass<...>()(_X)`.
+  // lives on the generated base `class __X extends OpaqueFacade<...>()(_X)`.
   for (const decl of [`class __${name}`, `class _${name}`, `export class ${name}`, `class ${name}`]) {
     const re = new RegExp(`(^|\\n)\\s*${decl.replace(/[$]/g, "\\$&")}\\b`)
     const m = re.exec(code)
@@ -112,7 +112,7 @@ export type ModelOptions = {
   /**
    * With `static`, emit a shallow exported facade for private model classes. Implies
    * `type` and `make`; the CLI rewrites `export class X` into private `class _X`
-   * plus `export class X extends S.OpaqueFacadeClass<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
+   * plus `export class X extends S.OpaqueFacade<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
    */
   facade?: boolean
   /** @deprecated unused */
@@ -163,9 +163,11 @@ export function model(
         // Could not resolve (file outside program, etc.) — leave existing content.
         return meta.existingContent
       }
-      const standardBlock = standardNames.map((n) =>
-        `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
-      ).join("\n")
+      const standardBlock = standardNames
+        .map((n) =>
+          `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
+        )
+        .join("\n")
       expectedContent = ["//", [block, standardBlock].filter((s) => s.length > 0).join("\n"), "//"].join("\n")
     } else {
       const them = modelNames.map((modelName) => [

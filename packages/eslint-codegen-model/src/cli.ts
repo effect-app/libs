@@ -4,9 +4,9 @@ import * as path from "node:path"
 
 import { globSync } from "glob"
 
-import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
 import { createNativeModelTypeResolver } from "./shared/native-type-resolver.js"
+import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
 import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.js"
 
 const CONFIG_FILENAMES = ["codegen.config.json"]
@@ -26,8 +26,10 @@ function loadConfig(cwd: string, explicit?: string): CodegenDefaults | undefined
 }
 
 const modelBlockRe = /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b/
-const staticTypeModelBlockRe = /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\bstatic:\s*true\b[^}]*\btype:\s*true\b/
-const staticMakeModelBlockRe = /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\bstatic:\s*true\b[^}]*\bmake:\s*true\b/
+const staticTypeModelBlockRe =
+  /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\bstatic:\s*true\b[^}]*\btype:\s*true\b/
+const staticMakeModelBlockRe =
+  /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\bstatic:\s*true\b[^}]*\bmake:\s*true\b/
 const facadeModelBlockRe = /\/\/ codegen:start[ \t]*\{[^}]*\bpreset:\s*model\b[^}]*\bfacade:\s*true\b/
 
 function escapeRe(s: string): string {
@@ -238,7 +240,7 @@ function syncFacadeSourceCtor(classText: string, name: string): string {
 }
 
 function facadeClassLine(name: string, prefix: string): string {
-  return `export class ${name} extends ${prefix}OpaqueFacadeClass<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(_${name}) {}`
+  return `export class ${name} extends ${prefix}OpaqueFacade<${name}, ${name}.Encoded, ${name}.Make, ${name}.DecodingServices, ${name}.EncodingServices>()(_${name}) {}`
 }
 
 // If `classText` is a no-statics `export class X extends (S.)Opaque<X, X.Encoded>()(STRUCT) {}`
@@ -274,12 +276,16 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
   for (const name of modelNames) {
     const n = escapeRe(name)
     if (enabled) {
-      // Base mode: the facade is the generated `class __X extends OpaqueFacadeClass<...>()(_X)`
+      // Base mode: the facade is the generated `class __X extends OpaqueFacade<...>()(_X)`
       // (owned by its modelFacade block); the user owns `export class X extends __X { ...statics... }`.
       // Leave both alone — only the block preset regenerates `__X`.
-      const baseMode = new RegExp(`(^|\\n)\\s*class\\s+__${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacadeClass\\s*<`)
+      const baseMode = new RegExp(
+        `(^|\\n)\\s*class\\s+__${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`
+      )
       if (baseMode.test(out)) continue
-      const existingClass = new RegExp(`(^|\\n)\\s*export\\s+class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`)
+      const existingClass = new RegExp(
+        `(^|\\n)\\s*export\\s+class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?\\s*<`
+      )
       const existingConst = new RegExp(`(^|\\n)\\s*export\\s+const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=`)
       if (existingClass.test(out) || existingConst.test(out)) {
         // Upgrade a 3-arg facade (`<X, X.Encoded, X.Make>`) to the 5-arg form by
@@ -307,7 +313,9 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
             out = `${out.slice(0, start)}${replacement}${out.slice(end)}`
           }
         }
-        const facadeBlock = new RegExp(`// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\bclassName:\\s*_${n}\\b[^}]*\\}[\\s\\S]*?export\\s+(?:const|class)\\s+${n}\\b`)
+        const facadeBlock = new RegExp(
+          `// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\bclassName:\\s*_${n}\\b[^}]*\\}[\\s\\S]*?export\\s+(?:const|class)\\s+${n}\\b`
+        )
         if (!facadeBlock.test(out)) {
           const facadeLine = new RegExp(
             `(^|\\n)([ \\t]*)export\\s+const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=\\s*((?:(?:[A-Za-z_$][\\w$]*\\.)?)OpaqueFacade<\\s*${n}\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make(?:\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices)?\\s*>\\(\\)\\(\\s*_${n}\\s*\\))`
@@ -318,7 +326,8 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
               `${lineStart}${indent}// codegen:start {preset: modelFacade, className: _${name}${schemaOption(prefix)}}`,
               `${indent}${facadeClassLine(name, prefix)}`,
               `${indent}// codegen:end`
-            ].join("\n")
+            ]
+              .join("\n")
           })
         }
         continue
@@ -336,7 +345,7 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
       const prefix = modelSchemaPrefix(classText)
       // No-statics `S.Opaque` model -> emit the private as a plain `S.Struct` const
       // (lighter type; ~-14.5% definition instantiations). The facade class still
-      // wraps it and is constructable (OpaqueFacadeClass uses setPrototypeOf).
+      // wraps it and is constructable (OpaqueFacade uses overloads for class vs struct schemas).
       const privateClass = tryStructPrivate(classText, name, indent) ?? syncFacadeSourceCtor(
         classText.replace(new RegExp(`^${indent}export\\s+class\\s+${n}\\b`), `${indent}class _${name}`),
         name
@@ -345,7 +354,8 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
         `${indent}// codegen:start {preset: modelFacade, className: _${name}${schemaOption(prefix)}}`,
         `${indent}${facadeClassLine(name, prefix)}`,
         `${indent}// codegen:end`
-      ].join("\n")
+      ]
+        .join("\n")
       out = `${out.slice(0, start)}${privateClass}\n${facade}${out.slice(end)}`
     } else {
       const classRe = new RegExp(`(^|\\n)(\\s*)class\\s+_${n}\\b`)
@@ -357,8 +367,13 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
 
       const classText = out.slice(start, end)
       const indent = match[2]!
-      const exportedClass = classText.replace(new RegExp(`^${indent}class\\s+_${n}\\b`), `${indent}export class ${name}`)
-      const facadeRe = new RegExp(`\\n${indent}(?:// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\}\\n)?${indent}export\\s+(?:const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=\\s*(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade<\\s*${n}(?:\\.Type)?\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make(?:\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices)?\\s*>\\(\\)\\(\\s*_${n}\\s*\\)|class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?<\\s*${n}\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices\\s*>\\(\\)\\(\\s*_${n}\\s*\\)\\s*\\{\\})(?:\\n${indent}// codegen:end)?`)
+      const exportedClass = classText.replace(
+        new RegExp(`^${indent}class\\s+_${n}\\b`),
+        `${indent}export class ${name}`
+      )
+      const facadeRe = new RegExp(
+        `\\n${indent}(?:// codegen:start[^\\n]*\\{[^}]*\\bpreset:\\s*modelFacade\\b[^}]*\\}\\n)?${indent}export\\s+(?:const\\s+${n}\\s*:\\s*${n}\\.Schema\\s*=\\s*(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade<\\s*${n}(?:\\.Type)?\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make(?:\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices)?\\s*>\\(\\)\\(\\s*_${n}\\s*\\)|class\\s+${n}\\s+extends\\s+(?:[A-Za-z_$][\\w$]*\\.)?OpaqueFacade(?:Class)?<\\s*${n}\\s*,\\s*${n}\\.Encoded\\s*,\\s*${n}\\.Make\\s*,\\s*${n}\\.DecodingServices\\s*,\\s*${n}\\.EncodingServices\\s*>\\(\\)\\(\\s*_${n}\\s*\\)\\s*\\{\\})(?:\\n${indent}// codegen:end)?`
+      )
       out = `${out.slice(0, start)}${exportedClass}${out.slice(end)}`.replace(facadeRe, "")
     }
   }
@@ -387,7 +402,12 @@ function syncModelSource(source: string): string {
   return source
 }
 
-function updateFile(filePath: string, source: string, defaults?: CodegenDefaults, resolver?: ModelTypeResolver): boolean {
+function updateFile(
+  filePath: string,
+  source: string,
+  defaults?: CodegenDefaults,
+  resolver?: ModelTypeResolver
+): boolean {
   let changed = false
 
   const synced = syncModelSource(source)

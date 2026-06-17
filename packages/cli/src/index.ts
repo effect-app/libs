@@ -16,6 +16,7 @@ import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
 import { patchArgvForWrapCommands } from "./argv-patch.js"
+import { syncEffectAppSubtree } from "./sync-effect-app-subtree.js"
 import { syncEffectSubtree } from "./sync-effect-subtree.js"
 import { syncDiff, syncPush, syncShared } from "./sync-shared.js"
 
@@ -727,30 +728,68 @@ NodeRuntime.runMain(
               Flag.optional,
               Flag.withDescription("Subtree prefix (default: repos/effect)")
             ),
-            remote: Flag.string("remote").pipe(
-              Flag.optional,
-              Flag.withDescription("Git remote name (default: effect-smol)")
-            ),
-            remoteUrl: Flag.string("remote-url").pipe(
+            url: Flag.string("url").pipe(
               Flag.optional,
               Flag.withDescription(
-                "Git remote URL (default: https://github.com/Effect-TS/effect-smol.git)"
+                "Git repository URL (default: https://github.com/Effect-TS/effect-smol.git)"
               )
             )
           },
-          Effect.fn("effa-cli.sync-effect")(function*({ manifests, prefix, remote, remoteUrl }) {
+          Effect.fn("effa-cli.sync-effect")(function*({ manifests, prefix, url }) {
             yield* syncEffectSubtree({
               manifestPaths: Option.match(manifests, {
                 onNone: () => ["package.json"],
                 onSome: (m) => m.split(",").map((p) => p.trim())
               }),
               subtreePrefix: Option.getOrElse(prefix, () => "repos/effect"),
-              remoteName: Option.getOrElse(remote, () => "effect-smol"),
-              remoteUrl: Option.getOrElse(remoteUrl, () => "https://github.com/Effect-TS/effect-smol.git")
+              url: Option.getOrElse(url, () => "https://github.com/Effect-TS/effect-smol.git")
             })
           })
         )
         .pipe(Command.withDescription("Sync the Effect subtree to the version pinned in package.json"))
+
+      const syncEffectApp = Command
+        .make(
+          "sync-effect-app",
+          {
+            manifests: Flag.string("manifests").pipe(
+              Flag.withAlias("m"),
+              Flag.optional,
+              Flag.withDescription(
+                "Comma-separated list of package.json paths to scan (default: package.json)"
+              )
+            ),
+            prefix: Flag.string("prefix").pipe(
+              Flag.optional,
+              Flag.withDescription("Subtree prefix (default: repos/libs)")
+            ),
+            url: Flag.string("url").pipe(
+              Flag.optional,
+              Flag.withDescription(
+                "Git repository URL (default: https://github.com/effect-app/libs.git)"
+              )
+            ),
+            ref: Flag.string("ref").pipe(
+              Flag.optional,
+              Flag.withDescription("Ref escape hatch (branch/tag/sha); skips version resolution")
+            )
+          },
+          Effect.fn("effa-cli.sync-effect-app")(function*({ manifests, prefix, ref, url }) {
+            yield* syncEffectAppSubtree({
+              manifestPaths: Option.match(manifests, {
+                onNone: () => ["package.json"],
+                onSome: (m) => m.split(",").map((p) => p.trim())
+              }),
+              ...Option.match(ref, {
+                onNone: () => ({}),
+                onSome: (ref) => ({ ref })
+              }),
+              subtreePrefix: Option.getOrElse(prefix, () => "repos/libs"),
+              url: Option.getOrElse(url, () => "https://github.com/effect-app/libs.git")
+            })
+          })
+        )
+        .pipe(Command.withDescription("Sync the Effect App libs subtree to the version pinned in package.json"))
 
       const SharedLockfileFlag = Flag.file("lockfile").pipe(
         Flag.optional,
@@ -838,6 +877,7 @@ NodeRuntime.runMain(
             gist,
             nuke,
             syncEffect,
+            syncEffectApp,
             sync,
             syncDiffCmd,
             syncPushCmd

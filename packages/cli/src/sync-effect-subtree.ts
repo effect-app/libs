@@ -6,11 +6,12 @@ import { RunCommandService } from "./os-command.js"
 export interface SyncEffectConfig {
   readonly manifestPaths: ReadonlyArray<string>
   readonly subtreePrefix: string
-  readonly remoteName: string
-  readonly remoteUrl: string
+  readonly url: string
 }
 
 const depSections = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"] as const
+
+const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 
 const normalizeVersion = (range: string) => {
   const match = range.match(/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/)
@@ -87,19 +88,12 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
     `@effect/ai-anthropic@${version}`
   ]
 
-  // ensure remote exists
-  const remoteResult = yield* runGetString(`git remote get-url ${config.remoteName}`).pipe(Effect.option)
-
-  if (Option.isNone(remoteResult)) {
-    yield* runGetExitCode(`git remote add ${config.remoteName} ${config.remoteUrl}`)
-  }
-
-  yield* runGetExitCode(`git fetch ${config.remoteName} --tags`)
+  const url = shellQuote(config.url)
 
   let ref: string | undefined
   for (const candidate of candidateRefs) {
     const tagResult = yield* runGetString(
-      `git ls-remote --exit-code --tags ${config.remoteName} refs/tags/${candidate}`
+      `git ls-remote --exit-code --tags ${url} ${shellQuote(`refs/tags/${candidate}`)}`
     )
       .pipe(Effect.option)
 
@@ -117,7 +111,10 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
 
   yield* Effect.logInfo(`Using effect version: ${version}`)
   yield* Effect.logInfo(`Using subtree ref: ${ref}`)
+  yield* Effect.logInfo(`Using subtree url: ${config.url}`)
   yield* runGetExitCode(
-    `git -c status.showUntrackedFiles=no subtree pull --prefix=${config.subtreePrefix} ${config.remoteName} ${ref} --squash`
+    `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} ${url} ${
+      shellQuote(ref)
+    } --squash`
   )
 })

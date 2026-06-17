@@ -58,6 +58,10 @@
       "types": "./dist/sync-effect-subtree.d.ts",
       "default": "./dist/sync-effect-subtree.js"
     },
+    "./sync-effect-app-subtree": {
+      "types": "./dist/sync-effect-app-subtree.d.ts",
+      "default": "./dist/sync-effect-app-subtree.js"
+    },
     "./sync-shared": {
       "types": "./dist/sync-shared.d.ts",
       "default": "./dist/sync-shared.js"

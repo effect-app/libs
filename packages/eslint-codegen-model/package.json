@@ -38,8 +38,7 @@
     "madge": "8.0.0",
     "oxlint": "1.67.0",
     "typescript": "~6.0.3",
-    "effect-app": "workspace:*",
-    "@effect-app/eslint-shared-config": "workspace:*"
+    "effect-app": "workspace:*"
   },
   "main": "index.js",
   "exports": {

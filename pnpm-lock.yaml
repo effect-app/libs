@@ -262,9 +262,6 @@ importers:
         specifier: 0.133.0
         version: 0.133.0
     devDependencies:
-      '@effect-app/eslint-shared-config':
-        specifier: workspace:*
-        version: link:../eslint-shared-config
       '@types/glob':
         specifier: 8.1.0
         version: 8.1.0

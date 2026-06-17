@@ -15,8 +15,8 @@ import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import * as ShardId from "effect/unstable/cluster/ShardId"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as Snowflake from "effect/unstable/cluster/Snowflake"
-import { CosmosClient, CosmosClientLayer } from "./cosmos-client.js"
-import { annotateCosmosResponse, annotateDb } from "./otel.js"
+import { CosmosClient, CosmosClientLayer } from "./cosmos-client.ts"
+import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
 export interface ClusterCosmosConfig {
   readonly url: Redacted.Redacted<string>

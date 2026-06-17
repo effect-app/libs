@@ -1,6 +1,6 @@
-import type { Message } from "./errors.js"
-import type { FieldValues, InternalFieldName } from "./fields.js"
-import type { FieldPath, FieldPathValue } from "./path/index.js"
+import type { Message } from "./errors.ts"
+import type { FieldValues, InternalFieldName } from "./fields.ts"
+import type { FieldPath, FieldPathValue } from "./path/index.ts"
 
 export type ValidationValue = boolean | number | string | RegExp
 

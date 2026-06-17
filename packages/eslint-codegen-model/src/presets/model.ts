@@ -9,10 +9,14 @@ import type { ModelTypeResolver } from "../shared/type-resolver.js"
 // extends expressions without bleeding into the next class declaration.
 const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|TaggedErrorClass)\s*<\s*\w[\w.]*\s*,/
 const opaqueWithEncodedRe = /(?:^|[\s.])Opaque\s*<\s*\w[\w.]*\s*,/
+const opaqueFacadeRe = /(?:^|[\s.])OpaqueFacade(?:Class)?\s*</
 const contextOpaqueRe = /(?:^|[\s.])Context\s*\.\s*Opaque\s*</
 
 export function getExportedModelNames(code: string): Array<string> {
   const result: Array<string> = []
+  const add = (name: string) => {
+    if (!result.includes(name)) result.push(name)
+  }
   const classRe = /(^|\n)\s*export\s+class\s+(\w+)/g
   const matches = Array.from(code.matchAll(classRe))
   for (const [index, match] of matches.entries()) {
@@ -28,11 +32,47 @@ export function getExportedModelNames(code: string): Array<string> {
     if (
       baseClassWithEncodedRe.test(extendsWindow)
       || (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow))
+      || opaqueFacadeRe.test(extendsWindow)
+      // base mode: `export class X extends __X` (facade lives on the generated `__X`)
+      || new RegExp(`extends\\s+__${name}\\b`).test(extendsWindow)
     ) {
-      result.push(name)
+      add(name)
     }
   }
+  const facadeRe = /(^|\n)\s*export\s+const\s+(\w+)\s*:\s*\2\.Schema\s*=/g
+  for (const match of code.matchAll(facadeRe)) {
+    add(match[2]!)
+  }
   return result
+}
+
+// The extends-clause text of a model's defining class — checks the private `_X`
+// (post-rewrite) first, then the exported `X` (pre-rewrite / already-facade).
+function modelExtendsWindow(code: string, name: string): string | null {
+  // `class __X` first: base mode (`export class X extends __X`) where the facade
+  // lives on the generated base `class __X extends OpaqueFacadeClass<...>()(_X)`.
+  for (const decl of [`class __${name}`, `class _${name}`, `export class ${name}`, `class ${name}`]) {
+    const re = new RegExp(`(^|\\n)\\s*${decl.replace(/[$]/g, "\\$&")}\\b`)
+    const m = re.exec(code)
+    if (!m) continue
+    const start = m.index + m[1]!.length
+    const window = code.slice(start, start + 500)
+    const braceIdx = window.indexOf("{")
+    return braceIdx === -1 ? window : window.slice(0, braceIdx)
+  }
+  return null
+}
+
+// Models that can be turned into a shallow facade: those whose underlying schema
+// is `S.Opaque(...)` (or already an `OpaqueFacade`). `Class`/`TaggedClass`/etc.
+// models are nominal (and may carry instance methods) — leave them standard.
+export function getFacadeableModelNames(code: string): Array<string> {
+  return getExportedModelNames(code).filter((name) => {
+    const w = modelExtendsWindow(code, name)
+    if (w === null) return false
+    if (baseClassWithEncodedRe.test(w)) return false
+    return opaqueFacadeRe.test(w) || (/(?:^|[\s.])Opaque\s*</.test(w) && !contextOpaqueRe.test(w))
+  })
 }
 
 function normaliseLines(s: string): string {
@@ -57,6 +97,12 @@ export type ModelOptions = {
    * rewritten to `S.OpaqueShape<X.Type, X.Encoded, X.Make>`. Implies `type`.
    */
   make?: boolean
+  /**
+   * With `static`, emit a shallow exported facade for private model classes. Implies
+   * `type` and `make`; the CLI rewrites `export class X` into private `class _X`
+   * plus `export class X extends S.OpaqueFacadeClass<X, X.Encoded, X.Make, X.DecodingServices, X.EncodingServices>()(_X) {}`.
+   */
+  facade?: boolean
   /** @deprecated unused */
   writeFullTypes?: boolean
 }
@@ -80,18 +126,33 @@ export function model(
     }
 
     let expectedContent: string
-    if (options?.static) {
+    if (options?.static || options?.facade) {
       if (!resolver) {
         // No type checker available (e.g. oxlint). Leave the block as-is so we don't
         // clobber CLI-generated static interfaces with the conditional form.
         return meta.existingContent
       }
-      const block = resolver.generate(meta.filename, modelNames, { type: options.type ?? false, make: options.make ?? false })
+      // In facade mode, only Opaque-struct models become facades; Class-based
+      // models (nominal, may carry methods) keep the standard namespace so a
+      // mixed file still converts its facade-able models.
+      const facadeable = options.facade ? new Set(getFacadeableModelNames(targetContent)) : null
+      const resolveNames = facadeable ? modelNames.filter((n) => facadeable.has(n)) : modelNames
+      const standardNames = facadeable ? modelNames.filter((n) => !facadeable.has(n)) : []
+      const block = resolveNames.length > 0
+        ? resolver.generate(meta.filename, resolveNames, {
+          facade: options.facade ?? false,
+          make: options.facade || (options.make ?? false),
+          type: options.facade || options.type || options.make || false
+        })
+        : ""
       if (block === null) {
         // Could not resolve (file outside program, etc.) — leave existing content.
         return meta.existingContent
       }
-      expectedContent = ["//", block, "//"].join("\n")
+      const standardBlock = standardNames.map((n) =>
+        `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
+      ).join("\n")
+      expectedContent = ["//", [block, standardBlock].filter((s) => s.length > 0).join("\n"), "//"].join("\n")
     } else {
       const them = modelNames.map((modelName) => [
         `export namespace ${modelName} {`,

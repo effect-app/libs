@@ -1,7 +1,7 @@
 import { type Config, make } from "effect/Config"
 import { dual } from "effect/Function"
 
-import * as ConfigProvider from "./ConfigProvider.js"
+import * as ConfigProvider from "./ConfigProvider.ts"
 
 export const nested: {
   (name: string): <A>(self: Config<A>) => Config<A>

@@ -1,6 +1,6 @@
 import * as Context from "effect-app/Context"
 import { accessCn, accessFn } from "effect-app/Context"
-import { type MakeIntlReturn } from "./makeIntl.js"
+import { type MakeIntlReturn } from "./makeIntl.ts"
 
 type I18nShape = ReturnType<MakeIntlReturn<string>["useIntl"]>
 

@@ -4,9 +4,9 @@ import * as Layer from "effect-app/Layer"
 import * as Fiber from "effect/Fiber"
 import * as FiberSet from "effect/FiberSet"
 
-import { InfraLogger } from "./logger.js"
-import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.js"
-import { setRootParentSpan } from "./RequestFiberSet.js"
+import { InfraLogger } from "./logger.ts"
+import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.ts"
+import { setRootParentSpan } from "./RequestFiberSet.ts"
 
 const make = Effect.gen(function*() {
   const set = yield* FiberSet.make<unknown, never>()

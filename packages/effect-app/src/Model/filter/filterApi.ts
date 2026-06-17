@@ -1,4 +1,4 @@
-import { type RelationDirection } from "../query.js"
+import { type RelationDirection } from "../query.ts"
 
 export type InOps =
   | "in"

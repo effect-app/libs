@@ -10,8 +10,8 @@ import * as Option from "effect/Option"
 import { isFunction } from "effect/Predicate"
 import * as Record from "effect/Record"
 import * as Result from "effect/Result"
-import { identity, pipe } from "./Function.js"
-import type { DeepMutable, Equals, Mutable } from "./Types.js"
+import { identity, pipe } from "./Function.ts"
+import type { DeepMutable, Equals, Mutable } from "./Types.ts"
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.ts"
@@ -228,7 +228,7 @@ function decorateNew(
 function decorateLegacy(
   target: any,
   key: PropertyKey,
-  descriptor: PropertyDescriptor,
+  descriptor: PropertyDescriptor | undefined,
   setProto: boolean,
   makeNonConfigurable: boolean,
   // tslint:enable:bool-param-default
@@ -236,11 +236,12 @@ function decorateLegacy(
 ): PropertyDescriptor {
   /* istanbul ignore if */
   if (!descriptor) {
-    descriptor = <any> Object.getOwnPropertyDescriptor(target, key)
+    descriptor = Object.getOwnPropertyDescriptor(target, key)
     if (!descriptor) {
-      const e = new Error("@LazyGetter is unable to determine the property descriptor")
-      ;(<any> e).$target = target
-      ;(<any> e).$key = key
+      const e = Object.assign(new Error("@LazyGetter is unable to determine the property descriptor"), {
+        $key: key,
+        $target: target
+      })
       throw e
     }
   }
@@ -295,7 +296,7 @@ function defaultFilter(): boolean {
 
 function validateAndExtractMethodFromDescriptor(desc: PropertyDescriptor): Function {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalMethod = <Function> desc.get
+  const originalMethod = desc.get
 
   if (!originalMethod) {
     throw new Error("@LazyGetter can only decorate getters!")
@@ -318,7 +319,7 @@ function getterCommon( // tslint:disable-line:parameters-max-number
   makeNonConfigurable: boolean,
   resultSelector: ResultSelectorFn
 ): any {
-  const value = originalMethod.apply(thisArg, <any> args)
+  const value = originalMethod.apply(thisArg, args)
 
   if (resultSelector(value)) {
     const newDescriptor: PropertyDescriptor = {
@@ -353,23 +354,23 @@ export function LazyGetter(
 ): MethodDecorator & ResettableDescriptor {
   let desc: PropertyDescriptor
   let prop: PropertyKey
-  let args: IArguments = <any> null
+  let args: [targetOrDesc: any, key: PropertyKey | undefined, descriptor: PropertyDescriptor | undefined] | undefined
   let isLegacy: boolean
 
   function decorator(
     targetOrDesc: any,
-    key: PropertyKey,
-    descriptor: PropertyDescriptor
+    key: PropertyKey | undefined,
+    descriptor: PropertyDescriptor | undefined
   ): DecoratorReturn {
-    // eslint-disable-next-line prefer-rest-params
-    args = arguments
+    args = [targetOrDesc, key, descriptor]
     if (key === undefined) {
       if (typeof desc === "undefined") {
+        const newDescriptor = targetOrDesc as NewDescriptor
         isLegacy = false
-        prop = (<NewDescriptor> targetOrDesc).key
+        prop = newDescriptor.key
         desc = Object.assign(
           {},
-          (<NewDescriptor> targetOrDesc).descriptor
+          newDescriptor.descriptor
             /* istanbul ignore next */ || targetOrDesc
         )
       }
@@ -411,11 +412,14 @@ export function LazyGetter(
           "Unable to restore descriptor. Did you remember to apply your decorator to a method?"
         )
       }
+      if (!args) {
+        throw new Error("Unable to restore descriptor before applying the decorator.")
+      }
       // Restore descriptor to its original state
       Object.defineProperty(on, prop, desc)
-      // eslint-disable-next-line prefer-spread
-      const ret: any = decorator.apply(null, <any> args)
-      Object.defineProperty(on, prop, isLegacy ? ret : ret.descriptor || ret)
+      const ret = decorator.apply(null, args)
+      const restoredDescriptor = isLegacy ? ret : "descriptor" in ret && ret.descriptor ? ret.descriptor : ret
+      Object.defineProperty(on, prop, restoredDescriptor)
     }
 
   return decorator

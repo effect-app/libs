@@ -8,10 +8,10 @@ import { pretty } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import { flow } from "effect/Function"
 import * as Tracer from "effect/Tracer"
-import { InfraLogger } from "../logger.js"
-import { messagingSpanArgs } from "../otel.js"
-import { Receiver, Sender } from "../ServiceBus.js"
-import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
+import { InfraLogger } from "../logger.ts"
+import { messagingSpanArgs } from "../otel.ts"
+import { Receiver, Sender } from "../ServiceBus.ts"
+import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.ts"
 
 export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },

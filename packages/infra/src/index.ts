@@ -1,2 +1,2 @@
-export * from "./logger.js"
-export * from "./Store/index.js"
+export * from "./logger.ts"
+export * from "./Store/index.ts"

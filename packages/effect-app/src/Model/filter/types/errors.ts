@@ -1,6 +1,6 @@
-import type { FieldValues, InternalFieldName } from "./fields.js"
-import type { BrowserNativeObject, IsAny, LiteralUnion, Merge } from "./utils.js"
-import type { RegisterOptions, ValidateResult } from "./validator.js"
+import type { FieldValues, InternalFieldName } from "./fields.ts"
+import type { BrowserNativeObject, IsAny, LiteralUnion, Merge } from "./utils.ts"
+import type { RegisterOptions, ValidateResult } from "./validator.ts"
 
 export type Message = string
 

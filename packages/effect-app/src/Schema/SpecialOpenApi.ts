@@ -12,14 +12,14 @@
  *
  * ```ts
  * import { OpenApi } from "effect/unstable"
- * import { deduplicateOpenApiSchemas } from "./SpecialOpenApi.js"
+ * import { deduplicateOpenApiSchemas } from "./SpecialOpenApi.ts"
  *
  * const api = HttpApi.make("myApi")
  *   .pipe(HttpApi.annotateContext(OpenApi.annotations({ transform: deduplicateOpenApiSchemas })))
  * ```
  */
 
-import { postProcessJsonSchema } from "./SpecialJsonSchema.js"
+import { postProcessJsonSchema } from "./SpecialJsonSchema.ts"
 
 /**
  * Deduplicates `components.schemas` entries in an OpenAPI spec.

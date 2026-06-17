@@ -5,7 +5,7 @@ import type * as Effect from "effect-app/Effect"
 import * as Cause from "effect/Cause"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import { isProxy, isReactive, isRef, type MaybeRefOrGetter, toRaw } from "vue"
-import { reportError } from "./errorReporter.js"
+import { reportError } from "./errorReporter.ts"
 
 export * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 

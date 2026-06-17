@@ -5,12 +5,12 @@ import { RepositoryRegistryLive } from "effect-app/Model"
 import type { StorageConfig } from "effect-app/Store"
 import * as Redacted from "effect/Redacted"
 import type { SqlClient } from "effect/unstable/sql"
-import { CosmosStoreLayer } from "./Cosmos.js"
-import { DiskStoreLayer } from "./Disk.js"
-import { MemoryStoreLive } from "./Memory.js"
-// import { RedisStoreLayer } from "./Redis.js"
-import { SQLiteStoreLayer } from "./SQL.js"
-import { PgStoreLayer } from "./SQL/Pg.js"
+import { CosmosStoreLayer } from "./Cosmos.ts"
+import { DiskStoreLayer } from "./Disk.ts"
+import { MemoryStoreLive } from "./Memory.ts"
+// import { RedisStoreLayer } from "./Redis.ts"
+import { SQLiteStoreLayer } from "./SQL.ts"
+import { PgStoreLayer } from "./SQL/Pg.ts"
 
 export function StoreMakerLayer(
   cfg: StorageConfig,

@@ -13,7 +13,7 @@ import fs from "fs"
 import os from "os"
 import path from "path"
 import util from "util"
-import { InfraLogger } from "./logger.js"
+import { InfraLogger } from "./logger.ts"
 
 export const PrinterId = S.NonEmptyString255
 export type PrinterId = S.NonEmptyString255

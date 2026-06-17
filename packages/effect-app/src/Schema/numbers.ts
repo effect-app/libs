@@ -13,9 +13,9 @@ import * as Effect from "effect/Effect"
 import * as S from "effect/Schema"
 import type * as SchemaAST from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
-import { type BrandedSchema, fromBrand, nominal } from "./brand.js"
-import { withDefaultMake } from "./ext.js"
-import { type B } from "./schema.js"
+import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
+import { withDefaultMake } from "./ext.ts"
+import { type B } from "./schema.ts"
 
 export interface PositiveIntBrand
   extends Simplify<B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand>

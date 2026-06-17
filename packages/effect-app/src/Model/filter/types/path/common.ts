@@ -1,4 +1,4 @@
-import type { IsAny, IsNever } from "../utils.js"
+import type { IsAny, IsNever } from "../utils.ts"
 
 /**
  * Type alias to `string` which describes a lodash-like path through an object.

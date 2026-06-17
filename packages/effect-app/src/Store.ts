@@ -2,17 +2,17 @@
 import * as Data from "effect/Data"
 import type * as Redacted from "effect/Redacted"
 import * as Semaphore from "effect/Semaphore"
-import type { NonEmptyReadonlyArray } from "./Array.js"
-import type { OptimisticConcurrencyException } from "./client/errors.js"
-import * as Context from "./Context.js"
-import * as Effect from "./Effect.js"
-import * as Layer from "./Layer.js"
-import type { FilterResult } from "./Model/filter/filterApi.js"
-import type { FieldValues } from "./Model/filter/types.js"
-import type { FieldPath } from "./Model/filter/types/path/index.js"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.js"
-import type * as Option from "./Option.js"
-import { NonEmptyString255 } from "./Schema.js"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import type { DatabaseError, OptimisticConcurrencyException } from "./client/errors.ts"
+import * as Context from "./Context.ts"
+import * as Effect from "./Effect.ts"
+import * as Layer from "./Layer.ts"
+import type { FilterResult } from "./Model/filter/filterApi.ts"
+import type { FieldValues } from "./Model/filter/types.ts"
+import type { FieldPath } from "./Model/filter/types/path/index.ts"
+import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.ts"
+import type * as Option from "./Option.ts"
+import { NonEmptyString255 } from "./Schema.ts"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
@@ -99,30 +99,30 @@ export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded
 
 export type FilterFunc<Encoded extends FieldValues> = <U extends keyof Encoded = never>(
   args: FilterArgs<Encoded, U>
-) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[]>
+) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[], DatabaseError>
 
 export interface Store<
   IdKey extends keyof Encoded,
   Encoded extends FieldValues,
   PM extends PersistenceModelType<Encoded> = PersistenceModelType<Encoded>
 > {
-  all: Effect.Effect<PM[]>
+  all: Effect.Effect<PM[], DatabaseError>
   filter: FilterFunc<Encoded>
-  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>>
-  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException>
+  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>, DatabaseError>
+  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError>
   batchSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError>
   bulkSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
-  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
-  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError>
+  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void, DatabaseError>
+  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[], DatabaseError>
   /**
    * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
    * Non-primary namespaces must be seeded explicitly before use.
    */
-  seedNamespace: (namespace: string) => Effect.Effect<void>
+  seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
 }
 
 export class StoreMaker extends Context.Opaque<StoreMaker, {

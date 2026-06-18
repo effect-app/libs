@@ -1,6 +1,6 @@
 import { globSync } from "glob"
 import * as path from "path"
-import { normaliseModuleForBarrel } from "../normalise.js"
+import { normaliseModuleForBarrel } from "../normalise.ts"
 
 // dprint's default import/export sort: case-insensitive, then case-sensitive as
 // a tie-break (uppercase before lowercase). Plain lexicographic, not numeric.

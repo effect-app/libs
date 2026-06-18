@@ -1,4 +1,4 @@
-import codegenRule from "./rules/codegen.js"
+import codegenRule from "./rules/codegen.ts"
 
 export default {
   meta: { name: "codegen" },

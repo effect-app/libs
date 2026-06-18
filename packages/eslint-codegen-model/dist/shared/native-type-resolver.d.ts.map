@@ -1,1 +1,0 @@
-{"version":3,"file":"native-type-resolver.d.ts","sourceRoot":"","sources":["../../src/shared/native-type-resolver.ts"],"names":[],"mappings":"AAkBA,OAAO,KAAK,EAAE,iBAAiB,EAAkB,MAAM,oBAAoB,CAAA;AAoC3E,wBAAgB,6BAA6B,CAAC,IAAI,EAAE;IAClD,QAAQ,CAAC,YAAY,EAAE,MAAM,CAAA;IAC7B,QAAQ,CAAC,MAAM,CAAC,EAAE,MAAM,CAAA;CACzB,GAAG,iBAAiB,CAoDpB"}

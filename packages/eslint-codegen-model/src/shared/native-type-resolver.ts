@@ -16,7 +16,7 @@
 import { execFileSync } from "node:child_process"
 import { createRequire } from "node:module"
 import * as path from "node:path"
-import type { ModelTypeResolver, ResolveOptions } from "./type-resolver.js"
+import type { ModelTypeResolver, ResolveOptions } from "./type-resolver.ts"
 
 const require_ = createRequire(import.meta.url)
 

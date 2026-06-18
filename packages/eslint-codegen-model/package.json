@@ -41,8 +41,26 @@
   },
   "main": "index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./oxlint": "./dist/oxlint/index.js"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./oxlint": {
+      "types": "./src/oxlint/index.ts",
+      "default": "./src/oxlint/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./oxlint": {
+        "types": "./dist/oxlint/index.d.ts",
+        "default": "./dist/oxlint/index.js"
+      }
+    }
   },
   "author": "Wessel van der Veen & Scott vanBommel",
   "license": "ISC"

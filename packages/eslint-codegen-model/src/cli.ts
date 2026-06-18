@@ -4,10 +4,10 @@ import * as path from "node:path"
 
 import { globSync } from "glob"
 
-import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.js"
-import { createNativeModelTypeResolver } from "./shared/native-type-resolver.js"
-import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.js"
-import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.js"
+import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.ts"
+import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.ts"
+import { createNativeModelTypeResolver } from "./shared/native-type-resolver.ts"
+import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.ts"
 
 const CONFIG_FILENAMES = ["codegen.config.json"]
 
@@ -548,7 +548,9 @@ function run() {
     console.log("Usage: effect-app-codegen [--file <path>]... [--config <path>] [--tsconfig <path>] [--legacy]")
     console.log("Runs codegen blocks in the given files, or scans the current working tree when omitted.")
     console.log(`Loads ${CONFIG_FILENAMES.join(", ")} from cwd when present; --config overrides.`)
-    console.log("static/facade blocks resolve via the native tsgo fork by default; --legacy uses the classic typescript API.")
+    console.log(
+      "static/facade blocks resolve via the native tsgo fork by default; --legacy uses the classic typescript API."
+    )
     console.log("--tsconfig enables `static` model blocks (type-checker-backed literal Encoded/Type).")
     return
   }

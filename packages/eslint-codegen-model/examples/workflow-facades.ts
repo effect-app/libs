@@ -1,4 +1,4 @@
-import * as S from "../../effect-app/src/Schema.js"
+import * as S from "../../effect-app/src/Schema.ts"
 
 class _WorkflowStep extends S.Opaque<_WorkflowStep>()(
   S.Struct({
@@ -15,7 +15,15 @@ class _WorkflowStep extends S.Opaque<_WorkflowStep>()(
 ) {}
 
 // codegen:start {preset: modelFacade, className: _WorkflowStep, schema: S}
-export class WorkflowStep extends S.OpaqueFacade<WorkflowStep, WorkflowStep.Encoded, WorkflowStep.Make, WorkflowStep.DecodingServices, WorkflowStep.EncodingServices>()(_WorkflowStep) {}
+export class WorkflowStep
+  extends S.OpaqueFacade<
+    WorkflowStep,
+    WorkflowStep.Encoded,
+    WorkflowStep.Make,
+    WorkflowStep.DecodingServices,
+    WorkflowStep.EncodingServices
+  >()(_WorkflowStep)
+{}
 // codegen:end
 
 class _WorkflowRun extends S.Opaque<_WorkflowRun>()(
@@ -54,7 +62,15 @@ class _WorkflowRun extends S.Opaque<_WorkflowRun>()(
 ) {}
 
 // codegen:start {preset: modelFacade, className: _WorkflowRun, schema: S}
-export class WorkflowRun extends S.OpaqueFacade<WorkflowRun, WorkflowRun.Encoded, WorkflowRun.Make, WorkflowRun.DecodingServices, WorkflowRun.EncodingServices>()(_WorkflowRun) {}
+export class WorkflowRun
+  extends S.OpaqueFacade<
+    WorkflowRun,
+    WorkflowRun.Encoded,
+    WorkflowRun.Make,
+    WorkflowRun.DecodingServices,
+    WorkflowRun.EncodingServices
+  >()(_WorkflowRun)
+{}
 // codegen:end
 
 // codegen:start {preset: model, static: true, facade: true}
@@ -62,23 +78,35 @@ export class WorkflowRun extends S.OpaqueFacade<WorkflowRun, WorkflowRun.Encoded
 export interface WorkflowStep {
   readonly id: S.StringId
   readonly name: S.NonEmptyString255
-  readonly retryPolicy: { readonly maxAttempts: S.Int; readonly backoff: "fixed" | "exponential"; readonly jitter: false | true }
-  readonly input: { readonly [x: string]: string | number | boolean | null; }
+  readonly retryPolicy: {
+    readonly maxAttempts: S.Int
+    readonly backoff: "fixed" | "exponential"
+    readonly jitter: false | true
+  }
+  readonly input: { readonly [x: string]: string | number | boolean | null }
   readonly timeout?: undefined | number
 }
 export namespace WorkflowStep {
   export interface Encoded {
     readonly id: string
     readonly name: string
-    readonly retryPolicy: { readonly maxAttempts: number; readonly backoff: "fixed" | "exponential"; readonly jitter: false | true }
-    readonly input: { readonly [x: string]: string | number | boolean | null; }
+    readonly retryPolicy: {
+      readonly maxAttempts: number
+      readonly backoff: "fixed" | "exponential"
+      readonly jitter: false | true
+    }
+    readonly input: { readonly [x: string]: string | number | boolean | null }
     readonly timeout?: undefined | number
   }
   export interface Make {
     readonly id: S.StringId
     readonly name: S.NonEmptyString255
-    readonly retryPolicy: { readonly maxAttempts: S.Int; readonly backoff: "fixed" | "exponential"; readonly jitter: false | true }
-    readonly input: { readonly [x: string]: string | number | boolean | null; }
+    readonly retryPolicy: {
+      readonly maxAttempts: S.Int
+      readonly backoff: "fixed" | "exponential"
+      readonly jitter: false | true
+    }
+    readonly input: { readonly [x: string]: string | number | boolean | null }
     readonly timeout?: undefined | number
   }
   export type DecodingServices = never
@@ -89,8 +117,23 @@ export interface WorkflowRun {
   readonly workflowName: S.NonEmptyString255
   readonly version: S.Int
   readonly steps: readonly [WorkflowStep, ...WorkflowStep[]]
-  readonly status: { readonly _tag: "Queued"; readonly queuedAt: Date } | { readonly _tag: "Running"; readonly startedAt: Date; readonly activeStepId: S.StringId } | { readonly _tag: "Completed"; readonly completedAt: Date; readonly result: { readonly [x: string]: string; } } | { readonly _tag: "Failed"; readonly failedAt: Date; readonly failedStepId: S.StringId; readonly reason: S.NonEmptyString255 }
-  readonly history: readonly ({ readonly at: Date; readonly event: S.NonEmptyString255; readonly details: { readonly [x: string]: string; }; readonly stepId?: undefined | S.StringId })[]
+  readonly status:
+    | { readonly _tag: "Queued"; readonly queuedAt: Date }
+    | { readonly _tag: "Running"; readonly startedAt: Date; readonly activeStepId: S.StringId }
+    | { readonly _tag: "Completed"; readonly completedAt: Date; readonly result: { readonly [x: string]: string } }
+    | {
+      readonly _tag: "Failed"
+      readonly failedAt: Date
+      readonly failedStepId: S.StringId
+      readonly reason: S.NonEmptyString255
+    }
+  readonly history:
+    readonly ({
+      readonly at: Date
+      readonly event: S.NonEmptyString255
+      readonly details: { readonly [x: string]: string }
+      readonly stepId?: undefined | S.StringId
+    })[]
 }
 export namespace WorkflowRun {
   export interface Encoded {
@@ -98,16 +141,41 @@ export namespace WorkflowRun {
     readonly workflowName: string
     readonly version: number
     readonly steps: readonly [WorkflowStep.Encoded, ...WorkflowStep.Encoded[]]
-    readonly status: { readonly _tag: "Queued"; readonly queuedAt: string } | { readonly _tag: "Running"; readonly startedAt: string; readonly activeStepId: string } | { readonly _tag: "Completed"; readonly completedAt: string; readonly result: { readonly [x: string]: string; } } | { readonly _tag: "Failed"; readonly failedAt: string; readonly failedStepId: string; readonly reason: string }
-    readonly history: readonly ({ readonly at: string; readonly event: string; readonly details: { readonly [x: string]: string; }; readonly stepId?: undefined | string })[]
+    readonly status:
+      | { readonly _tag: "Queued"; readonly queuedAt: string }
+      | { readonly _tag: "Running"; readonly startedAt: string; readonly activeStepId: string }
+      | { readonly _tag: "Completed"; readonly completedAt: string; readonly result: { readonly [x: string]: string } }
+      | { readonly _tag: "Failed"; readonly failedAt: string; readonly failedStepId: string; readonly reason: string }
+    readonly history:
+      readonly ({
+        readonly at: string
+        readonly event: string
+        readonly details: { readonly [x: string]: string }
+        readonly stepId?: undefined | string
+      })[]
   }
   export interface Make {
     readonly id: S.StringId
     readonly workflowName: S.NonEmptyString255
     readonly version: S.Int
     readonly steps: readonly [WorkflowStep.Make, ...WorkflowStep.Make[]]
-    readonly status: { readonly _tag: "Queued"; readonly queuedAt: Date } | { readonly _tag: "Running"; readonly startedAt: Date; readonly activeStepId: S.StringId } | { readonly _tag: "Completed"; readonly completedAt: Date; readonly result: { readonly [x: string]: string; } } | { readonly _tag: "Failed"; readonly failedAt: Date; readonly failedStepId: S.StringId; readonly reason: S.NonEmptyString255 }
-    readonly history: readonly ({ readonly at: Date; readonly event: S.NonEmptyString255; readonly details: { readonly [x: string]: string; }; readonly stepId?: undefined | S.StringId })[]
+    readonly status:
+      | { readonly _tag: "Queued"; readonly queuedAt: Date }
+      | { readonly _tag: "Running"; readonly startedAt: Date; readonly activeStepId: S.StringId }
+      | { readonly _tag: "Completed"; readonly completedAt: Date; readonly result: { readonly [x: string]: string } }
+      | {
+        readonly _tag: "Failed"
+        readonly failedAt: Date
+        readonly failedStepId: S.StringId
+        readonly reason: S.NonEmptyString255
+      }
+    readonly history:
+      readonly ({
+        readonly at: Date
+        readonly event: S.NonEmptyString255
+        readonly details: { readonly [x: string]: string }
+        readonly stepId?: undefined | S.StringId
+      })[]
   }
   export type DecodingServices = never
   export type EncodingServices = never

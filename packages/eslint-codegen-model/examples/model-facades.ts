@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import * as S from "../../effect-app/src/Schema.js"
+import * as S from "../../effect-app/src/Schema.ts"
 
 export interface CatalogDecodingServices {
   readonly CatalogDecodingServices: "CatalogDecodingServices"
@@ -33,15 +33,13 @@ class _CatalogItem extends S.Opaque<_CatalogItem>()(
 
 // codegen:start {preset: modelFacade, className: _CatalogItem, schema: S}
 // eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class CatalogItem
-  extends S.OpaqueFacade<
-    CatalogItem,
-    CatalogItem.Encoded,
-    CatalogItem.Make,
-    CatalogItem.DecodingServices,
-    CatalogItem.EncodingServices
-  >()(_CatalogItem)
-{}
+export class CatalogItem extends S.OpaqueFacade<
+  CatalogItem,
+  CatalogItem.Encoded,
+  CatalogItem.Make,
+  CatalogItem.DecodingServices,
+  CatalogItem.EncodingServices
+>()(_CatalogItem) {}
 // codegen:end
 
 class _OrderLine extends S.Opaque<_OrderLine>()(
@@ -68,15 +66,13 @@ class _OrderLine extends S.Opaque<_OrderLine>()(
 
 // codegen:start {preset: modelFacade, className: _OrderLine, schema: S}
 // eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class OrderLine
-  extends S.OpaqueFacade<
-    OrderLine,
-    OrderLine.Encoded,
-    OrderLine.Make,
-    OrderLine.DecodingServices,
-    OrderLine.EncodingServices
-  >()(_OrderLine)
-{}
+export class OrderLine extends S.OpaqueFacade<
+  OrderLine,
+  OrderLine.Encoded,
+  OrderLine.Make,
+  OrderLine.DecodingServices,
+  OrderLine.EncodingServices
+>()(_OrderLine) {}
 // codegen:end
 
 export const defaultOrderCurrency: "EUR" = OrderLine.defaultCurrency()
@@ -127,15 +123,13 @@ class _OrderAggregate extends S.Opaque<_OrderAggregate>()(
 
 // codegen:start {preset: modelFacade, className: _OrderAggregate, schema: S}
 // eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class OrderAggregate
-  extends S.OpaqueFacade<
-    OrderAggregate,
-    OrderAggregate.Encoded,
-    OrderAggregate.Make,
-    OrderAggregate.DecodingServices,
-    OrderAggregate.EncodingServices
-  >()(_OrderAggregate)
-{}
+export class OrderAggregate extends S.OpaqueFacade<
+  OrderAggregate,
+  OrderAggregate.Encoded,
+  OrderAggregate.Make,
+  OrderAggregate.DecodingServices,
+  OrderAggregate.EncodingServices
+>()(_OrderAggregate) {}
 // codegen:end
 
 // codegen:start {preset: model, static: true, facade: true}

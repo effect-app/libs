@@ -1,9 +1,9 @@
 import yaml from "js-yaml"
-import { barrel } from "../presets/barrel.js"
-import { meta as metaPreset } from "../presets/meta.js"
-import { model } from "../presets/model.js"
-import { modelFacade } from "../presets/model-facade.js"
-import type { ModelTypeResolver } from "./type-resolver.js"
+import { barrel } from "../presets/barrel.ts"
+import { meta as metaPreset } from "../presets/meta.ts"
+import { modelFacade } from "../presets/model-facade.ts"
+import { model } from "../presets/model.ts"
+import type { ModelTypeResolver } from "./type-resolver.ts"
 
 export type CodegenMeta = {
   filename: string

@@ -1,10 +1,10 @@
 // @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
-import type { CreateRule } from "oxlint/plugins-dev"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { applyDefaults, type BlockOptions, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.js"
-import { createNativeModelTypeResolver } from "../../shared/native-type-resolver.js"
-import type { ModelTypeResolver } from "../../shared/type-resolver.js"
+import type { CreateRule } from "oxlint/plugins-dev"
+import { applyDefaults, type BlockOptions, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.ts"
+import { createNativeModelTypeResolver } from "../../shared/native-type-resolver.ts"
+import type { ModelTypeResolver } from "../../shared/type-resolver.ts"
 
 /** Nearest `tsconfig.json` walking up from `from`, or null. */
 function findNearestTsconfig(from: string): string | null {

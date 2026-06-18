@@ -1,5 +1,5 @@
 import * as fs from "fs"
-import type { ModelTypeResolver } from "../shared/type-resolver.js"
+import type { ModelTypeResolver } from "../shared/type-resolver.ts"
 
 // Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
 // `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks

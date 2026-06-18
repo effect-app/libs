@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- e71b67a: run codegen model from src locally
+
 ## 2.0.0-beta.25
 
 ### Minor Changes

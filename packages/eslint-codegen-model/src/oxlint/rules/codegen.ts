@@ -1,6 +1,6 @@
-// @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
 import * as fs from "node:fs"
 import * as path from "node:path"
+// @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
 import type { CreateRule } from "oxlint/plugins-dev"
 import { applyDefaults, type BlockOptions, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "../../shared/codegen-block.ts"
 import { createNativeModelTypeResolver } from "../../shared/native-type-resolver.ts"

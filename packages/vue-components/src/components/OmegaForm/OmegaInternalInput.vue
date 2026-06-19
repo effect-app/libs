@@ -87,7 +87,7 @@ const id = useId()
 const fieldApi = props.field
 
 // Subscribed for side-effect: keeps component reactive to fieldApi.store changes
-const _fieldState = useStore(fieldApi.store, (state) => state)
+useStore(fieldApi.store, (state) => state)
 
 // Get errors from form-level fieldMeta (persists across Field re-mounts)
 const formFieldMeta = useStore(fieldApi.form.store, (state) => state.fieldMeta)

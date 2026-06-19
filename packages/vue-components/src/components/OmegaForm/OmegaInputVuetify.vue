@@ -46,7 +46,7 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="state.value"
-      @update:model-value="field.handleChange"
+      @update:model-value="(v: any) => field.handleChange(v)"
     >
       <template
         v-if="$slots.label"
@@ -70,7 +70,7 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="state.value"
-      @update:model-value="field.handleChange"
+      @update:model-value="(v: any) => field.handleChange(v)"
     >
       <template
         v-if="$slots.label"
@@ -123,7 +123,7 @@
         :error="inputProps.error"
         v-bind="$attrs"
         :model-value="state.value"
-        @update:model-value="field.handleChange"
+        @update:model-value="(v: any) => field.handleChange(v)"
       >
         <template
           v-if="$slots.label"
@@ -136,7 +136,7 @@
         </template>
         <v-radio
           v-for="option in inputProps.options"
-          :key="option.value"
+          :key="option.value as PropertyKey"
           :label="option.title"
           :value="option.value"
         />

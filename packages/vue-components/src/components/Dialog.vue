@@ -12,7 +12,6 @@
       />
     </template>
     <!-- pass down slots -->
-    <!-- @vue-skip -->
     <template
       v-for="(_, name) in otherSlots"
       #[name]="slotData"

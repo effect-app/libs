@@ -1,3 +1,5 @@
+// oxlint-disable-next-line typescript/triple-slash-reference
+/// <reference path="./builtin-json.d.ts" />
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 
 declare global {
@@ -17,34 +19,27 @@ declare global {
     split(separator: string | RegExp, limit?: number): [string, ...string[]]
   }
 
-  interface JSON {
-    /**
-     * Converts a JavaScript Object Notation (JSON) string into an object.
-     * @param text A valid JSON string.
-     * @param reviver A function that transforms the results. This function is called for each member of the object.
-     * If a member contains nested objects, the nested objects are transformed before the parent object is.
-     */
-    parse(text: string, reviver?: (this: any, key: string, value: any) => any): unknown
-  }
-
-  interface Body {
-    json(): Promise<unknown>
-  }
+  // JSON.parse / Body.json overrides live in ./builtin-json.d.ts (referenced
+  // above) so a source-linked consumer can disable them in linked mode.
 
   interface Array<T> {
-    map<A, B>(
-      this: NonEmptyArray<A>,
-      map: (a: A, index: number) => B
-    ): NonEmptyArray<B>
+    // Conditional return instead of a `this`-typed overload: a `this` overload
+    // is selected-then-rejected on union-of-array receivers (TS2684), poisoning
+    // foreign code like `(readonly A[] | readonly B[]).map(...)`. A single
+    // conditional-return signature refines NonEmpty without a `this` param.
+    map<U>(
+      callbackfn: (value: T, index: number, array: T[]) => U,
+      thisArg?: any
+    ): this extends NonEmptyArray<any> ? NonEmptyArray<U> : U[]
   }
   interface ReadonlyArray<T> {
     // Subsequent property declarations must have the same type.  Property 'length' must be of type 'number', but here has type 'NonNegativeInt'.
     // readonly length: NonNegativeInt
 
-    map<A, B>(
-      this: NonEmptyReadonlyArray<A>,
-      map: (a: A, index: number) => B
-    ): NonEmptyReadonlyArray<B>
+    map<U>(
+      callbackfn: (value: T, index: number, array: readonly T[]) => U,
+      thisArg?: any
+    ): this extends NonEmptyReadonlyArray<any> ? NonEmptyReadonlyArray<U> : U[]
   }
 }
 

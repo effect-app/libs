@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.273
+
+### Patch Changes
+
+- 664e83d: Add Atom-native Vue query APIs, stream query pull atoms, and a TanStack-backed legacy query engine toggle.
+- Updated dependencies [664e83d]
+- Updated dependencies [e4ff9a6]
+  - effect-app@4.0.0-beta.273
+
 ## 4.0.0-beta.272
 
 ### Patch Changes

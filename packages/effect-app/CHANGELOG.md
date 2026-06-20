@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.273
+
+### Patch Changes
+
+- 664e83d: Add Atom-native Vue query APIs, stream query pull atoms, and a TanStack-backed legacy query engine toggle.
+- e4ff9a6: Fix the global `Array`/`ReadonlyArray.map` override breaking union-of-array receivers. The previous `this: NonEmptyArray`/`NonEmptyReadonlyArray` overload was selected-then-rejected on a union receiver (e.g. `(readonly A[] | readonly B[]).map(...)`), raising TS2684. Replaced with a single conditional-return signature (`this extends NonEmpty… ? NonEmpty<U> : U[]`) that preserves NonEmpty refinement without a `this` parameter, so union-array `.map` calls type-check again.
+
 ## 4.0.0-beta.272
 
 ### Patch Changes

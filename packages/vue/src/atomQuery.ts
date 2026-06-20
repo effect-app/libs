@@ -25,6 +25,7 @@ import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
+import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -183,6 +184,30 @@ const isRetryable = (e: unknown): boolean =>
   || S.is(ServiceUnavailableError)(e)
   || (typeof e === "object" && e !== null && (e as any)._tag === "RpcClientError")
 
+/** Default number of retries when `retry` is unset or `true` (matches the previous hardcoded value). */
+const defaultRetryTimes = 5
+
+/**
+ * Map the TanStack `retry` option to a retry count. `false`/`0` => no retry, a number => that count,
+ * `true`/unset => the default. Only retryable errors (see `isRetryable`) are retried regardless.
+ */
+export const retryTimesOf = (retry: boolean | number | undefined): number => {
+  if (retry === false) return 0
+  if (retry === true || retry === undefined) return defaultRetryTimes
+  return Math.max(0, retry)
+}
+
+/**
+ * Capped exponential backoff between retries (TanStack `retryDelay` default shape: exponential,
+ * clamped). 200ms base, doubling, capped at 5s, limited to `times` recurrences. The previous engine
+ * retried instantly with no delay; this spaces transient-failure retries without hammering.
+ */
+export const retrySchedule = (times: number) =>
+  Schedule.exponential(Duration.millis(200), 2).pipe(
+    Schedule.modifyDelay((_out, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5)))),
+    Schedule.both(Schedule.recurs(times))
+  )
+
 export interface AtomQueryOptions {
   /** background-refresh threshold (TanStack staleTime; default 5s) */
   readonly staleTime?: Duration.Input
@@ -269,6 +294,33 @@ const onlineSignal: Atom.Atom<number> = Atom.readable((get) => {
 const focusOrReconnectSignal: Atom.Atom<number> = Atom.make((get) => get(Atom.windowFocusSignal) + get(onlineSignal))
 
 /**
+ * Wrap a query atom so its cached value can be PATCHED in place (the TanStack `setQueryData` /
+ * `useUpdateQuery` equivalent). The write applies an updater to the CURRENT displayed Success value
+ * via `setSelf`, so the patch shows immediately and survives until the underlying query re-runs
+ * (refetch / invalidate), which invalidates this node and recomputes the real value from `self`.
+ *
+ * Non-Success states are left untouched — there is nothing to patch yet. The updater reads the
+ * patch's own current value (`ctx.get(patch)`), so successive patches compose and the updater sees
+ * the latest displayed data, not a stale base.
+ */
+export const patchableQueryAtom = <A, E>(
+  self: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): Atom.Writable<AsyncResult.AsyncResult<A, E>, (data: A) => A> => {
+  const patch: Atom.Writable<AsyncResult.AsyncResult<A, E>, (data: A) => A> = Atom.writable(
+    (get) => get(self),
+    (ctx, updater) => {
+      const current = ctx.get(patch)
+      if (current._tag !== "Success") return
+      ctx.setSelf(
+        AsyncResult.success(updater(current.value), { waiting: current.waiting, timestamp: current.timestamp })
+      )
+    },
+    (refresh) => refresh(self)
+  )
+  return patch
+}
+
+/**
  * Build the per-input atom family for a request handler — the query CACHE IDENTITY.
  *
  * This is the TanStack `queryKey = [handler, input]` equivalent and the piece that makes
@@ -287,6 +339,12 @@ const focusOrReconnectSignal: Atom.Atom<number> = Atom.make((get) => get(Atom.wi
  * `["$X"]` refreshes all inputs, `["$X","$List",input]` only that input. (`makeQueryKey`'s
  * collapsed form `getQueryKey` — what mutations invalidate by default — is one of the prefixes.)
  */
+/** Build-time policy baked into the shared base atom (not per-observer). */
+export interface QueryFamilyBuildOptions {
+  /** TanStack `retry`: `false`/`0` disables, a number sets the count, `true`/unset uses the default. */
+  readonly retry?: boolean | number
+}
+
 export const buildQueryFamily = <I, A, E>(
   rt: AtomClientRuntime,
   self: {
@@ -294,16 +352,22 @@ export const buildQueryFamily = <I, A, E>(
     readonly handler: (i: I) => Effect.Effect<A, E, any>
     readonly options?: ClientForOptions
     readonly queryKeyProjectionHash?: string
-  }
+  },
+  buildOptions?: QueryFamilyBuildOptions
 ) => {
   const baseKey = makeQueryKey(self) // hierarchical, input-independent
+  // `retry` is a base-atom policy: the family is cached by query key only (NOT by options), so the
+  // FIRST observer's `retry` wins for a given key+input — same first-observer-wins sharing as gcTime.
+  const retryTimes = retryTimesOf(buildOptions?.retry)
 
   return Atom.family((input: I) => {
+    const fetch = self.handler(input)
+    const withRetry = retryTimes > 0
+      ? fetch.pipe(Effect.retry({ schedule: retrySchedule(retryTimes), while: isRetryable }))
+      : fetch
     let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
-      self
-        .handler(input)
+      withRetry
         .pipe(
-          Effect.retry({ times: 5, while: isRetryable }),
           Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
           Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
         )
@@ -318,10 +382,13 @@ export const buildQueryFamily = <I, A, E>(
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackByKeys(reactivityKeys)(atom)
+    // Make the shared base atom writable so `useUpdateQuery` can patch the cached value in place.
+    // `setIdleTTL`/`withLabel` copy the prototype, so the returned family atom STAYS writable.
+    const writable = patchableQueryAtom(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
-    atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return Atom.withLabel(`query:${self.id}`)(atom)
+    const ttl = Atom.setIdleTTL(writable, defaults.gcTime)
+    return Atom.withLabel(`query:${self.id}`)(ttl)
   })
 }
 

@@ -29,7 +29,7 @@ Relevant upstream Effect v4 atom APIs checked locally:
 - `query.ts` still exposes TanStack vocabulary and types: `UseQueryReturnType`, `QueryObserverResult`, `RefetchOptions`, `initialData`, `placeholderData`, `gcTime`, `refetchInterval`, and tuple returns.
 - The raw query atom is hidden in the fourth tuple slot. That makes composition awkward and encourages helper APIs to tunnel through private handles.
 - Query family identity must be stable by query key plus projection hash, while observer options stay outside the family. Otherwise projected and unprojected clients can accidentally share a base atom.
-- `useUpdateQuery` accepts an updater but cannot apply it because query atoms are read-only derived atoms there; it currently refreshes and ignores the updater.
+- ~~`useUpdateQuery` accepts an updater but cannot apply it because query atoms are read-only derived atoms there; it currently refreshes and ignores the updater.~~ Fixed: the shared base query atom is now wrapped in a writable `patchableQueryAtom`, so `useUpdateQuery` patches the cached `Success` value in place via `registry.set` (TanStack `setQueryData`). The patch survives until the query re-runs, then the real value replaces it. This is the synchronous local-patch path; the `Atom.optimistic` helpers below remain the plan for mutation-driven optimistic state with rollback.
 - Legacy stream query `.query()` is still collapsed into `Stream.runCollect`, so the compatibility API behaves like a slow normal query. Stream query clients now also expose atom-native `.atom()`, `.family()`, and `.queryNew()` helpers backed by `Atom.pull`, so new call sites can observe incremental pull state without waiting for stream completion.
 - The default atom registry is used in invalidation-await logic. That works for today but blocks scoped registries, SSR hydration, and tests that provide a custom registry.
 
@@ -157,6 +157,43 @@ const updateCart = client.Carts.Update.optimistic(carts, reducer)
 ```
 
 Internally this should use `Atom.optimistic` / `Atom.optimisticFn`, not a manual cache patch. The mutation can still invalidate reactivity keys after success; optimistic atoms handle temporary UI state and rollback.
+
+## Retry, initialData, placeholderData (TanStack parity)
+
+These three TanStack options were accepted in the option types but did nothing. They are now implemented. The retry design differs from TanStack in one deliberate way — documented here so call sites know the semantics.
+
+### Cache shape vs TanStack
+
+TanStack splits the world into a `Query` (one cache entry per hashed key; holds `state`, the `queryFn`, and the retryer) and many `QueryObserver`s (one per `useQuery` call; hold `select` / `staleTime` / `placeholderData` / `enabled`). Our engine mirrors this: the **atom family** is the cache entry (one atom per key+input, shared process-wide via the registry), and each Vue composable call is an **observer** that layers its own options on top via `withQueryOptions` / `withDataFallback`. In both systems, N observers on the same key share ONE in-flight fetch (TanStack dedups on `query.promise` + a shared retryer; we dedup because every observer derives from the same base atom running a single Effect).
+
+### Retry — `retry` + backoff (base-atom policy, first-writer-wins)
+
+- Mapping: `retry: false` or `0` → no retries; `retry: <n>` → n retries; `retry: true` / unset → default 5. Only retryable errors (`isHttpClientError` / `ServiceUnavailableError` / `RpcClientError`) are retried.
+- Backoff: capped exponential (`retrySchedule` — 200ms base, ×2, max 5s), replacing the previous instant-retry hammering. Roughly matches TanStack's default `retryDelay = min(1000·2^attempt, 30000)`.
+- Implemented in `buildQueryFamily` via `Effect.retry({ schedule, while: isRetryable })` wrapping the handler. Retry is part of the shared base atom, threaded as a `QueryFamilyBuildOptions` policy.
+
+**Key difference — when retry config is resolved:**
+
+| | TanStack | Atom engine |
+| --- | --- | --- |
+| retry resolution | dynamic: `query.options` is mutable, each observer calls `setOptions`, the fetch reads `retry`/`retryDelay` at fetch time → **last-writer / fetching-observer wins**, re-resolved every fetch | static: retry is baked into the atom at **family build time** → **first-writer wins**, frozen for the life of the family (same sharing rule as `gcTime`) |
+| cache key | retry is not part of identity | retry is not part of the cache key either — so two observers with different `retry` on the same key+input share the first one's value |
+
+In practice `retry` is set consistently per handler, so first-writer-wins is fine. If a single key is queried from two call sites with conflicting `retry`, the first to build the family wins; that is intentional, not a bug.
+
+**Not replicated (no usage in `macs/scanner` / `configurator`):**
+
+- `failureCount` / `failureReason` as live observable state. `Effect.retry` runs the retry loop inside the fiber; `AsyncResult` only exposes `waiting` → `failure`. To surface attempt counts, wrap the handler with `Effect.tapError` + a counter `Ref` and fold it into the result.
+- `networkMode` retry-pause. TanStack pauses retries while offline and resumes on reconnect. We refetch-on-reconnect (`onlineSignal`) but do not pause an in-flight retry loop. To add: gate the retry `while` on `navigator.onLine`, or have the schedule wait on the online signal.
+
+### initialData / placeholderData (observer display fallback)
+
+Implemented in `withDataFallback` as a **display-level** layer applied pre-`select`, never written to the cache (so the base atom stays `Initial` and the mount-staleness check still drives the real fetch):
+
+- `initialData` (value or `() => value`): shown as resolved data while the query has no value, then replaced by real data. Takes precedence over `placeholderData`.
+- `placeholderData` (value or `(prev) => value`): shown as **provisional** (`waiting: true`) and dropped the moment real data arrives. The function form receives the last seen concrete value of that observer — basic keep-previous across input changes, but NOT TanStack's cross-query previous-data bridge (that remains unimplemented; see below).
+
+`keepPreviousData` across distinct query keys (a separate previous-query lookup) is intentionally NOT implemented — no call sites need it. The `placeholderData(prev)` form covers the common in-place pagination case at the observer level.
 
 ## Registry and full-stack notes
 

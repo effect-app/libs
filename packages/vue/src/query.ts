@@ -16,8 +16,8 @@ import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
-import { computed, type ComputedRef, type MaybeRefOrGetter, onBeforeUnmount, onMounted, ref, toValue, type WatchSource } from "vue"
-import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import { computed, type ComputedRef, type MaybeRefOrGetter, onBeforeUnmount, onMounted, type Ref, ref, toValue, type WatchSource } from "vue"
+import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, type QueryFamilyBuildOptions, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
 type DefaultError = Error
@@ -95,12 +95,15 @@ const queryFamilyCacheKey = (
 const queryFamilyByKey = new Map<string, any>()
 const getQueryFamily = <I, A, E>(
   rt: AtomClientRuntime,
-  q: QueryFamilyDescriptor<I, A, E>
+  q: QueryFamilyDescriptor<I, A, E>,
+  buildOptions?: QueryFamilyBuildOptions
 ): QueryAtomFamily<I, A, E> => {
   const key = queryFamilyCacheKey(q)
   let f = queryFamilyByKey.get(key)
   if (!f) {
-    f = buildQueryFamily(rt, q)
+    // `buildOptions` (e.g. `retry`) is a base-atom policy captured at first build — NOT part of the
+    // cache key, so the first observer's value wins for a given key (same as gcTime sharing).
+    f = buildQueryFamily(rt, q, buildOptions)
     queryFamilyByKey.set(key, f)
   }
   return f
@@ -121,7 +124,7 @@ const getStreamQueryFamily = <I, A, E>(
 }
 
 const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater => ({
-  update: (registry, query, input) => {
+  update: (registry, query, input, updater) => {
     const family = queryFamilyByKey.get(queryFamilyCacheKey(query))
     if (!family) {
       if (warnIfMissing) {
@@ -129,7 +132,14 @@ const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater =>
       }
       return
     }
-    registry.refresh(family(input))
+    const atom = family(input)
+    // The base query atom is writable (see `patchableQueryAtom`): patch the cached value in place
+    // (TanStack `setQueryData`). The write no-ops until the query has a Success value to update.
+    if (Atom.isWritable(atom)) {
+      registry.set(atom, updater)
+    } else {
+      registry.refresh(atom)
+    }
   }
 })
 
@@ -168,7 +178,7 @@ export interface CustomUseQueryOptions<
   /** poll: re-fetch every N ms (tanstack refetchInterval) */
   readonly refetchInterval?: number
   readonly select?: (data: TQueryFnData) => TData
-  /** accepted for source compatibility; not used by the atom engine */
+  /** `false`/`0` disables retries, a number sets the count, `true`/unset uses the default (5). */
   readonly retry?: boolean | number
   readonly meta?: Record<string, unknown>
   readonly _phantom?: [TQueryData, TQueryKey, TError]
@@ -219,7 +229,53 @@ export interface AtomQueryNewOptions<TQueryFnData = unknown, TData = TQueryFnDat
   readonly structuralSharing?: boolean
   readonly refreshEvery?: number
   readonly refetchInterval?: number
+  /** TanStack `retry`: `false`/`0` disables retries, a number sets the count, `true`/unset uses the default. */
+  readonly retry?: boolean | number
   readonly select?: (data: TQueryFnData) => TData
+}
+
+/** Extract the base-atom build policy (currently `retry`) from per-call query options. */
+const retryBuildOptions = (options?: { readonly retry?: boolean | number }): QueryFamilyBuildOptions | undefined =>
+  options?.retry === undefined ? undefined : { retry: options.retry }
+
+/**
+ * Layer TanStack `initialData` / `placeholderData` over a raw query result as a DISPLAY fallback.
+ * When the result has no concrete value yet (Initial — a Failure keeps its `previousSuccess`), show
+ * the seed value: `initialData` as resolved data, `placeholderData` as provisional (`waiting: true`,
+ * dropped once real data exists). `placeholderData` in function form receives the last seen concrete
+ * value, giving basic keep-previous behaviour across refetches/input changes. Returns the raw ref
+ * untouched when neither option is set.
+ */
+export const withDataFallback = <A, E>(
+  rawResult: Ref<AsyncResult.AsyncResult<A, E>>,
+  options?: unknown
+): ComputedRef<AsyncResult.AsyncResult<A, E>> => {
+  const opts = options as
+    | { readonly initialData?: A | (() => A); readonly placeholderData?: A | ((prev: A | undefined) => A) }
+    | undefined
+  const initialData = opts?.initialData
+  const placeholderData = opts?.placeholderData
+  if (initialData === undefined && placeholderData === undefined) {
+    return rawResult as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  }
+
+  let lastData: A | undefined
+  return computed(() => {
+    const r = rawResult.value
+    const concrete = AsyncResult.value(r)
+    if (Option.isSome(concrete)) {
+      lastData = concrete.value
+      return r
+    }
+    if (initialData !== undefined) {
+      const v = typeof initialData === "function" ? (initialData as () => A)() : initialData
+      return AsyncResult.success(v, { waiting: r.waiting })
+    }
+    const v = typeof placeholderData === "function"
+      ? (placeholderData as (prev: A | undefined) => A)(lastData)
+      : placeholderData
+    return v === undefined ? r : AsyncResult.success(v, { waiting: true })
+  })
 }
 
 export interface AtomStreamQueryOptions {
@@ -462,7 +518,7 @@ const queryAtomFor = <I, A, E, TData>(
   arg: I,
   options?: Omit<AtomQueryNewOptions<A, TData>, "select"> | Omit<CustomUseQueryOptions<A, E, TData>, "select">
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
-  const family = getQueryFamily(rt, q)
+  const family = getQueryFamily(rt, q, retryBuildOptions(options))
   return observedAtom(family(arg), options)
 }
 
@@ -477,13 +533,19 @@ const makeQueryView = <I, A, E, TData>(
   const atomRt = getAtomRt()
   const registry = injectRegistry()
   const [req, enabledRef] = optionValue<I>(arg, options)
-  const family = getQueryFamily(atomRt, q)
+  const family = getQueryFamily(atomRt, q, retryBuildOptions(options))
   const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
   const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  // `initialData` / `placeholderData` display fallback (old `.query()` API). Both surface a value
+  // while the query has none yet; `initialData` is shown as resolved data, `placeholderData` stays
+  // provisional (`waiting`) and is dropped the moment real data arrives. Neither is written to cache
+  // (the base atom stays Initial, so the mount-staleness check still triggers the real fetch). The
+  // fallback runs PRE-select, matching TanStack (`initialData`/`placeholderData` are TQueryData).
+  const fallbackResult = withDataFallback(rawResult, options)
   const select = options?.select
   const result = (select
-    ? computed(() => AsyncResult.map(rawResult.value, select))
-    : rawResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
+    ? computed(() => AsyncResult.map(fallbackResult.value, select))
+    : fallbackResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () =>
     select

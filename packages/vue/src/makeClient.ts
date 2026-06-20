@@ -30,14 +30,14 @@ import { type Toast } from "./toast.ts"
 export type { Progress }
 
 // TODO: optimize - work from encoded shape directly
-const projectHandler = <I, A, E, R, ProjSchema extends S.Decoder<unknown, never>>(
+const projectHandler = <I, A, E, R, ProjSchema extends S.Top>(
   handler: (i: I) => Effect.Effect<A, E, R>,
   successSchema: S.Top,
   projectionSchema: ProjSchema
 ) => {
-  const encode = S.encodeSync(successSchema as S.Encoder<A>)
-  const decode = S.decodeSync(projectionSchema)
-  return (i: I) => handler(i).pipe(Effect.map((value) => decode(encode(value))))
+  const encode = S.encodeSync(successSchema)
+  const decode = S.decodeUnknownEffect(projectionSchema)
+  return (i: I) => handler(i).pipe(Effect.map(encode), Effect.flatMap(decode))
 }
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
@@ -745,7 +745,7 @@ export const makeClient = <RT_, RTHooks>(
   const projectQueryFor = <I, A, E, Request extends Req, Name extends string>(
     handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
   ) =>
-  <ProjSchema extends S.Decoder<unknown, never>>(projectionSchema: ProjSchema) => {
+  <ProjSchema extends S.Top>(projectionSchema: ProjSchema) => {
     const successSchema = handler.Request.success
     const projectionHash = projectionSchemaHash(projectionSchema)
     const projected = projectHandler(handler.handler, successSchema, projectionSchema)

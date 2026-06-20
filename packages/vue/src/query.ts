@@ -121,7 +121,7 @@ const getStreamQueryFamily = <I, A, E>(
 }
 
 const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater => ({
-  update: (registry, query, input) => {
+  update: (registry, query, input, updater) => {
     const family = queryFamilyByKey.get(queryFamilyCacheKey(query))
     if (!family) {
       if (warnIfMissing) {
@@ -129,7 +129,14 @@ const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater =>
       }
       return
     }
-    registry.refresh(family(input))
+    const atom = family(input)
+    // The base query atom is writable (see `patchableQueryAtom`): patch the cached value in place
+    // (TanStack `setQueryData`). The write no-ops until the query has a Success value to update.
+    if (Atom.isWritable(atom)) {
+      registry.set(atom, updater)
+    } else {
+      registry.refresh(atom)
+    }
   }
 })
 

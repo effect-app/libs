@@ -269,6 +269,33 @@ const onlineSignal: Atom.Atom<number> = Atom.readable((get) => {
 const focusOrReconnectSignal: Atom.Atom<number> = Atom.make((get) => get(Atom.windowFocusSignal) + get(onlineSignal))
 
 /**
+ * Wrap a query atom so its cached value can be PATCHED in place (the TanStack `setQueryData` /
+ * `useUpdateQuery` equivalent). The write applies an updater to the CURRENT displayed Success value
+ * via `setSelf`, so the patch shows immediately and survives until the underlying query re-runs
+ * (refetch / invalidate), which invalidates this node and recomputes the real value from `self`.
+ *
+ * Non-Success states are left untouched — there is nothing to patch yet. The updater reads the
+ * patch's own current value (`ctx.get(patch)`), so successive patches compose and the updater sees
+ * the latest displayed data, not a stale base.
+ */
+export const patchableQueryAtom = <A, E>(
+  self: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): Atom.Writable<AsyncResult.AsyncResult<A, E>, (data: A) => A> => {
+  const patch: Atom.Writable<AsyncResult.AsyncResult<A, E>, (data: A) => A> = Atom.writable(
+    (get) => get(self),
+    (ctx, updater) => {
+      const current = ctx.get(patch)
+      if (current._tag !== "Success") return
+      ctx.setSelf(
+        AsyncResult.success(updater(current.value), { waiting: current.waiting, timestamp: current.timestamp })
+      )
+    },
+    (refresh) => refresh(self)
+  )
+  return patch
+}
+
+/**
  * Build the per-input atom family for a request handler — the query CACHE IDENTITY.
  *
  * This is the TanStack `queryKey = [handler, input]` equivalent and the piece that makes
@@ -318,10 +345,13 @@ export const buildQueryFamily = <I, A, E>(
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackByKeys(reactivityKeys)(atom)
+    // Make the shared base atom writable so `useUpdateQuery` can patch the cached value in place.
+    // `setIdleTTL`/`withLabel` copy the prototype, so the returned family atom STAYS writable.
+    const writable = patchableQueryAtom(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
-    atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return Atom.withLabel(`query:${self.id}`)(atom)
+    const ttl = Atom.setIdleTTL(writable, defaults.gcTime)
+    return Atom.withLabel(`query:${self.id}`)(ttl)
   })
 }
 

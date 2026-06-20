@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { matchQuery } from "@tanstack/query-core"
-import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
 import { tuple } from "effect-app/Function"
 import * as Option from "effect-app/Option"
+import { isReadonlyArrayNonEmpty } from "effect/Array"
 import type * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import type * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, shallowRef } from "vue"
+import { invalidateAndAwait } from "./atomQuery.ts"
 
 export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => string[]
 
@@ -103,11 +104,51 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
 }
 
 /**
- * An entry for `queryInvalidation`. Narrowed alias of effect-app's
- * `InvalidateQueryInstruction` with tanstack-query's `InvalidateQueryFilters`
- * and `InvalidateOptions` substituted for the structural defaults.
+ * An entry for `queryInvalidation`: a raw query key, an `{ id }` handler ref, or a
+ * `{ filters }` shape. The atom engine acts on entries that carry a concrete query
+ * key: raw arrays, handler refs, or `{ filters: { queryKey } }`. Predicate-only
+ * filters have no exact-key reactivity equivalent and fail fast.
  */
-export type InvalidationEntry = InvalidateQueryInstruction<InvalidateQueryFilters, InvalidateOptions>
+export type QueryKeyInvalidationFilters = {
+  readonly queryKey: ReadonlyArray<unknown>
+}
+export type InvalidationEntry = InvalidateQueryInstruction<QueryKeyInvalidationFilters>
+export type QueryInvalidationEffect<R = never> = (
+  keys: ReadonlyArray<ReadonlyArray<unknown>>
+) => Effect.Effect<void, never, R>
+export interface QueryInvalidator<R = never> {
+  readonly invalidateAndAwait: QueryInvalidationEffect<R>
+}
+
+export const atomQueryInvalidator: QueryInvalidator<Reactivity.Reactivity> = {
+  invalidateAndAwait
+}
+
+export const combineQueryInvalidators = <R>(
+  ...invalidators: ReadonlyArray<QueryInvalidator<R>>
+): QueryInvalidator<R> => ({
+  invalidateAndAwait: (keys) =>
+    Effect.forEach(
+      invalidators,
+      (invalidator) => invalidator.invalidateAndAwait(keys),
+      { discard: true, concurrency: "inherit" }
+    )
+})
+
+const isRecord = (value: unknown): value is { readonly [key: string]: unknown } =>
+  typeof value === "object" && value !== null
+
+const isQueryKey = (entry: InvalidationEntry): entry is ReadonlyArray<string> => Array.isArray(entry)
+
+const queryKeyFromFilters = (
+  entry: Exclude<InvalidationEntry, ReadonlyArray<string>>
+): ReadonlyArray<unknown> | undefined => {
+  if (!("filters" in entry)) return undefined
+  const filters = entry.filters
+  if (!isRecord(filters)) return undefined
+  const queryKey = filters["queryKey"]
+  return Array.isArray(queryKey) ? queryKey : undefined
+}
 
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
@@ -220,56 +261,42 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
   return tuple(computed(() => state.value), act) as any
 }
 
-const buildInvalidateCache = (
-  queryClient: QueryClient,
+const buildInvalidateCache = <RInvalidator>(
   self: { id: string; options?: ClientForOptions },
-  queryInvalidation?: MutationOptionsBase["queryInvalidation"]
+  queryInvalidation: MutationOptionsBase["queryInvalidation"] | undefined,
+  queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
-  type InvalidationTarget = {
-    readonly filters: InvalidateQueryFilters | undefined
-    readonly options: InvalidateOptions | undefined
-  }
-
-  const invalidateQueriesFn = (
-    filters?: InvalidateQueryFilters,
-    options?: InvalidateOptions
-  ) =>
-    Effect.currentSpan.pipe(
-      Effect.orElseSucceed(() => null),
-      Effect.flatMap((span) =>
-        Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } }))
-      )
-    )
-
-  const getClientInvalidationTargets = (
+  // Concrete reactivity keys to invalidate: a raw query key, one derived from an `{ id }`
+  // entry, or a compatibility `{ filters: { queryKey } }` entry.
+  // Predicate-only `{ filters }` entries have no exact-key reactivity equivalent and throw.
+  const getClientInvalidationKeys = (
     input: unknown,
     output: Exit.Exit<unknown, unknown>
-  ): ReadonlyArray<InvalidationTarget> => {
+  ): ReadonlyArray<ReadonlyArray<unknown>> => {
     const queryKey = getQueryKey(self)
 
     if (queryInvalidation) {
-      return queryInvalidation(queryKey, self.id, input, output).map((entry): InvalidationTarget => {
-        if (Array.isArray(entry)) {
-          return { filters: { queryKey: entry }, options: undefined }
+      const keys: Array<ReadonlyArray<unknown>> = []
+      for (const entry of queryInvalidation(queryKey, self.id, input, output)) {
+        if (isQueryKey(entry)) {
+          keys.push(entry)
+          continue
         }
-        const obj = entry as Exclude<InvalidationEntry, ReadonlyArray<string>>
-        if ("id" in obj) {
-          return {
-            filters: {
-              queryKey: makeQueryKey(obj.options ? { id: obj.id, options: obj.options } : { id: obj.id })
-            },
-            options: undefined
-          }
+        if ("id" in entry) {
+          keys.push(makeQueryKey(entry.options ? { id: entry.id, options: entry.options } : { id: entry.id }))
+          continue
         }
-        return { filters: obj.filters, options: obj.options }
-      })
+        const filterQueryKey = queryKeyFromFilters(entry)
+        if (filterQueryKey !== undefined) {
+          keys.push(filterQueryKey)
+          continue
+        }
+        throw new Error("Unsupported query invalidation filter: only filters.queryKey is supported")
+      }
+      return keys
     }
 
-    if (!queryKey) {
-      return []
-    }
-
-    return [{ filters: { queryKey }, options: undefined }]
+    return queryKey ? [queryKey] : []
   }
 
   const invalidateCache = (
@@ -278,57 +305,22 @@ const buildInvalidateCache = (
     serverKeys: ReadonlyArray<InvalidationKey>
   ) =>
     Effect.suspend(() => {
-      const clientTargets = getClientInvalidationTargets(input, output)
-      const serverTargets: ReadonlyArray<InvalidationTarget> = serverKeys.map((queryKey) => ({
-        filters: { queryKey },
-        options: undefined
-      }))
-      const allTargets: ReadonlyArray<InvalidationTarget> = [...clientTargets, ...serverTargets]
+      const clientKeys = getClientInvalidationKeys(input, output)
+      // Invalidate exact reactivity keys (= the prefixes query atoms register under). Each key
+      // array is hashed structurally, matching the query-side registration.
+      const keys: ReadonlyArray<ReadonlyArray<unknown>> = [...clientKeys, ...serverKeys]
 
-      if (!allTargets.length) return Effect.void
-
-      // Group targets by refetchType + options so each group can be merged into a single
-      // invalidateQueries call using a predicate, reducing N calls to 1 in the common case.
-      type Group = {
-        targets: Array<InvalidationTarget>
-        refetchType: InvalidateQueryFilters["refetchType"]
-        options: InvalidateOptions | undefined
-      }
-      const groups = new Map<string, Group>()
-      for (const target of allTargets) {
-        const key = `${target.filters?.refetchType ?? ""}|${target.options?.cancelRefetch ?? ""}|${
-          target.options?.throwOnError?.toString() ?? ""
-        }`
-        const existing = groups.get(key)
-        if (existing) {
-          existing.targets.push(target)
-        } else {
-          groups.set(key, { targets: [target], refetchType: target.filters?.refetchType, options: target.options })
-        }
-      }
+      if (!isReadonlyArrayNonEmpty(keys)) return Effect.void
 
       return Effect
         .andThen(
-          Effect.annotateCurrentSpan({ clientTargets, serverKeys }),
-          Effect.forEach(
-            groups.values(),
-            ({ options, refetchType, targets }) =>
-              invalidateQueriesFn(
-                {
-                  ...(refetchType !== undefined ? { refetchType } : {}),
-                  predicate: (query) => targets.some((t) => t.filters ? matchQuery(t.filters, query) : true)
-                },
-                options
-              ),
-            { discard: true, concurrency: "inherit" }
-          )
+          Effect.annotateCurrentSpan({ clientKeys, serverKeys }),
+          // refetch + AWAIT every live query registered under these keys, so by the time the
+          // mutation resolves the affected queries are fresh.
+          queryInvalidator.invalidateAndAwait(keys)
         )
         .pipe(
-          Effect.tap(
-            // hand over control back to the event loop so that state can be updated..
-            // TODO: should we do this in general on any mutation, regardless of invalidation?
-            Effect.sleep(0)
-          ),
+          Effect.tap(Effect.sleep(0.1)), // allow for refs to update etc
           Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
         )
     })
@@ -336,12 +328,12 @@ const buildInvalidateCache = (
   return invalidateCache
 }
 
-export const invalidateQueries = (
-  queryClient: QueryClient,
+export const invalidateQueries = <RInvalidator>(
   self: { id: string; options?: ClientForOptions },
-  options?: MutationOptionsBase
+  options: MutationOptionsBase | undefined,
+  queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
-  const invalidateCache = buildInvalidateCache(queryClient, self, options?.queryInvalidation)
+  const invalidateCache = buildInvalidateCache(self, options?.queryInvalidation, queryInvalidator)
 
   const select = options?.select
 
@@ -384,7 +376,7 @@ export interface MutationFn<I, A, E, R, Id extends string> {
   readonly id: Id
 }
 
-export const makeMutation = () => {
+export const makeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   /**
    * Pass a function that returns an Effect, e.g from a client action.
    * Executes query cache invalidation based on default rules or provided option.
@@ -393,17 +385,14 @@ export const makeMutation = () => {
   const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
-    const queryClient = useQueryClient()
-    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(self.handler(i), i)
+    const r = (i: I, options?: MutationOptionsBase) =>
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
 }
 
-// calling hooks in the body
-export const useMakeMutation = () => {
-  const queryClient = useQueryClient()
-
+export const useMakeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   /**
    * Pass a function that returns an Effect, e.g from a client action.
    * Executes query cache invalidation based on default rules or provided option.
@@ -412,7 +401,8 @@ export const useMakeMutation = () => {
   const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
-    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(self.handler(i), i)
+    const r = (i: I, options?: MutationOptionsBase) =>
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
@@ -425,12 +415,8 @@ export const useMakeMutation = () => {
  *
  * Use with `streamFn` / `Command.streamFn(id)(mutateHandler, ...combinators)` so that
  * the command manages its own reactive state internally.
- *
- * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
-export const makeStreamMutation2 = () => {
-  const queryClient = useQueryClient()
-
+export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   return (
     self: {
       id: string
@@ -439,12 +425,17 @@ export const makeStreamMutation2 = () => {
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
-    const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
+    const invCache = buildInvalidateCache(self, mergedInvalidation, queryInvalidator)
 
     const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
       Effect.gen(function*() {
         const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-        const invKeys = makeInvalidationKeysService(keysRef, (key) => invCache(input, Exit.succeed(undefined), [key]))
+        const invKeys = makeInvalidationKeysService(
+          keysRef,
+          // Stream invalidation is sequenced by the injected query invalidator; this callback
+          // returns void to keep the server-side invalidation service effect-free.
+          (key) => invCache(input, Exit.succeed(undefined), [key]) as Effect.Effect<void>
+        )
         const lastRef = yield* Ref.make<any>(undefined)
         return source.pipe(
           Stream.provideService(InvalidationKeysFromServer, invKeys),

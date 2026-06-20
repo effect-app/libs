@@ -1,0 +1,221 @@
+import { injectRegistry } from "@effect/atom-vue"
+import { QueryClient, useQuery as useTanstackQuery } from "@tanstack/vue-query"
+import { makeQueryKey, type Req } from "effect-app/client"
+import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
+import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
+import type * as Context from "effect-app/Context"
+import * as Effect from "effect-app/Effect"
+import * as Option from "effect-app/Option"
+import * as S from "effect-app/Schema"
+import * as Cause from "effect/Cause"
+import { isHttpClientError } from "effect/unstable/http/HttpClientError"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Atom from "effect/unstable/reactivity/Atom"
+import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
+import { reportRuntimeError } from "../lib.ts"
+import type { QueryInvalidator } from "../mutate.ts"
+import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
+import { makeRunPromise } from "../runtime.ts"
+
+const swrToQuery = <E, A>(r: {
+  readonly error: CauseException<E> | null | undefined
+  readonly data: A | undefined
+  readonly isValidating: boolean
+}): AsyncResult.AsyncResult<A, E> => {
+  if (r.error !== undefined && r.error !== null) {
+    return AsyncResult.failureWithPrevious(
+      r.error.originalCause,
+      {
+        previous: r.data === undefined ? Option.none() : Option.some(AsyncResult.success(r.data)),
+        waiting: r.isValidating
+      }
+    )
+  }
+  if (r.data !== undefined) {
+    return AsyncResult.success<A, E>(r.data, { waiting: r.isValidating })
+  }
+
+  return AsyncResult.initial(r.isValidating)
+}
+
+const recoverCauseException = <A, E>(error: unknown): Effect.Effect<A, E> =>
+  error instanceof CauseException
+    ? Effect.failCause(error.originalCause)
+    : Effect.die(error)
+
+const isRetryable = (error: unknown) => {
+  if (error instanceof CauseException) {
+    return isHttpClientError(error.cause) || S.is(ServiceUnavailableError)(error.cause)
+  }
+  return false
+}
+
+const isInputOption = <I>(value: I | Option.Option<I> | undefined): value is Option.Option<I> => Option.isOption(value)
+
+const resolveInput = <I>(
+  arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
+  mode: "optional" | undefined
+): I | undefined => {
+  if (mode === "optional") {
+    const option = toValue(arg)
+    return isInputOption(option) && Option.isSome(option) ? option.value : undefined
+  }
+  const value = toValue(arg)
+  return isInputOption(value) ? undefined : value
+}
+
+const resolveEnabled = <I>(
+  arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
+  options: {
+    readonly mode?: "optional" | undefined
+    readonly enabled?: MaybeRefOrGetter<boolean | undefined> | undefined
+  } | undefined
+) => {
+  if (options?.mode === "optional") {
+    return computed(() => {
+      const option = toValue(arg)
+      return Option.isSome(option)
+    })
+  }
+  return computed(() => {
+    const enabled = options?.enabled
+    if (enabled === undefined) return true
+    return !!toValue(enabled)
+  })
+}
+
+type LegacyTanstackOptions<A, E, TData> =
+  & (
+    | CustomUndefinedInitialQueryOptions<A, E, TData>
+    | CustomDefinedInitialQueryOptions<A, E, TData>
+    | CustomDefinedPlaceholderQueryOptions<A, E, TData>
+    | CustomUseQueryOptions<A, E, TData>
+  )
+  & { readonly mode?: "optional" | undefined }
+
+export const makeTanstackQueryClient = () => new QueryClient()
+
+export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInvalidator => ({
+  invalidateAndAwait: (keys) =>
+    Effect.forEach(
+      keys,
+      (queryKey) => Effect.promise(() => queryClient.invalidateQueries({ queryKey })),
+      { discard: true, concurrency: "inherit" }
+    )
+})
+
+export const makeTanstackQuery = <R>(
+  getRuntime: () => Context.Context<R>,
+  queryClient: QueryClient
+): MakeQuery2<R> => {
+  const useQuery: MakeQuery2<R> = <I, A, E, Request extends Req, Name extends string>(
+    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
+  ) =>
+  <TData = A>(
+    arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
+    options?: LegacyTanstackOptions<A, CauseException<E>, TData>
+  ) => {
+    const runPromise = makeRunPromise(getRuntime())
+    const queryKey = makeQueryKey(q)
+    const projectionHash = q.queryKeyProjectionHash
+    const enabled = resolveEnabled(arg, options)
+    const tanstackOptions = {
+      ...(options?.staleTime !== undefined ? { staleTime: options.staleTime } : {}),
+      ...(typeof options?.gcTime === "number" ? { gcTime: options.gcTime } : {}),
+      ...(options?.refetchOnWindowFocus !== undefined ? { refetchOnWindowFocus: options.refetchOnWindowFocus } : {}),
+      ...(options?.structuralSharing !== undefined ? { structuralSharing: options.structuralSharing } : {}),
+      ...(options?.refetchInterval !== undefined ? { refetchInterval: options.refetchInterval } : {}),
+      ...(options?.select !== undefined ? { select: options.select } : {})
+    }
+    const tanstack = useTanstackQuery<A, CauseException<E>, TData>({
+      ...tanstackOptions,
+      enabled,
+      throwOnError: false,
+      retry: (retryCount: number, error: unknown) => isRetryable(error) && retryCount < 5,
+      queryKey: computed(() => {
+        const input = resolveInput(arg, options?.mode)
+        return projectionHash === undefined ? [...queryKey, input] : [...queryKey, projectionHash, input]
+      }),
+      queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
+        runPromise(
+          q
+            .handler(resolveInput(arg, options?.mode)!)
+            .pipe(
+              Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+              Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false })
+            ),
+          { signal }
+        )
+    }, queryClient)
+
+    const latestSuccess = shallowRef<TData>()
+    const result = computed((): AsyncResult.AsyncResult<TData, E> =>
+      swrToQuery({
+        error: tanstack.error.value,
+        data: tanstack.data.value === undefined ? latestSuccess.value : tanstack.data.value,
+        isValidating: tanstack.isFetching.value
+      })
+    )
+    watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
+
+    const registry = injectRegistry()
+    const latestSuccessRef = computed(() => latestSuccess.value)
+    const atom = computed<Atom.Atom<AsyncResult.AsyncResult<TData, E>>>(() => Atom.readable(() => result.value))
+
+    const awaitResult = (): Effect.Effect<TData, E> =>
+      Effect
+        .tryPromise({
+          try: async () => {
+            const queryResult = await tanstack.suspense()
+            const data = queryResult.data
+            if (data === undefined) {
+              throw new Error("TanStack query resolved without data")
+            }
+            return data
+          },
+          catch: (error) => error
+        })
+        .pipe(
+          Effect.catch((error) => recoverCauseException<TData, E>(error))
+        )
+
+    const refetch = (): Effect.Effect<TData, E> =>
+      Effect
+        .tryPromise({
+          try: async () => {
+            const queryResult = await tanstack.refetch({ throwOnError: true })
+            const data = queryResult.data
+            if (data === undefined) {
+              throw new Error("TanStack query refetched without data")
+            }
+            return data
+          },
+          catch: (error) => error
+        })
+        .pipe(
+          Effect.catch((error) => recoverCauseException<TData, E>(error))
+        )
+
+    const handle: QueryHandle<TData, E> = {
+      awaitResult,
+      refetch,
+      refresh: () => {
+        void tanstack.refetch()
+      },
+      registry,
+      atom
+    }
+
+    const fetch = (_options?: RefetchOptions): Effect.Effect<QueryObserverResult<TData, CauseException<E>>> =>
+      refetch().pipe(Effect.exit, Effect.map(AsyncResult.fromExit))
+
+    return [
+      result,
+      latestSuccessRef,
+      fetch,
+      handle
+    ] as const
+  }
+
+  return useQuery
+}

@@ -99,6 +99,7 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   id: Id
   options?: ClientForOptions
   Request: Request
+  queryKeyProjectionHash?: string
 }
 
 /** Type alias: a no-input handler is simply `RequestHandlerWithInput<void, …>`. */

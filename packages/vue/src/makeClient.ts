@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { ExtractModuleName, HandlerInput, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type { CauseException } from "effect-app/client/errors"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
-import type * as Context from "effect-app/Context"
+import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
-import type * as Layer from "effect-app/Layer"
+import * as Layer from "effect-app/Layer"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
@@ -14,28 +14,30 @@ import * as Hash from "effect/Hash"
 import type * as ManagedRuntime from "effect/ManagedRuntime"
 import type * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
+import { makeTanstackQuery, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
-import { type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.ts"
-import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.ts"
+import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
+import { type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, type QueryObserverResult, type RefetchOptions, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
-import { awaitResolvedSuspenseResult } from "./suspense.ts"
 import { type Toast } from "./toast.ts"
 
 export type { Progress }
 
 // TODO: optimize - work from encoded shape directly
-const projectHandler = (
-  handler: (i: any) => Effect.Effect<any, any, any>,
+const projectHandler = <I, A, E, R, ProjSchema extends S.Decoder<unknown, never>>(
+  handler: (i: I) => Effect.Effect<A, E, R>,
   successSchema: S.Top,
-  projectionSchema: S.Top
+  projectionSchema: ProjSchema
 ) => {
-  const encode = S.encodeEffect(successSchema)
-  const decode = S.decodeEffectConcurrently(projectionSchema)
-  return (i: any) => handler(i).pipe(Effect.flatMap(encode), Effect.flatMap(decode))
+  const encode = S.encodeSync(successSchema as S.Encoder<A>)
+  const decode = S.decodeSync(projectionSchema)
+  return (i: I) => handler(i).pipe(Effect.map((value) => decode(encode(value))))
 }
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
@@ -202,15 +204,37 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useQuery_: QueryImpl<any>["useQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
+declare const useQueryNew_: QueryImpl<any>["useQueryNew"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useQueryAtom_: QueryImpl<any>["useQueryAtom"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useQueryFamily_: QueryImpl<any>["useQueryFamily"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useSuspenseQueryNew_: QueryImpl<any>["useSuspenseQueryNew"]
+// eslint-disable-next-line unused-imports/no-unused-vars
 declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useStreamQuery_: QueryImpl<any>["useStreamQuery"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryFamily_: QueryImpl<any>["useStreamQueryFamily"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryAtom_: QueryImpl<any>["useStreamQueryAtom"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryNew_: QueryImpl<any>["useStreamQueryNew"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
   request: (i: I) => Effect.Effect<B, E, R>
+  family: Exclude<R, RT> extends never ? ReturnType<typeof useQueryFamily_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
   query: Exclude<R, RT> extends never ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
+  queryNew: Exclude<R, RT> extends never ? ReturnType<typeof useQueryNew_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
   suspense: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
+  suspenseNew: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQueryNew_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
+  atom: Exclude<R, RT> extends never ? ReturnType<typeof useQueryAtom_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
 }
 
@@ -240,12 +264,30 @@ export interface QueryResultExtensions<Request extends Req, Id extends string, I
    * When `I = void` the input argument may be omitted.
    */
   query: ReturnType<typeof useQuery_<I, E, A, Request, Id>>
+  /**
+   * Atom-native query helper with object return shape.
+   * Additive migration surface; `.query()` remains the compatibility tuple API.
+   */
+  queryNew: ReturnType<typeof useQueryNew_<I, E, A, Request, Id>>
   // TODO or suspense as Option?
   /**
    * Like `.query`, but returns a Promise for setup-time awaiting.
    * Use this when integrating with Vue Suspense / error boundaries.
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
+  /**
+   * Promise-based setup helper with object return shape.
+   * Additive migration surface; `.suspense()` remains the compatibility tuple API.
+   */
+  suspenseNew: ReturnType<typeof useSuspenseQueryNew_<I, E, A, Request, Id>>
+  /**
+   * Raw query atom for composition outside Vue refs.
+   */
+  atom: ReturnType<typeof useQueryAtom_<I, E, A, Request, Id>>
+  /**
+   * Raw query atom family for composing query graphs before choosing a Vue observer.
+   */
+  family: ReturnType<typeof useQueryFamily_<I, E, A, Request, Id>>
 }
 
 export type MissingDependencies<RT, R> = {
@@ -256,26 +298,45 @@ export type MissingDependencies<RT, R> = {
 export type Queries<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
   ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueryResultExtensions<Request, Id, I, A, E>
-    : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
+    : {
+      atom: MissingDependencies<RT, R> & {}
+      family: MissingDependencies<RT, R> & {}
+      query: MissingDependencies<RT, R> & {}
+      queryNew: MissingDependencies<RT, R> & {}
+      suspense: MissingDependencies<RT, R> & {}
+      suspenseNew: MissingDependencies<RT, R> & {}
+    }
   : never
   : never
 
 export interface StreamQueryExtensions<Request extends Req, Id extends string, I, A, E> {
+  atom: ReturnType<typeof useStreamQueryAtom_<I, E, A, Request, Id>>
+  family: StreamQueryAtomFamily<I, A, E>
   /**
    * Stream helper for query-stream requests.
-   * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
-   * Data is an array of all chunks received so far.
+   * Legacy compatibility helper. Collects the whole stream into an array before
+   * publishing data.
    * When `I = void` the input argument may be omitted.
    */
   query: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
+  /**
+   * Atom-native stream query helper. Exposes incremental pull state and a `pull`
+   * command instead of collecting the whole stream first.
+   */
+  queryNew: ReturnType<typeof useStreamQueryNew_<I, E, A, Request, Id>>
 }
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
   ? Exclude<R, RT> extends never ? StreamQueryExtensions<Request, Id, I, A, E>
-  : { query: MissingDependencies<RT, R> & {} }
+  : {
+    atom: MissingDependencies<RT, R> & {}
+    family: MissingDependencies<RT, R> & {}
+    query: MissingDependencies<RT, R> & {}
+    queryNew: MissingDependencies<RT, R> & {}
+  }
   : never
 
-const _useMutation = makeMutation()
+const _useMutation = makeMutation(atomQueryInvalidator)
 
 const wrapWithSpan = (self: { id: string }, mut: any) => {
   const span = (eff: Effect.Effect<any, any, any>) =>
@@ -308,8 +369,8 @@ export const useMutation: typeof _useMutation = (<
  * Executes query cache invalidation based on default rules or provided option.
  * adds a span with the mutation id
  */
-export const useMutationInt = (): typeof _useMutation => {
-  const _useMutation = useMakeMutation()
+export const useMutationInt = (queryInvalidator: QueryInvalidator): typeof _useMutation => {
+  const _useMutation = useMakeMutation(queryInvalidator)
   return (<
     I,
     E,
@@ -328,13 +389,31 @@ export const useMutationInt = (): typeof _useMutation => {
 
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
+export interface MakeClientOptions {
+  /**
+   * Selects the engine behind legacy `.query()` / `.suspense()` helpers.
+   * Atom-native `.atom()` / `.family()` / `.queryNew()` / `.suspenseNew()` always use Atom.
+   */
+  readonly legacyQueryEngine?: "atom" | "tanstack"
+}
+
 export class QueryImpl<R> {
   readonly getRuntime: () => Context.Context<R>
 
-  constructor(getRuntime: () => Context.Context<R>) {
+  constructor(
+    getRuntime: () => Context.Context<R>,
+    getAtomRt: () => AtomClientRuntime,
+    legacyUseQuery?: ReturnType<typeof makeQuery<R>>
+  ) {
     this.getRuntime = getRuntime
-    this.useQuery = makeQuery(this.getRuntime)
-    this.useStreamQuery = makeStreamQuery(this.getRuntime)
+    this.useQuery = legacyUseQuery ?? makeQuery(this.getRuntime, getAtomRt)
+    this.useQueryNew = makeQueryNew(this.getRuntime, getAtomRt)
+    this.useQueryAtom = makeQueryAtom(this.getRuntime, getAtomRt)
+    this.useQueryFamily = makeQueryFamily(this.getRuntime, getAtomRt)
+    this.useStreamQuery = makeStreamQuery(this.getRuntime, getAtomRt)
+    this.useStreamQueryFamily = makeStreamQueryFamily(this.getRuntime, getAtomRt)
+    this.useStreamQueryAtom = makeStreamQueryAtom(this.getRuntime, getAtomRt)
+    this.useStreamQueryNew = makeStreamQueryNew(this.getRuntime, getAtomRt)
   }
   /**
    * Effect results are passed to the caller, including errors.
@@ -342,11 +421,23 @@ export class QueryImpl<R> {
    */
   readonly useQuery: ReturnType<typeof makeQuery<R>>
 
+  readonly useQueryNew: ReturnType<typeof makeQueryNew<R>>
+
+  readonly useQueryAtom: ReturnType<typeof makeQueryAtom<R>>
+
+  readonly useQueryFamily: ReturnType<typeof makeQueryFamily<R>>
+
   /**
    * Stream results are accumulated as an array of chunks and returned as reactive state.
    * @deprecated use client helpers instead (.query())
    */
   readonly useStreamQuery: ReturnType<typeof makeStreamQuery<R>>
+
+  readonly useStreamQueryFamily: ReturnType<typeof makeStreamQueryFamily<R>>
+
+  readonly useStreamQueryAtom: ReturnType<typeof makeStreamQueryAtom<R>>
+
+  readonly useStreamQueryNew: ReturnType<typeof makeStreamQueryNew<R>>
 
   /**
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
@@ -370,7 +461,10 @@ export class QueryImpl<R> {
     >(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
-      <TData = A>(arg: I | WatchSource<I>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
+      <TData = A>(
+        arg: I | WatchSource<I>,
+        options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
+      ): Promise<
         readonly [
           ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
@@ -385,10 +479,19 @@ export class QueryImpl<R> {
     self: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) => {
     const runPromise = makeRunPromise(this.getRuntime())
-    const q = this.useQuery(self as any) as any
-    return (argOrOptions?: any, options?: any) => {
-      const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }
-      )
+    const q = this.useQuery(self)
+    return <TData = A>(
+      argOrOptions: I | WatchSource<I>,
+      options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
+    ) => {
+      const [resultRef, latestRef, fetch, uqrt] = q<TData>(argOrOptions, options)
+      const latestDefinedRef = computed<TData>(() => {
+        const latest = latestRef.value
+        if (latest === undefined) {
+          throw new Error("Internal Error: suspense resolved without a latest value")
+        }
+        return latest
+      })
 
       const isMounted = ref(true)
       onBeforeUnmount(() => {
@@ -397,36 +500,89 @@ export class QueryImpl<R> {
 
       // @effect-diagnostics effect/missingEffectError:off
       const eff = Effect.gen(function*() {
-        // we want to throw on error so that we can catch cancelled error and skip handling it
-        // what's the difference with just calling `fetch` ?
-        // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
-        const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
-          Effect.catchTag("UnknownError", (err) =>
-            isCancelledError(err.cause)
-              ? Effect.interrupt
-              : Effect.die(err.cause))
-        )
+        const exit = yield* uqrt.awaitResult().pipe(Effect.exit)
         if (!isMounted.value) {
           return yield* Effect.interrupt
         }
-        const result = yield* awaitResolvedSuspenseResult(resultRef)
-        if (AsyncResult.isInitial(result)) {
-          console.error("Internal Error: Promise should be resolved already", {
-            self,
-            argOrOptions,
-            options,
-            r,
-            resultRef
-          })
-          return yield* Effect.die(
-            "Internal Error: Promise should be resolved already"
-          )
-        }
-        if (AsyncResult.isFailure(result)) {
-          return yield* Exit.failCause(result.cause)
+        if (Exit.isFailure(exit)) {
+          return yield* Exit.failCause(exit.cause)
         }
 
-        return [resultRef, latestRef, fetch, uqrt] as const
+        return [resultRef, latestDefinedRef, fetch, uqrt] as const
+      })
+
+      return runPromise(eff)
+    }
+  }
+
+  readonly useSuspenseQueryNew: {
+    <
+      I,
+      E,
+      A,
+      Request extends Req,
+      Name extends string
+    >(
+      self: RequestHandlerWithInput<I, A, E, R, Request, Name>
+    ): {
+      <TData = A>(
+        arg: I | WatchSource<I>,
+        options?: AtomQueryNewOptions<A, TData>
+      ): Promise<SuspenseQueryView<TData, E>>
+    }
+  } = <I, E, A, Request extends Req, Name extends string>(
+    self: RequestHandlerWithInput<I, A, E, R, Request, Name>
+  ) => {
+    const runPromise = makeRunPromise(this.getRuntime())
+    const q = this.useQueryNew(self)
+    return <TData = A>(
+      argOrOptions: I | WatchSource<I>,
+      options?: AtomQueryNewOptions<A, TData>
+    ) => {
+      const view = q<TData>(argOrOptions, options)
+      const data = computed<TData>(() => {
+        const latest = view.data.value
+        if (latest === undefined) {
+          throw new Error("Internal Error: suspenseNew resolved without a latest value")
+        }
+        return latest
+      })
+
+      const isMounted = ref(true)
+      onBeforeUnmount(() => {
+        isMounted.value = false
+      })
+
+      // @effect-diagnostics effect/missingEffectError:off
+      const eff = Effect.gen(function*() {
+        const exit = yield* view.awaitResult().pipe(Effect.exit)
+        if (!isMounted.value) {
+          return yield* Effect.interrupt
+        }
+        if (Exit.isFailure(exit)) {
+          return yield* Exit.failCause(exit.cause)
+        }
+
+        const fetch = (_options?: RefetchOptions) => view.refetch()
+        const handle = {
+          awaitResult: view.awaitResult,
+          refetch: view.refetch,
+          refresh: view.refresh,
+          registry: view.registry,
+          atom: view.atom
+        }
+        return Object.assign(
+          [
+            view.result,
+            data,
+            fetch,
+            handle
+          ] as const,
+          {
+            ...view,
+            data
+          }
+        )
       })
 
       return runPromise(eff)
@@ -493,11 +649,31 @@ type ClientForArgs<
     >
   ]
 
+const makeResolvedAtomQueryInvalidator = <R>(getContext: () => Context.Context<R>): QueryInvalidator => {
+  let reactivity: Context.Service.Shape<typeof Reactivity.Reactivity> | undefined
+  const getReactivity = () => {
+    if (reactivity !== undefined) return reactivity
+    const service = Context.getOrUndefined(getContext(), Reactivity.Reactivity)
+    if (service === undefined) {
+      throw new Error("Reactivity service is missing from the client runtime")
+    }
+    return reactivity = service
+  }
+
+  return {
+    invalidateAndAwait: (keys) =>
+      invalidateAndAwait(keys).pipe(
+        Effect.provideService(Reactivity.Reactivity, getReactivity())
+      )
+  }
+}
+
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>,
-  rtHooks: Layer.Layer<RTHooks, never, Mix>
+  rtHooks: Layer.Layer<RTHooks, never, Mix>,
+  options?: MakeClientOptions
 ) => {
   type RT = RT_ | Mix
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
@@ -505,16 +681,91 @@ export const makeClient = <RT_, RTHooks>(
   let cmd: Effect.Success<typeof makeCommand>
   const useCommand = () => cmd ??= getBaseMrt().runSync(makeCommand)
 
+  // one AtomRuntime for the query engine, built lazily from the live app context;
+  // shares the ManagedRuntime memoMap so layers + Reactivity are the same instances.
+  let atomRt: AtomClientRuntime | undefined
+  const getAtomRt =
+    () => (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
+
+  const legacyQueryEngine = options?.legacyQueryEngine ?? "tanstack"
+  let tanstackQueryClient: ReturnType<typeof makeTanstackQueryClient> | undefined
+  const getTanstackQueryClient = () => tanstackQueryClient ??= makeTanstackQueryClient()
+  const atomInvalidator = makeResolvedAtomQueryInvalidator(getBaseRt)
+  const queryInvalidator = legacyQueryEngine === "tanstack"
+    ? combineQueryInvalidators(atomInvalidator, makeTanstackQueryInvalidator(getTanstackQueryClient()))
+    : atomInvalidator
+
   let m: ReturnType<typeof useMutationInt>
-  const useMutation = () => m ??= useMutationInt()
+  const useMutation = () => m ??= useMutationInt(queryInvalidator)
 
   let sm2: ReturnType<typeof makeStreamMutation2>
-  const useStreamMutation2 = () => sm2 ??= makeStreamMutation2()
+  const useStreamMutation2 = () => sm2 ??= makeStreamMutation2(queryInvalidator)
 
-  const query = new QueryImpl(getBaseRt)
+  const legacyUseQuery = legacyQueryEngine === "tanstack"
+    ? makeTanstackQuery(getBaseRt, getTanstackQueryClient())
+    : undefined
+  const query = new QueryImpl(getBaseRt, getAtomRt, legacyUseQuery)
   const useQuery = query.useQuery
+  const useQueryNew = query.useQueryNew
+  const useQueryAtom = query.useQueryAtom
+  const useQueryFamily = query.useQueryFamily
   const useSuspenseQuery = query.useSuspenseQuery
+  const useSuspenseQueryNew = query.useSuspenseQueryNew
   const useStreamQuery = query.useStreamQuery
+  const useStreamQueryFamily = query.useStreamQueryFamily
+  const useStreamQueryAtom = query.useStreamQueryAtom
+  const useStreamQueryNew = query.useStreamQueryNew
+
+  const isQueryHandler = <H extends { readonly Request: Req }>(handler: H): handler is QueryHandler<H> =>
+    handler.Request.type === "query" && !handler.Request.stream
+
+  const isStreamQueryHandler = <H extends { readonly Request: Req }>(handler: H): handler is QueryStreamHandler<H> =>
+    handler.Request.type === "query" && handler.Request.stream
+
+  const queryHelpersFor = <I, A, E, Request extends Req, Name extends string>(
+    handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
+  ) => ({
+    family: useQueryFamily(handler),
+    atom: useQueryAtom(handler),
+    query: useQuery(handler),
+    queryNew: useQueryNew(handler),
+    suspense: useSuspenseQuery(handler),
+    suspenseNew: useSuspenseQueryNew(handler)
+  })
+
+  const streamQueryHelpersFor = <I, A, E, Request extends Req, Name extends string>(
+    handler: RequestStreamHandlerWithInput<I, A, E, RT, Request, Name>
+  ) => ({
+    family: useStreamQueryFamily(handler),
+    atom: useStreamQueryAtom(handler),
+    query: useStreamQuery(handler),
+    queryNew: useStreamQueryNew(handler)
+  })
+
+  const projectQueryFor = <I, A, E, Request extends Req, Name extends string>(
+    handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
+  ) =>
+  <ProjSchema extends S.Decoder<unknown, never>>(projectionSchema: ProjSchema) => {
+    const successSchema = handler.Request.success
+    const projectionHash = projectionSchemaHash(projectionSchema)
+    const projected = projectHandler(handler.handler, successSchema, projectionSchema)
+    const projectedHandler = {
+      handler: projected,
+      id: handler.id,
+      Request: handler.Request,
+      queryKeyProjectionHash: projectionHash
+    }
+    if (handler.options) {
+      return {
+        request: projected,
+        ...queryHelpersFor({ ...projectedHandler, options: handler.options })
+      }
+    }
+    return {
+      request: projected,
+      ...queryHelpersFor(projectedHandler)
+    }
+  }
 
   const mergeInvalidation = (
     a?: MutationOptionsBase["queryInvalidation"],
@@ -555,29 +806,63 @@ export const makeClient = <RT_, RTHooks>(
   ) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
-        const requestType = client[key].Request.type
-        const isStream = client[key].Request.stream
-        if (requestType === "query" && !isStream) {
-          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
+        const handler = client[key]
+        if (isQueryHandler(handler)) {
+          Object.assign(acc, {
+            [camelCase(key) + "QueryFamily"]: Object.assign(useQueryFamily(handler), {
+              id: client[key].id
+            })
+          })
+          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(handler), {
             id: client[key].id
           })
-          ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
+          ;(acc as any)[camelCase(key) + "QueryNew"] = Object.assign(useQueryNew(handler), {
             id: client[key].id
           })
-        } else if (requestType === "query" && isStream) {
-          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useStreamQuery(client[key] as any), {
+          ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(handler), {
             id: client[key].id
+          })
+          ;(acc as any)[camelCase(key) + "SuspenseQueryNew"] = Object.assign(
+            useSuspenseQueryNew(handler),
+            {
+              id: client[key].id
+            }
+          )
+        } else if (isStreamQueryHandler(handler)) {
+          const streamHelpers = streamQueryHelpersFor(handler)
+          Object.assign(acc, {
+            [camelCase(key) + "QueryFamily"]: Object.assign(streamHelpers.family, {
+              id: client[key].id
+            }),
+            [camelCase(key) + "Query"]: Object.assign(streamHelpers.query, {
+              id: client[key].id
+            }),
+            [camelCase(key) + "QueryNew"]: Object.assign(streamHelpers.queryNew, {
+              id: client[key].id
+            })
           })
         }
         return acc
       },
       {} as
         & {
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryFamily`
+          ]: Queries<RT, QueryHandler<typeof client[Key]>>["family"]
+        }
+        & {
           // apparently can't get JSDoc in here..
           [
             Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
               : `${ToCamel<string & Key>}Query`
           ]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
+        }
+        & {
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryNew`
+          ]: Queries<RT, QueryHandler<typeof client[Key]>>["queryNew"]
         }
         // todo: or suspense as an Option?
         & {
@@ -592,9 +877,30 @@ export const makeClient = <RT_, RTHooks>(
         }
         & {
           [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}SuspenseQueryNew`
+          ]: Queries<
+            RT,
+            QueryHandler<typeof client[Key]>
+          >["suspenseNew"]
+        }
+        & {
+          [
+            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryFamily`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["family"]
+        }
+        & {
+          [
             Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
               : `${ToCamel<string & Key>}Query`
           ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["query"]
+        }
+        & {
+          [
+            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryNew`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["queryNew"]
         }
     )
     return queries
@@ -705,41 +1011,25 @@ export const makeClient = <RT_, RTHooks>(
     const queryResources = makeQueryResources(invalidationResources)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
-        const requestType = client[key].Request.type
-        const isStream = client[key].Request.stream
+        const handler = client[key]
+        const requestType = handler.Request.type
+        const isStream = handler.Request.stream
         const fn = Command.fn(client[key].id)
-        const h_ = client[key].handler
+        const h_ = handler.handler
         const request = h_
         ;(acc as any)[key] = Object.assign(
-          requestType === "query" && !isStream
+          isQueryHandler(handler)
             ? {
-              ...client[key],
+              ...handler,
               request,
-              query: useQuery(client[key] as any),
-              suspense: useSuspenseQuery(client[key] as any),
-              project: (projectionSchema: any) => {
-                const successSchema = client[key].Request.success
-                const projectionHash = projectionSchemaHash(projectionSchema)
-                const projected = projectHandler(h_ as any, successSchema, projectionSchema)
-                const fakeHandler = {
-                  handler: projected,
-                  id: client[key].id,
-                  Request: client[key].Request,
-                  options: client[key].options,
-                  queryKeyProjectionHash: projectionHash
-                }
-                return {
-                  request: projected,
-                  query: useQuery(fakeHandler as any),
-                  suspense: useSuspenseQuery(fakeHandler as any)
-                }
-              }
+              ...queryHelpersFor(handler),
+              project: projectQueryFor(handler)
             }
-            : requestType === "query" && isStream
+            : isStreamQueryHandler(handler)
             ? {
               ...client[key],
               request,
-              query: useStreamQuery(client[key] as any)
+              ...streamQueryHelpersFor(handler)
             }
             : requestType === "command" && isStream
             ? (() => {
@@ -911,7 +1201,8 @@ export const makeClient = <RT_, RTHooks>(
   return {
     Command,
     useCommand,
-    clientFor
+    clientFor,
+    tanstackQueryClient: getTanstackQueryClient()
   }
 }
 

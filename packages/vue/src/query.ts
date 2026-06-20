@@ -40,6 +40,15 @@ export interface QueryView<A, E> extends QueryHandle<A, E> {
   readonly data: ComputedRef<A | undefined>
 }
 
+export interface QueryCacheUpdater {
+  readonly update: <I, A, E, R, Request extends Req, Name extends string>(
+    registry: ReturnType<typeof injectRegistry>,
+    query: RequestHandlerWithInput<I, A, E, R, Request, Name>,
+    input: I,
+    updater: (data: NoInfer<A>) => NoInfer<A>
+  ) => void
+}
+
 // retained generic aliases so the exported option-interface arity is unchanged for consumers
 export type UseQueryReturnType<A = any, E = any> = QueryHandle<A, E>
 export type UseQueryDefinedReturnType<A = any, E = any> = QueryHandle<A, E>
@@ -109,6 +118,35 @@ const getStreamQueryFamily = <I, A, E>(
     streamQueryFamilyByKey.set(key, f)
   }
   return f
+}
+
+const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater => ({
+  update: (registry, query, input) => {
+    const family = queryFamilyByKey.get(queryFamilyCacheKey(query))
+    if (!family) {
+      if (warnIfMissing) {
+        console.warn(`Query ${query.id} has not been used yet; nothing to update`)
+      }
+      return
+    }
+    registry.refresh(family(input))
+  }
+})
+
+export const atomQueryCacheUpdater = makeAtomQueryCacheUpdater(true)
+export const optionalAtomQueryCacheUpdater = makeAtomQueryCacheUpdater(false)
+
+export const combineQueryCacheUpdaters = (first: QueryCacheUpdater, second: QueryCacheUpdater): QueryCacheUpdater => ({
+  update: (registry, query, input, updater) => {
+    first.update(registry, query, input, updater)
+    second.update(registry, query, input, updater)
+  }
+})
+
+let activeQueryCacheUpdater = atomQueryCacheUpdater
+
+export const setQueryCacheUpdater = (updater: QueryCacheUpdater) => {
+  activeQueryCacheUpdater = updater
 }
 
 // Atom-engine query options (formerly reconstructed from @tanstack/vue-query types).
@@ -795,22 +833,12 @@ export function composeQueries<
 export const useUpdateQuery = () => {
   const registry = injectRegistry()
 
-  // NOTE: query atoms are derived (read-only) here, so unlike tanstack's `setQueryData` we can't
-  // optimistically patch the cache in place — this refetches the query (the `updater` is ignored).
-  // A first-class optimistic-update layer is planned for the atom-native redesign.
   const f: {
-    <I, A>(
-      query: RequestHandlerWithInput<I, A, any, any, any, any>,
+    <I, A, E, R, Request extends Req, Name extends string>(
+      query: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       input: I,
       updater: (data: NoInfer<A>) => NoInfer<A>
     ): void
-  } = (query: any, input: any, _updater: any) => {
-    const family = queryFamilyByKey.get(queryFamilyCacheKey(query))
-    if (!family) {
-      console.warn(`Query ${query.id} has not been used yet; nothing to update`)
-      return
-    }
-    registry.refresh(family(input))
-  }
+  } = (query, input, updater) => activeQueryCacheUpdater.update(registry, query, input, updater)
   return f
 }

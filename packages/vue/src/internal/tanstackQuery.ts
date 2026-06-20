@@ -14,7 +14,7 @@ import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
 import { reportRuntimeError } from "../lib.ts"
 import type { QueryInvalidator } from "../mutate.ts"
-import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
+import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryCacheUpdater, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
 import { makeRunPromise } from "../runtime.ts"
 
 const swrToQuery = <E, A>(r: {
@@ -104,6 +104,28 @@ export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInv
     )
 })
 
+const fullQueryKey = (
+  q: { readonly queryKeyProjectionHash?: string },
+  queryKey: ReadonlyArray<unknown>,
+  input: unknown
+) => q.queryKeyProjectionHash === undefined ? [...queryKey, input] : [...queryKey, q.queryKeyProjectionHash, input]
+
+export const makeTanstackQueryCacheUpdater = (queryClient: QueryClient): QueryCacheUpdater => ({
+  update: <I, A, E, R, Request extends Req, Name extends string>(
+    _registry: ReturnType<typeof injectRegistry>,
+    query: RequestHandlerWithInput<I, A, E, R, Request, Name>,
+    input: I,
+    updater: (data: NoInfer<A>) => NoInfer<A>
+  ) => {
+    const queryKey = fullQueryKey(query, makeQueryKey(query), input)
+    if (queryClient.getQueryData(queryKey) === undefined) {
+      console.warn(`Query ${query.id} has not been used yet; nothing to update`)
+      return
+    }
+    queryClient.setQueryData(queryKey, (data: A | undefined) => data === undefined ? data : updater(data))
+  }
+})
+
 export const makeTanstackQuery = <R>(
   getRuntime: () => Context.Context<R>,
   queryClient: QueryClient
@@ -117,7 +139,6 @@ export const makeTanstackQuery = <R>(
   ) => {
     const runPromise = makeRunPromise(getRuntime())
     const queryKey = makeQueryKey(q)
-    const projectionHash = q.queryKeyProjectionHash
     const enabled = resolveEnabled(arg, options)
     const tanstackOptions = {
       ...(options?.staleTime !== undefined ? { staleTime: options.staleTime } : {}),
@@ -134,7 +155,7 @@ export const makeTanstackQuery = <R>(
       retry: (retryCount: number, error: unknown) => isRetryable(error) && retryCount < 5,
       queryKey: computed(() => {
         const input = resolveInput(arg, options?.mode)
-        return projectionHash === undefined ? [...queryKey, input] : [...queryKey, projectionHash, input]
+        return fullQueryKey(q, queryKey, input)
       }),
       queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
         runPromise(

@@ -19,25 +19,32 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
-import { makeTanstackQuery, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
+import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
 import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
-import { type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, type QueryObserverResult, type RefetchOptions, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
+import { atomQueryCacheUpdater, type AtomQueryNewOptions, combineQueryCacheUpdaters, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, optionalAtomQueryCacheUpdater, type QueryObserverResult, type RefetchOptions, setQueryCacheUpdater, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
 import { type Toast } from "./toast.ts"
 
 export type { Progress }
 
 // TODO: optimize - work from encoded shape directly
-const projectHandler = <I, A, E, R, ProjSchema extends S.Top>(
+const projectHandler = <
+  I,
+  A,
+  E,
+  R,
+  SuccessSchema extends S.Top & { readonly "EncodingServices": R },
+  ProjSchema extends S.Top & { readonly "DecodingServices": R }
+>(
   handler: (i: I) => Effect.Effect<A, E, R>,
-  successSchema: S.Top,
+  successSchema: SuccessSchema,
   projectionSchema: ProjSchema
 ) => {
-  const encode = S.encodeSync(successSchema)
+  const encode = S.encodeUnknownEffect(successSchema)
   const decode = S.decodeUnknownEffect(projectionSchema)
-  return (i: I) => handler(i).pipe(Effect.map(encode), Effect.flatMap(decode))
+  return (i: I) => handler(i).pipe(Effect.flatMap(encode), Effect.flatMap(decode))
 }
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
@@ -694,6 +701,14 @@ export const makeClient = <RT_, RTHooks>(
   const queryInvalidator = legacyQueryEngine === "tanstack"
     ? combineQueryInvalidators(atomInvalidator, makeTanstackQueryInvalidator(getTanstackQueryClient()))
     : atomInvalidator
+  setQueryCacheUpdater(
+    legacyQueryEngine === "tanstack"
+      ? combineQueryCacheUpdaters(
+        makeTanstackQueryCacheUpdater(getTanstackQueryClient()),
+        optionalAtomQueryCacheUpdater
+      )
+      : atomQueryCacheUpdater
+  )
 
   let m: ReturnType<typeof useMutationInt>
   const useMutation = () => m ??= useMutationInt(queryInvalidator)
@@ -742,10 +757,16 @@ export const makeClient = <RT_, RTHooks>(
     queryNew: useStreamQueryNew(handler)
   })
 
-  const projectQueryFor = <I, A, E, Request extends Req, Name extends string>(
+  const projectQueryFor = <
+    I,
+    A,
+    E,
+    Request extends Req & { readonly success: S.Top & { readonly "EncodingServices": RT } },
+    Name extends string
+  >(
     handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
   ) =>
-  <ProjSchema extends S.Top>(projectionSchema: ProjSchema) => {
+  <ProjSchema extends S.Top & { readonly "DecodingServices": RT }>(projectionSchema: ProjSchema) => {
     const successSchema = handler.Request.success
     const projectionHash = projectionSchemaHash(projectionSchema)
     const projected = projectHandler(handler.handler, successSchema, projectionSchema)

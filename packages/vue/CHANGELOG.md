@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.274
+
+### Patch Changes
+
+- ac62e48: Route `useUpdateQuery` through the configured query cache so TanStack-backed legacy queries receive manual cache updates.
+- 677821a: Run projected query decoders through Effect so schemas that require services can resolve during legacy TanStack query refetches.
+  - effect-app@4.0.0-beta.274
+
 ## 4.0.0-beta.273
 
 ### Patch Changes

@@ -2,9 +2,13 @@
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
 import type { HandlerInput } from "effect-app/client/clientFor"
+import * as Effect from "effect-app/Effect"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
+import * as Atom from "effect/unstable/reactivity/Atom"
 import type { CommandFromRequest } from "../src/makeClient.js"
+import { combineQueryInvalidators, invalidateQueries } from "../src/mutate.js"
+import { useAtomQuery, useAtomSuspense } from "../src/query.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 const somethingInvalidationResources = {
@@ -38,6 +42,10 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   ])
 
   expectTypeOf(invalidates.invalidatesQueries).toBeFunction()
+  configureInvalidation<{ Something: typeof Something }>()((_queryKey) => [
+    // @ts-expect-error predicate filters are not supported by the atom query engine
+    { filters: { predicate: () => true } }
+  ])
   configureInvalidation<{ Something: typeof Something }>()((_queryKey, { Something }) => {
     // @ts-expect-error commands are intentionally excluded from configured resources
     void Something.DoSomething
@@ -171,6 +179,31 @@ it("clientFor handler shape — props variants", () => {
   client.DoMixed.handler({ name: "y" })
 })
 
+it.effect("mutation invalidation awaits the injected query invalidator", () =>
+  Effect.gen(function*() {
+    const recorded: Array<readonly [string, ReadonlyArray<unknown>]> = []
+    const keys = [["$Something"], ["$Something", "GetSomething2"]]
+    const queryInvalidator = combineQueryInvalidators(
+      { invalidateAndAwait: (keys) => Effect.sync(() => keys.forEach((key) => recorded.push(["atom", key]))) },
+      { invalidateAndAwait: (keys) => Effect.sync(() => keys.forEach((key) => recorded.push(["tanstack", key]))) }
+    )
+    const mutate = invalidateQueries(
+      { id: "Something.DoSomething" },
+      { queryInvalidation: () => keys },
+      queryInvalidator
+    )
+
+    const result = yield* mutate(Effect.succeed(123), { id: "abc" })
+
+    expect(result).toBe(123)
+    expect(recorded).toEqual([
+      ["atom", keys[0]],
+      ["atom", keys[1]],
+      ["tanstack", keys[0]],
+      ["tanstack", keys[1]]
+    ])
+  }))
+
 it("client[Key].Input — extracted input type per props variant", () => {
   const { clientFor } = useClient()
   const client = clientFor(
@@ -284,6 +317,66 @@ it.skip("query type tests", () => {
   const [, eee] = q({ id: "a" }, { initialData: 123, placeholderData: () => 123, select: (data) => data.toString() })
   const val4 = eee.value
   expectTypeOf(val4).toEqualTypeOf<string>()
+})
+
+it("additive atom query api type tests", () => {
+  const { clientFor } = useClient()
+  const client = clientFor(
+    Something,
+    undefined,
+    somethingInvalidationResources
+  )
+
+  if (false as boolean) {
+    const family = client.GetSomething2.family
+    const familyAtom = family({ id: "a" })
+    expectTypeOf<Atom.Success<typeof familyAtom>>().toEqualTypeOf<number>()
+
+    const mappedFamilyAtom = Atom.mapResult(familyAtom, (data) => data.toString())
+    expectTypeOf<Atom.Success<typeof mappedFamilyAtom>>().toEqualTypeOf<string>()
+    expectTypeOf(useAtomQuery(() => mappedFamilyAtom).data.value).toEqualTypeOf<string | undefined>()
+    useAtomSuspense(() => mappedFamilyAtom).then((view) => {
+      expectTypeOf(view[1].value).toEqualTypeOf<string>()
+      return view
+    })
+
+    const atom = client.GetSomething2.atom({ id: "a" })
+    expectTypeOf<Atom.Success<typeof atom>>().toEqualTypeOf<number>()
+    // @ts-expect-error raw atom exposure does not accept Vue select projections
+    client.GetSomething2.atom({ id: "a" }, { select: (data) => data.toString() })
+
+    const query = client.GetSomething2.queryNew({ id: "a" })
+    expectTypeOf(query.data.value).toEqualTypeOf<number | undefined>()
+
+    const selected = client.GetSomething2.queryNew({ id: "a" }, { select: (data) => data.toString() })
+    expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
+
+    client.GetSomething2.suspenseNew({ id: "a" }, { select: (data) => data.toString() }).then((view) => {
+      expectTypeOf(view[1].value).toEqualTypeOf<string>()
+      return view
+    })
+
+    const projected = client.GetSomething2.project(S.String)
+    const projectedFamilyAtom = projected.family({ id: "a" })
+    expectTypeOf<Atom.Success<typeof projectedFamilyAtom>>().toEqualTypeOf<string>()
+    const projectedAtom = projected.atom({ id: "a" })
+    expectTypeOf<Atom.Success<typeof projectedAtom>>().toEqualTypeOf<string>()
+    expectTypeOf(projected.queryNew({ id: "a" }).data.value).toEqualTypeOf<string | undefined>()
+    projected.suspenseNew({ id: "a" }).then((view) => {
+      expectTypeOf(view[1].value).toEqualTypeOf<string>()
+      return view
+    })
+
+    const helperFamilyAtom = client.helpers.getSomething2QueryFamily({ id: "a" })
+    expectTypeOf<Atom.Success<typeof helperFamilyAtom>>().toEqualTypeOf<number>()
+    expectTypeOf(client.helpers.getSomething2QueryNew({ id: "a" }).data.value).toEqualTypeOf<number | undefined>()
+    client.helpers.getSomething2SuspenseQueryNew({ id: "a" }).then((view) => {
+      expectTypeOf(view[1].value).toEqualTypeOf<number>()
+      return view
+    })
+  }
+
+  expect(true).toBe(true)
 })
 
 it.skip("works", () => {

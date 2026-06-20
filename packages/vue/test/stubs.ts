@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -280,11 +279,9 @@ export const useClient = (
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
   const rawClient = makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
 
-  // Provide a Vue injection context so that composition-API hooks (e.g. useQueryClient)
-  // called during client initialisation work outside a component setup() function.
+  // Provide a Vue injection context so composition-API hooks called during client
+  // initialisation work outside a component setup() function.
   const vueApp = createApp({})
-  const testQueryClientConfig = { defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }
-  vueApp.use(VueQueryPlugin, { queryClient: new QueryClient(testQueryClientConfig) })
 
   const origClientFor = rawClient.clientFor
   const clientFor: typeof origClientFor = function(m, ...args) {

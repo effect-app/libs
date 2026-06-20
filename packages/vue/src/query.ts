@@ -11,12 +11,13 @@ import { type CauseException } from "effect-app/client/errors"
 import type * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
+import type * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import type * as Atom from "effect/unstable/reactivity/Atom"
+import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, type MaybeRefOrGetter, onBeforeUnmount, onMounted, ref, toValue, type WatchSource } from "vue"
-import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
 type DefaultError = Error
@@ -58,10 +59,18 @@ export type SuspenseQueryView<A, E> =
   & SuspenseQueryTuple<A, E>
 
 export type QueryAtomFamily<I, A, E> = (input: I) => Atom.Atom<AsyncResult.AsyncResult<A, E>>
+export type StreamQueryAtomFamily<I, A, E> = (input: I) => Atom.Writable<Atom.PullResult<A, E>, void>
 
 interface QueryFamilyDescriptor<I, A, E> {
   readonly id: string
   readonly handler: (i: I) => Effect.Effect<A, E, any>
+  readonly options?: ClientForOptions
+  readonly queryKeyProjectionHash?: string
+}
+
+interface StreamQueryFamilyDescriptor<I, A, E> {
+  readonly id: string
+  readonly handler: (i: I) => Stream.Stream<A, E, any>
   readonly options?: ClientForOptions
   readonly queryKeyProjectionHash?: string
 }
@@ -84,6 +93,20 @@ const getQueryFamily = <I, A, E>(
   if (!f) {
     f = buildQueryFamily(rt, q)
     queryFamilyByKey.set(key, f)
+  }
+  return f
+}
+
+const streamQueryFamilyByKey = new Map<string, any>()
+const getStreamQueryFamily = <I, A, E>(
+  rt: AtomClientRuntime,
+  q: StreamQueryFamilyDescriptor<I, A, E>
+): StreamQueryAtomFamily<I, A, E> => {
+  const key = queryFamilyCacheKey(q)
+  let f = streamQueryFamilyByKey.get(key)
+  if (!f) {
+    f = buildStreamQueryFamily(rt, q)
+    streamQueryFamilyByKey.set(key, f)
   }
   return f
 }
@@ -159,6 +182,16 @@ export interface AtomQueryNewOptions<TQueryFnData = unknown, TData = TQueryFnDat
   readonly refreshEvery?: number
   readonly refetchInterval?: number
   readonly select?: (data: TQueryFnData) => TData
+}
+
+export interface AtomStreamQueryOptions {
+  readonly staleTime?: number
+  readonly idleTTL?: number | "infinity"
+  readonly gcTime?: number | "infinity"
+  readonly revalidateOnFocus?: boolean
+  readonly refetchOnWindowFocus?: boolean
+  readonly refreshEvery?: number
+  readonly refetchInterval?: number
 }
 
 const normalizeQueryOptions = (options?: {
@@ -267,6 +300,67 @@ export const useAtomSuspense = <A, E>(
   return Effect.runPromise(eff)
 }
 
+export type StreamQueryPullValue<A> = {
+  readonly done: boolean
+  readonly items: ReadonlyArray<A>
+}
+
+export interface StreamQueryView<A, E> {
+  readonly result: ComputedRef<Atom.PullResult<A, E>>
+  readonly items: ComputedRef<ReadonlyArray<A>>
+  readonly latest: ComputedRef<A | undefined>
+  readonly done: ComputedRef<boolean>
+  readonly awaitResult: () => Effect.Effect<StreamQueryPullValue<A>, E | Cause.NoSuchElementError, never>
+  readonly pull: () => void
+  readonly pullAndAwait: () => Effect.Effect<StreamQueryPullValue<A>, E | Cause.NoSuchElementError, never>
+  readonly refresh: () => void
+  readonly registry: ReturnType<typeof injectRegistry>
+  readonly atom: ComputedRef<Atom.Writable<Atom.PullResult<A, E>, void>>
+}
+
+export const useAtomStreamQuery = <A, E>(
+  atom: () => Atom.Writable<Atom.PullResult<A, E>, void>
+): StreamQueryView<A, E> => {
+  const registry = injectRegistry()
+  const atomRef = computed(atom)
+  const atomResult = useAtomValue(() => atomRef.value)
+  const result = computed(() => atomResult.value)
+  const pull = () => registry.set(atomRef.value, void 0)
+  const refresh = () => registry.refresh(atomRef.value)
+  const awaitResult = () => awaitAtomResult(registry, atomRef.value)
+  const pullAndAwait = () =>
+    Effect.gen(function*() {
+      pull()
+      return yield* awaitResult()
+    })
+  const items = computed(() =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(result.value), (_) => _.items),
+      () => []
+    )
+  )
+  const latest = computed(() => items.value.at(-1))
+  const done = computed(() =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(result.value), (_) => _.done),
+      () => false
+    )
+  )
+
+  return {
+    result,
+    items,
+    latest,
+    done,
+    awaitResult,
+    pull,
+    pullAndAwait,
+    refresh,
+    registry,
+    atom: atomRef
+  }
+}
+
 const optionValue = <I>(
   arr: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
   options?: { readonly mode?: "optional"; readonly enabled?: MaybeRefOrGetter<boolean | undefined> }
@@ -310,6 +404,19 @@ const observedAtom = <A, E>(
     readonly refreshEvery?: number
   }
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => withQueryOptions(atom, normalizeQueryOptions(options))
+
+const observedStreamAtom = <A, E>(
+  atom: Atom.Writable<Atom.PullResult<A, E>, void>,
+  options?: AtomStreamQueryOptions
+): Atom.Writable<Atom.PullResult<A, E>, void> => {
+  let next = atom
+  const refetchInterval = options?.refreshEvery ?? options?.refetchInterval
+  if (refetchInterval !== undefined) next = Atom.withRefresh(refetchInterval)(next)
+  const gcTime = options?.idleTTL ?? options?.gcTime
+  if (gcTime === "infinity") return Atom.keepAlive(next)
+  if (gcTime !== undefined) return Atom.setIdleTTL(next, gcTime)
+  return next
+}
 
 const queryAtomFor = <I, A, E, TData>(
   rt: AtomClientRuntime,
@@ -554,6 +661,55 @@ export const makeQuery = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: (
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
+
+const streamQueryAtomFor = <I, A, E>(
+  rt: AtomClientRuntime,
+  q: StreamQueryFamilyDescriptor<I, A, E>,
+  arg: I,
+  options?: AtomStreamQueryOptions
+): Atom.Writable<Atom.PullResult<A, E>, void> => {
+  const family = getStreamQueryFamily(rt, q)
+  return observedStreamAtom(family(arg), options)
+}
+
+export const makeStreamQueryFamily = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: () => AtomClientRuntime) => {
+  const useStreamQueryFamily: {
+    <I, E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+    ): StreamQueryAtomFamily<I, A, E>
+  } = <I, E, A, Request extends Req, Name extends string>(
+    q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+  ) => getStreamQueryFamily(getAtomRt(), q)
+
+  return useStreamQueryFamily
+}
+
+export const makeStreamQueryAtom = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: () => AtomClientRuntime) => {
+  const useStreamQueryAtom: {
+    <I, E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+    ): (arg: I, options?: AtomStreamQueryOptions) => Atom.Writable<Atom.PullResult<A, E>, void>
+  } = <I, E, A, Request extends Req, Name extends string>(
+    q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+  ) =>
+  (arg: I, options?: AtomStreamQueryOptions) => streamQueryAtomFor(getAtomRt(), q, arg, options)
+
+  return useStreamQueryAtom
+}
+
+export const makeStreamQueryNew = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: () => AtomClientRuntime) => {
+  const useStreamQueryNew: {
+    <I, E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+    ): (arg: MaybeRefOrGetter<I>, options?: AtomStreamQueryOptions) => StreamQueryView<A, E>
+  } = <I, E, A, Request extends Req, Name extends string>(
+    q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+  ) =>
+  (arg: MaybeRefOrGetter<I>, options?: AtomStreamQueryOptions) =>
+    useAtomStreamQuery(() => streamQueryAtomFor(getAtomRt(), q, toValue(arg), options))
+
+  return useStreamQueryNew
+}
 
 type StreamQueryResult<A, E> = readonly [
   ComputedRef<AsyncResult.AsyncResult<A[], E>>,

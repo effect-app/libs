@@ -30,7 +30,7 @@ Relevant upstream Effect v4 atom APIs checked locally:
 - The raw query atom is hidden in the fourth tuple slot. That makes composition awkward and encourages helper APIs to tunnel through private handles.
 - Query family identity must be stable by query key plus projection hash, while observer options stay outside the family. Otherwise projected and unprojected clients can accidentally share a base atom.
 - `useUpdateQuery` accepts an updater but cannot apply it because query atoms are read-only derived atoms there; it currently refreshes and ignores the updater.
-- Stream queries are collapsed into `Stream.runCollect`, so a streaming query behaves like a slow normal query rather than a pull/incremental atom.
+- Legacy stream query `.query()` is still collapsed into `Stream.runCollect`, so the compatibility API behaves like a slow normal query. Stream query clients now also expose atom-native `.atom()`, `.family()`, and `.queryNew()` helpers backed by `Atom.pull`, so new call sites can observe incremental pull state without waiting for stream completion.
 - The default atom registry is used in invalidation-await logic. That works for today but blocks scoped registries, SSR hydration, and tests that provide a custom registry.
 
 ## Compatibility boundary
@@ -166,9 +166,11 @@ Internally this should use `Atom.optimistic` / `Atom.optimisticFn`, not a manual
   - mark query atoms with `Atom.serializable` using request schema + stable input key,
   - dehydrate after server setup,
   - hydrate the client registry before mounting.
-- Stream query clients should expose pull atoms for real progress:
+- Stream query clients expose pull atoms for real progress:
   - `client.Progress.Stream.atom(input)` returns `Atom.Writable<Atom.PullResult<A, E>, void>`,
-  - Vue adapters decide whether to accumulate chunks, show latest chunk, or expose a `pull()` command.
+  - `client.Progress.Stream.family()` returns the reusable atom family,
+  - `client.Progress.Stream.queryNew(input)` returns a Vue view with `result`, `items`, `latest`, `done`, `pull`, and `pullAndAwait`.
+  - Legacy `.query()` remains collect-to-array compatibility until call sites migrate.
 
 ## Migration plan
 
@@ -181,7 +183,7 @@ Internally this should use `Atom.optimistic` / `Atom.optimisticFn`, not a manual
    - optionally `atom` composition if a small call site exists.
 5. Keep most frontend call sites on the old tuple APIs so both surfaces are exercised during the transition.
 6. Replace `useUpdateQuery` call sites with atom refresh or optimistic helpers after the new query surface proves out.
-7. Convert stream query handling from collect-to-array to pull/accumulating atom APIs.
+7. Convert legacy stream query call sites from collect-to-array `.query()` to pull/accumulating `.queryNew()` / `.atom()` APIs.
 8. Add registry provider + hydration experiments after the client API is stable.
 
 ## Recommendation

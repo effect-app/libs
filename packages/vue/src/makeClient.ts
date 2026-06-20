@@ -23,7 +23,7 @@ import { makeTanstackQuery, makeTanstackQueryClient, makeTanstackQueryInvalidato
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
 import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
-import { type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, type QueryObserverResult, type RefetchOptions, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
+import { type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, type QueryObserverResult, type RefetchOptions, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
 import { type Toast } from "./toast.ts"
 
@@ -215,6 +215,12 @@ declare const useSuspenseQueryNew_: QueryImpl<any>["useSuspenseQueryNew"]
 declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useStreamQuery_: QueryImpl<any>["useStreamQuery"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryFamily_: QueryImpl<any>["useStreamQueryFamily"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryAtom_: QueryImpl<any>["useStreamQueryAtom"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQueryNew_: QueryImpl<any>["useStreamQueryNew"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
   request: (i: I) => Effect.Effect<B, E, R>
@@ -304,18 +310,30 @@ export type Queries<RT, Req> = Req extends
   : never
 
 export interface StreamQueryExtensions<Request extends Req, Id extends string, I, A, E> {
+  atom: ReturnType<typeof useStreamQueryAtom_<I, E, A, Request, Id>>
+  family: StreamQueryAtomFamily<I, A, E>
   /**
    * Stream helper for query-stream requests.
-   * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
-   * Data is an array of all chunks received so far.
+   * Legacy compatibility helper. Collects the whole stream into an array before
+   * publishing data.
    * When `I = void` the input argument may be omitted.
    */
   query: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
+  /**
+   * Atom-native stream query helper. Exposes incremental pull state and a `pull`
+   * command instead of collecting the whole stream first.
+   */
+  queryNew: ReturnType<typeof useStreamQueryNew_<I, E, A, Request, Id>>
 }
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
   ? Exclude<R, RT> extends never ? StreamQueryExtensions<Request, Id, I, A, E>
-  : { query: MissingDependencies<RT, R> & {} }
+  : {
+    atom: MissingDependencies<RT, R> & {}
+    family: MissingDependencies<RT, R> & {}
+    query: MissingDependencies<RT, R> & {}
+    queryNew: MissingDependencies<RT, R> & {}
+  }
   : never
 
 const _useMutation = makeMutation(atomQueryInvalidator)
@@ -393,6 +411,9 @@ export class QueryImpl<R> {
     this.useQueryAtom = makeQueryAtom(this.getRuntime, getAtomRt)
     this.useQueryFamily = makeQueryFamily(this.getRuntime, getAtomRt)
     this.useStreamQuery = makeStreamQuery(this.getRuntime, getAtomRt)
+    this.useStreamQueryFamily = makeStreamQueryFamily(this.getRuntime, getAtomRt)
+    this.useStreamQueryAtom = makeStreamQueryAtom(this.getRuntime, getAtomRt)
+    this.useStreamQueryNew = makeStreamQueryNew(this.getRuntime, getAtomRt)
   }
   /**
    * Effect results are passed to the caller, including errors.
@@ -411,6 +432,12 @@ export class QueryImpl<R> {
    * @deprecated use client helpers instead (.query())
    */
   readonly useStreamQuery: ReturnType<typeof makeStreamQuery<R>>
+
+  readonly useStreamQueryFamily: ReturnType<typeof makeStreamQueryFamily<R>>
+
+  readonly useStreamQueryAtom: ReturnType<typeof makeStreamQueryAtom<R>>
+
+  readonly useStreamQueryNew: ReturnType<typeof makeStreamQueryNew<R>>
 
   /**
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
@@ -685,9 +712,15 @@ export const makeClient = <RT_, RTHooks>(
   const useSuspenseQuery = query.useSuspenseQuery
   const useSuspenseQueryNew = query.useSuspenseQueryNew
   const useStreamQuery = query.useStreamQuery
+  const useStreamQueryFamily = query.useStreamQueryFamily
+  const useStreamQueryAtom = query.useStreamQueryAtom
+  const useStreamQueryNew = query.useStreamQueryNew
 
   const isQueryHandler = <H extends { readonly Request: Req }>(handler: H): handler is QueryHandler<H> =>
     handler.Request.type === "query" && !handler.Request.stream
+
+  const isStreamQueryHandler = <H extends { readonly Request: Req }>(handler: H): handler is QueryStreamHandler<H> =>
+    handler.Request.type === "query" && handler.Request.stream
 
   const queryHelpersFor = <I, A, E, Request extends Req, Name extends string>(
     handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
@@ -698,6 +731,15 @@ export const makeClient = <RT_, RTHooks>(
     queryNew: useQueryNew(handler),
     suspense: useSuspenseQuery(handler),
     suspenseNew: useSuspenseQueryNew(handler)
+  })
+
+  const streamQueryHelpersFor = <I, A, E, Request extends Req, Name extends string>(
+    handler: RequestStreamHandlerWithInput<I, A, E, RT, Request, Name>
+  ) => ({
+    family: useStreamQueryFamily(handler),
+    atom: useStreamQueryAtom(handler),
+    query: useStreamQuery(handler),
+    queryNew: useStreamQueryNew(handler)
   })
 
   const projectQueryFor = <I, A, E, Request extends Req, Name extends string>(
@@ -765,8 +807,6 @@ export const makeClient = <RT_, RTHooks>(
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
         const handler = client[key]
-        const requestType = handler.Request.type
-        const isStream = handler.Request.stream
         if (isQueryHandler(handler)) {
           Object.assign(acc, {
             [camelCase(key) + "QueryFamily"]: Object.assign(useQueryFamily(handler), {
@@ -788,9 +828,18 @@ export const makeClient = <RT_, RTHooks>(
               id: client[key].id
             }
           )
-        } else if (requestType === "query" && isStream) {
-          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useStreamQuery(client[key] as any), {
-            id: client[key].id
+        } else if (isStreamQueryHandler(handler)) {
+          const streamHelpers = streamQueryHelpersFor(handler)
+          Object.assign(acc, {
+            [camelCase(key) + "QueryFamily"]: Object.assign(streamHelpers.family, {
+              id: client[key].id
+            }),
+            [camelCase(key) + "Query"]: Object.assign(streamHelpers.query, {
+              id: client[key].id
+            }),
+            [camelCase(key) + "QueryNew"]: Object.assign(streamHelpers.queryNew, {
+              id: client[key].id
+            })
           })
         }
         return acc
@@ -838,8 +887,20 @@ export const makeClient = <RT_, RTHooks>(
         & {
           [
             Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryFamily`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["family"]
+        }
+        & {
+          [
+            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
               : `${ToCamel<string & Key>}Query`
           ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["query"]
+        }
+        & {
+          [
+            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}QueryNew`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["queryNew"]
         }
     )
     return queries
@@ -964,11 +1025,11 @@ export const makeClient = <RT_, RTHooks>(
               ...queryHelpersFor(handler),
               project: projectQueryFor(handler)
             }
-            : requestType === "query" && isStream
+            : isStreamQueryHandler(handler)
             ? {
               ...client[key],
               request,
-              query: useStreamQuery(client[key] as any)
+              ...streamQueryHelpersFor(handler)
             }
             : requestType === "command" && isStream
             ? (() => {

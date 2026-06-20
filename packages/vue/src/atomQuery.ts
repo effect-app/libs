@@ -25,6 +25,7 @@ import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
@@ -70,6 +71,17 @@ const trackByKeys =
       }
       return get(atom)
     }, { initialValueTarget: atom })
+
+const trackWritableByKeys =
+  (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
+  <A, E, W>(atom: Atom.Writable<AsyncResult.AsyncResult<A, E>, W>): Atom.Writable<AsyncResult.AsyncResult<A, E>, W> => {
+    const tracked = trackByKeys(keys)(atom)
+    return Atom.writable(
+      (get) => get(tracked),
+      (ctx, value) => ctx.set(atom, value),
+      (refresh) => refresh(tracked)
+    )
+  }
 
 const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
@@ -310,6 +322,35 @@ export const buildQueryFamily = <I, A, E>(
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
     return Atom.withLabel(`query:${self.id}`)(atom)
+  })
+}
+
+export const buildStreamQueryFamily = <I, A, E>(
+  rt: AtomClientRuntime,
+  self: {
+    readonly id: string
+    readonly handler: (i: I) => Stream.Stream<A, E, any>
+    readonly options?: ClientForOptions
+    readonly queryKeyProjectionHash?: string
+  }
+) => {
+  const baseKey = makeQueryKey(self)
+
+  return Atom.family((input: I) => {
+    let atom = rt.runtime.pull(
+      self.handler(input).pipe(
+        Stream.tapCause((cause) => Cause.hasDies(cause) ? reportRuntimeError(cause) : Effect.void)
+      )
+    )
+    const fullKey = [...baseKey, input]
+    const projectedFullKey = self.queryKeyProjectionHash === undefined
+      ? fullKey
+      : [...baseKey, self.queryKeyProjectionHash, input]
+    const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
+    atom = rt.factory.withReactivity(reactivityKeys)(atom)
+    atom = trackWritableByKeys(reactivityKeys)(atom)
+    atom = Atom.setIdleTTL(atom, defaults.gcTime)
+    return Atom.withLabel(`stream-query:${self.id}`)(atom)
   })
 }
 

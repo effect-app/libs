@@ -236,10 +236,23 @@ it("client[Key].Input — extracted input type per props variant", () => {
   expectTypeOf<typeof client.DoMixed.Input>().toEqualTypeOf<HandlerArg>()
 
   // Stream handlers — Input now extracts via RequestStreamHandlerWithInput fallback.
+  expectTypeOf(client.StreamQuery.Input).toEqualTypeOf<{ readonly id: string; readonly _tag?: "StreamQuery" }>()
   expectTypeOf(client.StreamWithoutFinal.Input).toEqualTypeOf<
     { readonly id: string; readonly _tag?: "StreamWithoutFinal" }
   >()
   expectTypeOf(client.StreamWithFinal.Input).toEqualTypeOf<{ readonly id: string; readonly _tag?: "StreamWithFinal" }>()
+
+  const assertStreamQueryTypes = () => {
+    const streamAtom = client.StreamQuery.atom({ id: "abc" })
+    expectTypeOf(streamAtom).toEqualTypeOf<Atom.Writable<Atom.PullResult<number, never>, void>>()
+    const streamView = client.StreamQuery.queryNew({ id: "abc" })
+    expectTypeOf(streamView.items.value).toEqualTypeOf<ReadonlyArray<number>>()
+    expectTypeOf(streamView.latest.value).toEqualTypeOf<number | undefined>()
+    expectTypeOf(streamView.done.value).toBeBoolean()
+    expectTypeOf(streamView.pull).toBeFunction()
+    expectTypeOf(streamView.pullAndAwait).toBeFunction()
+  }
+  void assertStreamQueryTypes
 })
 
 it("CommandFromRequest input shape — props variants", () => {

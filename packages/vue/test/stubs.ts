@@ -200,6 +200,13 @@ class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullab
   success: S.Struct({ a: S.NullOr(S.String) })
 }) {}
 
+class SomethingStreamQuery extends SomethingQuery<SomethingStreamQuery>()("StreamQuery", {
+  id: S.String
+}, {
+  stream: true,
+  success: S.FiniteFromString
+}) {}
+
 /** Stream event: intermediate progress update. */
 export class OperationProgress extends S.TaggedClass<OperationProgress>()("OperationProgress", {
   completed: S.NonNegativeInt,
@@ -239,6 +246,7 @@ export const Something = {
   DoMixed: SomethingDoMixed,
   DoSomething: SomethingDoSomething,
   GetStructNullable: SomethingGetStructNullable,
+  StreamQuery: SomethingStreamQuery,
   StreamWithoutFinal: SomethingStreamWithoutFinal,
   StreamWithFinal: SomethingStreamWithFinal
 }

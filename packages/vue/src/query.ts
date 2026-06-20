@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { injectRegistry, useAtomValue } from "@effect/atom-vue"
 import * as Array from "effect-app/Array"
 import { makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandlerWithInput, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
@@ -13,9 +14,8 @@ import * as Option from "effect-app/Option"
 import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import * as Atom from "effect/unstable/reactivity/Atom"
+import type * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, type MaybeRefOrGetter, onBeforeUnmount, onMounted, ref, toValue, type WatchSource } from "vue"
-import { injectRegistry, useAtomValue } from "@effect/atom-vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
@@ -66,8 +66,9 @@ interface QueryFamilyDescriptor<I, A, E> {
   readonly queryKeyProjectionHash?: string
 }
 
-const queryFamilyCacheKey = (q: { readonly id: string; readonly options?: ClientForOptions; readonly queryKeyProjectionHash?: string }) =>
-  `${makeQueryKey(q).join("/")}:${q.queryKeyProjectionHash ?? ""}`
+const queryFamilyCacheKey = (
+  q: { readonly id: string; readonly options?: ClientForOptions; readonly queryKeyProjectionHash?: string }
+) => `${makeQueryKey(q).join("/")}:${q.queryKeyProjectionHash ?? ""}`
 
 // One atom family per request shape, keyed by the stable query key + projection hash (not the
 // handler object — `clientFor` returns a fresh proxy per call, so the object isn't shareable).
@@ -249,15 +250,18 @@ export const useAtomSuspense = <A, E>(
       registry: view.registry,
       atom: view.atom
     }
-    return Object.assign([
-      view.result,
-      data,
-      fetch,
-      handle
-    ] as const, {
-      ...view,
-      data
-    })
+    return Object.assign(
+      [
+        view.result,
+        data,
+        fetch,
+        handle
+      ] as const,
+      {
+        ...view,
+        data
+      }
+    )
   })
 
   return Effect.runPromise(eff)
@@ -272,14 +276,22 @@ const optionValue = <I>(
       ? arr as () => Option.Option<I>
       : () => (arr as { value: Option.Option<I> }).value
     return [
-      { get value() { return Option.getOrUndefined(getOption()) as I } },
+      {
+        get value() {
+          return Option.getOrUndefined(getOption()) as I
+        }
+      },
       computed(() => Option.isSome(getOption()))
     ] as const
   }
   const req = !arr
     ? ({ value: undefined as I })
     : typeof arr === "function"
-    ? ({ get value() { return (arr as any)() } })
+    ? ({
+      get value() {
+        return (arr as any)()
+      }
+    })
     : (ref(arr) as any)
   const enabled = options?.enabled
   return [req, computed(() => enabled === undefined ? true : !!toValue(enabled))] as const
@@ -321,9 +333,7 @@ const makeQueryView = <I, A, E, TData>(
   const registry = injectRegistry()
   const [req, enabledRef] = optionValue<I>(arg, options)
   const family = getQueryFamily(atomRt, q)
-  const atomRef = computed(() =>
-    enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom
-  )
+  const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
   const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
   const select = options?.select
   const result = (select

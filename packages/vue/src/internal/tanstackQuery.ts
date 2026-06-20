@@ -1,7 +1,5 @@
-import {
-  QueryClient,
-  useQuery as useTanstackQuery
-} from "@tanstack/vue-query"
+import { injectRegistry } from "@effect/atom-vue"
+import { QueryClient, useQuery as useTanstackQuery } from "@tanstack/vue-query"
 import { makeQueryKey, type Req } from "effect-app/client"
 import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
@@ -10,23 +8,13 @@ import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import * as Cause from "effect/Cause"
+import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
-import { isHttpClientError } from "effect/unstable/http/HttpClientError"
-import { computed, type MaybeRefOrGetter, shallowRef, toValue, type WatchSource, watch } from "vue"
-import { injectRegistry } from "@effect/atom-vue"
-import type {
-  CustomDefinedInitialQueryOptions,
-  CustomDefinedPlaceholderQueryOptions,
-  CustomUndefinedInitialQueryOptions,
-  CustomUseQueryOptions,
-  MakeQuery2,
-  QueryHandle,
-  QueryObserverResult,
-  RefetchOptions,
-} from "../query.ts"
+import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
 import { reportRuntimeError } from "../lib.ts"
 import type { QueryInvalidator } from "../mutate.ts"
+import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
 import { makeRunPromise } from "../runtime.ts"
 
 const swrToQuery = <E, A>(r: {
@@ -62,8 +50,7 @@ const isRetryable = (error: unknown) => {
   return false
 }
 
-const isInputOption = <I>(value: I | Option.Option<I> | undefined): value is Option.Option<I> =>
-  Option.isOption(value)
+const isInputOption = <I>(value: I | Option.Option<I> | undefined): value is Option.Option<I> => Option.isOption(value)
 
 const resolveInput = <I>(
   arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,

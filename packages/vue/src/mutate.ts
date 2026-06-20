@@ -5,8 +5,8 @@ import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
 import { tuple } from "effect-app/Function"
 import * as Option from "effect-app/Option"
-import type * as Cause from "effect/Cause"
 import { isReadonlyArrayNonEmpty } from "effect/Array"
+import type * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
@@ -113,7 +113,9 @@ export type QueryKeyInvalidationFilters = {
   readonly queryKey: ReadonlyArray<unknown>
 }
 export type InvalidationEntry = InvalidateQueryInstruction<QueryKeyInvalidationFilters>
-export type QueryInvalidationEffect<R = never> = (keys: ReadonlyArray<ReadonlyArray<unknown>>) => Effect.Effect<void, never, R>
+export type QueryInvalidationEffect<R = never> = (
+  keys: ReadonlyArray<ReadonlyArray<unknown>>
+) => Effect.Effect<void, never, R>
 export interface QueryInvalidator<R = never> {
   readonly invalidateAndAwait: QueryInvalidationEffect<R>
 }
@@ -122,7 +124,9 @@ export const atomQueryInvalidator: QueryInvalidator<Reactivity.Reactivity> = {
   invalidateAndAwait
 }
 
-export const combineQueryInvalidators = <R>(...invalidators: ReadonlyArray<QueryInvalidator<R>>): QueryInvalidator<R> => ({
+export const combineQueryInvalidators = <R>(
+  ...invalidators: ReadonlyArray<QueryInvalidator<R>>
+): QueryInvalidator<R> => ({
   invalidateAndAwait: (keys) =>
     Effect.forEach(
       invalidators,
@@ -136,7 +140,9 @@ const isRecord = (value: unknown): value is { readonly [key: string]: unknown } 
 
 const isQueryKey = (entry: InvalidationEntry): entry is ReadonlyArray<string> => Array.isArray(entry)
 
-const queryKeyFromFilters = (entry: Exclude<InvalidationEntry, ReadonlyArray<string>>): ReadonlyArray<unknown> | undefined => {
+const queryKeyFromFilters = (
+  entry: Exclude<InvalidationEntry, ReadonlyArray<string>>
+): ReadonlyArray<unknown> | undefined => {
   if (!("filters" in entry)) return undefined
   const filters = entry.filters
   if (!isRecord(filters)) return undefined
@@ -379,7 +385,8 @@ export const makeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator<RI
   const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
-    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
+    const r = (i: I, options?: MutationOptionsBase) =>
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
@@ -394,7 +401,8 @@ export const useMakeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator
   const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
-    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
+    const r = (i: I, options?: MutationOptionsBase) =>
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation

@@ -17,25 +17,13 @@ import * as Struct from "effect/Struct"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
+import { makeTanstackQuery, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
 import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
-import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
-import { makeTanstackQuery, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
-import {
-  type AtomQueryNewOptions,
-  type CustomUndefinedInitialQueryOptions,
-  makeQuery,
-  makeQueryAtom,
-  makeQueryFamily,
-  makeQueryNew,
-  makeStreamQuery,
-  type QueryObserverResult,
-  type RefetchOptions,
-  type SuspenseQueryView,
-  type UseQueryReturnType
-} from "./query.ts"
+import { type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, type QueryObserverResult, type RefetchOptions, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
 import { type Toast } from "./toast.ts"
 
@@ -556,15 +544,18 @@ export class QueryImpl<R> {
           registry: view.registry,
           atom: view.atom
         }
-        return Object.assign([
-          view.result,
-          data,
-          fetch,
-          handle
-        ] as const, {
-          ...view,
-          data
-        })
+        return Object.assign(
+          [
+            view.result,
+            data,
+            fetch,
+            handle
+          ] as const,
+          {
+            ...view,
+            data
+          }
+        )
       })
 
       return runPromise(eff)
@@ -666,8 +657,8 @@ export const makeClient = <RT_, RTHooks>(
   // one AtomRuntime for the query engine, built lazily from the live app context;
   // shares the ManagedRuntime memoMap so layers + Reactivity are the same instances.
   let atomRt: AtomClientRuntime | undefined
-  const getAtomRt = () =>
-    (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
+  const getAtomRt =
+    () => (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
 
   const legacyQueryEngine = options?.legacyQueryEngine ?? "tanstack"
   let tanstackQueryClient: ReturnType<typeof makeTanstackQueryClient> | undefined

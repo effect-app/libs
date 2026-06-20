@@ -102,8 +102,12 @@ Options that affect a single observer should wrap the shared raw atom rather tha
 ```ts
 const raw = family(input)
 const selected = select ? Atom.mapResult(raw, select) : raw
-const refreshed = refreshEvery ? Atom.withRefresh(refreshEvery)(selected) : selected
-const viewed = Atom.swr({ staleTime, revalidateOnFocus, focusSignal })(refreshed)
+const refreshed = refreshEvery
+  ? Atom.withRefresh(refreshEvery)(selected)
+  : selected
+const viewed = Atom.swr({ staleTime, revalidateOnFocus, focusSignal })(
+  refreshed
+)
 ```
 
 TTL is the awkward option. If TTL is part of the base atom, it should be a client/default policy, not the first observer's option. For old APIs, keep accepting `gcTime`, but normalize it into a base-atom policy that cannot be captured accidentally by the first observer. For new APIs, prefer an atom-native `idleTTL` or `timeToLive` name.

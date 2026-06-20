@@ -13,13 +13,13 @@
  * Built over the app's RPC client through the existing `RequestHandlerWithInput`
  * abstraction (mirrors AtomRpc's recipe; see docs/atom-query-plan.md).
  */
+import { defaultRegistry } from "@effect/atom-vue"
 import { makeQueryKey } from "effect-app/client"
 import type { ClientForOptions } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
-import { defaultRegistry } from "@effect/atom-vue"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
@@ -75,7 +75,7 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
   for (const key of keys) {
     const set = keyAtoms.get(Hash.hash(key))
-    if (set) for (const a of set) atoms.add(a)
+    if (set) { for (const a of set) atoms.add(a) }
   }
   return [...atoms]
 }
@@ -94,7 +94,7 @@ export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<
   Effect.gen(function*() {
     yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
     const atoms = atomsForKeys(keys)
-//    for (const a of atoms) defaultRegistry.refresh(a) // refreshes everything even when not mounted
+    //    for (const a of atoms) defaultRegistry.refresh(a) // refreshes everything even when not mounted
     if (atoms.length === 0) return
     yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
   })
@@ -317,5 +317,4 @@ export const buildQueryFamily = <I, A, E>(
 export const awaitAtomResult = <A, E>(
   registry: AtomRegistry.AtomRegistry,
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
-) =>
-  AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })
+) => AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })

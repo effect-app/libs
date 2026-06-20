@@ -54,14 +54,13 @@ type InvalidationResources = Record<string, Record<string, unknown>>
  * An invalidation instruction returned from `invalidatesQueries`. One of:
  *  - a raw query key (`ReadonlyArray<string>`)
  *  - an RPC handler object (`{ id, options? }`) — query key derived from `id`
- *  - the raw `{ filters, options }` tanstack-query shape
+ *  - a compatibility `{ filters: { queryKey }, options? }` shape
  *
- * `Filters` / `Options` are widened to `Record<string, unknown>` by default so
- * the effect-app core has no dependency on `@tanstack/vue-query`. The vue
- * adapter narrows them via the `InvalidationEntry` alias.
+ * Predicate filters are intentionally not represented: atom invalidation is keyed by
+ * concrete query keys.
  */
 export type InvalidateQueryInstruction<
-  Filters = Record<string, unknown>,
+  Filters = { readonly queryKey: ReadonlyArray<unknown> },
   Options = Record<string, unknown>
 > =
   | ReadonlyArray<string>
@@ -70,7 +69,7 @@ export type InvalidateQueryInstruction<
     readonly options?: ClientForOptions
   }
   | {
-    readonly filters?: Filters
+    readonly filters: Filters
     readonly options?: Options
   }
 

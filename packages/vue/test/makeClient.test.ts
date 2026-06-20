@@ -5,6 +5,8 @@ import type { HandlerInput } from "effect-app/client/clientFor"
 import * as Effect from "effect-app/Effect"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
+import { TestClock } from "effect/testing"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import type { CommandFromRequest } from "../src/makeClient.js"
 import { combineQueryInvalidators, invalidateQueries } from "../src/mutate.js"
@@ -193,7 +195,9 @@ it.effect("mutation invalidation awaits the injected query invalidator", () =>
       queryInvalidator
     )
 
-    const result = yield* mutate(Effect.succeed(123), { id: "abc" })
+    const fiber = yield* Effect.forkChild(mutate(Effect.succeed(123), { id: "abc" }))
+    yield* TestClock.adjust("1 millis")
+    const result = yield* Fiber.join(fiber)
 
     expect(result).toBe(123)
     expect(recorded).toEqual([

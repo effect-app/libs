@@ -16,7 +16,7 @@ import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
-import { computed, type ComputedRef, type MaybeRefOrGetter, onBeforeUnmount, onMounted, ref, toValue, type WatchSource } from "vue"
+import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
@@ -38,6 +38,29 @@ export interface QueryHandle<A = unknown, E = unknown> {
 export interface QueryView<A, E> extends QueryHandle<A, E> {
   readonly result: ComputedRef<AsyncResult.AsyncResult<A, E>>
   readonly data: ComputedRef<A | undefined>
+}
+
+const useScopedSuspenseSetup = <A>(setup: () => A) => {
+  const scope = effectScope()
+  const controller = new AbortController()
+  const value = scope.run(setup)
+  if (value === undefined) {
+    throw new Error("Internal Error: atom suspense setup scope did not initialize")
+  }
+
+  const isMounted = ref(true)
+  let stopped = false
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    isMounted.value = false
+    controller.abort()
+    scope.stop()
+  }
+  onBeforeUnmount(stop)
+  onScopeDispose(stop)
+
+  return [value, isMounted, controller.signal] as const
 }
 
 export interface QueryCacheUpdater {
@@ -290,18 +313,16 @@ export const useAtomQuery = <A, E>(
 export const useAtomSuspense = <A, E>(
   atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>
 ): Promise<SuspenseQueryView<A, E>> => {
-  const view = useAtomQuery(atom)
-  const data = computed<A>(() => {
-    const latest = view.data.value
-    if (latest === undefined) {
-      throw new Error("Internal Error: atom suspense resolved without a latest value")
-    }
-    return latest
-  })
-
-  const isMounted = ref(true)
-  onBeforeUnmount(() => {
-    isMounted.value = false
+  const [{ view, data }, isMounted, signal] = useScopedSuspenseSetup(() => {
+    const view = useAtomQuery(atom)
+    const data = computed<A>(() => {
+      const latest = view.data.value
+      if (latest === undefined) {
+        throw new Error("Internal Error: atom suspense resolved without a latest value")
+      }
+      return latest
+    })
+    return { view, data }
   })
 
   const eff = Effect.gen(function*() {
@@ -335,7 +356,7 @@ export const useAtomSuspense = <A, E>(
     )
   })
 
-  return Effect.runPromise(eff)
+  return Effect.runPromise(eff, { signal })
 }
 
 export type StreamQueryPullValue<A> = {

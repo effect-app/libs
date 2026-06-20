@@ -16,7 +16,7 @@ import type * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
-import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { computed, type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
 import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
 import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
@@ -28,6 +28,29 @@ import { makeRunPromise } from "./runtime.ts"
 import { type Toast } from "./toast.ts"
 
 export type { Progress }
+
+const useScopedSuspenseSetup = <A>(setup: () => A) => {
+  const scope = effectScope()
+  const controller = new AbortController()
+  const value = scope.run(setup)
+  if (value === undefined) {
+    throw new Error("Internal Error: suspense setup scope did not initialize")
+  }
+
+  const isMounted = ref(true)
+  let stopped = false
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    isMounted.value = false
+    controller.abort()
+    scope.stop()
+  }
+  onBeforeUnmount(stop)
+  onScopeDispose(stop)
+
+  return [value, isMounted, controller.signal] as const
+}
 
 // TODO: optimize - work from encoded shape directly
 const projectHandler = <
@@ -491,18 +514,20 @@ export class QueryImpl<R> {
       argOrOptions: I | WatchSource<I>,
       options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
     ) => {
-      const [resultRef, latestRef, fetch, uqrt] = q<TData>(argOrOptions, options)
-      const latestDefinedRef = computed<TData>(() => {
-        const latest = latestRef.value
-        if (latest === undefined) {
-          throw new Error("Internal Error: suspense resolved without a latest value")
-        }
-        return latest
-      })
-
-      const isMounted = ref(true)
-      onBeforeUnmount(() => {
-        isMounted.value = false
+      const [
+        [resultRef, latestDefinedRef, fetch, uqrt],
+        isMounted,
+        signal
+      ] = useScopedSuspenseSetup(() => {
+        const [resultRef, latestRef, fetch, uqrt] = q<TData>(argOrOptions, options)
+        const latestDefinedRef = computed<TData>(() => {
+          const latest = latestRef.value
+          if (latest === undefined) {
+            throw new Error("Internal Error: suspense resolved without a latest value")
+          }
+          return latest
+        })
+        return [resultRef, latestDefinedRef, fetch, uqrt] as const
       })
 
       // @effect-diagnostics effect/missingEffectError:off
@@ -518,7 +543,7 @@ export class QueryImpl<R> {
         return [resultRef, latestDefinedRef, fetch, uqrt] as const
       })
 
-      return runPromise(eff)
+      return runPromise(eff, { signal })
     }
   }
 
@@ -546,18 +571,16 @@ export class QueryImpl<R> {
       argOrOptions: I | WatchSource<I>,
       options?: AtomQueryNewOptions<A, TData>
     ) => {
-      const view = q<TData>(argOrOptions, options)
-      const data = computed<TData>(() => {
-        const latest = view.data.value
-        if (latest === undefined) {
-          throw new Error("Internal Error: suspenseNew resolved without a latest value")
-        }
-        return latest
-      })
-
-      const isMounted = ref(true)
-      onBeforeUnmount(() => {
-        isMounted.value = false
+      const [{ view, data }, isMounted, signal] = useScopedSuspenseSetup(() => {
+        const view = q<TData>(argOrOptions, options)
+        const data = computed<TData>(() => {
+          const latest = view.data.value
+          if (latest === undefined) {
+            throw new Error("Internal Error: suspenseNew resolved without a latest value")
+          }
+          return latest
+        })
+        return { view, data }
       })
 
       // @effect-diagnostics effect/missingEffectError:off
@@ -592,7 +615,7 @@ export class QueryImpl<R> {
         )
       })
 
-      return runPromise(eff)
+      return runPromise(eff, { signal })
     }
   }
 }

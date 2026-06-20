@@ -206,6 +206,28 @@ export interface AtomQueryOptions {
 
 const defaults = { staleTime: Duration.seconds(5), gcTime: Duration.minutes(5) }
 
+export interface AtomQueryMetadata {
+  readonly staleTimeMs: number
+}
+
+const atomQueryMetadata = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, AtomQueryMetadata>()
+
+const setAtomQueryMetadata = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  opts: AtomQueryOptions = {}
+) => {
+  const staleTimeMs = staleTimeMsOf(opts)
+  const previous = atomQueryMetadata.get(atom)
+  atomQueryMetadata.set(atom, {
+    staleTimeMs: previous === undefined ? staleTimeMs : Math.min(previous.staleTimeMs, staleTimeMs)
+  })
+  return atom
+}
+
+export const getAtomQueryMetadata = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): AtomQueryMetadata | undefined => atomQueryMetadata.get(atom)
+
 /** Exported so the vue hook can do refetch-on-mount-per-observer with the same rule as swr. */
 export const isStaleResult = (r: AsyncResult.AsyncResult<any, any>, staleTimeMs: number): boolean => {
   if (r.waiting) return false
@@ -225,10 +247,8 @@ export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
   opts: AtomQueryOptions = {}
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
+  setAtomQueryMetadata(self, opts)
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
-  const gcTime = opts.gcTime === "infinity"
-    ? "infinity" as const
-    : Duration.fromInputUnsafe(opts.gcTime ?? defaults.gcTime)
   let atom = self
   const revalidateOnFocus = opts.revalidateOnFocus ?? true
   atom = Atom.swr({
@@ -238,7 +258,7 @@ export const withQueryOptions = <A, E>(
   })(atom)
   if (opts.refetchInterval) atom = Atom.withRefresh(Duration.millis(opts.refetchInterval))(atom)
   if (opts.structuralSharing ?? true) atom = structuralShare(atom)
-  return gcTime === "infinity" ? Atom.keepAlive(atom) : Atom.setIdleTTL(atom, gcTime)
+  return atom
 }
 
 /** Constant atom for disabled / `mode:"optional"`-None queries: stays Initial, never fetches. */
@@ -321,7 +341,7 @@ export const buildQueryFamily = <I, A, E>(
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return Atom.withLabel(`query:${self.id}`)(atom)
+    return setAtomQueryMetadata(Atom.withLabel(`query:${self.id}`)(atom))
   })
 }
 
@@ -350,7 +370,7 @@ export const buildStreamQueryFamily = <I, A, E>(
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackWritableByKeys(reactivityKeys)(atom)
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return Atom.withLabel(`stream-query:${self.id}`)(atom)
+    return setAtomQueryMetadata(Atom.withLabel(`stream-query:${self.id}`)(atom))
   })
 }
 

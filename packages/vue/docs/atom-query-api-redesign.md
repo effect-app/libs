@@ -112,6 +112,22 @@ const viewed = Atom.swr({ staleTime, revalidateOnFocus, focusSignal })(
 
 TTL is the awkward option. If TTL is part of the base atom, it should be a client/default policy, not the first observer's option. For old APIs, keep accepting `gcTime`, but normalize it into a base-atom policy that cannot be captured accidentally by the first observer. For new APIs, prefer an atom-native `idleTTL` or `timeToLive` name.
 
+## TanStack parity: observers, TTL, and cancellation
+
+Observer cleanup and cache lifetime are separate concerns:
+
+- Vue observers are registered through `@effect/atom-vue`'s `useAtomValue`, which uses a Vue `watchEffect` cleanup around `registry.subscribe`. Non-suspense component unmounts therefore remove observer subscriptions through normal Vue scope disposal.
+- Suspense helpers still load through native query atoms. The `Promise` returned by `.suspense()` / `.suspenseNew()` is only the Vue Suspense boundary that waits for `AtomRegistry.getResult`. Suspense setup runs in an explicit child `effectScope`; unmount stops that scope, removes the observer subscription, and aborts the waiting Effect so the Suspense Promise does not remain pending after the component is gone.
+- Observer-specific wrappers (`select`, SWR, focus revalidation, polling, structural sharing) must not get their own idle TTL. Otherwise a wrapper can keep source atoms observed after the component unmounts. TTL belongs to the canonical handler+input query atom.
+- The canonical query atom keeps its configured idle TTL after the last observer is gone. This preserves cached data and lets invalidation still reach cached-but-unmounted queries during the idle window.
+
+Current difference from TanStack Query:
+
+- TanStack creates an `AbortSignal` for each fetch. When the last observer is removed, it cancels the active retryer only if the query function consumed the signal; otherwise it cancels retries and lets the in-flight request finish so the result can populate cache.
+- Atom query currently does not cancel the canonical query atom's in-flight Effect merely because the last observer unmounted, because the canonical atom node can remain alive for `idleTTL`.
+- If canonical fetch cancellation is added later, it must match TanStack's observable state semantics: cancellation is control flow, not query data. Interrupting an in-flight fetch must not store an interrupt cause as the final `AsyncResult`; it should revert to the previous settled state, or to initial/idle when there is no previous result.
+- The desired parity target is: last observer gone -> remove observer subscriptions immediately; if no observers remain, interrupt the active fetch without recording an interrupt failure; keep the previous cached result until `idleTTL` expires.
+
 ## Option names
 
 Use atom-native names on the new APIs. Keep old option names on old APIs:

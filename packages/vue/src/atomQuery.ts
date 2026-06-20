@@ -25,6 +25,7 @@ import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
+import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -183,6 +184,30 @@ const isRetryable = (e: unknown): boolean =>
   || S.is(ServiceUnavailableError)(e)
   || (typeof e === "object" && e !== null && (e as any)._tag === "RpcClientError")
 
+/** Default number of retries when `retry` is unset or `true` (matches the previous hardcoded value). */
+const defaultRetryTimes = 5
+
+/**
+ * Map the TanStack `retry` option to a retry count. `false`/`0` => no retry, a number => that count,
+ * `true`/unset => the default. Only retryable errors (see `isRetryable`) are retried regardless.
+ */
+export const retryTimesOf = (retry: boolean | number | undefined): number => {
+  if (retry === false) return 0
+  if (retry === true || retry === undefined) return defaultRetryTimes
+  return Math.max(0, retry)
+}
+
+/**
+ * Capped exponential backoff between retries (TanStack `retryDelay` default shape: exponential,
+ * clamped). 200ms base, doubling, capped at 5s, limited to `times` recurrences. The previous engine
+ * retried instantly with no delay; this spaces transient-failure retries without hammering.
+ */
+export const retrySchedule = (times: number) =>
+  Schedule.exponential(Duration.millis(200), 2).pipe(
+    Schedule.modifyDelay((_out, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5)))),
+    Schedule.both(Schedule.recurs(times))
+  )
+
 export interface AtomQueryOptions {
   /** background-refresh threshold (TanStack staleTime; default 5s) */
   readonly staleTime?: Duration.Input
@@ -314,6 +339,12 @@ export const patchableQueryAtom = <A, E>(
  * `["$X"]` refreshes all inputs, `["$X","$List",input]` only that input. (`makeQueryKey`'s
  * collapsed form `getQueryKey` — what mutations invalidate by default — is one of the prefixes.)
  */
+/** Build-time policy baked into the shared base atom (not per-observer). */
+export interface QueryFamilyBuildOptions {
+  /** TanStack `retry`: `false`/`0` disables, a number sets the count, `true`/unset uses the default. */
+  readonly retry?: boolean | number
+}
+
 export const buildQueryFamily = <I, A, E>(
   rt: AtomClientRuntime,
   self: {
@@ -321,16 +352,22 @@ export const buildQueryFamily = <I, A, E>(
     readonly handler: (i: I) => Effect.Effect<A, E, any>
     readonly options?: ClientForOptions
     readonly queryKeyProjectionHash?: string
-  }
+  },
+  buildOptions?: QueryFamilyBuildOptions
 ) => {
   const baseKey = makeQueryKey(self) // hierarchical, input-independent
+  // `retry` is a base-atom policy: the family is cached by query key only (NOT by options), so the
+  // FIRST observer's `retry` wins for a given key+input — same first-observer-wins sharing as gcTime.
+  const retryTimes = retryTimesOf(buildOptions?.retry)
 
   return Atom.family((input: I) => {
+    const fetch = self.handler(input)
+    const withRetry = retryTimes > 0
+      ? fetch.pipe(Effect.retry({ schedule: retrySchedule(retryTimes), while: isRetryable }))
+      : fetch
     let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
-      self
-        .handler(input)
+      withRetry
         .pipe(
-          Effect.retry({ times: 5, while: isRetryable }),
           Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
           Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
         )

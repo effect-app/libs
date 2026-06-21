@@ -77,3 +77,39 @@ it("makeClient .suspense(): observer re-pointed mid-flight -> resolves (seeded) 
 
   ctx.dispose()
 })
+
+it("makeTanstackQuery structurally shares Effect-Equal leaves by default", async () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
+  })
+  const getRuntime = () => Context.empty()
+  let calls = 0
+  const handler = fakeHandler(
+    "Test/StructuralSharing",
+    () =>
+      Effect.sync(() => {
+        calls += 1
+        return {
+          stable: {
+            date: new Date("2026-01-01T00:00:00.000Z"),
+            option: Option.some({ id: "same" })
+          },
+          revision: calls
+        }
+      })
+  )
+  const query = makeTanstackQuery(getRuntime, queryClient)(handler)
+  const ctx = makeContext(queryClient)
+
+  const [, , , handle] = ctx.run(() => query(undefined, {}))
+  const first = await Effect.runPromise(handle.awaitResult())
+  const second = await Effect.runPromise(handle.refetch())
+
+  expect(second.revision).toBe(2)
+  expect(second).not.toBe(first)
+  expect(second.stable).toBe(first.stable)
+  expect(second.stable.date).toBe(first.stable.date)
+  expect(second.stable.option).toBe(first.stable.option)
+
+  ctx.dispose()
+})

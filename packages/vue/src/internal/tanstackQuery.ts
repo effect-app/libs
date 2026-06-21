@@ -12,6 +12,7 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
+import { replaceEqualDeep } from "../atomQuery.ts"
 import { reportRuntimeError } from "../lib.ts"
 import type { QueryInvalidator } from "../mutate.ts"
 import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryCacheUpdater, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
@@ -140,11 +141,12 @@ export const makeTanstackQuery = <R>(
     const runPromise = makeRunPromise(getRuntime())
     const queryKey = makeQueryKey(q)
     const enabled = resolveEnabled(arg, options)
+    const structuralSharing = options?.structuralSharing === false ? false : replaceEqualDeep
     const tanstackOptions = {
       ...(options?.staleTime !== undefined ? { staleTime: options.staleTime } : {}),
       ...(typeof options?.gcTime === "number" ? { gcTime: options.gcTime } : {}),
       ...(options?.refetchOnWindowFocus !== undefined ? { refetchOnWindowFocus: options.refetchOnWindowFocus } : {}),
-      ...(options?.structuralSharing !== undefined ? { structuralSharing: options.structuralSharing } : {}),
+      structuralSharing,
       ...(options?.refetchInterval !== undefined ? { refetchInterval: options.refetchInterval } : {}),
       ...(options?.select !== undefined ? { select: options.select } : {})
     }

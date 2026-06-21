@@ -123,7 +123,7 @@ const isPlainObject = (o: unknown): o is Record<string, unknown> => {
  * (Vue skips re-rendering it). Leaves — including decoded Schema CLASS INSTANCES — are compared with
  * Effect `Equal.equals` (structural), which reuses equal instances that tanstack's `===` could not.
  */
-const replaceEqualDeep = (prev: any, next: any): any => {
+export const replaceEqualDeep = (prev: any, next: any): any => {
   if (prev === next) return prev
   const bothArrays = Array.isArray(prev) && Array.isArray(next)
   if (bothArrays || (isPlainObject(prev) && isPlainObject(next))) {

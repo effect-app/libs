@@ -178,6 +178,11 @@ export const makeTanstackQuery = <R>(
       })
     )
     watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
+    const seedLatestSuccess = (data: TData) => {
+      if (latestSuccess.value === undefined) {
+        latestSuccess.value = data
+      }
+    }
 
     const registry = injectRegistry()
     const latestSuccessRef = computed(() => latestSuccess.value)
@@ -192,6 +197,7 @@ export const makeTanstackQuery = <R>(
             if (data === undefined) {
               throw new Error("TanStack query resolved without data")
             }
+            seedLatestSuccess(data)
             return data
           },
           catch: (error) => error

@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.278
+
+### Patch Changes
+
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+
 ## 4.0.0-beta.277
 
 ## 4.0.0-beta.276

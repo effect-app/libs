@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 4.0.0-beta.278
+
+### Patch Changes
+
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- 18b915f: Default legacy TanStack queries to Effect-Equal-aware structural sharing.
+- Updated dependencies [a354345]
+- Updated dependencies [a69da09]
+  - effect-app@4.0.0-beta.278
+
 ## 4.0.0-beta.277
 
 ### Patch Changes

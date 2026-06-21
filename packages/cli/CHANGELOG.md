@@ -1,5 +1,12 @@
 # @effect-app/cli
 
+## 2.1.0-beta.34
+
+### Patch Changes
+
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+
 ## 2.1.0-beta.33
 
 ### Patch Changes

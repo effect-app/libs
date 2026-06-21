@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.277
+
+### Patch Changes
+
+- 74e6d40: Seed legacy TanStack suspense results into Vue query refs when the observer re-points mid-flight.
+  - effect-app@4.0.0-beta.277
+
 ## 4.0.0-beta.276
 
 ### Patch Changes

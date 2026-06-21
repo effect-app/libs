@@ -45,6 +45,7 @@
     "class-facade-encode-keys",
     "clean-atom-suspense",
     "clean-sql-data-column",
+    "clean-unused-dependencies",
     "cleanup-tsgolint-codegen",
     "clear-cycles-enjoy",
     "clever-breads-enter",

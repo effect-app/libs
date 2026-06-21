@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.276
+
+### Patch Changes
+
+- 32f05c8: Remove unused dependency declarations from package manifests.
+
 ## 4.0.0-beta.275
 
 ## 4.0.0-beta.274

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.276
+
+### Patch Changes
+
+- 32f05c8: Remove unused dependency declarations from package manifests.
+- Updated dependencies [32f05c8]
+  - effect-app@4.0.0-beta.276
+
 ## 4.0.0-beta.275
 
 ### Patch Changes

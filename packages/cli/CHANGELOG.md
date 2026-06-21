@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.33
+
+### Patch Changes
+
+- 32f05c8: Remove unused dependency declarations from package manifests.
+
 ## 2.1.0-beta.32
 
 ### Patch Changes

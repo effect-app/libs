@@ -6,7 +6,6 @@
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",
   "dependencies": {
     "@formatjs/intl": "^4.1.12",
-    "@tanstack/query-core": "5.96.2",
     "@tanstack/vue-query": "5.96.2",
     "@vueuse/core": "^14.3.0",
     "change-case": "^5.4.4",
@@ -26,7 +25,6 @@
     "@types/node": "25.9.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "intl-messageformat": "^11.2.7",
-    "json5": "^2.2.3",
     "typescript": "~6.0.3",
     "vite": "^8.0.15",
     "vitest": "^4.1.7"

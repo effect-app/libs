@@ -15,9 +15,10 @@
     "codegen": "pnpm build && node ./dist/cli.js",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
-    "pub": "npm publish --access public",
-    "prepack": "node ../../scripts/publishTsConfig.mjs prepack",
-    "postpack": "node ../../scripts/publishTsConfig.mjs postpack"
+    "pub": "pnpm publish --access public",
+    "prepack": "node ../../scripts/stagePublishPackage.mjs prepack",
+    "postpack": "node ../../scripts/stagePublishPackage.mjs postpack",
+    "postpublish": "node ../../scripts/stagePublishPackage.mjs postpublish"
   },
   "dependencies": {
     "glob": "^11.1.0",
@@ -60,7 +61,9 @@
         "types": "./dist/oxlint/index.d.ts",
         "default": "./dist/oxlint/index.js"
       }
-    }
+    },
+    "directory": ".publish",
+    "linkDirectory": false
   },
   "author": "Wessel van der Veen & Scott vanBommel",
   "license": "ISC"

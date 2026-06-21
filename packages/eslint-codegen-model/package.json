@@ -15,9 +15,9 @@
     "codegen": "pnpm build && node ./dist/cli.js",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
-    "pub": "pnpm prepublish && npm publish --access public",
-    "prepublish": "cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.mjs ./tsconfig.json",
-    "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
+    "pub": "npm publish --access public",
+    "prepack": "node ../../scripts/publishTsConfig.mjs prepack",
+    "postpack": "node ../../scripts/publishTsConfig.mjs postpack"
   },
   "dependencies": {
     "glob": "^11.1.0",

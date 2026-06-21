@@ -94,9 +94,9 @@
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",
     "client": "node --experimental-specifier-resolution=node -r source-map-support/register ./dist/client.bin.js",
     "ncu": "ncu",
-    "pub": "pnpm prepublish && npm publish --access public",
-    "prepublish": "cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.mjs ./tsconfig.json",
-    "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
+    "pub": "npm publish --access public",
+    "prepack": "node ../../scripts/publishTsConfig.mjs prepack",
+    "postpack": "node ../../scripts/publishTsConfig.mjs postpack"
   },
   "gitHead": "bd8e27eea3eff97db8739d577d67e7336c078d28",
   "sideEffects": false

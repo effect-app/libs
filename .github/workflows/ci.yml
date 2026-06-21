@@ -193,7 +193,7 @@ jobs:
 
       - name: Publish snapshots to pkg.pr.new
         id: publish
-        run: pnpm exec pkg-pr-new publish ./packages/*
+        run: pnpm exec pkg-pr-new publish --pnpm ./packages/*
 
       - name: Write snapshot usage summary
         id: usage

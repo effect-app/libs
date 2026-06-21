@@ -6,6 +6,7 @@ import _path from "path"
 // import ts from "typescript"
 
 const configPath = process.argv[2]
+const outPath = process.argv[3] ?? configPath
 const rootPath = _path.resolve(configPath)
 
 function loadConfigRecursive(configPath) {
@@ -45,4 +46,4 @@ Object.assign(config, {
   references: []
 })
 
-_fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+_fs.writeFileSync(outPath, JSON.stringify(config, null, 2))

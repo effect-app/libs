@@ -82,9 +82,10 @@
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",
     "ncu": "ncu",
-    "pub": "npm publish --access public",
-    "prepack": "node ../../scripts/publishTsConfig.mjs prepack",
-    "postpack": "node ../../scripts/publishTsConfig.mjs postpack"
+    "pub": "pnpm publish --access public",
+    "prepack": "node ../../scripts/stagePublishPackage.mjs prepack",
+    "postpack": "node ../../scripts/stagePublishPackage.mjs postpack",
+    "postpublish": "node ../../scripts/stagePublishPackage.mjs postpublish"
   },
   "gitHead": "bd8e27eea3eff97db8739d577d67e7336c078d28",
   "sideEffects": [
@@ -94,5 +95,9 @@
     "./dist/faker",
     "./dist/src/faker.js",
     "./dist/faker.js"
-  ]
+  ],
+  "publishConfig": {
+    "directory": ".publish",
+    "linkDirectory": false
+  }
 }

@@ -55,3 +55,6 @@ fabric.properties
 
 storybook-static/
 run.sh
+
+# Generated publish staging directories
+packages/*/.publish/

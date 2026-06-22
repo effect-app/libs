@@ -7,6 +7,7 @@ import * as SchemaAST from "effect/SchemaAST"
 import * as SchemaGetter from "effect/SchemaGetter"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
+import type { Struct as EffectAppStruct } from "../Schema.ts"
 import { copyOrigin } from "../utils.ts"
 import { concurrencyUnbounded } from "./ext.ts"
 import * as SchemaParser from "./SchemaParser.ts"
@@ -639,14 +640,16 @@ export function OpaqueErrorFacadeClass<
  * is produced by the schema-aware declaration emitter is retyped from the giant inline
  * `S.Struct<{ ...fields... }>` to this facade.
  *
- * Unlike {@link OpaqueFacade}, `StructFacade` **extends `S.Struct<Fields>`**, so the value is
- * still a real struct schema: it satisfies `Workflow.AnyStructSchema` and the
- * `Struct<Fields & Context>` reconstruction the workflow machinery performs, and `Union` /
- * `.fields.x` keep working. At the same time the type-level members (`Type` / `Encoded` /
- * make-input / services) are pinned to the named interfaces the emitter generates in
- * `namespace X`, so consumers reference those by name instead of re-deriving them from
- * `Fields` on every use. `Fields` is the model's own generated `X.Fields` interface — a single
- * materialization of the (expensive) field shape that every reference site points at.
+ * Unlike {@link OpaqueFacade}, `StructFacade` **extends effect-app's `Struct<Fields>`**, so the
+ * value is still a real (effect-app) struct schema: it satisfies `Workflow.AnyStructSchema` and
+ * the `Struct<Fields & Context>` reconstruction the workflow machinery performs, and `Union` /
+ * `.fields.x` keep working. It MUST be effect-app's `Struct` (not effect core's) — scanner
+ * models are effect-app `S.Struct`, so a facade built on `effect/Schema`'s `Struct` is not
+ * assignable where an effect-app struct is expected. At the same time the type-level members
+ * (`Type` / `Encoded` / make-input / services) are pinned to the named interfaces the emitter
+ * generates in `namespace X`, so consumers reference those by name instead of re-deriving them
+ * from `Fields` on every use. `Fields` is the model's own generated `X.Fields` interface — a
+ * single materialization of the (expensive) field shape that every reference site points at.
  */
 export type StructFacade<
   Self,
@@ -656,7 +659,7 @@ export type StructFacade<
   EncodingServices,
   Fields extends S.Struct.Fields
 > =
-  & Omit<S.Struct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices">
+  & Omit<EffectAppStruct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices">
   & {
     readonly "Type": Self
     readonly "Encoded": Encoded

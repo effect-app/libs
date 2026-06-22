@@ -490,6 +490,7 @@ export interface OpaqueFacade<
 {
   new(_: never): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  readonly identifier: string
   // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
   // carried (precise) from the underlying schema via `OpaqueFacadeStatics`. A wide
   // `mapFields(f: (fields: S.Struct.Fields) => To)` override would win overload
@@ -519,6 +520,7 @@ export interface OpaqueClassFacade<
 {
   new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  readonly identifier: string
 }
 
 export function OpaqueFacade<
@@ -600,6 +602,7 @@ export interface OpaqueErrorFacadeClass<
   // makes `yield* new X()` / `Effect.fail` / `instanceof` work without losing data.
   new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Cause.YieldableError & Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  readonly identifier: string
 }
 
 export function OpaqueErrorFacadeClass<
@@ -627,3 +630,36 @@ export function OpaqueErrorFacadeClass<
     throw new TypeError("OpaqueErrorFacadeClass requires a class schema")
   }
 }
+
+/**
+ * Workflow-compatible struct facade.
+ *
+ * A top-level `const X = S.Struct(...)` / `S.TaggedStruct(...)` schema model whose `.d.ts`
+ * is produced by the schema-aware declaration emitter is retyped from the giant inline
+ * `S.Struct<{ ...fields... }>` to this facade.
+ *
+ * Unlike {@link OpaqueFacade}, `StructFacade` **extends `S.Struct<Fields>`**, so the value is
+ * still a real struct schema: it satisfies `Workflow.AnyStructSchema` and the
+ * `Struct<Fields & Context>` reconstruction the workflow machinery performs, and `Union` /
+ * `.fields.x` keep working. At the same time the type-level members (`Type` / `Encoded` /
+ * make-input / services) are pinned to the named interfaces the emitter generates in
+ * `namespace X`, so consumers reference those by name instead of re-deriving them from
+ * `Fields` on every use. `Fields` is the model's own generated `X.Fields` interface — a single
+ * materialization of the (expensive) field shape that every reference site points at.
+ */
+export type StructFacade<
+  Self,
+  Encoded,
+  MakeIn,
+  DecodingServices,
+  EncodingServices,
+  Fields extends S.Struct.Fields
+> =
+  & Omit<S.Struct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices">
+  & {
+    readonly "Type": Self
+    readonly "Encoded": Encoded
+    readonly "~type.make.in": MakeIn
+    readonly "DecodingServices": DecodingServices
+    readonly "EncodingServices": EncodingServices
+  }

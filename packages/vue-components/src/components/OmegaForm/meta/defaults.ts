@@ -109,7 +109,7 @@ export const defaultsValueFromSchema = (
         continue
       }
 
-      const propSchema = S.make(propType)
+      const propSchema = S.make<S.Schema<any>>(propType)
       const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
 
       if (propValue !== undefined) {
@@ -151,7 +151,7 @@ export const defaultsValueFromSchema = (
     }
 
     return Object.entries(mergedFields).reduce((acc, [key, { ast: propAst }]) => {
-      acc[key] = defaultsValueFromSchema(S.make(propAst), record[key] || {})
+      acc[key] = defaultsValueFromSchema(S.make<S.Schema<any>>(propAst), record[key] || {})
       return acc
     }, record)
   }

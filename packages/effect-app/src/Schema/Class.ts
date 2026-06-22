@@ -490,7 +490,8 @@ export interface OpaqueFacade<
 {
   new(_: never): Brand
   readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
-  readonly identifier: string
+  // NOTE: no `identifier` here — `S.Opaque` (and requests) build on `S.Bottom`, not `S.Class`,
+  // so they have no `identifier`. It lives only on the class facades below.
   // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
   // carried (precise) from the underlying schema via `OpaqueFacadeStatics`. A wide
   // `mapFields(f: (fields: S.Struct.Fields) => To)` override would win overload

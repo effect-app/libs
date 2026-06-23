@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.35
+
+### Patch Changes
+
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+
 ## 2.1.0-beta.34
 
 ### Patch Changes

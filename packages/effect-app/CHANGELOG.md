@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.281
+
+### Patch Changes
+
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+
 ## 4.0.0-beta.280
 
 ### Patch Changes

@@ -41,8 +41,8 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.9.1)
       '@effect-app/cli':
-        specifier: 2.1.0-beta.27
-        version: 2.1.0-beta.27(ioredis@5.9.3)
+        specifier: 2.1.0-beta.30
+        version: 2.1.0-beta.30(ioredis@5.9.3)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -954,8 +954,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@2.1.0-beta.27':
-    resolution: {integrity: sha512-7YVPNt4780SJ/RHeC0VI+uPXgFS4mEdRlT1OsO4dFaybDNN1x+8XZUMY5S+ouxJ0gUTddpbbYE41o2YbR0Lb2g==}
+  '@effect-app/cli@2.1.0-beta.30':
+    resolution: {integrity: sha512-AVCKpE1PkU4jEoiCFYkNM1j5V/nsLq4hoNDlYPsRCNbECBRM5TaesfO5pk8UwF7QPQYmUX9dYsbCyM7PHWzb2w==}
     hasBin: true
 
   '@effect/atom-vue@4.0.0-beta.86':
@@ -973,23 +973,17 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  '@effect/platform-node-shared@4.0.0-beta.74':
-    resolution: {integrity: sha512-C6C2hXixNcZXLaFF2u7B/FtOsqpdY7luaPuiGFBJza0P7EnYDkwaT3kB6lv7l/qctmkADc24qOsSCWIKRbC4jg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      effect: ^4.0.0-beta.74
-
   '@effect/platform-node-shared@4.0.0-beta.86':
     resolution: {integrity: sha512-QNixdacCFZ001duRVZTIRUa6BS1YkU9cbC8yN7NnAMc0upUiIuLI6YO9jKMG3HetW1MjZ3PeSOzMM6nneUYPow==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  '@effect/platform-node@4.0.0-beta.74':
-    resolution: {integrity: sha512-/W16mKqxvhWINLjufzc0log1sl57exXQfwd+em398/zKCbmU3S7snXTDMN6w0ju2TtgK35qrsoGBXEochij6Sg==}
+  '@effect/platform-node@4.0.0-beta.84':
+    resolution: {integrity: sha512-WHPXaaIR1NpiANg+TOfTRupx9Uf2h/WVFZxRQdg5soUpa8bU61NwKxi3A5F/zLpp2AkRPgHTw1rQjwUD+/uA9A==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.74
+      effect: ^4.0.0-beta.84
       ioredis: ^5.7.0
 
   '@effect/platform-node@4.0.0-beta.86':
@@ -3951,8 +3945,8 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  effect@4.0.0-beta.74:
-    resolution: {integrity: sha512-Yx+Kh12U+i2FmjwEfKs+ePFmpMd43RPD1oGqc/VraSS9bYzvF0Ff3PojwEFEVEewp8xc92Uxu28gTspU4qyvHA==}
+  effect@4.0.0-beta.84:
+    resolution: {integrity: sha512-zWwFI9WZ4TsddBmtcuuAO2IXGR0Dp56xIUt8cX29ZeyOEtErXqP6muDaVpro08lGiMSOGMqSpuH/C1TUxHsRAA==}
 
   effect@4.0.0-beta.86:
     resolution: {integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==}
@@ -4751,10 +4745,6 @@ packages:
 
   js-yaml@3.14.2:
     resolution: {integrity: sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg==}
-    hasBin: true
-
-  js-yaml@4.1.1:
-    resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
     hasBin: true
 
   js-yaml@4.2.0:
@@ -7217,11 +7207,11 @@ snapshots:
   '@dprint/win32-x64@0.54.0':
     optional: true
 
-  '@effect-app/cli@2.1.0-beta.27(ioredis@5.9.3)':
+  '@effect-app/cli@2.1.0-beta.30(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node': 4.0.0-beta.74(effect@4.0.0-beta.74)(ioredis@5.9.3)
-      effect: 4.0.0-beta.74
-      js-yaml: 4.1.1
+      '@effect/platform-node': 4.0.0-beta.84(effect@4.0.0-beta.84)(ioredis@5.9.3)
+      effect: 4.0.0-beta.84
+      js-yaml: 4.2.0
       node-watch: 0.7.4
     transitivePeerDependencies:
       - bufferutil
@@ -7240,10 +7230,10 @@ snapshots:
       effect: 4.0.0-beta.86
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@4.0.0-beta.74(effect@4.0.0-beta.74)':
+  '@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.84)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-beta.74
+      effect: 4.0.0-beta.84
       ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
@@ -7258,10 +7248,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.74(effect@4.0.0-beta.74)(ioredis@5.9.3)':
+  '@effect/platform-node@4.0.0-beta.84(effect@4.0.0-beta.84)(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.74(effect@4.0.0-beta.74)
-      effect: 4.0.0-beta.74
+      '@effect/platform-node-shared': 4.0.0-beta.86(effect@4.0.0-beta.84)
+      effect: 4.0.0-beta.84
       ioredis: 5.9.3
       mime: 4.1.0
       undici: 8.3.0
@@ -9819,7 +9809,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.74:
+  effect@4.0.0-beta.84:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.8.0
@@ -10811,10 +10801,6 @@ snapshots:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
-
-  js-yaml@4.1.1:
-    dependencies:
-      argparse: 2.0.1
 
   js-yaml@4.2.0:
     dependencies:

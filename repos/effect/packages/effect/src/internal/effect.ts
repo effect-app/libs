@@ -96,7 +96,8 @@ import {
   TracerSpanLinks,
   TracerTimingEnabled
 } from "./references.ts"
-import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
+import { getStackTraceLimit, setStackTraceLimit } from "./stackTraceLimit.ts"
+import { addSpanStackTrace, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
@@ -314,9 +315,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const interrupts: Array<Cause.Interrupt> = []
   if (self.reasons.length === 0) return errors
 
-  const prevStackLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit)
-    .stackTraceLimit = 1
+  const prevStackLimit = getStackTraceLimit()
+  setStackTraceLimit(1)
 
   for (const failure of self.reasons) {
     if (failure._tag === "Interrupt") {
@@ -340,7 +340,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(causePrettyError(error, interrupts[0].annotations))
   }
 
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevStackLimit
+  setStackTraceLimit(prevStackLimit)
   return errors
 }
 
@@ -1157,10 +1157,10 @@ export const fn: typeof Effect.fn = function() {
   const name = nameFirst ? arguments[0] : "Effect.fn"
   const spanOptions = nameFirst ? arguments[1] : undefined
 
-  const prevLimit = globalThis.Error.stackTraceLimit
-  globalThis.Error.stackTraceLimit = 2
+  const prevLimit = getStackTraceLimit()
+  setStackTraceLimit(2)
   const defError = new globalThis.Error()
-  globalThis.Error.stackTraceLimit = prevLimit
+  setStackTraceLimit(prevLimit)
 
   if (nameFirst) {
     return (body: Function | { readonly self: any }, ...pipeables: Array<Function>) =>
@@ -1200,10 +1200,10 @@ const makeFn = (
     if (!isEffect(result)) {
       return result
     }
-    const prevLimit = globalThis.Error.stackTraceLimit
-    globalThis.Error.stackTraceLimit = 2
+    const prevLimit = getStackTraceLimit()
+    setStackTraceLimit(2)
     const callError = new globalThis.Error()
-    globalThis.Error.stackTraceLimit = prevLimit
+    setStackTraceLimit(prevLimit)
     return updateService(
       addSpan ?
         useSpan(name, spanOptions!, (span) => provideParentSpan(result, span)) :
@@ -3152,23 +3152,6 @@ export const unwrapReason: {
       },
       fail as any
     ) as any
-)
-
-/** @internal */
-export const mapErrorCause: {
-  <E, E2>(
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E2, R>
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R>
-} = dual(
-  2,
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R> => catchCause(self, (cause) => failCauseSync(() => f(cause)))
 )
 
 /** @internal */
@@ -5827,11 +5810,12 @@ const performanceNowNanos = (function() {
   const bigint1e6 = BigInt(1_000_000)
   if (typeof performance === "undefined" || typeof performance.now === "undefined") {
     return () => BigInt(Date.now()) * bigint1e6
-  } else if (typeof performance.timeOrigin === "number" && performance.timeOrigin === 0) {
-    return () => BigInt(Math.round(performance.now() * 1_000_000))
   }
-  const origin = (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
-  return () => origin + BigInt(Math.round(performance.now() * 1_000_000))
+  let origin: bigint
+  return () => {
+    origin ??= (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
+    return origin + BigInt(Math.round(performance.now() * 1_000_000))
+  }
 })()
 const processOrPerformanceNow = (function() {
   const processHrtime =
@@ -5841,7 +5825,7 @@ const processOrPerformanceNow = (function() {
   if (!processHrtime) {
     return performanceNowNanos
   }
-  const origin = performanceNowNanos() - processHrtime.bigint()
+  const origin = (BigInt(Date.now()) * BigInt(1e6)) - processHrtime.bigint()
   return () => origin + processHrtime.bigint()
 })()
 

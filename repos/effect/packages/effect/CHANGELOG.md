@@ -1,5 +1,68 @@
 # effect
 
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- [#2462](https://github.com/Effect-TS/effect-smol/pull/2462) [`0b5795a`](https://github.com/Effect-TS/effect-smol/commit/0b5795a0ab4395e8f15955d8d96f2303084bfc64) Thanks @tim-smart! - Add `Statement.valuesUnprepared` for returning unprepared SQL statement rows as arrays.
+
+- [#2455](https://github.com/Effect-TS/effect-smol/pull/2455) [`3e3a859`](https://github.com/Effect-TS/effect-smol/commit/3e3a859ec6351a9e0d31674aabbd48fcefabb12e) Thanks @fubhy! - Fix `Cron.next` skipping earlier matching days when the upcoming day-of-month does not exist in the current month.
+
+- [#2454](https://github.com/Effect-TS/effect-smol/pull/2454) [`7dbec24`](https://github.com/Effect-TS/effect-smol/commit/7dbec240dbf3bca599a20c486632abce694ef5ab) Thanks @StarpTech! - Exclude response metadata from HTTP server span failures after response headers have been sent.
+
+- [#2449](https://github.com/Effect-TS/effect-smol/pull/2449) [`d8c00a1`](https://github.com/Effect-TS/effect-smol/commit/d8c00a171ac7141e8adc08c332d1162d9a9d56fc) Thanks @gcanti! - Fix Schema handling of encoded-side checks for container ASTs.
+
+  Checks added after `flip` are now preserved as `encodingChecks` across
+  `Declaration`, `Arrays`, `Objects`, and `Union`, even when rebuilding the AST
+  does not change child nodes. `toType` now projects those checks consistently,
+  and parsing applies encoded-side checks to the local encoded value when an
+  encoding chain is present without allowing encoded-side `parseOptions`
+  annotations to affect the current parser side.
+
+- [#2446](https://github.com/Effect-TS/effect-smol/pull/2446) [`85b6317`](https://github.com/Effect-TS/effect-smol/commit/85b631701e935866f2762bd595237aa718370cd9) Thanks @IMax153! - Allow schemas provided to CLI flags / arguments to utilize the environment required by the CLI
+
+- [#2452](https://github.com/Effect-TS/effect-smol/pull/2452) [`6d0fda0`](https://github.com/Effect-TS/effect-smol/commit/6d0fda0d0cbdfffc523c89c57dfdb1608f84fb12) Thanks @gcanti! - Remove the `keepDeclarations` option from `Schema.toCodecStringTree`.
+
+- [#2461](https://github.com/Effect-TS/effect-smol/pull/2461) [`108a933`](https://github.com/Effect-TS/effect-smol/commit/108a9335ff8571928197e5847a09c28ac83d6f46) Thanks @tim-smart! - Fail RpcClient HTTP requests with a defect when the response stream closes before the request receives a terminal response.
+
+- [#2442](https://github.com/Effect-TS/effect-smol/pull/2442) [`7e1f455`](https://github.com/Effect-TS/effect-smol/commit/7e1f455fab5005d769b939c91e519d450f802cf9) Thanks @gcanti! - Improve Schema type-level performance by lazily computing schema views,
+  specializing common struct projections, and using lighter schema constraints at
+  API boundaries that do not need the full schema protocol.
+
+  This also adds the Schema type-performance benchmark suite, introduces
+  `Schema.toCodecArrayFromSingle`, preserves canonical StringTree array codecs,
+  renames the arbitrary-generation annotation constraint for clarity, and updates
+  affected codec, parser, channel, SQL, HTTP API, persistence, RPC, AI, OpenAPI,
+  and workflow typings to match the refined Schema surface.
+
+- [#2464](https://github.com/Effect-TS/effect-smol/pull/2464) [`46b3e79`](https://github.com/Effect-TS/effect-smol/commit/46b3e79944cfdae7901eb148135c85b7eb39834e) Thanks @tim-smart! - do not use performance.timeOrigin and calculate origins lazily
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- [#2436](https://github.com/Effect-TS/effect-smol/pull/2436) [`328d97c`](https://github.com/Effect-TS/effect-smol/commit/328d97cc53c0dcb89077a5623e35b095eaa59a8c) Thanks @MohanedMashaly! - change default operation in redis from LPUSH TO RPUSH
+
+- [#2431](https://github.com/Effect-TS/effect-smol/pull/2431) [`8441836`](https://github.com/Effect-TS/effect-smol/commit/8441836e6dde70e8ae2126be9cefe9b45798b134) Thanks @gcanti! - Derive template literal arbitraries from encoded parts, closes [#2414](https://github.com/Effect-TS/effect-smol/issues/2414).
+
+- [#2439](https://github.com/Effect-TS/effect-smol/pull/2439) [`074e436`](https://github.com/Effect-TS/effect-smol/commit/074e4361091289104cb0ab6959dc3b0ea7794a6a) Thanks @gcanti! - Allow schema class `.extend` to accept a `Struct` and preserve checks from the extension schema, closes [#2419](https://github.com/Effect-TS/effect-smol/issues/2419).
+
+- [#2444](https://github.com/Effect-TS/effect-smol/pull/2444) [`c1dfd60`](https://github.com/Effect-TS/effect-smol/commit/c1dfd60663eb13a58916f3712d877499943b628a) Thanks @bweis! - Avoid throwing when `Error.stackTraceLimit` is non-writable (frozen intrinsics / SES / deterministic sandboxes such as Temporal).
+
+  Effect manipulates `Error.stackTraceLimit` in several internal spots to capture short or empty stack traces cheaply. In hardened environments where `Error` is frozen and `stackTraceLimit` is read-only, assigning to it throws, which broke Effect entirely. Stack-trace-limit manipulation is now best-effort and silently no-ops when the property cannot be modified, mirroring Node's own internal guard. Behavior in normal (writable) environments is unchanged.
+
+- [#2425](https://github.com/Effect-TS/effect-smol/pull/2425) [`2ba316b`](https://github.com/Effect-TS/effect-smol/commit/2ba316bd15fcbf1c50626500d44a2c9b3bec19f5) Thanks @tim-smart! - Add Random.choice for selecting a random element from an iterable.
+
+- [#2434](https://github.com/Effect-TS/effect-smol/pull/2434) [`7ce7344`](https://github.com/Effect-TS/effect-smol/commit/7ce7344c41056c79e2ee19ee6a9346c0f1d227c1) Thanks @gcanti! - Use semantic matching for TemplateLiteral parsing and index signature keys
+
+  Replace regex-based TemplateLiteral parsing with backtracking segmentation over
+  template literal parts, applying part checks during matching.
+
+  Use schema membership when selecting Record index signature keys, including
+  checked string, number, symbol, and TemplateLiteral parameters. Tighten valid
+  index signature parameters on both type and encoded sides, and preserve key
+  parameter semantics in codec transformations.
+
 ## 4.0.0-beta.84
 
 ### Patch Changes

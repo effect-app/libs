@@ -1,12 +1,29 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import * as Option from "effect-app/Option"
 import * as Fiber from "effect/Fiber"
 import * as FiberSet from "effect/FiberSet"
+import type * as Tracer from "effect/Tracer"
 
 import { InfraLogger } from "./logger.ts"
 import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.ts"
-import { setRootParentSpan } from "./RequestFiberSet.ts"
+
+// Walk to the root span so a daemon fiber's spans aren't parented to a span that
+// may already be closing (e.g. the originating request).
+const getRootParentSpan = Effect.gen(function*() {
+  let span: Tracer.AnySpan | null = yield* Effect.currentSpan.pipe(
+    Effect.catchTag("NoSuchElementError", () => Effect.succeed(null))
+  )
+  if (!span) return span
+  while (span._tag === "Span" && Option.isSome(span.parent)) {
+    span = span.parent.value
+  }
+  return span
+})
+
+export const setRootParentSpan = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+  getRootParentSpan.pipe(Effect.andThen((span) => span ? Effect.withParentSpan(self, span) : self))
 
 const make = Effect.gen(function*() {
   const set = yield* FiberSet.make<unknown, never>()

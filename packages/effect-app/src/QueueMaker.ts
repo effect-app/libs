@@ -1,19 +1,11 @@
-import type * as Scope from "effect/Scope"
-import type { NonEmptyReadonlyArray } from "./Array.ts"
-import type * as Effect from "./Effect.ts"
 import { RequestContext } from "./RequestContext.ts"
 
-export interface QueueBase<Evt, DrainEvt> {
-  drain: <DrainE, DrainR>(
-    makeHandleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
-    sessionId?: string
-  ) => Effect.Effect<never, never, Scope.Scope | DrainR>
-  publish: (
-    ...messages: NonEmptyReadonlyArray<Evt>
-  ) => Effect.Effect<void>
-}
-
-export interface QueueMakerOps {}
-export const QueueMaker: QueueMakerOps = {}
-
+/**
+ * Per-message context envelope (tenant/store id, request metadata) carried
+ * alongside message-schema payloads. Alias of {@link RequestContext}.
+ *
+ * All that remains of the former queue machinery (SB/SQLite/mem `QueueMaker`
+ * implementations and the `QueueBase` interface) after the move to cluster
+ * entities — the message schemas that embed it still reference this envelope.
+ */
 export const QueueMeta = RequestContext

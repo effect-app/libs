@@ -109,7 +109,7 @@ export const defaultsValueFromSchema = (
         continue
       }
 
-      const propSchema = S.make(propType)
+      const propSchema = S.make<any>(propType)
       const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
 
       if (propValue !== undefined) {

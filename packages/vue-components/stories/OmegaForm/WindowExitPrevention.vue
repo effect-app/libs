@@ -142,8 +142,7 @@
       message: "You have unsaved changes!"
     },
     persistency: {
-      policies: ["local"],
-      overrideDefaultValues: true
+      policies: ["local"]
     }
   }
 )</code></pre>
@@ -253,8 +252,7 @@ const persistentForm = useOmegaForm(
   {
     preventWindowExit: "prevent",
     persistency: {
-      policies: ["local"],
-      overrideDefaultValues: true
+      policies: ["local"]
     }
   }
 )

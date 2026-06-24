@@ -8,7 +8,7 @@
         <input
           :model-value="state.value"
           type="date"
-          @change="(e: any) => {
+          @change="() => {
             field.handleChange('2024-06-01T00:00:00.000Z')
           }"
         >

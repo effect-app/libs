@@ -22,6 +22,35 @@ const VTextField = defineComponent({
   `
 })
 
+const VSelect = defineComponent({
+  props: {
+    items: {
+      type: Array,
+      default: () => []
+    },
+    modelValue: {
+      type: String,
+      default: ""
+    }
+  },
+  emits: ["update:modelValue"],
+  template: `
+    <select
+      v-bind="$attrs"
+      :value="modelValue"
+      @change="$emit('update:modelValue', $event.target.value)"
+    >
+      <option
+        v-for="item in items"
+        :key="item.value"
+        :value="item.value"
+      >
+        {{ item.title }}
+      </option>
+    </select>
+  `
+})
+
 describe("OmegaForm input attributes", () => {
   it("does not forward the internal form object as a native form attribute", async () => {
     const wrapper = mount({
@@ -56,7 +85,7 @@ describe("OmegaForm input attributes", () => {
       }
     }, {
       global: {
-        components: { VTextField }
+        components: { VTextField, VSelect }
       }
     })
 
@@ -143,5 +172,50 @@ describe("OmegaForm input attributes", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("totally-custom"))
 
     warn.mockRestore()
+  })
+
+  it("keeps input configuration props off the renderer attrs", async () => {
+    const wrapper = mount({
+      components: { OmegaIntlProvider },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form">
+            <component
+              :is="form.Input"
+              label="Choice"
+              name="choice"
+              type="select"
+              :options="[{ title: 'One', value: 'one' }]"
+            />
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useOmegaForm(
+          S.Struct({
+            choice: S.Literal("one")
+          }),
+          {
+            defaultValues: {
+              choice: "one"
+            }
+          }
+        )
+
+        return { form }
+      }
+    }, {
+      global: {
+        components: { VTextField, VSelect }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    const select = wrapper.find("select")
+
+    expect(select.attributes("options")).toBeUndefined()
+    expect(select.attributes("items")).toBeUndefined()
+    expect(Object.values(select.attributes())).not.toContain("[object Object]")
   })
 })

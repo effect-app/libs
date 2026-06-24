@@ -56,7 +56,7 @@ const props = withDefaults(
     ) => void
 
     // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
-    options?: { title: string; value: string }[]
+    options?: { title: string; value: unknown }[]
   }>(),
   {
     required: undefined,

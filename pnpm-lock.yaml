@@ -41,8 +41,8 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.9.1)
       '@effect-app/cli':
-        specifier: 2.1.0-beta.34
-        version: 2.1.0-beta.34(ioredis@5.9.3)
+        specifier: 2.1.0-beta.35
+        version: 2.1.0-beta.35(ioredis@5.9.3)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -53,11 +53,11 @@ importers:
         specifier: 0.86.2
         version: 0.86.2
       '@effect/platform-node':
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(ioredis@5.9.3)
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.9.3)
       '@effect/vitest':
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
@@ -77,8 +77,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -119,11 +119,11 @@ importers:
   packages/cli:
     dependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(ioredis@5.9.3)
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.9.3)
       effect:
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88
       js-yaml:
         specifier: 4.2.0
         version: 4.2.0
@@ -151,8 +151,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       effect:
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -290,8 +290,8 @@ importers:
   packages/infra:
     dependencies:
       '@effect/vitest':
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -302,8 +302,8 @@ importers:
         specifier: ^8.1.6
         version: 8.1.6(patch_hash=3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a)
       effect:
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -330,8 +330,8 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5
       '@effect/sql-sqlite-node':
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
       '@sentry/node':
         specifier: 10.55.0
         version: 10.55.0
@@ -379,11 +379,11 @@ importers:
   packages/vue:
     dependencies:
       '@effect/atom-vue':
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       '@effect/platform-browser':
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)
       '@formatjs/intl':
         specifier: ^4.1.12
         version: 4.1.12
@@ -400,8 +400,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -413,8 +413,8 @@ importers:
         version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       '@effect/vitest':
-        specifier: 4.0.0-beta.86
-        version: 4.0.0-beta.86(effect@4.0.0-beta.86)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       '@formatjs/icu-messageformat-parser':
         specifier: ^3.5.10
         version: 3.5.10
@@ -453,8 +453,8 @@ importers:
         specifier: ^1.32.0
         version: 1.32.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-beta.86
-        version: 4.0.0-beta.86
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -954,24 +954,24 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@2.1.0-beta.34':
-    resolution: {integrity: sha512-ejZqsGoUoj7WhoVN+Fo0ueKD4bPfSMYFsodjCm3MHk4tznvDr/K6KAb7H7/DWzSfYanNjHpR7jGqW8ThLb7obw==}
+  '@effect-app/cli@2.1.0-beta.35':
+    resolution: {integrity: sha512-L5PbxKXtGEooy+q57OVDp2g6+N36FD9EbxB1vAC6rWR3mrQkt4CHn4LBQ2tXUPEHi9RAGJaDLrBd/gD91i9JEA==}
     hasBin: true
 
-  '@effect/atom-vue@4.0.0-beta.86':
-    resolution: {integrity: sha512-njh4rQDJiTaoJMVj9QQxAod/lO1X89r4TWwCeCcCK00T2Fs0e2AXH6+n3sDfr73gW6JzxCIrPbj4TNp40TwTAQ==}
+  '@effect/atom-vue@4.0.0-beta.88':
+    resolution: {integrity: sha512-k3TXEqA5RyxZMlSFYd07FfNnDW4yy7d9uCOE+ywouh6rnL1qxbVEjtSiIFpKpiYaGuHhIxYa/L6Spwey+2+pQQ==}
     peerDependencies:
-      effect: ^4.0.0-beta.86
+      effect: ^4.0.0-beta.88
       vue: ^3.5.35
 
   '@effect/language-service@0.86.2':
     resolution: {integrity: sha512-SaPln+8srOqDJDUwNTDmP5e+IYpEDr9+1epGznnsLqu8xvo6VnxyWARdeLpqvZJlb0Pgy9ca7ppqvvdWbHPXAg==}
     hasBin: true
 
-  '@effect/platform-browser@4.0.0-beta.86':
-    resolution: {integrity: sha512-dwP3OgQ6/rwejHhvER9y7PBJyo1GTlvb+Bm4IPf4XOm2L+NH1KWCq1Drn2kHJiglq59grUiwoxfss4qKW4rSPw==}
+  '@effect/platform-browser@4.0.0-beta.88':
+    resolution: {integrity: sha512-SwJ9KJ4g8dk1XDscxCy1NYJl4AJYqvxwQx43g4LV9OwipUisjdqKUZLrFo3PY3Rfkh2FCGpis55mrAXNklaKdg==}
     peerDependencies:
-      effect: ^4.0.0-beta.86
+      effect: ^4.0.0-beta.88
 
   '@effect/platform-node-shared@4.0.0-beta.86':
     resolution: {integrity: sha512-QNixdacCFZ001duRVZTIRUa6BS1YkU9cbC8yN7NnAMc0upUiIuLI6YO9jKMG3HetW1MjZ3PeSOzMM6nneUYPow==}
@@ -979,12 +979,11 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  '@effect/platform-node@4.0.0-beta.84':
-    resolution: {integrity: sha512-WHPXaaIR1NpiANg+TOfTRupx9Uf2h/WVFZxRQdg5soUpa8bU61NwKxi3A5F/zLpp2AkRPgHTw1rQjwUD+/uA9A==}
+  '@effect/platform-node-shared@4.0.0-beta.88':
+    resolution: {integrity: sha512-kkYDsnYCFFXCT9uaZQ/3hdc4fjzt0E68MImXrcHCmneX0xWCRo26m5F+iX6ryQ/lDMuhqu5lIUxIKhqhookTOw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.84
-      ioredis: ^5.7.0
+      effect: ^4.0.0-beta.88
 
   '@effect/platform-node@4.0.0-beta.86':
     resolution: {integrity: sha512-K9omw3cICZAHV4caMD9ZVixmnMYZ97+5A8d11orza0VcJiSLoHmwiC9X9nxL+mAcFIUTMvKt4EVR7mCk5hbUzg==}
@@ -993,15 +992,22 @@ packages:
       effect: ^4.0.0-beta.86
       ioredis: ^5.7.0
 
-  '@effect/sql-sqlite-node@4.0.0-beta.86':
-    resolution: {integrity: sha512-g6LwMpeQ9CxyNgYS/kn16m8KASWkzNHFzjZ7/Ho0FlYGFTnNuENSr37HhsOD954U2Qq7wxDncz4Rpf22DzuThQ==}
+  '@effect/platform-node@4.0.0-beta.88':
+    resolution: {integrity: sha512-k05jVJ8uYFm5VNfFFndM0kePKz9+RNW1r4ofiTMRadWzH6YqlJcuAU7Gj6RXCg2cKV+Ad/CsDqBD6QTi44ZKow==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.86
+      effect: ^4.0.0-beta.88
+      ioredis: ^5.7.0
 
-  '@effect/vitest@4.0.0-beta.86':
-    resolution: {integrity: sha512-Bh1SHVxFhYX+ONCgcT24Am3EkkU3ifegRfWMrIIPkXPdwjtXxSaWLHdylcOCqIkGwe5I28vX7jSJBRKmD8/62w==}
+  '@effect/sql-sqlite-node@4.0.0-beta.88':
+    resolution: {integrity: sha512-5qkGQ6u+d7MVC2U01PEYamWMlvUwngmLosfM9Xt9BmzmZe6PzeFjG7UzSt1WfBFgwV7JaUoBuyiMNw+CwlGHHA==}
     peerDependencies:
-      effect: ^4.0.0-beta.86
+      effect: ^4.0.0-beta.88
+
+  '@effect/vitest@4.0.0-beta.88':
+    resolution: {integrity: sha512-UHZBQCsJJTB0nJOxAa5wfV3x53WYIOLL/BbZvd1NSNbh9/noGucXviyou1HovmFQVj+/vkeYqJ/nABzP42MClQ==}
+    peerDependencies:
+      effect: ^4.0.0-beta.88
       vitest: ^3.0.0 || ^4.0.0
 
   '@emnapi/core@1.10.0':
@@ -3945,11 +3951,11 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  effect@4.0.0-beta.84:
-    resolution: {integrity: sha512-zWwFI9WZ4TsddBmtcuuAO2IXGR0Dp56xIUt8cX29ZeyOEtErXqP6muDaVpro08lGiMSOGMqSpuH/C1TUxHsRAA==}
-
   effect@4.0.0-beta.86:
     resolution: {integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==}
+
+  effect@4.0.0-beta.88:
+    resolution: {integrity: sha512-ml7Xr2BhU12RnNk5xX0lPqHv5pIXg7E161ooGlYncFd17Z5NKXL26DnfvwZsNBxYLS0ToGVMhb4Em7Z0A4dTDA==}
 
   electron-to-chromium@1.5.267:
     resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
@@ -7203,36 +7209,27 @@ snapshots:
   '@dprint/win32-x64@0.54.0':
     optional: true
 
-  '@effect-app/cli@2.1.0-beta.34(ioredis@5.9.3)':
+  '@effect-app/cli@2.1.0-beta.35(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node': 4.0.0-beta.84(effect@4.0.0-beta.84)(ioredis@5.9.3)
-      effect: 4.0.0-beta.84
+      '@effect/platform-node': 4.0.0-beta.86(effect@4.0.0-beta.86)(ioredis@5.9.3)
+      effect: 4.0.0-beta.86
       js-yaml: 4.2.0
     transitivePeerDependencies:
       - bufferutil
       - ioredis
       - utf-8-validate
 
-  '@effect/atom-vue@4.0.0-beta.86(effect@4.0.0-beta.86)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@effect/atom-vue@4.0.0-beta.88(effect@4.0.0-beta.88)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      effect: 4.0.0-beta.86
+      effect: 4.0.0-beta.88
       vue: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   '@effect/language-service@0.86.2': {}
 
-  '@effect/platform-browser@4.0.0-beta.86(effect@4.0.0-beta.86)':
+  '@effect/platform-browser@4.0.0-beta.88(effect@4.0.0-beta.88)':
     dependencies:
-      effect: 4.0.0-beta.86
+      effect: 4.0.0-beta.88
       multipasta: 0.2.7
-
-  '@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.84)':
-    dependencies:
-      '@types/ws': 8.18.1
-      effect: 4.0.0-beta.84
-      ws: 8.20.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   '@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.86)':
     dependencies:
@@ -7243,13 +7240,11 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.84(effect@4.0.0-beta.84)(ioredis@5.9.3)':
+  '@effect/platform-node-shared@4.0.0-beta.88(effect@4.0.0-beta.88)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.86(effect@4.0.0-beta.84)
-      effect: 4.0.0-beta.84
-      ioredis: 5.9.3
-      mime: 4.1.0
-      undici: 8.3.0
+      '@types/ws': 8.18.1
+      effect: 4.0.0-beta.88
+      ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -7265,14 +7260,25 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/sql-sqlite-node@4.0.0-beta.86(effect@4.0.0-beta.86)':
+  '@effect/platform-node@4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.9.3)':
+    dependencies:
+      '@effect/platform-node-shared': 4.0.0-beta.88(effect@4.0.0-beta.88)
+      effect: 4.0.0-beta.88
+      ioredis: 5.9.3
+      mime: 4.1.0
+      undici: 8.3.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@effect/sql-sqlite-node@4.0.0-beta.88(effect@4.0.0-beta.88)':
     dependencies:
       better-sqlite3: 12.10.0
-      effect: 4.0.0-beta.86
+      effect: 4.0.0-beta.88
 
-  '@effect/vitest@4.0.0-beta.86(effect@4.0.0-beta.86)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))':
+  '@effect/vitest@4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))':
     dependencies:
-      effect: 4.0.0-beta.86
+      effect: 4.0.0-beta.88
       vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
 
   '@emnapi/core@1.10.0':
@@ -9804,7 +9810,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.84:
+  effect@4.0.0-beta.86:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.8.0
@@ -9817,7 +9823,7 @@ snapshots:
       uuid: 14.0.0
       yaml: 2.9.0
 
-  effect@4.0.0-beta.86:
+  effect@4.0.0-beta.88:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.8.0

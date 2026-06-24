@@ -19,6 +19,7 @@ import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import EnterSubmitReproComponent from "./OmegaForm/EnterSubmitRepro.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
+import InputRegistryComponent from "./OmegaForm/InputRegistry.vue"
 import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerman.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
@@ -164,6 +165,13 @@ export const FormTaggedUnion: Story = {
   render: () => ({
     components: { FormTaggedUnionComponent },
     template: "<FormTaggedUnionComponent />"
+  })
+}
+
+export const InputRegistry: Story = {
+  render: () => ({
+    components: { InputRegistryComponent },
+    template: "<InputRegistryComponent />"
   })
 }
 

@@ -14,6 +14,7 @@ export { FormErrors, OmegaFormKey, useErrorLabel, useOmegaForm } from "./useOmeg
 export type { defaultValuesPriorityUnion, OF, OmegaConfig, OmegaFormReturn, Policies } from "./useOmegaForm"
 
 export { type ExtractTagValue, type ExtractUnionBranch, type InputProps, type MergedInputProps, type TaggedUnionOption, type TaggedUnionOptionsArray, type TaggedUnionProps } from "./InputProps"
+export type { VuetifyInputProps, VuetifyInputProps as OmegaRendererProps } from "./InputProps"
 export { default as OmegaInput } from "./OmegaInput.vue"
 export { default as OmegaVuetifyInput } from "./OmegaInternalInput.vue"
 export { default as OmegaTaggedUnion } from "./OmegaTaggedUnion.vue"

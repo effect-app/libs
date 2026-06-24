@@ -18,7 +18,7 @@ import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 import { usePersistency } from "./persistency"
 import { makeSubmitHandlers, wrapOnSubmit } from "./submit"
-import type { DefaultTypeProps, FormProps, OF, OmegaConfig, OmegaFormApi, OmegaFormReturn } from "./types"
+import type { FormProps, OF, OmegaConfig, OmegaFormApi, OmegaFormReturn, TypePropsFor } from "./types"
 import { annotateLiteralUnionMessages, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
@@ -37,12 +37,12 @@ export const useOmegaForm = <
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   To extends Record<PropertyKey, any>,
-  TypeProps = DefaultTypeProps
+  const Cfg extends OmegaConfig<To> = OmegaConfig<To>
 >(
   schema: S.Codec<To, From>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
-  omegaConfig?: OmegaConfig<To>
-): OmegaFormReturn<From, To, TypeProps> => {
+  omegaConfig?: Cfg
+): OmegaFormReturn<From, To, TypePropsFor<Cfg extends { inputs?: infer I } ? I : {}>> => {
   if (!schema) throw new Error("Schema is required")
   const { trans } = useIntl()
   const formCompatibleSchema = toFormSchema(schema)
@@ -61,7 +61,7 @@ export const useOmegaForm = <
   const normalizeFormValue = (value: unknown) => fillNestedDefaults(formAst, value)
 
   const baseStandardSchema = toLocalizedStandardSchemaV1(
-    localizedSchema as any,
+    localizedSchema,
     trans
   )
   const standardSchema: typeof baseStandardSchema = {
@@ -110,7 +110,7 @@ export const useOmegaForm = <
     validationLogic: revalidateLogic(),
     validators: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onDynamic: standardSchema as any,
+      onDynamic: standardSchema,
       ...tanstackFormOptions?.validators
     },
     onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),
@@ -170,6 +170,7 @@ export const useOmegaForm = <
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
     ignorePreventCloseEvents: omegaConfig?.ignorePreventCloseEvents,
+    inputs: omegaConfig?.inputs,
     meta,
     unionMeta,
     clear,

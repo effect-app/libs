@@ -13,7 +13,7 @@
     <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
-        v-bind="{ ...$attrs, ...$props, inputClass: computedClass }"
+        v-bind="{ ...$attrs, ...propsWithoutForm, inputClass: computedClass }"
         :field="field as any"
         :state="field.state"
         :register="form.registerField"
@@ -51,6 +51,11 @@ import OmegaInternalInput from "./OmegaInternalInput.vue"
 import { type OmegaInputPropsBase } from "./types"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
+const propsWithoutForm = computed(() => {
+  const { form, ...rest } = props
+  void form
+  return rest
+})
 
 // downgrade to *as* DeepKeys<From> to avoid useless and possible infinite recursion in TS
 const propsName = computed(() => props.name as DeepKeys<From>)

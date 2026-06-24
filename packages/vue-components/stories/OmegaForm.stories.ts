@@ -16,6 +16,7 @@ import DecodeTransformFallbackComponent from "./OmegaForm/DecodeTransformFallbac
 import DefaultsComponent from "./OmegaForm/Defaults.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
+import EnterSubmitReproComponent from "./OmegaForm/EnterSubmitRepro.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
 import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerman.vue"
@@ -129,6 +130,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
+  })
+}
+
+export const EnterSubmitRepro: Story = {
+  render: () => ({
+    components: { EnterSubmitReproComponent },
+    template: "<EnterSubmitReproComponent />"
   })
 }
 

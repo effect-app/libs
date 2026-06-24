@@ -21,10 +21,10 @@ const sum = ref(0)
 const AddSchema = S.Struct({
   first: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
   second: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
-  third: S.NullOr(S.String).withDefault,
+  third: S.NullOr(S.String).withConstructorDefault,
   fourth: S
     .Struct({
-      addForm: S.NullOr(S.String).withDefault,
+      addForm: S.NullOr(S.String).withConstructorDefault,
       b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
       c: S.Struct({
         d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
@@ -40,8 +40,7 @@ const addForm = useOmegaForm(
   {
     persistency: {
       policies: ["querystring"],
-      keys: ["first"],
-      overrideDefaultValues: true
+      keys: ["first"]
     }
   }
 )

@@ -29,7 +29,7 @@ import { useOmegaForm } from "../../src"
 
 const form = useOmegaForm(
   S.Struct({
-    boolean: S.Boolean.withDefault,
+    boolean: S.Boolean.withConstructorDefault,
     switch: S.Boolean,
     true: S.Literal(true)
   }),

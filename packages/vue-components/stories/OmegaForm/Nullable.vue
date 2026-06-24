@@ -36,7 +36,7 @@
               :label="field.name"
               :model-value="state.value"
               :error="state.meta.errors.length > 0"
-              :error-messages="state.meta.errors.map((e) => e.message).filter(Boolean)"
+              :error-messages="state.meta.errors.map((e) => e?.message).filter((m): m is string => !!m)"
               @update:model-value="field.handleChange"
             />
           </div>
@@ -57,14 +57,14 @@ import { useOmegaForm } from "../../src"
 
 const form = useOmegaForm(
   S.Struct({
-    a: S.NullOr(S.NonEmptyString).withDefault,
-    b: S.NullOr(S.String).withDefault,
+    a: S.NullOr(S.NonEmptyString).withConstructorDefault,
+    b: S.NullOr(S.String).withConstructorDefault,
     c: S
       .NullOr(S.Struct({
         d: S.NonEmptyString.pipe(S.check(S.isMinLength(20), S.isMaxLength(4000))),
         e: S.String
       }))
-      .withDefault
+      .withConstructorDefault
   }),
   {
     onSubmit: async ({ value }) => {

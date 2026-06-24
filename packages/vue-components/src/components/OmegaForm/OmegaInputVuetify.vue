@@ -34,7 +34,12 @@
       v-if="inputProps.type === 'email'
       || inputProps.type === 'string'
       || inputProps.type === 'password'
-      || inputProps.type === 'date'"
+      || inputProps.type === 'date'
+      || inputProps.type === 'tel'
+      || inputProps.type === 'url'
+      || inputProps.type === 'color'
+      || inputProps.type === 'time'
+      || inputProps.type === 'search'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min-length="inputProps.minLength"
@@ -198,6 +203,33 @@
         />
       </template>
     </v-autocomplete>
+
+    <!-- Fallback for any type not handled by a dedicated branch above (e.g. an
+         unrecognized schema type resolved to "unknown", or a custom `type` with
+         no renderer). Renders an editable text input instead of nothing. -->
+    <v-text-field
+      v-if="isUnhandledType"
+      :id="inputProps.id"
+      :required="inputProps.required"
+      :type="getInputType(inputProps.type)"
+      :name="field.name"
+      :label="inputProps.label"
+      :error-messages="inputProps.errorMessages"
+      :error="inputProps.error"
+      v-bind="$attrs"
+      :model-value="state.value"
+      @update:model-value="(v: any) => field.handleChange(v)"
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-text-field>
   </div>
 </template>
 
@@ -207,10 +239,12 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
+import { computed, watchEffect } from "vue"
 import type { VuetifyInputProps } from "./InputProps"
 import { getInputType } from "./inputs"
+import { typeOverrides } from "./types"
 
-defineProps<VuetifyInputProps<From, Name>>()
+const props = defineProps<VuetifyInputProps<From, Name>>()
 
 defineEmits<{
   (e: "focus", event: Event): void
@@ -219,6 +253,19 @@ defineEmits<{
 
 defineOptions({
   inheritAttrs: false
+})
+
+// True when no dedicated branch handles `inputProps.type` (it's outside the
+// built-in `typeOverrides`): the fallback text input renders and we warn.
+const isUnhandledType = computed(() => !(typeOverrides as readonly string[]).includes(props.inputProps.type))
+
+watchEffect(() => {
+  if (isUnhandledType.value) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[OmegaForm] Unhandled input type "${props.inputProps.type}", falling back to a text input.`
+    )
+  }
 })
 </script>
 

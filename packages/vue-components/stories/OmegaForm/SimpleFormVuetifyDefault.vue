@@ -22,8 +22,8 @@ import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src"
 
 const schema = S.Struct({
-  aString: S.NullOr(S.NonEmptyString255).withDefault,
-  bString: S.NullOr(S.NonEmptyString255).withDefault
+  aString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
+  bString: S.NullOr(S.NonEmptyString255).withConstructorDefault
 })
 const defaultValues = {
   aString: ""

@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="ts">
+import { type DeepKeys } from "@tanstack/vue-form"
 import * as S from "effect-app/Schema"
 import { constUndefined } from "effect/Function"
 import * as Match from "effect/Match"
@@ -66,7 +67,8 @@ const schema = S.Struct({
 })
 type Meta = OmegaAutoGenMeta<
   typeof schema.Encoded,
-  typeof schema.Type
+  typeof schema.Type,
+  DeepKeys<typeof schema.Encoded>
 >
 const form = useOmegaForm(schema)
 </script>

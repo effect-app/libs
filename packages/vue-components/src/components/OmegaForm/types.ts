@@ -100,21 +100,33 @@ export type OmegaArrayProps<
     items?: "please use `defaultItems` instead"
   }
 
-export type TypeOverride =
-  | "string"
-  | "text"
-  | "number"
-  | "select"
-  | "multiple"
-  | "boolean"
-  | "radio"
-  | "autocomplete"
-  | "autocompletemultiple"
-  | "switch"
-  | "range"
-  | "password"
-  | "email"
-  | "date"
+// Single source of truth for the built-in input types: the runtime array drives
+// both the `TypeOverride` union and the renderer's "is this type handled?" check,
+// so the two cannot drift apart.
+export const typeOverrides = [
+  "string",
+  "text",
+  "number",
+  "select",
+  "multiple",
+  "boolean",
+  "radio",
+  "autocomplete",
+  "autocompletemultiple",
+  "switch",
+  "range",
+  "password",
+  "email",
+  "date",
+  // native HTML input types that `getInputType` already maps 1:1
+  "tel",
+  "url",
+  "color",
+  "time",
+  "search"
+] as const
+
+export type TypeOverride = typeof typeOverrides[number]
 
 export interface OmegaError {
   label: string

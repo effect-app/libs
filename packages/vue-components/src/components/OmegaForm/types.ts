@@ -36,6 +36,11 @@ export type BaseProps<From, TName extends FieldPath<From>> = {
    */
   label?: string
   validators?: FieldValidators<From>
+  /**
+   * Overrides the schema-derived `meta.required`.
+   * When omitted, requiredness is inferred from the schema.
+   */
+  required?: boolean
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
   name: TName
   /**

@@ -54,6 +54,7 @@ const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 const internalInputProps = computed(() => ({
   label: props.label,
   validators: props.validators,
+  required: props.required,
   type: props.type,
   options: props.options
 }))

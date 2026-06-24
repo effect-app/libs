@@ -180,6 +180,51 @@ describe("createUseFormWithCustomInput", () => {
     expect(wrapper.find("[data-testid=\"has-id\"]").text()).toBeTruthy()
   })
 
+  it("forwards an explicit `required` override to inputProps (survives OmegaInput's prop whitelist)", async () => {
+    const RequiredProbe = {
+      template: `<div data-testid="required-probe">{{ inputProps.required }}</div>`,
+      props: ["inputProps", "field"]
+    }
+
+    const useFormWithProbe = createUseFormWithCustomInput(RequiredProbe)
+    // optionalKey field => meta.required is false, so a `true` result proves the
+    // explicit prop overrode meta AND was not dropped on the way to the input.
+    const optionalSchema = S.Struct({ maybe: S.optionalKey(S.Number) })
+
+    const wrapper = mount({
+      components: {
+        OmegaIntlProvider
+      },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form">
+            <template #default>
+              <component :is="form.Input"
+                label="Maybe"
+                name="maybe"
+                :required="true"
+              />
+            </template>
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useFormWithProbe(optionalSchema, { defaultValues: {} })
+        return { form }
+      }
+    }, {
+      global: {
+        stubs: {
+          RequiredProbe
+        }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find("[data-testid=\"required-probe\"]").text()).toBe("true")
+  })
+
   it("should pass event listeners to custom input component", async () => {
     // Custom component that emits focus and blur events
     const EventEmittingInput = {

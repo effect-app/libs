@@ -56,12 +56,22 @@
       name="x"
       type="totally-bogus-type"
     />
+    <!-- createUseFormWithCustomInput threads the registry into the typed `type` union too -->
+    <customForm.Input
+      name="x"
+      type="rating"
+    />
+    <!-- @vue-expect-error -->
+    <customForm.Input
+      name="x"
+      type="totally-bogus-type"
+    />
   </template>
 </template>
 
 <script setup lang="ts">
 import * as S from "effect-app/Schema"
-import { useOmegaForm } from "../../src/components/OmegaForm"
+import { createUseFormWithCustomInput, useOmegaForm } from "../../src/components/OmegaForm"
 import CustomInput from "./CustomInput.vue"
 import RatingInput from "./RatingInput.vue"
 
@@ -88,4 +98,12 @@ const form = useOmegaForm(
 
 // No-config form for the guards above: its `type` union must stay built-ins only.
 const plainForm = useOmegaForm(S.Struct({ x: S.String }))
+
+// createUseFormWithCustomInput: universal CustomInput as default + per-type override,
+// with the same typed `type` inference from `inputs`.
+const customForm = createUseFormWithCustomInput(CustomInput)(
+  S.Struct({ x: S.String }),
+  undefined,
+  { inputs: { rating: RatingInput } }
+)
 </script>

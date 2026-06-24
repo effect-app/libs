@@ -3,17 +3,19 @@ import type { DeepKeys } from "@tanstack/vue-form"
 import { type Component, h } from "vue"
 import type { MergedInputProps } from "./InputProps"
 import OmegaInput from "./OmegaInput.vue"
+import type { OmegaConfig } from "./types"
 import { useOmegaForm } from "./useOmegaForm"
 
 export const createUseFormWithCustomInput = (CustomInputComponent: Component) => {
   return <
     From extends Record<PropertyKey, any>,
-    To extends Record<PropertyKey, any>
+    To extends Record<PropertyKey, any>,
+    const Cfg extends OmegaConfig<To> = OmegaConfig<To>
   >(
-    ...args: Parameters<typeof useOmegaForm<From, To>>
+    schema: Parameters<typeof useOmegaForm<From, To>>[0],
+    tanstackFormOptions?: Parameters<typeof useOmegaForm<From, To>>[1],
+    omegaConfig?: Cfg
   ) => {
-    const [schema, tanstackFormOptions, omegaConfig] = args
-
     // Create a wrapper that extends OmegaInput and overrides its default slot
     const WrappedInput = {
       name: "WrappedInput",
@@ -33,7 +35,10 @@ export const createUseFormWithCustomInput = (CustomInputComponent: Component) =>
                   && key !== "form"
                 )
               )
-              return h(CustomInputComponent, { ...filteredAttrs, field, state, inputProps }, {
+              // A per-type registration (omegaConfig.inputs) wins over the
+              // universal CustomInputComponent; otherwise fall back to it.
+              const LeafComponent = omegaConfig?.inputs?.[inputProps.type] ?? CustomInputComponent
+              return h(LeafComponent, { ...filteredAttrs, field, state, inputProps }, {
                 // Pass through label slot if it exists
                 ...(slots.label && {
                   label: (labelProps: any) => slots.label(labelProps)
@@ -52,14 +57,12 @@ export const createUseFormWithCustomInput = (CustomInputComponent: Component) =>
       }
     }
 
-    // `type` is inferred from `omegaConfig.inputs` now, so no `TypeProps` arg.
-    const form = useOmegaForm<From, To>(
+    // Thread `Cfg` so `omegaConfig.inputs` keys are inferred into the `type`
+    // union (`<form.Input type="...">`), exactly like a bare `useOmegaForm`.
+    const form = useOmegaForm<From, To, Cfg>(
       schema,
       tanstackFormOptions,
-      {
-        ...omegaConfig,
-        input: WrappedInput
-      }
+      { ...omegaConfig, input: WrappedInput } as Cfg
     )
 
     return form

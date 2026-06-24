@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 4.0.0-beta.282
+
+### Patch Changes
+
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- Updated dependencies [b2df3fa]
+- Updated dependencies [f150cf9]
+- Updated dependencies [e8842aa]
+  - effect-app@4.0.0-beta.282
+
 ## 4.0.0-beta.281
 
 ### Patch Changes

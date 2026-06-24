@@ -1,5 +1,22 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.282
+
+### Minor Changes
+
+- b2df3fa: Align `Schema.Void` with TypeScript `void` return-value semantics (effect-smol PR #2475 / `b7d46ab`).
+
+  `S.Void` now accepts **any present value** at runtime and discards it to `undefined`, while keeping the decoded/encoded type as `void` — matching a `void` return whose result callers never observe. This is implemented as an override of the AST node in a new `effect-app/SchemaAST` module (`export * from "effect/SchemaAST"` plus a `Void` subclass whose parser mirrors the PR's `fromAnyToConst(undefined)`), so there is a single canonical `Void` used everywhere, including RPC success schemas.
+
+  - New `effect-app/SchemaAST` module; internal `SchemaAST` imports across the libs now route through it.
+  - Removed `ForceVoid` from `effect-app/client/makeClient` — use `S.Void` directly, which now carries this behaviour.
+  - `S.Void_` remains available as effect's original (`undefined`-only) Void.
+
+### Patch Changes
+
+- f150cf9: Remove obsolete queue machinery left unused after the move to cluster entities: the SB/SQLite/mem `QueueMaker` implementations (`QueueMaker/{SQLQueue,memQueue,sbqueue}.ts`), their `ServiceBus.ts`/`memQueue.ts` transports, and `RequestFiberSet.ts` (its `setRootParentSpan` helper is inlined into `MainFiberSet`). `effect-app/QueueMaker` keeps only `QueueMeta`; the `QueueBase` interface and empty `QueueMaker` ops object are dropped.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+
 ## 4.0.0-beta.281
 
 ### Patch Changes

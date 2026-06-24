@@ -65,12 +65,15 @@ export type OmegaInputPropsBase<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   Name extends DeepKeys<From>
-> = {
-  form: OF<From, To> & {
-    meta: MetaRecord<From>
-    i18nNamespace?: string
+> =
+  & {
+    form: OF<From, To> & {
+      meta: MetaRecord<From>
+      i18nNamespace?: string
+    }
   }
-} & BaseProps<From, Name>
+  & BaseProps<From, Name>
+  & DefaultTypeProps
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,

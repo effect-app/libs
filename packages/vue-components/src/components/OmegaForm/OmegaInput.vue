@@ -53,7 +53,10 @@ import { type OmegaInputPropsBase } from "./types"
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 const internalInputProps = computed(() => ({
   label: props.label,
-  validators: props.validators
+  validators: props.validators,
+  required: props.required,
+  type: props.type,
+  options: props.options
 }))
 
 // downgrade to *as* DeepKeys<From> to avoid useless and possible infinite recursion in TS

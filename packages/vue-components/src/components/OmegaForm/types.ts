@@ -36,6 +36,11 @@ export type BaseProps<From, TName extends FieldPath<From>> = {
    */
   label?: string
   validators?: FieldValidators<From>
+  /**
+   * Overrides the schema-derived `meta.required`.
+   * When omitted, requiredness is inferred from the schema.
+   */
+  required?: boolean
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
   name: TName
   /**
@@ -65,12 +70,15 @@ export type OmegaInputPropsBase<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   Name extends DeepKeys<From>
-> = {
-  form: OF<From, To> & {
-    meta: MetaRecord<From>
-    i18nNamespace?: string
+> =
+  & {
+    form: OF<From, To> & {
+      meta: MetaRecord<From>
+      i18nNamespace?: string
+    }
   }
-} & BaseProps<From, Name>
+  & BaseProps<From, Name>
+  & DefaultTypeProps
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,

@@ -34,6 +34,7 @@ describe("OmegaForm input attributes", () => {
               label="Password"
               name="password"
               type="password"
+              :validators="{ onChange: () => undefined }"
             />
             <button type="submit">submit</button>
           </component>
@@ -65,6 +66,8 @@ describe("OmegaForm input attributes", () => {
     const nativeForm = wrapper.find("form").element
 
     expect(input.attributes("form")).toBeUndefined()
+    expect(input.attributes("validators")).toBeUndefined()
+    expect(Object.values(input.attributes())).not.toContain("[object Object]")
     expect((input.element as HTMLInputElement).form).toBe(nativeForm)
   })
 })

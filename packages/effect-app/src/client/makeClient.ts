@@ -1,5 +1,4 @@
 import type * as Exit from "effect/Exit"
-import * as SchemaTransformation from "effect/SchemaTransformation"
 import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.ts"
 import * as S from "../Schema.ts"
 import { AST } from "../Schema.ts"
@@ -20,15 +19,6 @@ export interface ClientMiddleware<RequestContextMap extends Record<string, RpcCo
 const merge = (a: any, b: Array<any>) =>
   a !== undefined && b.length ? S.Union([a, ...b]) : a !== undefined ? a : b.length ? S.Union(b) : S.Never
 
-/**
- * Whatever the input, we will only decode or encode to void
- */
-export const ForceVoid = S
-  .declare((_: unknown): _ is unknown => true)
-  .pipe(
-    S.decodeTo(S.Any, SchemaTransformation.transform<unknown, unknown>({ decode: () => void 0, encode: () => void 0 }))
-  )
-
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 
 type TaggedRequestSchema<Tag extends string, Payload extends S.Struct.Fields> = S.Struct<
@@ -46,7 +36,7 @@ type QueryOnlyResources<Resources> = {
 type InputFromPayload<Payload extends S.Struct.Fields> = keyof Payload extends never ? void
   : S.Struct<Payload>["Type"]
 
-type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : Success["Type"]
+type OutputFromSuccess<Success extends S.Top> = Success extends typeof S.Void ? void : Success["Type"]
 
 type InvalidationResources = Record<string, Record<string, unknown>>
 
@@ -176,9 +166,9 @@ export const makeRpcClient = <
     )
     const successSchema = config?.success
       ? S.isSchema(config.success)
-        ? AST.isVoid(config.success.ast) ? ForceVoid : config.success
+        ? AST.isVoid(config.success.ast) ? S.Void : config.success
         : S.Struct(config.success)
-      : ForceVoid
+      : S.Void
 
     const finalConfig = (config as any)?.final
     const finalSchema = finalConfig && S.isSchema(finalConfig) ? finalConfig : undefined
@@ -327,7 +317,7 @@ export const makeRpcClient = <
         Self,
         Tag,
         Payload,
-        typeof ForceVoid,
+        typeof S.Void,
         ErrorResult<C & { error: Error }>,
         Omit<
           & Omit<C, "invalidatesQueries">
@@ -336,7 +326,7 @@ export const makeRpcClient = <
             InvalidationConfigForCommand<
               Resources,
               Payload,
-              typeof ForceVoid,
+              typeof S.Void,
               ErrorResult<C & { error: Error }>
             >
           >,
@@ -372,11 +362,11 @@ export const makeRpcClient = <
         Self,
         Tag,
         Payload,
-        typeof ForceVoid,
+        typeof S.Void,
         ErrorResult<C>,
         Omit<
           & Omit<C, "invalidatesQueries">
-          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
+          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof S.Void, ErrorResult<C>>>,
           "success" | "error" | "stream"
         >,
         ModuleName,
@@ -507,7 +497,7 @@ export const makeRpcClient = <
         Self,
         Tag,
         Payload,
-        typeof ForceVoid,
+        typeof S.Void,
         ErrorResult<C & { error: Error }>,
         Omit<
           & Omit<C, "invalidatesQueries">
@@ -518,7 +508,7 @@ export const makeRpcClient = <
             InvalidationConfigForCommand<
               Resources,
               Payload,
-              typeof ForceVoid,
+              typeof S.Void,
               ErrorResult<C & { error: Error }>
             >
           >,
@@ -549,11 +539,11 @@ export const makeRpcClient = <
         Self,
         Tag,
         Payload,
-        typeof ForceVoid,
+        typeof S.Void,
         ErrorResult<C>,
         Omit<
           & Omit<C, "invalidatesQueries">
-          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
+          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof S.Void, ErrorResult<C>>>,
           "success" | "error" | "stream"
         >,
         ModuleName,
@@ -570,7 +560,7 @@ export const makeRpcClient = <
         Self,
         Tag,
         Payload,
-        typeof ForceVoid,
+        typeof S.Void,
         ErrorResult<{}>,
         Record<string, never>,
         ModuleName,

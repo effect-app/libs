@@ -1,6 +1,6 @@
 import * as S from "effect-app/Schema"
 import type { AST } from "effect-app/Schema"
-import * as SchemaAST from "effect/SchemaAST"
+import * as SchemaAST from "effect-app/SchemaAST"
 
 const get = ["Get", "Index", "List", "All", "Find", "Search"]
 const del = ["Delete", "Remove", "Destroy"]

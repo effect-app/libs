@@ -1,5 +1,5 @@
 import * as S from "effect/Schema"
-import * as SchemaAST from "effect/SchemaAST"
+import * as SchemaAST from "./SchemaAST.ts"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
@@ -136,6 +136,19 @@ export const decodeUnknownEffectConcurrently: typeof S.decodeUnknownEffect = wit
 export * as SchemaParser from "./Schema/SchemaParser.ts"
 
 export { Void as Void_ } from "effect/Schema"
+
+/**
+ * Schema for a TypeScript `void` return value — the single canonical `Void`
+ * used across the app, including RPC success schemas.
+ *
+ * Built from our overridden {@link SchemaAST.Void} AST node: accepts **any
+ * present value** at runtime and discards it to `undefined`, while keeping the
+ * decoded/encoded type as `void` (effect-smol PR #2475). Use {@link Void_}
+ * (effect's original) or `S.Undefined` when the input must be exactly
+ * `undefined`.
+ */
+export interface Void extends S.Void {}
+export const Void: Void = S.make<S.Void>(new SchemaAST.Void())
 
 // ---------------------------------------------------------------------------
 // Struct / NonEmptyArray / Record

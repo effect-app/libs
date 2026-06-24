@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { identity, pipe } from "effect/Function"
 import * as Match from "effect/Match"
-import * as SchemaAST from "effect/SchemaAST"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as Array from "../../Array.ts"
 import { toNonEmptyArray } from "../../Array.ts"
 import * as Option from "../../Option.ts"

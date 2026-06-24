@@ -2,7 +2,6 @@ import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
 import { expect, test } from "vitest"
 import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
-import { ForceVoid } from "../src/client/makeClient.js"
 import { S } from "../src/index.js"
 import { RpcContextMap } from "../src/rpc.js"
 
@@ -34,17 +33,17 @@ declare const _statsSuccess: typeof Stats.success.Type
 declare const _statsError: typeof Stats.error.Type
 declare const _statsRequestType: typeof Stats.type
 
-test("ForceVoid decodes and encodes as void", () => {
+test("Void decodes and encodes as void", () => {
   const statsFromMake = Stats.make({})
   const statsFromMakeOption = Stats.makeOption({})
   const statsFromMakeEffect = Stats.makeEffect({})
 
-  expect(S.decodeUnknownSync(ForceVoid)(undefined)).toBe(undefined)
-  expect(S.is(ForceVoid)(undefined)).toBe(true)
-  expect(S.decodeUnknownSync(ForceVoid)("test")).toBe(undefined)
-  expect(S.is(ForceVoid)("test")).toBe(true)
-  expect(S.encodeUnknownSync(ForceVoid)("test")).toBe(undefined)
-  expect(S.encodeUnknownSync(S.toCodecJson(ForceVoid))("test")).toBe(null)
+  expect(S.decodeUnknownSync(S.Void)(undefined)).toBe(undefined)
+  expect(S.is(S.Void)(undefined)).toBe(true)
+  expect(S.decodeUnknownSync(S.Void)("test")).toBe(undefined)
+  expect(S.is(S.Void)("test")).toBe(true)
+  expect(S.encodeUnknownSync(S.Void)("test")).toBe(undefined)
+  expect(S.encodeUnknownSync(S.toCodecJson(S.Void))("test")).toBe(null)
   expectTypeOf<typeof _stats>().toEqualTypeOf<Stats>()
   expectTypeOf<typeof _statsSuccess>().toEqualTypeOf<{
     readonly usersActive24Hours: number

@@ -6,7 +6,7 @@ import type { UnionToTuples } from "effect-app/utils"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type * as Order from "effect/Order"
 import type { Redacted } from "effect/Redacted"
-import type { AllowedComponentProps, ComponentCustomProps, ComputedRef, PublicProps, ShallowUnwrapRef, VNode, VNodeProps } from "vue"
+import type { AllowedComponentProps, Component, ComponentCustomProps, ComputedRef, PublicProps, ShallowUnwrapRef, VNode, VNodeProps } from "vue"
 import type { MergedInputProps, OmegaFieldInternalApi, TaggedUnionOptionsArray } from "./InputProps"
 import type { MetaRecord, NestedKeyOf } from "./meta/types"
 import type { defaultValuesPriorityUnion as PersistencyPriority, Policies as PersistencyPolicies } from "./persistency"
@@ -65,6 +65,20 @@ export type DefaultTypeProps = {
     value: unknown
   }[]
 }
+
+/** Registered `omegaConfig.inputs` keys as valid `type` values; `never` when nothing is registered. */
+export type CustomTypeProps<TInputs> =
+  // `string extends keyof` collapses the wide `Record<string, Component>` fallback
+  // (no `inputs` registered) so `type` can't widen to any string.
+  string extends keyof TInputs ? never
+    : keyof TInputs extends never ? never
+    : {
+      type: keyof TInputs & string
+      options?: { title: string; value: unknown }[]
+    }
+
+/** `form.Input` `type`/`options`: built-ins plus types registered via `omegaConfig.inputs`. */
+export type TypePropsFor<TInputs> = DefaultTypeProps | CustomTypeProps<TInputs>
 
 export type OmegaInputPropsBase<
   From extends Record<PropertyKey, any>,
@@ -301,6 +315,13 @@ export type OmegaConfig<T> = {
   input?: any
 
   /**
+   * Register a custom input component per `type` (new types or overrides). Each
+   * key becomes a valid `<form.Input type="...">` value; components receive the
+   * `OmegaRendererProps` contract (`{ inputProps, field, state }`).
+   */
+  inputs?: Record<string, Component>
+
+  /**
    * Default values order is: Tanstack default values passed as second parameter to useOmegaForm, then persistency
    * default values from querystring or local/session storage, then defaults from schema
    * You can customize the order and  with omegaConfig.defaultValuesPriority
@@ -314,6 +335,7 @@ export type OmegaConfig<T> = {
 export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   unionMeta: Record<string, MetaRecord<From>>
+  inputs?: Record<string, Component>
   clear: () => void
   /**
    * Backfills the untouched children of any materialised nullable struct with

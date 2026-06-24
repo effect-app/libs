@@ -1,8 +1,9 @@
 <template>
   <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field, state: inputProps.state }">
     <div :class="rootClass">
-      <OmegaInputVuetify
-        v-if="vuetified"
+      <component
+        :is="renderComponent"
+        v-if="renderComponent"
         v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"
       >
         <template
@@ -14,7 +15,7 @@
             v-bind="labelProps"
           />
         </template>
-      </OmegaInputVuetify>
+      </component>
     </div>
   </slot>
 </template>
@@ -26,11 +27,11 @@
 >
 /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form / Vue attrs interop */
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
+import { type Component, computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { MetaRecord, NestedKeyOf } from "./meta/types"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
-import type { FieldValidators, TypeOverride } from "./types"
+import type { TypeOverride } from "./types"
 
 defineOptions({
   inheritAttrs: false
@@ -43,7 +44,6 @@ const props = withDefaults(
     meta: MetaRecord<From>[NestedKeyOf<From>]
     label: string
     type?: TypeOverride
-    validators?: FieldValidators<From>
     required?: boolean
     inputClass?: string | null
 
@@ -57,13 +57,15 @@ const props = withDefaults(
 
     // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
     options?: { title: string; value: unknown }[]
+
+    inputs?: Record<string, Component>
   }>(),
   {
     required: undefined,
     type: undefined,
     options: undefined,
-    validators: undefined,
-    inputClass: undefined
+    inputClass: undefined,
+    inputs: undefined
   }
 )
 
@@ -100,6 +102,11 @@ const fieldType = computed(() => {
   }
   return props.meta?.type || "unknown"
 })
+
+const renderComponent = computed(() =>
+  props.inputs?.[fieldType.value]
+    ?? (vuetified ? OmegaInputVuetify : undefined)
+)
 
 props.register(computed(() => ({ name: props.field.name, label: props.label, id })))
 

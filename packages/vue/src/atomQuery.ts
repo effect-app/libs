@@ -27,6 +27,7 @@ import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
+import type * as Tracer from "effect/Tracer"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
@@ -126,8 +127,9 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
  */
 export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void, never, Reactivity.Reactivity> =>
   Effect.gen(function*() {
-    yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
     const atoms = atomsForKeys(keys)
+    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
+    yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
     //    for (const a of atoms) defaultRegistry.refresh(a) // refreshes everything even when not mounted
     if (atoms.length === 0) return
     yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
@@ -191,8 +193,8 @@ export interface AtomClientRuntime {
  * Shares the ManagedRuntime's `memoMap` so layers are not built twice, and so
  * query-registration and mutation-invalidation resolve the SAME `Reactivity`.
  */
-export const makeAtomClientRuntime = (
-  getContext: () => Layer.Layer<any, never, never>,
+export const makeAtomClientRuntime = <R>(
+  getContext: () => Layer.Layer<R, never, never>,
   memoMap: Layer.MemoMap
 ): AtomClientRuntime => {
   const factory = Atom.context({ memoMap })
@@ -233,6 +235,45 @@ export interface AtomQueryMetadata {
 }
 
 const atomQueryMetadata = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, AtomQueryMetadata>()
+const atomQueryParentSpans = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, Tracer.AnySpan>()
+
+const atomSpanTarget = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
+  let target = atom
+  while (target.initialValueTarget !== undefined) {
+    target = target.initialValueTarget
+  }
+  return target
+}
+
+const takeAtomQueryParentSpan = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
+  const target = atomSpanTarget(atom)
+  const span = atomQueryParentSpans.get(target)
+  if (span !== undefined) atomQueryParentSpans.delete(target)
+  return span
+}
+
+const setAtomQueryParentSpan = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  span: Tracer.AnySpan
+) => {
+  atomQueryParentSpans.set(atomSpanTarget(atom), span)
+}
+
+export const captureAtomQueryParentSpan = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): Effect.Effect<void> =>
+  Effect.currentParentSpan.pipe(
+    Effect.tap((span) => Effect.sync(() => setAtomQueryParentSpan(atom, span))),
+    Effect.ignore
+  )
+
+export const refreshAtomWithCurrentSpan = <A, E>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): Effect.Effect<void> =>
+  captureAtomQueryParentSpan(atom).pipe(
+    Effect.andThen(Effect.sync(() => registry.refresh(atom)))
+  )
 
 const setAtomQueryMetadata = <A, E>(
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -347,24 +388,30 @@ export const buildQueryFamily = <I, A, E>(
     // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
     // can re-assert them on a cache-hit remount that never re-runs the handler.
     let lastReads: DataDependencies.DataDependencies = DataDependencies.empty()
-    const recordReads = Effect.gen(function*() {
-      const readsRef = yield* Ref.make(DataDependencies.empty())
-      const writesRef = yield* Ref.make(DataDependencies.empty())
-      const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
-      const result = yield* self
-        .handler(input)
-        .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
-      lastReads = yield* Ref.get(readsRef)
-      setQueryReadDependencies(fullKey, lastReads)
-      return result
-    })
-    let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
-      recordReads
-        .pipe(
+    let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+    atom = rt.runtime.atom(
+      Effect.suspend(() => {
+        const recordReads = Effect.gen(function*() {
+          const readsRef = yield* Ref.make(DataDependencies.empty())
+          const writesRef = yield* Ref.make(DataDependencies.empty())
+          const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+          const result = yield* self
+            .handler(input)
+            .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+          lastReads = yield* Ref.get(readsRef)
+          setQueryReadDependencies(fullKey, lastReads)
+          return result
+        })
+        const effect = recordReads.pipe(
           Effect.retry({ times: 5, while: isRetryable }),
           Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
           Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
         )
+        const parentSpan = takeAtomQueryParentSpan(atom)
+        return parentSpan === undefined
+          ? effect
+          : effect.pipe(Effect.withParentSpan(parentSpan, { captureStackTrace: false }))
+      })
     )
     // Register under every prefix of the full key => hierarchical (prefix) invalidation. Two roles:
     //   - withReactivity: `Reactivity.invalidate(key)` refreshes this atom (the actual refetch).

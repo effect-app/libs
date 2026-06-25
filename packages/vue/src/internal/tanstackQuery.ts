@@ -9,6 +9,7 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import * as Cause from "effect/Cause"
 import * as Ref from "effect/Ref"
+import type * as Tracer from "effect/Tracer"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
@@ -100,11 +101,17 @@ export const makeTanstackQueryClient = () => new QueryClient()
 
 export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInvalidator => ({
   invalidateAndAwait: (keys) =>
-    Effect.forEach(
-      keys,
-      (queryKey) => Effect.promise(() => queryClient.invalidateQueries({ queryKey })),
-      { discard: true, concurrency: "inherit" }
-    )
+    Effect.gen(function*() {
+      const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+      yield* Effect.forEach(
+        keys,
+        (queryKey) => {
+          const options = { updateMeta: { span } }
+          return Effect.promise(() => queryClient.invalidateQueries({ queryKey }, options))
+        },
+        { discard: true, concurrency: "inherit" }
+      )
+    })
 })
 
 const fullQueryKey = (
@@ -167,7 +174,12 @@ export const makeTanstackQuery = <R>(
         const input = resolveInput(arg, options?.mode)
         return fullQueryKey(q, queryKey, input)
       }),
-      queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
+      queryFn: (
+        { meta, signal }: {
+          readonly meta?: { readonly span?: Tracer.AnySpan | undefined } | undefined
+          readonly signal: AbortSignal
+        }
+      ) =>
         runPromise(
           Effect.gen(function*() {
             const input = resolveInput(arg, options?.mode)!
@@ -182,7 +194,10 @@ export const makeTanstackQuery = <R>(
               .pipe(
                 Effect.provideService(DataDependencies.DataDependencyRecorder, recorder),
                 Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-                Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false })
+                Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
+                meta?.span === undefined
+                  ? (effect) => effect
+                  : Effect.withParentSpan(meta.span, { captureStackTrace: false })
               )
             setQueryReadDependencies(fullQueryKey(q, queryKey, input), yield* Ref.get(readsRef))
             return result
@@ -229,21 +244,25 @@ export const makeTanstackQuery = <R>(
         )
 
     const refetch = (): Effect.Effect<TData, E> =>
-      Effect
-        .tryPromise({
-          try: async () => {
-            const queryResult = await tanstack.refetch({ throwOnError: true })
-            const data = queryResult.data
-            if (data === undefined) {
-              throw new Error("TanStack query refetched without data")
-            }
-            return data
-          },
-          catch: (error) => error
-        })
-        .pipe(
-          Effect.catch((error) => recoverCauseException<TData, E>(error))
-        )
+      Effect.gen(function*() {
+        const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+        return yield* Effect
+          .tryPromise({
+            try: async () => {
+              const options = { throwOnError: true, updateMeta: { span } }
+              const queryResult = await tanstack.refetch(options)
+              const data = queryResult.data
+              if (data === undefined) {
+                throw new Error("TanStack query refetched without data")
+              }
+              return data
+            },
+            catch: (error) => error
+          })
+          .pipe(
+            Effect.catch((error) => recoverCauseException<TData, E>(error))
+          )
+      })
 
     const handle: QueryHandle<TData, E> = {
       awaitResult,

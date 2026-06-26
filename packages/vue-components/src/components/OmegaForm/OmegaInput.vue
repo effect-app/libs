@@ -50,7 +50,9 @@ import { type FieldMeta } from "./meta/types"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 import { type OmegaInputPropsBase } from "./types"
 
-const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
+const props = withDefaults(defineProps<OmegaInputPropsBase<From, To, Name>>(), {
+  required: undefined
+})
 const internalInputProps = computed(() => ({
   label: props.label,
   required: props.required,

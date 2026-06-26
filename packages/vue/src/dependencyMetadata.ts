@@ -13,7 +13,7 @@ export const setQueryReadDependencies = (
   reads: DataDependencies.DataDependencies
 ) => {
   const h = Hash.hash(key)
-  if (reads.length === 0) readDependencies.delete(h)
+  if (!DataDependencies.isNonEmpty(reads)) readDependencies.delete(h)
   else readDependencies.set(h, { key, reads })
 }
 
@@ -27,9 +27,9 @@ export const clearQueryReadDependencies = (key: ReadonlyArray<unknown>) => {
  * exactly those queries.
  */
 export const getDerivedInvalidationKeys = (
-  writeDependencies: ReadonlyArray<DataDependencies.DataDependency>
+  writeDependencies: DataDependencies.DataDependencies
 ): ReadonlyArray<ReadonlyArray<unknown>> => {
-  if (writeDependencies.length === 0) return []
+  if (!DataDependencies.isNonEmpty(writeDependencies)) return []
   const keys: Array<ReadonlyArray<unknown>> = []
   for (const { key, reads } of readDependencies.values()) {
     if (DataDependencies.intersects(reads, writeDependencies)) keys.push(key)

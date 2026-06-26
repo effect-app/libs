@@ -224,7 +224,7 @@ const makeApiClientFactory = Effect
         dependencies === undefined
           ? Effect.void
           : Effect.gen(function*() {
-            const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+            const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
             if (options?.reads) {
               yield* Effect.forEach(dependencies.reads, dependencyRecorder.read, { discard: true })
             }
@@ -330,7 +330,7 @@ const makeApiClientFactory = Effect
                                 yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
                                   discard: true
                                 })
-                                const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+                                const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
                                 yield* Effect.forEach(
                                   metadata.dataDependencies.reads,
                                   dependencyRecorder.read,
@@ -358,7 +358,7 @@ const makeApiClientFactory = Effect
                                   yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
                                     discard: true
                                   })
-                                  const dependencyRecorder = yield* DataDependencies.DataDependencyRecorder
+                                  const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
                                   yield* Effect.forEach(
                                     metadata.dataDependencies.writes,
                                     dependencyRecorder.write,

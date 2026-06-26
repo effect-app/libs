@@ -348,8 +348,8 @@ export const buildQueryFamily = <I, A, E>(
     // can re-assert them on a cache-hit remount that never re-runs the handler.
     let lastReads: DataDependencies.DataDependencies = []
     const recordReads = Effect.gen(function*() {
-      const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-      const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const readsRef = yield* Ref.make(DataDependencies.empty())
+      const writesRef = yield* Ref.make(DataDependencies.empty())
       const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
       const result = yield* self
         .handler(input)

@@ -450,8 +450,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
               (payload: any, headers: any) => {
                 const result: any = handler.handler(payload, headers)
 
-                const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
-                const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                const readsRef = Ref.makeUnsafe(DataDependencies.empty())
+                const writesRef = Ref.makeUnsafe(DataDependencies.empty())
                 const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
 
                 if (resource.stream) {
@@ -466,69 +466,70 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       dependencyRecorder.drain,
                       (dataDependencies) => Invalidation.makeMetaData(keys, dataDependencies)
                     )
-                  return Stream.concat(
-                    (result as Stream.Stream<any, any, any>).pipe(
-                      Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
-                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
-                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
-                      // V3: after each value chunk, drain accumulated keys and emit a "metadata"
-                      // chunk if any keys were collected since the last drain. This lets clients
-                      // invalidate queries mid-stream without waiting for the "done" chunk.
-                      Stream.flatMap((valueChunk: any) =>
-                        Stream
-                          .fromEffect(
-                            Ref.getAndSet(keysRef, []).pipe(
+                  return Stream
+                    .concat(
+                      (result as Stream.Stream<any, any, any>).pipe(
+                        Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
+                        Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                        Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
+                        // V3: after each value chunk, drain accumulated keys and emit a "metadata"
+                        // chunk if any keys were collected since the last drain. This lets clients
+                        // invalidate queries mid-stream without waiting for the "done" chunk.
+                        Stream.flatMap((valueChunk: any) =>
+                          Stream
+                            .fromEffect(
+                              Ref.getAndSet(keysRef, []).pipe(
+                                Effect.flatMap((keys) =>
+                                  metadata(keys).pipe(
+                                    Effect.map((meta) =>
+                                      Array.isReadonlyArrayNonEmpty(keys)
+                                        || DataDependencies.isNonEmpty(meta.dataDependencies.reads)
+                                        || DataDependencies.isNonEmpty(meta.dataDependencies.writes)
+                                        ? [
+                                          valueChunk,
+                                          { _tag: "metadata" as const, metadata: meta }
+                                        ]
+                                        : [valueChunk]
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                            .pipe(Stream.flatMap(Stream.fromIterable))
+                        ),
+                        // V2: catch stream failures and embed them in the stream as an error chunk
+                        Stream.catch((err: any) =>
+                          Stream.fromEffect(
+                            Ref.get(keysRef).pipe(
                               Effect.flatMap((keys) =>
                                 metadata(keys).pipe(
-                                  Effect.map((meta) =>
-                                    Array.isReadonlyArrayNonEmpty(keys)
-                                      || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.reads)
-                                      || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.writes)
-                                      ? [
-                                        valueChunk,
-                                        { _tag: "metadata" as const, metadata: meta }
-                                      ]
-                                      : [valueChunk]
+                                  Effect.flatMap((meta) =>
+                                    Effect.fail({
+                                      _tag: "error" as const,
+                                      error: err,
+                                      metadata: meta
+                                    })
                                   )
                                 )
                               )
                             )
                           )
-                          .pipe(Stream.flatMap(Stream.fromIterable))
+                        )
                       ),
-                      // V2: catch stream failures and embed them in the stream as an error chunk
-                      Stream.catch((err: any) =>
-                        Stream.fromEffect(
-                          Ref.get(keysRef).pipe(
-                            Effect.flatMap((keys) =>
-                              metadata(keys).pipe(
-                                Effect.flatMap((meta) =>
-                                  Effect.fail({
-                                    _tag: "error" as const,
-                                    error: err,
-                                    metadata: meta
-                                  })
-                                )
-                              )
+                      Stream.fromEffect(
+                        Ref.get(keysRef).pipe(
+                          Effect.flatMap((keys) =>
+                            metadata(keys).pipe(
+                              Effect.map((meta) => ({ _tag: "done" as const, metadata: meta }))
                             )
                           )
                         )
                       )
-                    ),
-                    Stream.fromEffect(
-                      Ref.get(keysRef).pipe(
-                        Effect.flatMap((keys) =>
-                          metadata(keys).pipe(
-                            Effect.map((meta) => ({ _tag: "done" as const, metadata: meta }))
-                          )
-                        )
-                      )
                     )
-                  )
-                  .pipe(
+                    .pipe(
                       Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
-                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
-                  )
+                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder)
+                    )
                 }
 
                 let effect = Effect

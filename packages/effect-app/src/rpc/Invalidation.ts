@@ -53,7 +53,10 @@ export const CommandMetaData = S.Struct({
 })
 export type CommandMetaData = S.Schema.Type<typeof CommandMetaData>
 
-export const emptyDataDependencies: DataDependencies.DataDependencySet = { reads: [], writes: [] }
+export const emptyDataDependencies: DataDependencies.DataDependencySet = {
+  reads: DataDependencies.empty(),
+  writes: DataDependencies.empty()
+}
 
 export const makeMetaData = (
   invalidateQueries: InvalidationKeys,

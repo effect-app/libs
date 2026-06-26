@@ -1,5 +1,20 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.283
+
+### Minor Changes
+
+- 0054611: Derive query invalidation from repository read/write dependencies and propagate dependency metadata through RPC clients.
+
+### Patch Changes
+
+- 0054611: Stream RPC: drain read/write data-dependencies per emitted value chunk instead of sending the
+  cumulative set on every metadata chunk. Each metadata chunk now carries only the delta recorded
+  since the last chunk, the bucket is cleared for the next segment, and the terminal "done"/"error"
+  chunks drain the remainder. The emit condition also broadens to include non-empty reads, so stream
+  queries forward their read-dependencies mid-stream too. The client already accumulates deltas into
+  its per-call recorder, so no FE change is required.
+
 ## 4.0.0-beta.282
 
 ### Minor Changes

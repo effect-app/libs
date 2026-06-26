@@ -1,5 +1,18 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.283
+
+### Patch Changes
+
+- 635038a: OmegaForm: expose native input types `tel`, `url`, `color`, `time`, `search` (already supported by `getInputType`), and render an editable text input with a dev `console.warn` for any input type no renderer branch handles (e.g. an unrecognized `"unknown"` schema type or a custom `type`) instead of rendering nothing.
+- 45951a0: OmegaForm: register custom input components per `type` via `omegaConfig.inputs`. Registered components receive the `OmegaRendererProps` contract (`{ inputProps, field, state }`) and a registered key makes `<form.Input type="...">` type-valid. Resolution order: per-instance `#default` slot → `inputs[type]` → built-in renderer. `createUseFormWithCustomInput` also honors `omegaConfig.inputs`: per-`type` registrations override the universal custom input, with the same typed `type` inference. Also drops the redundant `validators` forwarding to the internal input.
+- 635038a: Typecheck the OmegaForm Storybook stories (previously outside `tsconfig` scope) and migrate them off removed/renamed Schema APIs surfaced by it: `.withDefault` → `.withConstructorDefault`, error-filter `{ path, message }` → `{ path, issue }`, dropped deprecated `overrideDefaultValues`, and an `OmegaAutoGenMeta` type argument. Internal only — no change to the published API.
+- d2b265f: Make OmegaInput's built-in input configuration props explicit so renderer attrs remain reserved for UI-library extensions.
+- Updated dependencies [0054611]
+- Updated dependencies [0054611]
+  - effect-app@4.0.0-beta.283
+  - @effect-app/vue@4.0.0-beta.283
+
 ## 4.0.0-beta.282
 
 ### Patch Changes

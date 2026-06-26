@@ -1,5 +1,17 @@
 # @effect-app/vue
 
+## 4.0.0-beta.283
+
+### Minor Changes
+
+- 0054611: Derive query invalidation from repository read/write dependencies and propagate dependency metadata through RPC clients.
+
+### Patch Changes
+
+- Updated dependencies [0054611]
+- Updated dependencies [0054611]
+  - effect-app@4.0.0-beta.283
+
 ## 4.0.0-beta.282
 
 ### Patch Changes

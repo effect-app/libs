@@ -14,7 +14,7 @@
  * abstraction (mirrors AtomRpc's recipe; see docs/atom-query-plan.md).
  */
 import { defaultRegistry } from "@effect/atom-vue"
-import { makeQueryKey } from "effect-app/client"
+import { DataDependencies, makeQueryKey } from "effect-app/client"
 import type { ClientForOptions } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import * as Effect from "effect-app/Effect"
@@ -25,12 +25,14 @@ import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import type * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+import { clearQueryReadDependencies, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
@@ -82,6 +84,15 @@ const trackWritableByKeys =
       (refresh) => refresh(tracked)
     )
   }
+
+/** Drop a query's recorded read-dependencies when its atom is GC'd (mirrors `trackByKeys`). */
+const trackReadDependencies =
+  (key: ReadonlyArray<unknown>) =>
+  <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
+    Atom.transform(atom, (get) => {
+      get.addFinalizer(() => clearQueryReadDependencies(key))
+      return get(atom)
+    }, { initialValueTarget: atom })
 
 const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
@@ -319,9 +330,21 @@ export const buildQueryFamily = <I, A, E>(
   const baseKey = makeQueryKey(self) // hierarchical, input-independent
 
   return Atom.family((input: I) => {
-    let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
-      self
+    const fullKey = [...baseKey, input]
+    // Record the repository/server read-dependencies seen while fetching, keyed by `fullKey`, so a
+    // later mutation whose writes intersect them can derive this query as an invalidation target.
+    const recordReads = Effect.gen(function*() {
+      const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+      const result = yield* self
         .handler(input)
+        .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+      setQueryReadDependencies(fullKey, yield* Ref.get(readsRef))
+      return result
+    })
+    let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
+      recordReads
         .pipe(
           Effect.retry({ times: 5, while: isRetryable }),
           Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
@@ -331,13 +354,13 @@ export const buildQueryFamily = <I, A, E>(
     // Register under every prefix of the full key => hierarchical (prefix) invalidation. Two roles:
     //   - withReactivity: `Reactivity.invalidate(key)` refreshes this atom (the actual refetch).
     //   - trackByKeys:    records the atom in `keyAtoms` so the mutation can AWAIT its settle.
-    const fullKey = [...baseKey, input]
     const projectedFullKey = self.queryKeyProjectionHash === undefined
       ? fullKey
       : [...baseKey, self.queryKeyProjectionHash, input]
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackByKeys(reactivityKeys)(atom)
+    atom = trackReadDependencies(fullKey)(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)

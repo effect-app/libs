@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
+import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
@@ -14,6 +14,7 @@ import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { invalidateAndAwait } from "./atomQuery.ts"
+import { getDerivedInvalidationKeys } from "./dependencyMetadata.ts"
 
 export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => string[]
 
@@ -296,25 +297,32 @@ const buildInvalidateCache = <RInvalidator>(
       return keys
     }
 
-    return queryKey ? [queryKey] : []
+    // No implicit namespace invalidation: without an explicit `queryInvalidation` config, client
+    // keys are empty and invalidation is driven solely by server keys + repository write-dependency
+    // derivation. (`getQueryKey` is still offered to the config callback as a convenience base.)
+    return []
   }
 
   const invalidateCache = (
     input: unknown,
     output: Exit.Exit<unknown, unknown>,
-    serverKeys: ReadonlyArray<InvalidationKey>
+    serverKeys: ReadonlyArray<InvalidationKey>,
+    writeDependencies: ReadonlyArray<DataDependencies.DataDependency> = []
   ) =>
     Effect.suspend(() => {
       const clientKeys = getClientInvalidationKeys(input, output)
+      // Derive extra reactivity keys from repository write-dependencies: every live query whose
+      // recorded read-dependencies intersect this mutation's writes must be refreshed.
+      const derivedKeys = getDerivedInvalidationKeys(writeDependencies)
       // Invalidate exact reactivity keys (= the prefixes query atoms register under). Each key
       // array is hashed structurally, matching the query-side registration.
-      const keys: ReadonlyArray<ReadonlyArray<unknown>> = [...clientKeys, ...serverKeys]
+      const keys: ReadonlyArray<ReadonlyArray<unknown>> = [...clientKeys, ...serverKeys, ...derivedKeys]
 
       if (!isReadonlyArrayNonEmpty(keys)) return Effect.void
 
       return Effect
         .andThen(
-          Effect.annotateCurrentSpan({ clientKeys, serverKeys }),
+          Effect.annotateCurrentSpan({ clientKeys, serverKeys, writeDependencies }),
           // refetch + AWAIT every live query registered under these keys, so by the time the
           // mutation resolves the affected queries are fresh.
           queryInvalidator.invalidateAndAwait(keys)
@@ -340,12 +348,17 @@ export const invalidateQueries = <RInvalidator>(
   const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
     Effect.gen(function*() {
       const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
+      const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
       const result = yield* eff.pipe(
         Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
+        Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
         Effect.onExit((exit) =>
           Effect.gen(function*() {
             const serverKeys = yield* Ref.get(keysRef)
-            yield* invalidateCache(input, exit, serverKeys)
+            const writeDependencies = yield* Ref.get(writesRef)
+            yield* invalidateCache(input, exit, serverKeys, writeDependencies)
           })
         )
       )
@@ -354,7 +367,8 @@ export const invalidateQueries = <RInvalidator>(
           Effect.onExit((exit) =>
             Effect.gen(function*() {
               const serverKeys = yield* Ref.get(keysRef)
-              yield* invalidateCache(input, exit, serverKeys)
+              const writeDependencies = yield* Ref.get(writesRef)
+              yield* invalidateCache(input, exit, serverKeys, writeDependencies)
             })
           )
         )
@@ -436,15 +450,20 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
           // returns void to keep the server-side invalidation service effect-free.
           (key) => invCache(input, Exit.succeed(undefined), [key]) as Effect.Effect<void>
         )
+        const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
         const lastRef = yield* Ref.make<any>(undefined)
         return source.pipe(
           Stream.provideService(InvalidationKeysFromServer, invKeys),
+          Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
           Stream.tap((v) => Ref.set(lastRef, v)),
           Stream.ensuring(
             Effect.gen(function*() {
               const lastValue = yield* Ref.get(lastRef)
               const serverKeys = yield* Ref.get(keysRef)
-              yield* invCache(input, Exit.succeed(lastValue), serverKeys)
+              const writeDependencies = yield* Ref.get(writesRef)
+              yield* invCache(input, Exit.succeed(lastValue), serverKeys, writeDependencies)
             })
           )
         )

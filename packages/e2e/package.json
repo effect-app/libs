@@ -1,0 +1,34 @@
+{
+  "name": "@effect-app/e2e",
+  "version": "4.0.0-beta.282",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@effect-app/infra": "workspace:*",
+    "@effect-app/vue": "workspace:*",
+    "effect-app": "workspace:*"
+  },
+  "devDependencies": {
+    "@effect/atom-vue": "^4.0.0-beta.88",
+    "@effect/platform-node": "4.0.0-beta.88",
+    "@effect/vitest": "4.0.0-beta.88",
+    "@tanstack/vue-query": "5.96.2",
+    "@types/node": "25.9.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "effect": "^4.0.0-beta.88",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.7",
+    "vue": "^3.5.35"
+  },
+  "scripts": {
+    "check": "tsgo --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run --passWithNoTests",
+    "lint": "oxlint --quiet --type-aware ./test && pnpm exec dprint check --config ../../dprint.jsonc .",
+    "lint-fix": "oxlint --quiet --type-aware --fix ./test && pnpm exec dprint fmt --config ../../dprint.jsonc .",
+    "testsuite": "pnpm lint && pnpm run test:run",
+    "clean": "rm -rf dist"
+  },
+  "sideEffects": false
+}

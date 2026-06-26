@@ -14,12 +14,15 @@
  */
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
-import { ApiClientFactory, InvalidationKeysFromServer, makeInvalidationKeysService, makeRpcClient } from "effect-app/client"
+import { ApiClientFactory, DataDependencies, InvalidationKeysFromServer, InvalidStateError, makeInvalidationKeysService, makeRpcClient, OptimisticConcurrencyException } from "effect-app/client"
+import * as Context from "effect-app/Context"
 import { HttpRouter, HttpServer } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
+import { makeRepo, RepositoryRegistryLive } from "effect-app/Model"
 import { Invalidation, MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import { TaggedErrorClass } from "effect-app/Schema"
+import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
@@ -31,6 +34,7 @@ import { RpcSerialization } from "effect/unstable/rpc"
 import { createServer } from "http"
 import { makeRouter } from "../src/routing.js"
 import { DefaultGenericMiddlewaresLive } from "../src/routing/middleware.js"
+import { MemoryStoreLive } from "../src/Store/Memory.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 // ---------------------------------------------------------------------------
@@ -99,14 +103,82 @@ class StreamWithKey extends Req.Command<StreamWithKey>()("StreamWithKey", {}, {
   success: S.Number
 }) {}
 
-const InvRsc = { DoNothing, DoWithDynamicKey, DoWithBothKeys, DoAndFail, StreamWithKey }
+class StreamWithRepoWrite extends Req.Command<StreamWithRepoWrite>()("StreamWithRepoWrite", {}, {
+  stream: true,
+  allowAnonymous: true,
+  success: S.Number
+}) {}
+
+class RepoItem extends S.Class<RepoItem>("RepoItem")({
+  id: S.String,
+  label: S.String
+}) {}
+
+class GetRepoCount extends Req.Query<GetRepoCount>()("GetRepoCount", {}, {
+  allowAnonymous: true,
+  success: S.Number
+}) {}
+
+class SaveRepoItem extends Req.Command<SaveRepoItem>()("SaveRepoItem", {
+  id: S.String,
+  label: S.String
+}, {
+  allowAnonymous: true,
+  error: S.Union([InvalidStateError, OptimisticConcurrencyException]),
+  success: S.Void
+}) {}
+
+class RepoItems extends Context.Service<RepoItems>()("RepoItems", {
+  make: makeRepo("RepoItem", RepoItem, {})
+}) {
+  static Default = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive))
+  )
+}
+
+// A second, unrelated repo — its writes must NOT invalidate a query that only read `RepoItem`.
+class OtherItem extends S.Class<OtherItem>("OtherItem")({
+  id: S.String,
+  label: S.String
+}) {}
+
+class SaveOtherItem extends Req.Command<SaveOtherItem>()("SaveOtherItem", {
+  id: S.String,
+  label: S.String
+}, {
+  allowAnonymous: true,
+  success: S.Void
+}) {}
+
+class OtherItems extends Context.Service<OtherItems>()("OtherItems", {
+  make: makeRepo("OtherItem", OtherItem, {})
+}) {
+  static Default = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive))
+  )
+}
+
+const InvRsc = {
+  DoNothing,
+  DoWithDynamicKey,
+  DoWithBothKeys,
+  DoAndFail,
+  StreamWithKey,
+  StreamWithRepoWrite,
+  GetRepoCount,
+  SaveRepoItem,
+  SaveOtherItem
+}
 
 // ---------------------------------------------------------------------------
 // Controllers / router
 // ---------------------------------------------------------------------------
 
 const router = Router(InvRsc)({
+  dependencies: [RepoItems.Default, OtherItems.Default],
   *effect(match) {
+    const repo = yield* RepoItems
+    const otherRepo = yield* OtherItems
     return match({
       DoNothing: () => Effect.void,
       DoWithDynamicKey: Effect.fnUntraced(function*() {
@@ -125,7 +197,18 @@ const router = Router(InvRsc)({
       StreamWithKey: () =>
         Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap(() => Invalidation.InvalidationSet.use((_) => _.add(StreamKey)))
-        )
+        ),
+      StreamWithRepoWrite: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.tap((n) =>
+            repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie, setupRequestContextFromCurrent())
+          )
+        ),
+      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie, setupRequestContextFromCurrent()),
+      SaveRepoItem: ({ id, label }) =>
+        repo.save(new RepoItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent()),
+      SaveOtherItem: ({ id, label }) =>
+        otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent())
     })
   }
 })
@@ -169,6 +252,15 @@ const withCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
     const svc = makeInvalidationKeysService(ref)
     const result = yield* eff.pipe(Effect.provideService(InvalidationKeysFromServer, svc), Effect.exit)
     return { result, keys: yield* Ref.get(ref) }
+  })
+
+const withDependencyCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
+  Effect.gen(function*() {
+    const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+    const result = yield* eff.pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, svc), Effect.exit)
+    return { result, dependencies: yield* svc.get }
   })
 
 // ---------------------------------------------------------------------------
@@ -251,6 +343,78 @@ it.live(
     // Handler taps `InvalidationSet.use` once per emitted value; routing's V3 mid-stream
     // metadata drain forwards each batch as it arrives.
     expect(keys).toStrictEqual([StreamKey, StreamKey, StreamKey])
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream: per-chunk repo writes are drained and forwarded to the client recorder",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
+    const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+    const values = yield* Stream.runCollect(client.StreamWithRepoWrite.handler()).pipe(
+      Effect.provideService(DataDependencies.DataDependencyRecorder, svc)
+    )
+    const writes = yield* Ref.get(writesRef)
+    expect(values).toStrictEqual([1, 2, 3])
+    // Each emitted value writes to RepoItem; routing drains the writes per chunk and the client
+    // accumulates them — the recorder dedupes, so a single RepoItem entry is recorded.
+    expect(writes).toStrictEqual([DataDependencies.repo("RepoItem")])
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "repository dependencies flow through query and command metadata",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
+
+    const query = yield* withDependencyCapture(client.GetRepoCount.handler())
+    expect(Exit.isSuccess(query.result) && query.result.value).toBe(0)
+    expect(query.dependencies.reads).toStrictEqual([DataDependencies.repo("RepoItem")])
+    expect(query.dependencies.writes).toStrictEqual([])
+
+    const command = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))
+    expect(Exit.isSuccess(command.result)).toBe(true)
+    expect(command.dependencies.reads).toStrictEqual([])
+    expect(command.dependencies.writes).toStrictEqual([DataDependencies.repo("RepoItem")])
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "query invalidation: a command's writes invalidate exactly the queries whose reads intersect",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
+
+    // Client-side query registry: queryKey -> read dependencies forwarded by the server. Mirrors
+    // @effect-app/vue's `dependencyMetadata`; the derivation predicate (`intersects`) is the exact
+    // one the vue mutate engine uses to pick invalidation targets from a command's writes.
+    const queryReads = new Map<string, DataDependencies.DataDependencies>()
+    const invalidatedBy = (writes: DataDependencies.DataDependencies) =>
+      [...queryReads]
+        .filter(([, reads]) => DataDependencies.intersects(reads, writes))
+        .map(([key]) => key)
+
+    // Run the query through the real client; register its forwarded reads under its key.
+    const query = yield* withDependencyCapture(client.GetRepoCount.handler())
+    expect(Exit.isSuccess(query.result)).toBe(true)
+    queryReads.set("GetRepoCount", query.dependencies.reads)
+    // Before any command, nothing is invalidated.
+    expect(invalidatedBy([])).toStrictEqual([])
+
+    // A command writing the SAME repo the query read => the query is selected for invalidation.
+    const save = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))
+    expect(Exit.isSuccess(save.result)).toBe(true)
+    expect(invalidatedBy(save.dependencies.writes)).toStrictEqual(["GetRepoCount"])
+
+    // A command writing an UNRELATED repo => the query is NOT invalidated (negative control).
+    const saveOther = yield* withDependencyCapture(client.SaveOtherItem.handler({ id: "2", label: "two" }))
+    expect(Exit.isSuccess(saveOther.result)).toBe(true)
+    expect(saveOther.dependencies.writes).toStrictEqual([DataDependencies.repo("OtherItem")])
+    expect(invalidatedBy(saveOther.dependencies.writes)).toStrictEqual([])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

@@ -2,9 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import { getMeta } from "effect-app/client"
 import * as Config from "effect-app/Config"
+import * as DataDependencies from "effect-app/DataDependencies"
 import * as Effect from "effect-app/Effect"
 import { type HttpHeaders } from "effect-app/http"
 import * as Layer from "effect-app/Layer"
@@ -454,10 +456,19 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   // clients can invalidate queries even when the stream fails.
                   const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
                   const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
+                  const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                  const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                  const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+                  const metadata = (keys: ReadonlyArray<Invalidation.InvalidationKey>) =>
+                    Effect.map(
+                      dependencyRecorder.drain,
+                      (dataDependencies) => Invalidation.makeMetaData(keys, dataDependencies)
+                    )
                   return Stream.concat(
                     (result as Stream.Stream<any, any, any>).pipe(
                       Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
                       Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
                       // V3: after each value chunk, drain accumulated keys and emit a "metadata"
                       // chunk if any keys were collected since the last drain. This lets clients
                       // invalidate queries mid-stream without waiting for the "done" chunk.
@@ -465,13 +476,19 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                         Stream
                           .fromEffect(
                             Ref.getAndSet(keysRef, []).pipe(
-                              Effect.map((keys) =>
-                                keys.length > 0
-                                  ? [
-                                    valueChunk,
-                                    { _tag: "metadata" as const, metadata: { invalidateQueries: keys } }
-                                  ]
-                                  : [valueChunk]
+                              Effect.flatMap((keys) =>
+                                metadata(keys).pipe(
+                                  Effect.map((meta) =>
+                                    Array.isReadonlyArrayNonEmpty(keys)
+                                      || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.reads)
+                                      || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.writes)
+                                      ? [
+                                        valueChunk,
+                                        { _tag: "metadata" as const, metadata: meta }
+                                      ]
+                                      : [valueChunk]
+                                  )
+                                )
                               )
                             )
                           )
@@ -482,11 +499,15 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                         Stream.fromEffect(
                           Ref.get(keysRef).pipe(
                             Effect.flatMap((keys) =>
-                              Effect.fail({
-                                _tag: "error" as const,
-                                error: err,
-                                metadata: { invalidateQueries: keys }
-                              })
+                              metadata(keys).pipe(
+                                Effect.flatMap((meta) =>
+                                  Effect.fail({
+                                    _tag: "error" as const,
+                                    error: err,
+                                    metadata: meta
+                                  })
+                                )
+                              )
                             )
                           )
                         )
@@ -494,7 +515,11 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     ),
                     Stream.fromEffect(
                       Ref.get(keysRef).pipe(
-                        Effect.map((keys) => ({ _tag: "done" as const, metadata: { invalidateQueries: keys } }))
+                        Effect.flatMap((keys) =>
+                          metadata(keys).pipe(
+                            Effect.map((meta) => ({ _tag: "done" as const, metadata: meta }))
+                          )
+                        )
                       )
                     )
                   )
@@ -511,6 +536,13 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   })
                   .pipe(Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>))
 
+                const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+                effect = effect.pipe(
+                  Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder)
+                )
+
                 // Commands: provide a request-scoped `InvalidationSet` and wrap both
                 // success (`CommandResponseWithMetaData`) and handler-thrown failure
                 // (`CommandFailureWithMetaData`) so the client receives accumulated
@@ -525,18 +557,39 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     Effect.provideService(Invalidation.InvalidationSet, invalidationSet),
                     Effect.flatMap((value) =>
                       Ref.get(keysRef).pipe(
-                        Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
+                        Effect.flatMap((keys) =>
+                          dependencyRecorder.get.pipe(
+                            Effect.map((dataDependencies) =>
+                              ({
+                                payload: value,
+                                metadata: Invalidation.makeMetaData(keys, dataDependencies)
+                              }) as any
+                            )
+                          )
+                        )
                       )
                     ),
                     Effect.catch((err: any) =>
                       Ref.get(keysRef).pipe(
                         Effect.flatMap((keys) =>
-                          Effect.fail({
-                            _tag: "CommandFailureWithMetaData" as const,
-                            error: err,
-                            metadata: { invalidateQueries: keys }
-                          })
+                          dependencyRecorder.get.pipe(
+                            Effect.flatMap((dataDependencies) =>
+                              Effect.fail({
+                                _tag: "CommandFailureWithMetaData" as const,
+                                error: err,
+                                metadata: Invalidation.makeMetaData(keys, dataDependencies)
+                              })
+                            )
+                          )
                         )
+                      )
+                    )
+                  )
+                } else {
+                  effect = effect.pipe(
+                    Effect.flatMap((value) =>
+                      dependencyRecorder.get.pipe(
+                        Effect.map((dataDependencies) => ({ payload: value, metadata: { dataDependencies } }) as any)
                       )
                     )
                   )
@@ -584,7 +637,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     })
                   : Rpc.make(resource._tag, {
                     payload: resource,
-                    success: resource.success,
+                    success: isStream ? resource.success : Invalidation.QueryResponseWithMetaData(resource.success),
                     error: resource.error,
                     stream: isStream
                   }))

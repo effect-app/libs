@@ -2,6 +2,7 @@ import * as Ref from "effect/Ref"
 import { Rpc } from "effect/unstable/rpc"
 import { type ClientForOptions, makeQueryKey } from "../client/clientFor.ts"
 import * as Context from "../Context.ts"
+import * as DataDependencies from "../DataDependencies.ts"
 import * as Effect from "../Effect.ts"
 import * as S from "../Schema.ts"
 
@@ -23,7 +24,7 @@ const normalizeKey = (input: InvalidationKeyInput): InvalidationKey => {
 const isBatch = (
   input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
 ): input is ReadonlyArray<InvalidationKeyInput> =>
-  Array.isArray(input) && input.length > 0 && typeof input[0] !== "string"
+  Array.isArray(input) && input[0] !== undefined && typeof input[0] !== "string"
 
 const normalizeInputs = (
   input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
@@ -46,8 +47,21 @@ export const InvalidationKeys = S.Array(InvalidationKey)
 export type InvalidationKeys = S.Schema.Type<typeof InvalidationKeys>
 
 /** Metadata included in every command response for server-driven cache invalidation. */
-export const CommandMetaData = S.Struct({ invalidateQueries: InvalidationKeys })
+export const CommandMetaData = S.Struct({
+  invalidateQueries: InvalidationKeys,
+  dataDependencies: DataDependencies.DataDependencySet
+})
 export type CommandMetaData = S.Schema.Type<typeof CommandMetaData>
+
+export const emptyDataDependencies: DataDependencies.DataDependencySet = { reads: [], writes: [] }
+
+export const makeMetaData = (
+  invalidateQueries: InvalidationKeys,
+  dataDependencies: DataDependencies.DataDependencySet = emptyDataDependencies
+): CommandMetaData => ({ invalidateQueries, dataDependencies })
+
+export const QueryResponseWithMetaData = <S extends S.Top>(success: S) =>
+  S.Struct({ payload: success, metadata: S.Struct({ dataDependencies: DataDependencies.DataDependencySet }) })
 
 /**
  * Wraps a command's success schema so that the wire format carries both the `payload`

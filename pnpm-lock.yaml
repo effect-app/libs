@@ -142,6 +142,49 @@ importers:
         version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
     publishDirectory: .publish
 
+  packages/e2e:
+    dependencies:
+      '@effect-app/infra':
+        specifier: workspace:*
+        version: link:../infra
+      '@effect-app/vue':
+        specifier: workspace:*
+        version: link:../vue
+      effect-app:
+        specifier: workspace:*
+        version: link:../effect-app
+    devDependencies:
+      '@effect/atom-vue':
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      '@effect/platform-node':
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(ioredis@5.9.3)
+      '@effect/vitest':
+        specifier: 4.0.0-beta.88
+        version: 4.0.0-beta.88(effect@4.0.0-beta.88)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+      '@tanstack/vue-query':
+        specifier: 5.96.2
+        version: 5.96.2(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      '@types/node':
+        specifier: 25.9.1
+        version: 25.9.1
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.7
+        version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      effect:
+        specifier: ^4.0.0-beta.88
+        version: 4.0.0-beta.88
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
+      vitest:
+        specifier: ^4.1.7
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
+      vue:
+        specifier: ^3.5.35
+        version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+
   packages/effect-app:
     dependencies:
       '@tsconfig/strictest':

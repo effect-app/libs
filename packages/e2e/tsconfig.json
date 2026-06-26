@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "esnext",
+      "DOM"
+    ],
+    "moduleResolution": "Node16",
+    "esModuleInterop": true,
+    "noEmit": true,
+    // Leaf test package: it imports workspace packages by source, so disable project-mode (which
+    // would demand every transitively-imported source file be listed) and emit nothing.
+    "composite": false,
+    "incremental": false,
+    "declarationMap": false,
+    "rootDir": "../..",
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "./test/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -19,7 +19,7 @@ tsconfig.tsbuildinfo
 .data/
 .npmrc
 .cache/
-
+.opencode/
 .env.local
 .env
 

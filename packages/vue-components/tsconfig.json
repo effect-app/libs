@@ -21,6 +21,15 @@
       "vite/client"
     ]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/index.js", "types/**/*.d.ts", "stories/**/*.ts", "stories/**/*.vue"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/index.js",
+    "types/**/*.d.ts",
+    "stories/**/*.ts",
+    "stories/**/*.vue"
+  ],
   "exclude": ["**/__tests__/**", "**/*.test.*"]
 }

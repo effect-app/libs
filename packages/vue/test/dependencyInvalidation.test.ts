@@ -2,7 +2,7 @@
 import { defaultRegistry } from "@effect/atom-vue"
 import { expect, it } from "@effect/vitest"
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
-import { DataDependencies, InvalidationKeysFromServer, makeQueryKey } from "effect-app/client"
+import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeQueryKey } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Fiber from "effect/Fiber"
@@ -14,7 +14,7 @@ import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
 import { clearQueryReadDependencies, getDerivedInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
-import { invalidateQueries } from "../src/mutate.js"
+import { invalidateQueries, type MutationOptionsBase } from "../src/mutate.js"
 
 const repo = DataDependencies.repo("FrontendRepo")
 const otherRepo = DataDependencies.repo("OtherRepo")
@@ -220,9 +220,13 @@ it("atom engine: disposing the query atom clears its recorded reads", async () =
 
 interface EngineHarness {
   readonly queryFullKey: ReadonlyArray<unknown>
+  readonly serverInvalidationKey: InvalidationKey
   readonly fetchInitial: () => Promise<unknown>
   readonly runs: () => number
-  readonly runCommand: (options: any, command: Effect.Effect<unknown, never, any>) => Promise<unknown>
+  readonly runCommand: (
+    options: MutationOptionsBase | undefined,
+    command: Effect.Effect<unknown, never>
+  ) => Promise<unknown>
   readonly dispose: () => void
 }
 
@@ -238,6 +242,7 @@ const makeTanstackHarness = (queryRepo: DataDependencies.DataDependency): Engine
   const [, , , handle] = ctx.run(() => useQuery(self as any)(ref(undefined) as any, {} as any)) as any
   return {
     queryFullKey: [...makeQueryKey(self), undefined],
+    serverInvalidationKey: makeQueryKey(self),
     fetchInitial: () => Effect.runPromise(handle.refetch()),
     runs: () => runs,
     runCommand: (options, command) =>
@@ -264,6 +269,7 @@ const makeAtomHarness = (queryRepo: DataDependencies.DataDependency): EngineHarn
   const unmount = defaultRegistry.mount(atom)
   return {
     queryFullKey: [...makeQueryKey(self), undefined],
+    serverInvalidationKey: makeQueryKey(self),
     fetchInitial: () => Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any),
     runs: () => runs,
     runCommand: (options, command) =>
@@ -285,12 +291,20 @@ const runInvalidationMatrix = (engine: string, makeHarness: (repo: DataDependenc
     const h = makeHarness(queryRepo)
     const noop = Effect.succeed(undefined)
 
-    const expectRefetch = async (label: string, options: any, command: Effect.Effect<unknown, never, any>) => {
+    const expectRefetch = async (
+      label: string,
+      options: MutationOptionsBase | undefined,
+      command: Effect.Effect<unknown, never>
+    ) => {
       const before = h.runs()
       await h.runCommand(options, command)
       expect(h.runs(), `${label} should refetch`).toBeGreaterThan(before)
     }
-    const expectNoRefetch = async (label: string, options: any, command: Effect.Effect<unknown, never, any>) => {
+    const expectNoRefetch = async (
+      label: string,
+      options: MutationOptionsBase | undefined,
+      command: Effect.Effect<unknown, never>
+    ) => {
       const before = h.runs()
       await h.runCommand(options, command)
       expect(h.runs(), `${label} must not refetch`).toBe(before)
@@ -301,13 +315,21 @@ const runInvalidationMatrix = (engine: string, makeHarness: (repo: DataDependenc
       expect(h.runs()).toBeGreaterThanOrEqual(1)
 
       // 1. write-dependency derivation: command writes the repo the query read.
-      await expectRefetch("intersecting write dep", undefined, DataDependencies.write(queryRepo).pipe(Effect.as(undefined)))
+      await expectRefetch(
+        "intersecting write dep",
+        undefined,
+        DataDependencies.write(queryRepo).pipe(Effect.as(undefined))
+      )
 
       // 2. write-dependency derivation: command writes an UNRELATED repo (same namespace).
-      await expectNoRefetch("unrelated write dep", undefined, DataDependencies.write(otherRepo).pipe(Effect.as(undefined)))
+      await expectNoRefetch(
+        "unrelated write dep",
+        undefined,
+        DataDependencies.write(otherRepo).pipe(Effect.as(undefined))
+      )
 
       // 3. explicit `queryInvalidation` config targeting the query.
-      await expectRefetch("explicit config", { queryInvalidation: () => [h.queryFullKey] }, noop)
+      await expectRefetch("explicit config", { queryInvalidation: () => [h.queryFullKey as any] }, noop)
 
       // 4. explicit config targeting an UNRELATED key.
       await expectNoRefetch("unrelated explicit config", { queryInvalidation: () => [["$NotAQuery"]] }, noop)
@@ -316,7 +338,7 @@ const runInvalidationMatrix = (engine: string, makeHarness: (repo: DataDependenc
       await expectRefetch(
         "server key",
         undefined,
-        Effect.flatMap(InvalidationKeysFromServer, (svc) => svc.add(h.queryFullKey)).pipe(Effect.as(undefined))
+        Effect.flatMap(InvalidationKeysFromServer, (svc) => svc.add(h.serverInvalidationKey)).pipe(Effect.as(undefined))
       )
 
       // 6. nothing — no config, no deps, no server keys, same namespace (no implicit invalidation).

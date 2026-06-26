@@ -85,11 +85,22 @@ const trackWritableByKeys =
     )
   }
 
-/** Drop a query's recorded read-dependencies when its atom is GC'd (mirrors `trackByKeys`). */
+/**
+ * Keep a query's recorded read-dependencies registered for as long as it is alive, and drop them when
+ * its atom is GC'd (mirrors `trackByKeys`).
+ *
+ * `recordReads` only stores the deps on an actual fetch. A query that unmounts and later remounts from
+ * cache (within idle-ttl) does NOT re-run the handler, so its registry entry — cleared by the previous
+ * teardown's finalizer — would never be restored, and a subsequent mutation could not derive it as an
+ * invalidation target. Re-asserting the last-known reads on every (re)subscribe closes that gap, so the
+ * registry mirrors the live query even across cache-hit remounts.
+ */
 const trackReadDependencies =
-  (key: ReadonlyArray<unknown>) =>
+  (key: ReadonlyArray<unknown>, getReads: () => DataDependencies.DataDependencies) =>
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
     Atom.transform(atom, (get) => {
+      const reads = getReads()
+      if (reads.length > 0) setQueryReadDependencies(key, reads)
       get.addFinalizer(() => clearQueryReadDependencies(key))
       return get(atom)
     }, { initialValueTarget: atom })
@@ -333,6 +344,9 @@ export const buildQueryFamily = <I, A, E>(
     const fullKey = [...baseKey, input]
     // Record the repository/server read-dependencies seen while fetching, keyed by `fullKey`, so a
     // later mutation whose writes intersect them can derive this query as an invalidation target.
+    // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
+    // can re-assert them on a cache-hit remount that never re-runs the handler.
+    let lastReads: DataDependencies.DataDependencies = []
     const recordReads = Effect.gen(function*() {
       const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
       const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
@@ -340,7 +354,8 @@ export const buildQueryFamily = <I, A, E>(
       const result = yield* self
         .handler(input)
         .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
-      setQueryReadDependencies(fullKey, yield* Ref.get(readsRef))
+      lastReads = yield* Ref.get(readsRef)
+      setQueryReadDependencies(fullKey, lastReads)
       return result
     })
     let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> = rt.runtime.atom(
@@ -360,7 +375,7 @@ export const buildQueryFamily = <I, A, E>(
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackByKeys(reactivityKeys)(atom)
-    atom = trackReadDependencies(fullKey)(atom)
+    atom = trackReadDependencies(fullKey, () => lastReads)(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)

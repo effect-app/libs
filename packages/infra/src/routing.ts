@@ -449,6 +449,11 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 : resource,
               (payload: any, headers: any) => {
                 const result: any = handler.handler(payload, headers)
+
+                const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
+                const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
                 if (resource.stream) {
                   // Wrap stream items as { _tag: "value", value } and append a final
                   // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
@@ -456,9 +461,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   // clients can invalidate queries even when the stream fails.
                   const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
                   const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
-                  const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
-                  const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
-                  const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
                   const metadata = (keys: ReadonlyArray<Invalidation.InvalidationKey>) =>
                     Effect.map(
                       dependencyRecorder.drain,
@@ -523,6 +525,10 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       )
                     )
                   )
+                  .pipe(
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
+                  )
                 }
 
                 let effect = Effect
@@ -536,9 +542,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   })
                   .pipe(Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>))
 
-                const readsRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
-                const writesRef = Ref.makeUnsafe<DataDependencies.DataDependencies>([])
-                const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
                 effect = effect.pipe(
                   Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder)
                 )

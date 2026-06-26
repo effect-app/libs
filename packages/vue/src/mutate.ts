@@ -297,9 +297,9 @@ const buildInvalidateCache = <RInvalidator>(
       return keys
     }
 
-    // No implicit namespace invalidation: without an explicit `queryInvalidation` config, client
-    // keys are empty and invalidation is driven solely by server keys + repository write-dependency
-    // derivation. (`getQueryKey` is still offered to the config callback as a convenience base.)
+    // No manual `invalidatesQueries`: contribute nothing. Invalidation rides entirely on the
+    // repository-derived write-dependencies (plus any server-provided keys) — there is no default
+    // namespace invalidation of the command's own resource.
     return []
   }
 

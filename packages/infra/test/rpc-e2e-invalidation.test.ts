@@ -103,6 +103,12 @@ class StreamWithKey extends Req.Command<StreamWithKey>()("StreamWithKey", {}, {
   success: S.Number
 }) {}
 
+class StreamWithRepoWrite extends Req.Command<StreamWithRepoWrite>()("StreamWithRepoWrite", {}, {
+  stream: true,
+  allowAnonymous: true,
+  success: S.Number
+}) {}
+
 class RepoItem extends S.Class<RepoItem>("RepoItem")({
   id: S.String,
   label: S.String
@@ -158,6 +164,7 @@ const InvRsc = {
   DoWithBothKeys,
   DoAndFail,
   StreamWithKey,
+  StreamWithRepoWrite,
   GetRepoCount,
   SaveRepoItem,
   SaveOtherItem
@@ -190,6 +197,12 @@ const router = Router(InvRsc)({
       StreamWithKey: () =>
         Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap(() => Invalidation.InvalidationSet.use((_) => _.add(StreamKey)))
+        ),
+      StreamWithRepoWrite: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.tap((n) =>
+            repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie, setupRequestContextFromCurrent())
+          )
         ),
       GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie, setupRequestContextFromCurrent()),
       SaveRepoItem: ({ id, label }) =>
@@ -330,6 +343,25 @@ it.live(
     // Handler taps `InvalidationSet.use` once per emitted value; routing's V3 mid-stream
     // metadata drain forwards each batch as it arrives.
     expect(keys).toStrictEqual([StreamKey, StreamKey, StreamKey])
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream: per-chunk repo writes are drained and forwarded to the client recorder",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
+    const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+    const values = yield* Stream.runCollect(client.StreamWithRepoWrite.handler()).pipe(
+      Effect.provideService(DataDependencies.DataDependencyRecorder, svc)
+    )
+    const writes = yield* Ref.get(writesRef)
+    expect(values).toStrictEqual([1, 2, 3])
+    // Each emitted value writes to RepoItem; routing drains the writes per chunk and the client
+    // accumulates them — the recorder dedupes, so a single RepoItem entry is recorded.
+    expect(writes).toStrictEqual([DataDependencies.repo("RepoItem")])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

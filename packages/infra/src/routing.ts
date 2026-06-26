@@ -461,7 +461,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
                   const metadata = (keys: ReadonlyArray<Invalidation.InvalidationKey>) =>
                     Effect.map(
-                      dependencyRecorder.get,
+                      dependencyRecorder.drain,
                       (dataDependencies) => Invalidation.makeMetaData(keys, dataDependencies)
                     )
                   return Stream.concat(
@@ -480,6 +480,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                                 metadata(keys).pipe(
                                   Effect.map((meta) =>
                                     Array.isReadonlyArrayNonEmpty(keys)
+                                      || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.reads)
                                       || Array.isReadonlyArrayNonEmpty(meta.dataDependencies.writes)
                                       ? [
                                         valueChunk,

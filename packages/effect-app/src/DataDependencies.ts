@@ -22,6 +22,7 @@ export interface DataDependencyRecorderService {
   readonly read: (dependency: DataDependency) => Effect.Effect<void>
   readonly write: (dependency: DataDependency) => Effect.Effect<void>
   readonly get: Effect.Effect<DataDependencySet>
+  readonly drain: Effect.Effect<DataDependencySet>
   readonly drainWrites: Effect.Effect<DataDependencies>
 }
 
@@ -38,6 +39,7 @@ export const DataDependencyRecorder = Context.Reference<DataDependencyRecorderSe
       read: (_dependency) => Effect.void,
       write: (_dependency) => Effect.void,
       get: Effect.succeed({ reads: [], writes: [] }),
+      drain: Effect.succeed({ reads: [], writes: [] }),
       drainWrites: Effect.succeed([])
     })
   }
@@ -53,6 +55,10 @@ export const makeDataDependencyRecorder = (
   get: Effect.all({
     reads: Ref.get(readsRef),
     writes: Ref.get(writesRef)
+  }),
+  drain: Effect.all({
+    reads: Ref.getAndSet(readsRef, []),
+    writes: Ref.getAndSet(writesRef, [])
   }),
   drainWrites: Ref.getAndSet(writesRef, [])
 })

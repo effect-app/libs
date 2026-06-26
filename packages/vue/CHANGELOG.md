@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.284
+
+### Patch Changes
+
+- dd239fa: fix atom invalidation
+  - effect-app@4.0.0-beta.284
+
 ## 4.0.0-beta.283
 
 ### Minor Changes

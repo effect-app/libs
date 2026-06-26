@@ -225,6 +225,54 @@ describe("createUseFormWithCustomInput", () => {
     expect(wrapper.find("[data-testid=\"required-probe\"]").text()).toBe("true")
   })
 
+  it("falls back to schema-derived required when the prop is omitted", async () => {
+    const RequiredProbe = {
+      template: `
+        <div>
+          <div data-testid="required-probe">{{ inputProps.required }}</div>
+          <div data-testid="label-probe">{{ inputProps.label }}</div>
+        </div>
+      `,
+      props: ["inputProps", "field"]
+    }
+
+    const useFormWithProbe = createUseFormWithCustomInput(RequiredProbe)
+    const requiredSchema = S.Struct({ number: S.Number })
+
+    const wrapper = mount({
+      components: {
+        OmegaIntlProvider
+      },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form">
+            <template #default>
+              <component :is="form.Input"
+                label="Number"
+                name="number"
+              />
+            </template>
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useFormWithProbe(requiredSchema)
+        return { form }
+      }
+    }, {
+      global: {
+        stubs: {
+          RequiredProbe
+        }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find("[data-testid=\"required-probe\"]").text()).toBe("true")
+    expect(wrapper.find("[data-testid=\"label-probe\"]").text()).toBe("Number *")
+  })
+
   it("should pass event listeners to custom input component", async () => {
     // Custom component that emits focus and blur events
     const EventEmittingInput = {

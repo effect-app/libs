@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.285
+
+### Patch Changes
+
+- 7bd8234: Use set-backed data dependencies and provide request-scoped dependency services through a shared root-checked helper.
+- Updated dependencies [7bd8234]
+  - effect-app@4.0.0-beta.285
+
 ## 4.0.0-beta.284
 
 ### Patch Changes

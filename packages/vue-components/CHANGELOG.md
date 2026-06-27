@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.285
+
+### Patch Changes
+
+- dead0a9: Fix OmegaForm required override handling so omitted boolean props fall back to schema metadata.
+- Updated dependencies [7bd8234]
+  - effect-app@4.0.0-beta.285
+  - @effect-app/vue@4.0.0-beta.285
+
 ## 4.0.0-beta.284
 
 ### Patch Changes

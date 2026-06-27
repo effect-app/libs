@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.285
+
+### Patch Changes
+
+- 7bd8234: Use set-backed data dependencies and provide request-scoped dependency services through a shared root-checked helper.
+
 ## 4.0.0-beta.284
 
 ## 4.0.0-beta.283

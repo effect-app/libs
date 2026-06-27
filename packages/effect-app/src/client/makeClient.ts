@@ -73,6 +73,7 @@ export type InvalidationCallback<Resources, Input = unknown, Success = unknown, 
 export type InvalidationConfig<Resources, Input = unknown, Success = unknown, Failure = unknown> = {
   readonly invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
   readonly invalidationResources?: Resources
+  readonly disableQueryInvalidation?: boolean
 }
 
 type InvalidationConfigForCommand<

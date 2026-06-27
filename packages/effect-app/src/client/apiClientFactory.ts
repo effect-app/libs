@@ -279,7 +279,10 @@ const makeApiClientFactory = Effect
             const requestMeta = {
               Request,
               id,
-              options
+              options,
+              disableQueryInvalidation: (h as { config?: { disableQueryInvalidation?: boolean } })
+                .config
+                ?.disableQueryInvalidation === true
             }
 
             const requestNameLayer = Layer.succeed(RequestName, {

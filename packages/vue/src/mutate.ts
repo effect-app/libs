@@ -263,7 +263,7 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
 }
 
 const buildInvalidateCache = <RInvalidator>(
-  self: { id: string; options?: ClientForOptions },
+  self: { id: string; options?: ClientForOptions; disableQueryInvalidation?: boolean },
   queryInvalidation: MutationOptionsBase["queryInvalidation"] | undefined,
   queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
@@ -310,6 +310,8 @@ const buildInvalidateCache = <RInvalidator>(
     writeDependencies: DataDependencies.DataDependencies = DataDependencies.empty()
   ) =>
     Effect.suspend(() => {
+      if (self.disableQueryInvalidation) return Effect.void
+
       const clientKeys = getClientInvalidationKeys(input, output)
       // Derive extra reactivity keys from repository write-dependencies: every live query whose
       // recorded read-dependencies intersect this mutation's writes must be refreshed.
@@ -322,7 +324,13 @@ const buildInvalidateCache = <RInvalidator>(
 
       return Effect
         .andThen(
-          Effect.annotateCurrentSpan({ clientKeys, serverKeys, writeDependencies }),
+          Effect.annotateCurrentSpan({
+            keys,
+            clientKeys,
+            serverKeys,
+            derivedKeys,
+            writeDependencies: [...writeDependencies]
+          }),
           // refetch + AWAIT every live query registered under these keys, so by the time the
           // mutation resolves the affected queries are fresh.
           queryInvalidator.invalidateAndAwait(keys)
@@ -337,7 +345,7 @@ const buildInvalidateCache = <RInvalidator>(
 }
 
 export const invalidateQueries = <RInvalidator>(
-  self: { id: string; options?: ClientForOptions },
+  self: { id: string; options?: ClientForOptions; disableQueryInvalidation?: boolean },
   options: MutationOptionsBase | undefined,
   queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
@@ -435,6 +443,7 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
     self: {
       id: string
       options?: ClientForOptions
+      disableQueryInvalidation?: boolean
       handler: (i: any) => Stream.Stream<any, any, any>
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]

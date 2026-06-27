@@ -17,7 +17,7 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
-import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
 type DefaultError = Error
@@ -294,7 +294,7 @@ export const useAtomQuery = <A, E>(
   const awaitResult = () => awaitAtomResult(registry, atomRef.value)
   const refetch = () =>
     Effect.gen(function*() {
-      refresh()
+      yield* refreshAtomWithCurrentSpan(registry, atomRef.value)
       return yield* awaitResult()
     })
   const data = computed(() => Option.getOrUndefined(AsyncResult.value(result.value)))
@@ -512,7 +512,7 @@ const makeQueryView = <I, A, E, TData>(
       : awaitAtomResult(registry, atomRef.value)
   const refetch = () =>
     Effect.gen(function*() {
-      refresh()
+      yield* refreshAtomWithCurrentSpan(registry, atomRef.value)
       return yield* awaitResult()
     })
   const staleMs = staleTimeMsOf(normalizeQueryOptions(options))

@@ -60,7 +60,7 @@ export interface SetupRequestOptions {
   readonly withTransaction?: boolean
 }
 
-const requestStateLayer = RequestScopedDependencies.layer(ContextMapContainer, DataDependencyRecorder)
+export const requestStateLayer = RequestScopedDependencies.layer(ContextMapContainer, DataDependencyRecorder)
 
 // Build `layer` against the ambient (request) scope rather than a sub-scope of the
 // returned Effect. Required when the returned value is a streaming HttpServerResponse:

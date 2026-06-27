@@ -450,10 +450,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
               (payload: any, headers: any) => {
                 const result: any = handler.handler(payload, headers)
 
-                const readsRef = Ref.makeUnsafe(DataDependencies.empty())
-                const writesRef = Ref.makeUnsafe(DataDependencies.empty())
-                const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
-
                 if (resource.stream) {
                   // Wrap stream items as { _tag: "value", value } and append a final
                   // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
@@ -463,7 +459,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
                   const metadata = (keys: ReadonlyArray<Invalidation.InvalidationKey>) =>
                     Effect.map(
-                      dependencyRecorder.drain,
+                      DataDependencies.getDataDependencyRecorder.pipe(Effect.flatMap((_) => _.drain)),
                       (dataDependencies) => Invalidation.makeMetaData(keys, dataDependencies)
                     )
                   return Stream
@@ -471,7 +467,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       (result as Stream.Stream<any, any, any>).pipe(
                         Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
                         Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
-                        Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
                         // V3: after each value chunk, drain accumulated keys and emit a "metadata"
                         // chunk if any keys were collected since the last drain. This lets clients
                         // invalidate queries mid-stream without waiting for the "done" chunk.
@@ -527,8 +522,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       )
                     )
                     .pipe(
-                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
-                      Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder)
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet)
                     )
                 }
 
@@ -542,10 +536,6 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     "app.rpc.type": resource.type
                   })
                   .pipe(Effect.andThen(result as Effect.Effect<unknown, unknown, unknown>))
-
-                effect = effect.pipe(
-                  Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder)
-                )
 
                 // Commands: provide a request-scoped `InvalidationSet` and wrap both
                 // success (`CommandResponseWithMetaData`) and handler-thrown failure
@@ -562,7 +552,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     Effect.flatMap((value) =>
                       Ref.get(keysRef).pipe(
                         Effect.flatMap((keys) =>
-                          dependencyRecorder.get.pipe(
+                          DataDependencies.getDataDependencyRecorder.pipe(
+                            Effect.flatMap((_) => _.get),
                             Effect.map((dataDependencies) =>
                               ({
                                 payload: value,
@@ -576,7 +567,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                     Effect.catch((err: any) =>
                       Ref.get(keysRef).pipe(
                         Effect.flatMap((keys) =>
-                          dependencyRecorder.get.pipe(
+                          DataDependencies.getDataDependencyRecorder.pipe(
+                            Effect.flatMap((_) => _.get),
                             Effect.flatMap((dataDependencies) =>
                               Effect.fail({
                                 _tag: "CommandFailureWithMetaData" as const,
@@ -592,7 +584,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 } else {
                   effect = effect.pipe(
                     Effect.flatMap((value) =>
-                      dependencyRecorder.get.pipe(
+                      DataDependencies.getDataDependencyRecorder.pipe(
+                        Effect.flatMap((_) => _.get),
                         Effect.map((dataDependencies) => ({ payload: value, metadata: { dataDependencies } }) as any)
                       )
                     )

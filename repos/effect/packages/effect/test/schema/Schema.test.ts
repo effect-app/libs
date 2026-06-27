@@ -434,17 +434,28 @@ Missing key
     const schema = Schema.Void
     const asserts = new TestSchema.Asserts(schema)
 
+    // The public make input stays typed as void; these callbacks exercise runtime parser behavior.
+    let fn: () => void
+
     const make = asserts.make()
+    await make.succeed()
     await make.succeed(undefined)
-    await make.fail(null, `Expected void, got null`)
+    fn = () => undefined
+    await make.succeed(fn())
+    fn = () => null
+    await make.succeed(fn(), undefined)
+    fn = () => "a"
+    await make.succeed(fn(), undefined)
 
     const decoding = asserts.decoding()
     await decoding.succeed(undefined)
-    await decoding.fail(null, `Expected void, got null`)
+    await decoding.succeed(null, undefined)
+    await decoding.succeed("a", undefined)
 
     const encoding = asserts.encoding()
     await encoding.succeed(undefined)
-    await encoding.fail("1", `Expected void, got "1"`)
+    await encoding.succeed(null, undefined)
+    await encoding.succeed("1", undefined)
   })
 
   it("ObjectKeyword", async () => {
@@ -4009,6 +4020,27 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.fail(null, `Expected string, got null`)
     })
 
+    it(`Void`, async () => {
+      const schema = Schema.Union([Schema.Void])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(undefined)
+      await decoding.succeed(null, undefined)
+      await decoding.succeed("a", undefined)
+      await decoding.succeed(1, undefined)
+      await decoding.succeed({}, undefined)
+      await decoding.succeed([], undefined)
+    })
+
+    it(`Void | String`, async () => {
+      const schema = Schema.Union([Schema.Void, Schema.String])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("a", undefined)
+    })
+
     it(`String | Number`, async () => {
       const schema = Schema.Union([Schema.String, Schema.Number])
       const asserts = new TestSchema.Asserts(schema)
@@ -4067,6 +4099,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         { a: "a", b: 1 },
         `Expected exactly one member to match the input {"a":"a","b":1}`
       )
+    })
+
+    it(`mode: "oneOf" with Void`, async () => {
+      const schema = Schema.Union([Schema.Void, Schema.String], { mode: "oneOf" })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail("a", `Expected exactly one member to match the input "a"`)
     })
 
     it("{} & Literal", async () => {

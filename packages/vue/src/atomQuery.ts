@@ -100,7 +100,7 @@ const trackReadDependencies =
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
     Atom.transform(atom, (get) => {
       const reads = getReads()
-      if (reads.length > 0) setQueryReadDependencies(key, reads)
+      if (DataDependencies.isNonEmpty(reads)) setQueryReadDependencies(key, reads)
       get.addFinalizer(() => clearQueryReadDependencies(key))
       return get(atom)
     }, { initialValueTarget: atom })
@@ -135,7 +135,7 @@ export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<
 
 const isPlainObject = (o: unknown): o is Record<string, unknown> => {
   if (typeof o !== "object" || o === null) return false
-  const proto = Object.getPrototypeOf(o)
+  const proto: unknown = Object.getPrototypeOf(o)
   return proto === Object.prototype || proto === null
 }
 
@@ -158,6 +158,7 @@ export const replaceEqualDeep = (prev: any, next: any): any => {
     let equalItems = 0
     for (let i = 0; i < nextSize; i++) {
       const key = nextKeys[i]!
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       copy[key] = replaceEqualDeep(a[key], b[key])
       if (copy[key] === a[key] && a[key] !== undefined) equalItems++
     }
@@ -175,6 +176,7 @@ const structuralShare = <A, E>(
     if (next._tag !== "Success") return next
     const prev = Option.flatMap(get.self<AsyncResult.AsyncResult<A, E>>(), AsyncResult.value)
     if (Option.isNone(prev)) return next
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const shared = replaceEqualDeep(prev.value, next.value)
     return shared === next.value
       ? next
@@ -200,10 +202,13 @@ export const makeAtomClientRuntime = (
   return { runtime, factory }
 }
 
+const isRpcClientError = (e: unknown): boolean =>
+  typeof e === "object" && e !== null && "_tag" in e && e._tag === "RpcClientError"
+
 const isRetryable = (e: unknown): boolean =>
   isHttpClientError(e)
   || S.is(ServiceUnavailableError)(e)
-  || (typeof e === "object" && e !== null && (e as any)._tag === "RpcClientError")
+  || isRpcClientError(e)
 
 export interface AtomQueryOptions {
   /** background-refresh threshold (TanStack staleTime; default 5s) */
@@ -227,6 +232,32 @@ export interface AtomQueryOptions {
 }
 
 const defaults = { staleTime: Duration.seconds(5), gcTime: Duration.minutes(5) }
+
+export function staleTimeMsOf(opts: AtomQueryOptions): number {
+  return Duration.toMillis(Duration.fromInputUnsafe(opts.staleTime ?? defaults.staleTime))
+}
+
+/**
+ * Bumps when the browser regains connectivity (the `online` event) — the tanstack
+ * `refetchOnReconnect` trigger. One shared listener (module-level). SSR-guarded.
+ */
+const onlineSignal: Atom.Atom<number> = Atom.readable((get) => {
+  let count = 0
+  if (typeof window === "undefined") return count
+  const update = () => {
+    if (navigator.onLine) get.setSelf(++count)
+  }
+  window.addEventListener("online", update)
+  get.addFinalizer(() => window.removeEventListener("online", update))
+  return count
+})
+
+/**
+ * Focus OR reconnect, as a single signal for `swr` — both should stale-revalidate a query.
+ * swr takes one `focusSignal`, so we fold window-focus + reconnect into one derived atom;
+ * a bump from either triggers swr's stale check.
+ */
+const focusOrReconnectSignal: Atom.Atom<number> = Atom.make((get) => get(Atom.windowFocusSignal) + get(onlineSignal))
 
 export interface AtomQueryMetadata {
   readonly staleTimeMs: number
@@ -262,9 +293,6 @@ export const isStaleResult = (r: AsyncResult.AsyncResult<any, any>, staleTimeMs:
   return Date.now() - ts >= staleTimeMs
 }
 
-export const staleTimeMsOf = (opts: AtomQueryOptions): number =>
-  Duration.toMillis(Duration.fromInputUnsafe(opts.staleTime ?? defaults.staleTime))
-
 export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
   opts: AtomQueryOptions = {}
@@ -287,28 +315,6 @@ export const withQueryOptions = <A, E>(
 export const disabledQueryAtom: Atom.Atom<AsyncResult.AsyncResult<any, any>> = Atom.readable(() =>
   AsyncResult.initial(false)
 )
-
-/**
- * Bumps when the browser regains connectivity (the `online` event) — the tanstack
- * `refetchOnReconnect` trigger. One shared listener (module-level). SSR-guarded.
- */
-const onlineSignal: Atom.Atom<number> = Atom.readable((get) => {
-  let count = 0
-  if (typeof window === "undefined") return count
-  const update = () => {
-    if (navigator.onLine) get.setSelf(++count)
-  }
-  window.addEventListener("online", update)
-  get.addFinalizer(() => window.removeEventListener("online", update))
-  return count
-})
-
-/**
- * Focus OR reconnect, as a single signal for `swr` — both should stale-revalidate a query.
- * swr takes one `focusSignal`, so we fold window-focus + reconnect into one derived atom;
- * a bump from either triggers swr's stale check.
- */
-const focusOrReconnectSignal: Atom.Atom<number> = Atom.make((get) => get(Atom.windowFocusSignal) + get(onlineSignal))
 
 /**
  * Build the per-input atom family for a request handler — the query CACHE IDENTITY.
@@ -413,7 +419,9 @@ export const buildStreamQueryFamily = <I, A, E>(
 }
 
 /** Await the first resolved (non-Waiting) result of an atom. Failing query results fail the Effect. */
-export const awaitAtomResult = <A, E>(
+export function awaitAtomResult<A, E>(
   registry: AtomRegistry.AtomRegistry,
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
-) => AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })
+) {
+  return AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })
+}

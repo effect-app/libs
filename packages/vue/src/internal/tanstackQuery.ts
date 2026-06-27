@@ -41,8 +41,10 @@ const swrToQuery = <E, A>(r: {
   return AsyncResult.initial(r.isValidating)
 }
 
+const isCauseException = <E>(error: unknown): error is CauseException<E> => error instanceof CauseException
+
 const recoverCauseException = <A, E>(error: unknown): Effect.Effect<A, E> =>
-  error instanceof CauseException
+  isCauseException<E>(error)
     ? Effect.failCause(error.originalCause)
     : Effect.die(error)
 
@@ -60,10 +62,10 @@ const resolveInput = <I>(
   mode: "optional" | undefined
 ): I | undefined => {
   if (mode === "optional") {
-    const option = toValue(arg)
+    const option = toValue(arg) as I | Option.Option<I> | undefined
     return isInputOption(option) && Option.isSome(option) ? option.value : undefined
   }
-  const value = toValue(arg)
+  const value = toValue(arg) as I | Option.Option<I> | undefined
   return isInputOption(value) ? undefined : value
 }
 
@@ -76,7 +78,7 @@ const resolveEnabled = <I>(
 ) => {
   if (options?.mode === "optional") {
     return computed(() => {
-      const option = toValue(arg)
+      const option = toValue(arg) as I | Option.Option<I> | undefined
       return Option.isSome(option)
     })
   }
@@ -136,7 +138,7 @@ export const makeTanstackQuery = <R>(
   // Drop a query's recorded read-dependencies when tanstack evicts it from the cache, so the
   // registry mirrors the live queries (mirrors the atom engine's `trackReadDependencies` finalizer).
   queryClient.getQueryCache().subscribe((event) => {
-    if (event.type === "removed") clearQueryReadDependencies(event.query.queryKey)
+    if (event.type === "removed") clearQueryReadDependencies(event.query.queryKey as ReadonlyArray<unknown>)
   })
 
   const useQuery: MakeQuery2<R> = <I, A, E, Request extends Req, Name extends string>(

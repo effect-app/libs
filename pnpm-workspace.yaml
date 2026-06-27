@@ -1,9 +1,10 @@
 packages:
+  - ai-docs
+  - scratchpad
+  - scripts
   - packages/*
-allowBuilds:
-  "@parcel/watcher": set this to true or false
-  better-sqlite3: set this to true or false
-  dprint: set this to true or false
-  esbuild: set this to true or false
-  msgpackr-extract: set this to true or false
-  vue-demi: set this to true or false
+  - packages/ai/*
+  - packages/atom/*
+  - packages/sql/*
+  - packages/tools/*
+  - examples/*

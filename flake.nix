@@ -1,27 +1,24 @@
 {
-  description = "Node 24 + pnpm 10 dev shell";
-
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
-
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        nodejs = pkgs.nodejs_24;
-        pnpm = pkgs.pnpm.override { inherit nodejs; };
-        tools = with pkgs; [
-          git
-          nixfmt-classic
-          nodejs
-          pnpm
-          typescript
+  outputs = {nixpkgs, ...}: let
+    forAllSystems = function:
+      nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed (
+        system: function nixpkgs.legacyPackages.${system}
+      );
+  in {
+    formatter = forAllSystems (pkgs: pkgs.alejandra);
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.mkShell {
+        packages = with pkgs; [
+          bun
+          deno
+          corepack
+          nodejs_25
+          python3
         ];
-      in {
-        devShells.default = pkgs.mkShellNoCC {
-          packages = tools;
-        };
-      });
+      };
+    });
+  };
 }

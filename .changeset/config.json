@@ -1,17 +1,24 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@2.2.0/schema.json",
-  "changelog": "@changesets/cli/changelog",
+  "$schema": "https://unpkg.com/@changesets/config@1.6.4/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "Effect-TS/effect-smol" }],
   "commit": false,
+  "linked": [],
+  "access": "restricted",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "scratchpad",
+    "scripts"
+  ],
+  "privatePackages": false,
   "fixed": [
     [
-      "effect-app",
-      "@effect-app/infra",
-      "@effect-app/vue",
-      "@effect-app/vue-components"
+      "effect",
+      "@effect/*"
     ]
   ],
-  "linked": [],
-  "access": "public",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch"
+  "snapshot": {
+    "useCalculatedVersion": false,
+    "prereleaseTemplate": "{tag}-{commit}"
+  }
 }

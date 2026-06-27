@@ -1,6 +1,0 @@
-export * from "./Repository/ext.ts"
-export * from "./Repository/legacy.ts"
-export { makeRepo } from "./Repository/makeRepo.ts"
-export * from "./Repository/Registry.ts"
-export * from "./Repository/service.ts"
-export * from "./Repository/validation.ts"

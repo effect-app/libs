@@ -1,69 +1,44 @@
 {
-  "files.exclude": {
-    "**/.git": false
-  },
-  "explorer.sortOrderLexicographicOptions": "upper",
-  "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.experimental.expandableHover": true,
-  "js/ts.hover.maximumLength": 5000,
-  "typescript.preferences.autoImportFileExcludePatterns": [
-    "node_modules/@sentry/node",
-    "node_modules/vitest/dist",
-    "node_modules/@azure/cosmos",
-    "node_modules/effect-app/Schema",
-    "node_modules/lodash",
-    "node_modules/@types/lodash"
-  ],
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.workingDirectories": [
-    {
-      "pattern": "apps/*"
-    },
-    {
-      "pattern": "packages/*"
-    }
-  ],
+  "dprint.path": "node_modules/.bin/dprint",
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "dprint.dprint",
   "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
-    "source.fixAll.oxc": "explicit",
-    "source.fixAll.eslint": "explicit",
-    "source.addMissingImports": "explicit"
+    "source.fixAll.oxc": "explicit"
   },
-  "editor.defaultFormatter": "dprint.dprint",
-  "[vue]": {
-    "editor.defaultFormatter": "dprint.dprint"
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
   },
-  "[javascript]": {
-    "editor.defaultFormatter": "dprint.dprint"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "dprint.dprint"
-  },
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.quickSuggestionsDelay": 10,
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.tabCompletion": "off",
+  "editor.suggest.localityBonus": true,
+  "editor.suggestSelection": "recentlyUsed",
+  "editor.wordBasedSuggestions": "matchingDocuments",
+  "editor.parameterHints.enabled": true,
+  "files.insertFinalNewline": true,
   "[typescript]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
   "[typescriptreact]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "vue"
-  ],
-  "eslint.format.enable": false,
-  "csv-preview.separator": ";",
-  "cSpell.words": [
-    "codegen",
-    "composables",
-    "pipeable",
-    "tsplus"
-  ],
-  "files.watcherExclude": {
-    "**/target": true
+  "[javascript]": {
+    "editor.defaultFormatter": "dprint.dprint"
   },
-  "chat.tools.terminal.autoApprove": {
-    "git add": true,
-    "git commit": true
-  }
+  "[json]": {
+    "editor.defaultFormatter": "dprint.dprint"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "dprint.dprint"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "dprint.dprint"
+  },
+  "deno.enable": false,
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

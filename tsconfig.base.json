@@ -1,69 +1,46 @@
 {
-  "extends": [
-    "@tsconfig/strictest/tsconfig.json",
-    "./tsconfig.plugins.json"
-  ],
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "include": [],
   "compilerOptions": {
-    "module": "Node16",
-    "lib": [
-      "ES2023"
-    ],
-    "target": "es2022",
-    // inline source maps stay better in sync with the source, which should aid with watchers.
-    // "sourceMap": true,
-    "inlineSourceMap": true,
+    "outDir": "${configDir}/dist",
+    "rootDir": "${configDir}/src",
+    // Use incremental builds with project references.
     "incremental": true,
     "composite": true,
+    // Target modern JavaScript (ES2022+) whilst staying closely compatible with the Node.js module system.
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleDetection": "force", // Treat every non-declaration file as a module.
+    "verbatimModuleSyntax": true, // Only transform/eliminate type-only import/export statements.
+    "allowJs": false, // If you touch this, a puppy dies.
+    "rewriteRelativeImportExtensions": true, // Rewrite `.ts` imports to `.js` at build time.
+    "erasableSyntaxOnly": true, // Allows to run directly with node and type removal
+    // Emit source- & declaration maps.
     "declarationMap": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "noImplicitAny": true,
-    "useUnknownInCatchVariables": true,
-    // This is not desirable, as it's useful in generators.
-    "noImplicitReturns": false,
-    "noImplicitThis": true,
-    "outDir": "build/dist",
-    "resolveJsonModule": true,
-    "moduleResolution": "Node16",
-    "noErrorTruncation": true,
-    "forceConsistentCasingInFileNames": true,
-    "erasableSyntaxOnly": true,
-    "rewriteRelativeImportExtensions": true,
-    "allowImportingTsExtensions": true,
-    // "preserveSymlinks": true
-    "types": [
-      "node"
-    ]
-  },
-  "watchOptions": {
-    // Use native file system events for files and directories
-    // This actually detect changes in parent directories ... not great!
-    // however it seems that the response is very fast on the non-related projects figuring out their files are unchanged...
-    "watchFile": "useFsEvents",
-    "watchDirectory": "useFsEvents",
-    //     // Poll files for updates more frequently
-    //     // when they're updated a lot.
-    "fallbackPolling": "dynamicPriority",
-    "excludeDirectories": [
-      "**/node_modules",
-      "**/dist",
-      "**/.build",
-      "**/.git",
-      "**/.data",
-      "**/.logs",
-      "**/.*"
-    ],
-    "excludeFiles": [
-      "**/*.tmp",
-      "openapi.json",
-      "*.json"
-    ]
-  },
-  "include": [],
-  "exclude": [
-    "**/node_modules",
-    "**/build",
-    "**/dist",
-    "**/.*"
-  ]
+    "sourceMap": true,
+    // Opt-in to stricter type checking and correctness guard rails. The more the merrier.
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    // Miscellaneoaus
+    "stripInternal": false, // We temporarily override this to `true` when publishing packages.
+    "skipLibCheck": true, // Skip type checking of third party libraries.
+    "noErrorTruncation": true, // Do not truncate error messages.
+    "types": [], // Disable automatic loading of `@types/*` packages.
+    "jsx": "react-jsx",
+    "plugins": [{
+      "name": "@effect/language-service",
+      "transform": "@effect/language-service/transform",
+      "namespaceImportPackages": ["effect", "@effect/*"],
+      "diagnosticSeverity": {
+        "globalErrorInEffectFailure": "off" // TODO: Check if we should fix the warnings this reports
+      },
+      "includeSuggestionsInTsc": false,
+      "ignoreEffectWarningsInTscExitCode": true,
+      "ignoreEffectErrorsInTscExitCode": true
+    }]
+  }
 }

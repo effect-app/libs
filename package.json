@@ -7,7 +7,6 @@
     ],
     "patchedDependencies": {
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
-      "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.3": "patches/typescript.patch",
       "@sendgrid/mail": "patches/@sendgrid__mail.patch"
     }

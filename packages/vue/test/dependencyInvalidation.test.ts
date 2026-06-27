@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { defaultRegistry } from "@effect/atom-vue"
 import { expect, it } from "@effect/vitest"
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeQueryKey } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
@@ -10,10 +9,8 @@ import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import { TestClock } from "effect/testing"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
-import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
 import { clearQueryReadDependencies, getDerivedInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
-import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
 import { invalidateQueries, type MutationOptionsBase } from "../src/mutate.js"
 
 const repo = DataDependencies.repo("FrontendRepo")
@@ -126,68 +123,6 @@ it("atom engine: a query records its read deps so a command's writes derive it",
   }
 })
 
-// --- legacy tanstack engine: recording + cache-removal cleanup -----------------------------------
-
-const makeTanstackContext = (queryClient: QueryClient) => {
-  const app = createApp({ render: () => null })
-  app.use(VueQueryPlugin, { queryClient })
-  const scope = effectScope(true)
-  const run = <T>(fn: () => T): T => {
-    let out!: T
-    app.runWithContext(() => {
-      scope.run(() => {
-        out = fn()
-      })
-    })
-    return out
-  }
-  return { run, dispose: () => scope.stop() }
-}
-
-it("tanstack engine: a query records reads, and a command's writes refetch it", async () => {
-  const tsRepo = DataDependencies.repo("TanstackRepo")
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
-  })
-  const useQuery = makeTanstackQuery(() => Context.empty(), queryClient)
-
-  let runs = 0
-  const self = { id: "TanstackInv.List", handler: () => DataDependencies.read(tsRepo).pipe(Effect.as(++runs)) }
-  const ctx = makeTanstackContext(queryClient)
-  const [, , , handle] = ctx.run(() => useQuery(self as any)(ref(undefined) as any, {} as any)) as any
-
-  try {
-    await Effect.runPromise(handle.refetch())
-    expect(runs).toBe(1)
-
-    const fullKey = [...makeQueryKey(self), undefined]
-    const derived = getDerivedInvalidationKeys(new Set([tsRepo]))
-    expect(derived).toContainEqual(fullKey)
-
-    // Invalidating those derived keys via the tanstack invalidator refetches the active query.
-    await Effect.runPromise(makeTanstackQueryInvalidator(queryClient).invalidateAndAwait(derived))
-    expect(runs).toBe(2)
-  } finally {
-    ctx.dispose()
-  }
-})
-
-it("tanstack engine: evicting a query from the cache clears its recorded reads", () => {
-  const tsRepo = DataDependencies.repo("TanstackEvictRepo")
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  // Installs the cache-removal subscription that clears the registry on eviction.
-  makeTanstackQuery(() => Context.empty(), queryClient)
-
-  const key = ["$TanstackEvict", "List", undefined]
-  const cache = queryClient.getQueryCache()
-  cache.build(queryClient, { queryKey: key, queryFn: () => Promise.resolve(1) })
-  setQueryReadDependencies(key, new Set([tsRepo]))
-  expect(getDerivedInvalidationKeys(new Set([tsRepo]))).toContainEqual(key)
-
-  cache.clear()
-  expect(getDerivedInvalidationKeys(new Set([tsRepo]))).not.toContainEqual(key)
-})
-
 // --- atom engine: GC finalizer clears recorded reads --------------------------------------------
 
 it("atom engine: disposing the query atom clears its recorded reads", async () => {
@@ -212,9 +147,9 @@ it("atom engine: disposing the query atom clears its recorded reads", async () =
   expect(getDerivedInvalidationKeys(new Set([atomRepo]))).not.toContainEqual(fullKey)
 })
 
-// --- full engine e2e matrix: every invalidation source, on each engine ---------------------------
+// --- full engine e2e matrix: every invalidation source -----------------------------------------
 //
-// For each engine, a live query records a repo read; then commands sharing the query's namespace are
+// A live query records a repo read; then commands sharing the query's namespace are
 // run through the real mutate path, covering every invalidation source. The command namespace matches
 // the query's, so the "no refetch" cases also confirm there is NO implicit namespace invalidation.
 
@@ -228,27 +163,6 @@ interface EngineHarness {
     command: Effect.Effect<A, E>
   ) => Promise<unknown>
   readonly dispose: () => void
-}
-
-const makeTanstackHarness = (queryRepo: DataDependencies.DataDependency): EngineHarness => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
-  })
-  const useQuery = makeTanstackQuery(() => Context.empty(), queryClient)
-  const invalidator = makeTanstackQueryInvalidator(queryClient)
-  let runs = 0
-  const self = { id: "MatrixTs.List", handler: () => DataDependencies.read(queryRepo).pipe(Effect.as(++runs)) }
-  const ctx = makeTanstackContext(queryClient)
-  const [, , , handle] = ctx.run(() => useQuery(self as any)(ref(undefined) as any, {} as any)) as any
-  return {
-    queryFullKey: [...makeQueryKey(self), undefined],
-    serverInvalidationKey: makeQueryKey(self),
-    fetchInitial: () => Effect.runPromise(handle.refetch()),
-    runs: () => runs,
-    runCommand: (options, command) =>
-      Effect.runPromise(invalidateQueries({ id: "MatrixTs.Save" }, options, invalidator)(command, { id: "x" })),
-    dispose: () => ctx.dispose()
-  }
 }
 
 const makeAtomHarness = (queryRepo: DataDependencies.DataDependency): EngineHarness => {
@@ -348,5 +262,4 @@ const runInvalidationMatrix = (engine: string, makeHarness: (repo: DataDependenc
     }
   })
 
-runInvalidationMatrix("tanstack", makeTanstackHarness)
 runInvalidationMatrix("atom", makeAtomHarness)

@@ -34,5 +34,5 @@ export const make = <Service, E = never, R = never>(
 }
 
 export const layer = (
-  ...dependencies: ReadonlyArray<RequestScopedDependency<any, any, any>>
+  ...dependencies: ReadonlyArray<RequestScopedDependency<object>>
 ) => Layer.mergeAll(...dependencies.map((_) => _.layer))

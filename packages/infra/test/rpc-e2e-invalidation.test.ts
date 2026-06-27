@@ -22,7 +22,7 @@ import { makeRepo, RepositoryRegistryLive } from "effect-app/Model"
 import { Invalidation, MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import { TaggedErrorClass } from "effect-app/Schema"
-import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
+import { RequestContextMiddleware } from "../src/internal/RequestContextMiddleware.js"
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -201,15 +201,11 @@ const router = Router(InvRsc)({
         ),
       StreamWithRepoWrite: () =>
         Stream.fromIterable([1, 2, 3]).pipe(
-          Stream.tap((n) =>
-            repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie, setupRequestContextFromCurrent())
-          )
+          Stream.tap((n) => repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie))
         ),
-      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie, setupRequestContextFromCurrent()),
-      SaveRepoItem: ({ id, label }) =>
-        repo.save(new RepoItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent()),
-      SaveOtherItem: ({ id, label }) =>
-        otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent())
+      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie),
+      SaveRepoItem: ({ id, label }) => repo.save(new RepoItem({ id, label })).pipe(Effect.orDie),
+      SaveOtherItem: ({ id, label }) => otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie)
     })
   }
 })
@@ -223,7 +219,7 @@ const RpcRouterLayer = matchAll({ router })
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
 const ServerLayer = HttpRouter
-  .serve(RpcRouterLayer)
+  .serve(RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer)))
   .pipe(
     Layer.provide(NodeServerLayer),
     Layer.provide(RpcSerialization.layerNdjson)

@@ -308,11 +308,14 @@ const makeApiClientFactory = Effect
                       Effect.provide(svcs)
                     )
                   return isCommand ? unwrapCommand(rpcEffect) : isStream ? rpcEffect : unwrapQuery(rpcEffect)
-                })
+                }),
+                // Forwarding the server's dependency metadata needs a recorder in scope. A parent
+                // query/command (vue) provides one; a top-level call gets a fresh per-request one.
+                DataDependencies.ensureDataDependencyRecorder
               )
 
-            const buildStream = (input: any) =>
-              Stream.unwrap(
+            const buildStream = (input: any) => {
+              const stream = Stream.unwrap(
                 mr.contextEffect.pipe(
                   Effect.flatMap((svcs) =>
                     TheClient
@@ -378,6 +381,18 @@ const makeApiClientFactory = Effect
                   )
                 )
               )
+              // Forwarding the server's dependency metadata needs a recorder in scope. A parent
+              // query/command (vue) provides one; a top-level stream call gets a fresh per-request one.
+              return Stream.unwrap(
+                Effect.map(
+                  DataDependencies.DataDependencyRecorder,
+                  (current) =>
+                    current === "root"
+                      ? Stream.provide(stream, DataDependencies.DataDependencyRecorder.layer)
+                      : stream
+                )
+              )
+            }
 
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0

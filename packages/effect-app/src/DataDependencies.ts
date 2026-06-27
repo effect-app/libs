@@ -1,4 +1,5 @@
 import * as Ref from "effect/Ref"
+import * as Stream from "effect/Stream"
 import * as Effect from "./Effect.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
 import * as S from "./Schema.ts"
@@ -51,6 +52,26 @@ export type DataDependencyRecorder = typeof DataDependencyRecorder
 export type DataDependencyRecorderNotStartedError = RequestScopedDependencies.RequestScopedDependencyNotStartedError
 
 export const getDataDependencyRecorder = DataDependencyRecorder.current
+
+/**
+ * Guarantee a recorder is in scope for `self`, providing a fresh one per request when none is
+ * (e.g. a top-level client call with no parent query/command tracking its dependencies). An
+ * existing recorder is inherited, so nested calls forward into their parent rather than shadow it.
+ */
+export const ensureDataDependencyRecorder = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.flatMap(
+    DataDependencyRecorder,
+    (current) => current === "root" ? Effect.provide(self, DataDependencyRecorder.layer) : self
+  )
+
+/** Stream variant of {@link ensureDataDependencyRecorder}. */
+export const ensureDataDependencyRecorderStream = <A, E, R>(self: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
+  Stream.unwrap(
+    Effect.map(
+      DataDependencyRecorder,
+      (current) => current === "root" ? Stream.provide(self, DataDependencyRecorder.layer) : self
+    )
+  )
 
 export const makeDataDependencyRecorder = (
   readsRef: Ref.Ref<DataDependencies>,

@@ -522,7 +522,11 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                       )
                     )
                     .pipe(
-                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet)
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                      // A fresh recorder per request when none is provided (e.g. no request-context
+                      // middleware), so the metadata drain above always has one. Inherits an existing
+                      // request-scoped recorder otherwise.
+                      DataDependencies.ensureDataDependencyRecorderStream
                     )
                 }
 
@@ -592,7 +596,10 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   )
                 }
 
-                return applyRequestTypeInterruptibility(resource.type, effect)
+                return applyRequestTypeInterruptibility(
+                  resource.type,
+                  effect.pipe(DataDependencies.ensureDataDependencyRecorder)
+                )
               }
             ] as const
             return acc

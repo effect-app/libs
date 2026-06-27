@@ -20,7 +20,6 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import { makeRepo, RepositoryRegistryLive } from "effect-app/Model"
 import * as S from "effect-app/Schema"
-import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { createApp, effectScope, ref } from "vue"
@@ -54,13 +53,10 @@ const setupRepos = () => {
     .pipe(
       Effect.andThen(repo.all),
       Effect.map((items) => items.length),
-      Effect.orDie,
-      setupRequestContextFromCurrent()
+      Effect.orDie
     )
-  const save = (id: string) =>
-    repo.save(new RepoItem({ id, label: id })).pipe(Effect.orDie, setupRequestContextFromCurrent())
-  const saveOther = (id: string) =>
-    other.save(new OtherItem({ id, label: id })).pipe(Effect.orDie, setupRequestContextFromCurrent())
+  const save = (id: string) => repo.save(new RepoItem({ id, label: id })).pipe(Effect.orDie)
+  const saveOther = (id: string) => other.save(new OtherItem({ id, label: id })).pipe(Effect.orDie)
   return { baseContext, memoMap: mrt.memoMap, count, save, saveOther, runs: () => runs }
 }
 

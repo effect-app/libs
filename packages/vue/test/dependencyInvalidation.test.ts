@@ -24,13 +24,13 @@ const otherRepo = DataDependencies.repo("OtherRepo")
 it("getDerivedInvalidationKeys returns keys of queries whose reads intersect the writes", () => {
   const inventoryKey = ["$Inventory", "List", undefined]
   const ordersKey = ["$Orders", "List", undefined]
-  setQueryReadDependencies(inventoryKey, [repo])
-  setQueryReadDependencies(ordersKey, [otherRepo])
+  setQueryReadDependencies(inventoryKey, new Set([repo]))
+  setQueryReadDependencies(ordersKey, new Set([otherRepo]))
 
   try {
-    expect(getDerivedInvalidationKeys([repo])).toEqual([inventoryKey])
-    expect(getDerivedInvalidationKeys([repo, otherRepo])).toEqual([inventoryKey, ordersKey])
-    expect(getDerivedInvalidationKeys([])).toEqual([])
+    expect(getDerivedInvalidationKeys(new Set([repo]))).toEqual([inventoryKey])
+    expect(getDerivedInvalidationKeys(new Set([repo, otherRepo]))).toEqual([inventoryKey, ordersKey])
+    expect(getDerivedInvalidationKeys(new Set())).toEqual([])
   } finally {
     clearQueryReadDependencies(inventoryKey)
     clearQueryReadDependencies(ordersKey)
@@ -39,19 +39,19 @@ it("getDerivedInvalidationKeys returns keys of queries whose reads intersect the
 
 it("clearing read dependencies drops the query from derivation", () => {
   const inventoryKey = ["$Inventory", "List", undefined]
-  setQueryReadDependencies(inventoryKey, [repo])
+  setQueryReadDependencies(inventoryKey, new Set([repo]))
   clearQueryReadDependencies(inventoryKey)
-  expect(getDerivedInvalidationKeys([repo])).toEqual([])
+  expect(getDerivedInvalidationKeys(new Set([repo]))).toEqual([])
 })
 
 it("derivation matches on both dependency type and name (repo vs signal)", () => {
   const key = ["$Live", "Feed", undefined]
-  setQueryReadDependencies(key, [DataDependencies.signal("Feed")])
+  setQueryReadDependencies(key, new Set([DataDependencies.signal("Feed")]))
   try {
     // Same name but different type (repo "Feed") must NOT intersect a signal read.
-    expect(getDerivedInvalidationKeys([DataDependencies.repo("Feed")])).toEqual([])
+    expect(getDerivedInvalidationKeys(new Set([DataDependencies.repo("Feed")]))).toEqual([])
     // Same type and name does intersect.
-    expect(getDerivedInvalidationKeys([DataDependencies.signal("Feed")])).toEqual([key])
+    expect(getDerivedInvalidationKeys(new Set([DataDependencies.signal("Feed")]))).toEqual([key])
   } finally {
     clearQueryReadDependencies(key)
   }
@@ -59,10 +59,10 @@ it("derivation matches on both dependency type and name (repo vs signal)", () =>
 
 it("derivation intersects when any one of multiple reads matches a write", () => {
   const key = ["$Mixed", "List", undefined]
-  setQueryReadDependencies(key, [DataDependencies.repo("A"), DataDependencies.repo("B")])
+  setQueryReadDependencies(key, new Set([DataDependencies.repo("A"), DataDependencies.repo("B")]))
   try {
-    expect(getDerivedInvalidationKeys([DataDependencies.repo("B")])).toEqual([key])
-    expect(getDerivedInvalidationKeys([DataDependencies.repo("C")])).toEqual([])
+    expect(getDerivedInvalidationKeys(new Set([DataDependencies.repo("B")]))).toEqual([key])
+    expect(getDerivedInvalidationKeys(new Set([DataDependencies.repo("C")]))).toEqual([])
   } finally {
     clearQueryReadDependencies(key)
   }
@@ -71,7 +71,7 @@ it("derivation intersects when any one of multiple reads matches a write", () =>
 it.effect("a command's write deps invalidate active queries whose recorded reads intersect", () =>
   Effect.gen(function*() {
     const inventoryKey = ["$Inventory", "List", undefined]
-    setQueryReadDependencies(inventoryKey, [repo])
+    setQueryReadDependencies(inventoryKey, new Set([repo]))
 
     const recorded: Array<ReadonlyArray<unknown>> = []
     const queryInvalidator = {
@@ -118,8 +118,8 @@ it("atom engine: a query records its read deps so a command's writes derive it",
     expect(runs).toBe(1)
 
     const fullKey = [...makeQueryKey(self), undefined]
-    expect(getDerivedInvalidationKeys([atomRepo])).toContainEqual(fullKey)
-    expect(getDerivedInvalidationKeys([repo])).not.toContainEqual(fullKey)
+    expect(getDerivedInvalidationKeys(new Set([atomRepo]))).toContainEqual(fullKey)
+    expect(getDerivedInvalidationKeys(new Set([repo]))).not.toContainEqual(fullKey)
   } finally {
     unmount()
     clearQueryReadDependencies([...makeQueryKey(self), undefined])
@@ -161,7 +161,7 @@ it("tanstack engine: a query records reads, and a command's writes refetch it", 
     expect(runs).toBe(1)
 
     const fullKey = [...makeQueryKey(self), undefined]
-    const derived = getDerivedInvalidationKeys([tsRepo])
+    const derived = getDerivedInvalidationKeys(new Set([tsRepo]))
     expect(derived).toContainEqual(fullKey)
 
     // Invalidating those derived keys via the tanstack invalidator refetches the active query.
@@ -181,11 +181,11 @@ it("tanstack engine: evicting a query from the cache clears its recorded reads",
   const key = ["$TanstackEvict", "List", undefined]
   const cache = queryClient.getQueryCache()
   cache.build(queryClient, { queryKey: key, queryFn: () => Promise.resolve(1) })
-  setQueryReadDependencies(key, [tsRepo])
-  expect(getDerivedInvalidationKeys([tsRepo])).toContainEqual(key)
+  setQueryReadDependencies(key, new Set([tsRepo]))
+  expect(getDerivedInvalidationKeys(new Set([tsRepo]))).toContainEqual(key)
 
   cache.clear()
-  expect(getDerivedInvalidationKeys([tsRepo])).not.toContainEqual(key)
+  expect(getDerivedInvalidationKeys(new Set([tsRepo]))).not.toContainEqual(key)
 })
 
 // --- atom engine: GC finalizer clears recorded reads --------------------------------------------
@@ -204,12 +204,12 @@ it("atom engine: disposing the query atom clears its recorded reads", async () =
 
   const unmount = defaultRegistry.mount(atom)
   await Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any)
-  expect(getDerivedInvalidationKeys([atomRepo])).toContainEqual(fullKey)
+  expect(getDerivedInvalidationKeys(new Set([atomRepo]))).toContainEqual(fullKey)
 
   // Disposing the registry runs the atom's finalizers, including `trackReadDependencies`.
   unmount()
   defaultRegistry.reset()
-  expect(getDerivedInvalidationKeys([atomRepo])).not.toContainEqual(fullKey)
+  expect(getDerivedInvalidationKeys(new Set([atomRepo]))).not.toContainEqual(fullKey)
 })
 
 // --- full engine e2e matrix: every invalidation source, on each engine ---------------------------
@@ -223,9 +223,9 @@ interface EngineHarness {
   readonly serverInvalidationKey: InvalidationKey
   readonly fetchInitial: () => Promise<unknown>
   readonly runs: () => number
-  readonly runCommand: (
+  readonly runCommand: <A, E>(
     options: MutationOptionsBase | undefined,
-    command: Effect.Effect<unknown, never>
+    command: Effect.Effect<A, E>
   ) => Promise<unknown>
   readonly dispose: () => void
 }
@@ -291,19 +291,19 @@ const runInvalidationMatrix = (engine: string, makeHarness: (repo: DataDependenc
     const h = makeHarness(queryRepo)
     const noop = Effect.succeed(undefined)
 
-    const expectRefetch = async (
+    const expectRefetch = async <A, E>(
       label: string,
       options: MutationOptionsBase | undefined,
-      command: Effect.Effect<unknown, never>
+      command: Effect.Effect<A, E>
     ) => {
       const before = h.runs()
       await h.runCommand(options, command)
       expect(h.runs(), `${label} should refetch`).toBeGreaterThan(before)
     }
-    const expectNoRefetch = async (
+    const expectNoRefetch = async <A, E>(
       label: string,
       options: MutationOptionsBase | undefined,
-      command: Effect.Effect<unknown, never>
+      command: Effect.Effect<A, E>
     ) => {
       const before = h.runs()
       await h.runCommand(options, command)

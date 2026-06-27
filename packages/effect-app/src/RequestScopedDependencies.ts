@@ -1,4 +1,5 @@
 import * as Data from "effect/Data"
+import type * as Scope from "effect/Scope"
 import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as Layer from "./Layer.ts"
@@ -19,13 +20,13 @@ export const access = <Service>(
   key: string
 ): Effect.Effect<Service, RequestScopedDependencyNotStartedError> =>
   dependency.pipe(
-    Effect.filterOrFail((_) => _ !== "root", () => new RequestScopedDependencyNotStartedError({ key }))
+    Effect.filterOrFail((_): _ is Service => _ !== "root", () => new RequestScopedDependencyNotStartedError({ key }))
   )
 
 export const make = <Service, E = never, R = never>(
   key: string,
   service: Effect.Effect<Service, E, R>
-): RequestScopedDependency<Service, E, R> => {
+): RequestScopedDependency<Service, E, Exclude<R, Scope.Scope>> => {
   const dependency = Context.Reference<Service | Root>(key, { defaultValue: () => "root" })
   return Object.assign(dependency, {
     current: access(dependency, key),
@@ -33,6 +34,12 @@ export const make = <Service, E = never, R = never>(
   })
 }
 
-export const layer = (
-  ...dependencies: ReadonlyArray<RequestScopedDependency<object>>
-) => Layer.mergeAll(...dependencies.map((_) => _.layer))
+export const layer = <
+  Deps extends readonly [RequestScopedDependency<any, any, any>, ...Array<RequestScopedDependency<any, any, any>>]
+>(
+  ...dependencies: Deps
+): Layer.Layer<
+  never,
+  { [K in keyof Deps]: Deps[K] extends RequestScopedDependency<any, infer E, any> ? E : never }[number],
+  { [K in keyof Deps]: Deps[K] extends RequestScopedDependency<any, any, infer R> ? R : never }[number]
+> => dependencies.map((_) => _.layer).reduce((acc, l) => Layer.merge(acc, l)) as any

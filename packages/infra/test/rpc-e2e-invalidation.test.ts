@@ -407,7 +407,7 @@ it.live(
     expect(Exit.isSuccess(query.result)).toBe(true)
     queryReads.set("GetRepoCount", query.dependencies.reads)
     // Before any command, nothing is invalidated.
-    expect(invalidatedBy([])).toStrictEqual([])
+    expect(invalidatedBy(DataDependencies.empty())).toStrictEqual([])
 
     // A command writing the SAME repo the query read => the query is selected for invalidation.
     const save = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))

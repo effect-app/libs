@@ -73,8 +73,8 @@ Both sides route through `keysToHashes`, which hashes **each element** of the ke
 
 - Registration: `withReactivity(reactivityKeys)` → `registerUnsafe` — `reactivityKeys` is a
   list of prefix-arrays, each hashed via `Hash.hash`.
-- Invalidation: mutations pass `ReadonlyArray<ReadonlyArray<unknown>>` — a *list of
-  key-arrays* (`buildInvalidateCache` in [`src/mutate.ts`](../src/mutate.ts)) — so each
+- Invalidation: mutations pass `ReadonlyArray<ReadonlyArray<unknown>>` — a _list of
+  key-arrays_ (`buildInvalidateCache` in [`src/mutate.ts`](../src/mutate.ts)) — so each
   element is a full namespaced array, matching the registration shape.
 
 The await-tracking map (`keyAtoms` in `atomQuery.ts`) keys on the same `Hash.hash(key)`, so
@@ -89,7 +89,7 @@ The await-tracking map (`keyAtoms` in `atomQuery.ts`) keys on the same `Hash.has
    the one real semantic divergence from TanStack's exact compare. Same applies to
    `keyAtoms` and `uniqueKeys`.
 2. **Input is one opaque trailing element** (`[...baseKey, input]`). You can invalidate at
-   any namespace granularity but not *within* an input (no "all inputs where
+   any namespace granularity but not _within_ an input (no "all inputs where
    status=active"). TanStack with the same key shape behaves identically — parity, just a
    granularity ceiling.
 3. **O(depth) registrations per live query** (depth+1 prefixes, in both the reactivity

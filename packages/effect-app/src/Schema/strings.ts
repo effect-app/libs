@@ -1,7 +1,7 @@
 import type * as B from "effect/Brand"
 import * as S from "effect/Schema"
-import type * as SchemaAST from "../SchemaAST.ts"
 import type { Simplify } from "effect/Types"
+import type * as SchemaAST from "../SchemaAST.ts"
 import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
 import { withDefaultMake } from "./ext.ts"
 

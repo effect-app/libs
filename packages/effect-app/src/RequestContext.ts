@@ -8,7 +8,7 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
-const _RequestContext = S.Struct({
+export class RequestContext extends S.Opaque<RequestContext>()(S.Struct({
   span: S.Struct({
     traceId: S.String,
     spanId: S.String,
@@ -20,20 +20,7 @@ const _RequestContext = S.Struct({
   namespace: NonEmptyString255,
   /** @deprecated */
   userProfile: S.optional(S.Struct({ sub: UserProfileId })) //
-})
-
-// codegen:start {preset: modelFacade, className: _RequestContext, schema: S, base: true}
-class __RequestContext extends S.OpaqueFacade<
-  RequestContext,
-  RequestContext.Encoded,
-  RequestContext.Make,
-  RequestContext.DecodingServices,
-  RequestContext.EncodingServices
->()(_RequestContext) {}
-// codegen:end
-
-// eslint-disable-next-line typescript/no-unsafe-declaration-merging
-export class RequestContext extends __RequestContext {
+})) {
   static toMonitoring(this: void, self: RequestContext) {
     return {
       operationName: self.name,
@@ -59,37 +46,3 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
     }
     : {})
 })
-
-// codegen:start {preset: model, static: true, facade: true}
-//
-export interface RequestContext {
-  readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
-  readonly name: S.NonEmptyString255
-  readonly locale: "en" | "de"
-  readonly namespace: S.NonEmptyString255
-  readonly sourceId?: undefined | S.NonEmptyString255
-  readonly userProfile?: undefined | { readonly sub: UserProfileId }
-}
-export namespace RequestContext {
-  export interface Encoded {
-    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
-    readonly name: string
-    readonly locale: "en" | "de"
-    readonly namespace: string
-    readonly sourceId?: undefined | string
-    readonly userProfile?: undefined | { readonly sub: string }
-  }
-  export interface Make {
-    readonly span: { readonly traceId: string; readonly spanId: string; readonly sampled: boolean }
-    readonly name: S.NonEmptyString255
-    readonly locale: "en" | "de"
-    readonly namespace: S.NonEmptyString255
-    readonly sourceId?: undefined | S.NonEmptyString255
-    readonly userProfile?: undefined | { readonly sub: UserProfileId }
-  }
-  export type DecodingServices = never
-  export type EncodingServices = never
-}
-//
-// codegen:end
-//

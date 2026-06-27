@@ -469,7 +469,7 @@ describe("OpaqueFacade", () => {
   })
 
   it("keeps generated struct facades decodable with public statics", () => {
-    const input: RequestContext.Encoded = {
+    const input: typeof RequestContext.Encoded = {
       span: { traceId: "trace", spanId: "span", sampled: true },
       name: "operation",
       locale: "en",

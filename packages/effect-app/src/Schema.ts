@@ -1,5 +1,4 @@
 import * as S from "effect/Schema"
-import * as SchemaAST from "./SchemaAST.ts"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
@@ -9,6 +8,7 @@ import { Email as EmailT, type Email as EmailType } from "./Schema/email.ts"
 import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.ts"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.ts"
 import { type AST } from "./Schema/schema.ts"
+import * as SchemaAST from "./SchemaAST.ts"
 import { copy, extendM, type StructuralCopyOrigin } from "./utils.ts"
 
 // ---------------------------------------------------------------------------

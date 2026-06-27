@@ -1,9 +1,11 @@
 import * as Tracer from "effect/Tracer"
 import { SqlClient } from "effect/unstable/sql"
+import { DataDependencyRecorder } from "./DataDependencies.ts"
 import * as Effect from "./Effect.ts"
 import * as Layer from "./Layer.ts"
 import * as Option from "./Option.ts"
 import { LocaleRef, RequestContext, spanAttributes } from "./RequestContext.ts"
+import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
 import { NonEmptyString255 } from "./Schema.ts"
 import { ContextMapContainer, storeId } from "./Store.ts"
 
@@ -58,6 +60,8 @@ export interface SetupRequestOptions {
   readonly withTransaction?: boolean
 }
 
+export const requestStateLayer = RequestScopedDependencies.layer(ContextMapContainer, DataDependencyRecorder)
+
 // Build `layer` against the ambient (request) scope rather than a sub-scope of the
 // returned Effect. Required when the returned value is a streaming HttpServerResponse:
 // the response body keeps producing chunks (and using layer-provided state) after the
@@ -80,7 +84,7 @@ export const setupRequestContextFromCurrent =
       .pipe(
         options?.withTransaction === true ? withSqlTransaction : (_) => _,
         withRequestSpan(name, options),
-        Effect.provide(ContextMapContainer.layer, { local: true })
+        Effect.provide(requestStateLayer, { local: true })
       )
 
 // Streaming variant: binds ContextMapContainer to the ambient (request) scope so its
@@ -92,7 +96,7 @@ export const setupStreamingRequestContextFromCurrent =
     self.pipe(
       options?.withTransaction === true ? withSqlTransaction : (_) => _,
       withRequestSpan(name, options),
-      provideOnRequestScope(ContextMapContainer.layer)
+      provideOnRequestScope(requestStateLayer)
     )
 
 // TODO: consider integrating Effect.withParentSpan
@@ -102,7 +106,7 @@ export function setupRequestContext<R, E, A>(
   options?: SetupRequestOptions
 ) {
   const layer = Layer.mergeAll(
-    ContextMapContainer.layer,
+    requestStateLayer,
     Layer.succeed(LocaleRef, requestContext.locale),
     Layer.succeed(storeId, requestContext.namespace)
   )
@@ -121,7 +125,7 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   options?: Tracer.SpanOptions & SetupRequestOptions
 ) {
   const layer = Layer.mergeAll(
-    ContextMapContainer.layer,
+    requestStateLayer,
     Layer.succeed(LocaleRef, requestContext.locale),
     Layer.succeed(storeId, requestContext.namespace)
   )

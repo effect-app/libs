@@ -22,7 +22,8 @@ import { makeRepo, RepositoryRegistryLive } from "effect-app/Model"
 import { Invalidation, MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import { TaggedErrorClass } from "effect-app/Schema"
-import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
+import { RequestContextMiddleware } from "../src/internal/RequestContextMiddleware.js"
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
@@ -200,15 +201,11 @@ const router = Router(InvRsc)({
         ),
       StreamWithRepoWrite: () =>
         Stream.fromIterable([1, 2, 3]).pipe(
-          Stream.tap((n) =>
-            repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie, setupRequestContextFromCurrent())
-          )
+          Stream.tap((n) => repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie))
         ),
-      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie, setupRequestContextFromCurrent()),
-      SaveRepoItem: ({ id, label }) =>
-        repo.save(new RepoItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent()),
-      SaveOtherItem: ({ id, label }) =>
-        otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie, setupRequestContextFromCurrent())
+      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie),
+      SaveRepoItem: ({ id, label }) => repo.save(new RepoItem({ id, label })).pipe(Effect.orDie),
+      SaveOtherItem: ({ id, label }) => otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie)
     })
   }
 })
@@ -222,7 +219,7 @@ const RpcRouterLayer = matchAll({ router })
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
 const ServerLayer = HttpRouter
-  .serve(RpcRouterLayer)
+  .serve(RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer)))
   .pipe(
     Layer.provide(NodeServerLayer),
     Layer.provide(RpcSerialization.layerNdjson)
@@ -256,8 +253,8 @@ const withCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
 
 const withDependencyCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
   Effect.gen(function*() {
-    const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-    const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const readsRef = yield* Ref.make(DataDependencies.empty())
+    const writesRef = yield* Ref.make(DataDependencies.empty())
     const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
     const result = yield* eff.pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, svc), Effect.exit)
     return { result, dependencies: yield* svc.get }
@@ -320,9 +317,12 @@ it.live(
     const { result, keys } = yield* withCapture(client.DoAndFail.handler())
     expect(Exit.isFailure(result)).toBe(true)
     if (Exit.isFailure(result)) {
-      const failures = (result.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: any }>
-      expect(failures[0]?.error?._tag).toBe("CmdBoom")
-      expect(failures[0]?.error?.reason).toBe("intentional failure")
+      const error = Cause.findErrorOption(result.cause)
+      expect(Option.isSome(error)).toBe(true)
+      if (Option.isSome(error)) {
+        expect(error.value._tag).toBe("CmdBoom")
+        expect(error.value.reason).toBe("intentional failure")
+      }
     }
     expect(keys).toStrictEqual([DynamicKey])
   }, Effect.provide(TestLayer)),
@@ -351,8 +351,8 @@ it.live(
   "stream: per-chunk repo writes are drained and forwarded to the client recorder",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
-    const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-    const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+    const readsRef = yield* Ref.make(DataDependencies.empty())
+    const writesRef = yield* Ref.make(DataDependencies.empty())
     const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
     const values = yield* Stream.runCollect(client.StreamWithRepoWrite.handler()).pipe(
       Effect.provideService(DataDependencies.DataDependencyRecorder, svc)
@@ -361,7 +361,7 @@ it.live(
     expect(values).toStrictEqual([1, 2, 3])
     // Each emitted value writes to RepoItem; routing drains the writes per chunk and the client
     // accumulates them — the recorder dedupes, so a single RepoItem entry is recorded.
-    expect(writes).toStrictEqual([DataDependencies.repo("RepoItem")])
+    expect(writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem")]))
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )
@@ -373,13 +373,13 @@ it.live(
 
     const query = yield* withDependencyCapture(client.GetRepoCount.handler())
     expect(Exit.isSuccess(query.result) && query.result.value).toBe(0)
-    expect(query.dependencies.reads).toStrictEqual([DataDependencies.repo("RepoItem")])
-    expect(query.dependencies.writes).toStrictEqual([])
+    expect(query.dependencies.reads).toStrictEqual(new Set([DataDependencies.repo("RepoItem")]))
+    expect(query.dependencies.writes).toStrictEqual(DataDependencies.empty())
 
     const command = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))
     expect(Exit.isSuccess(command.result)).toBe(true)
-    expect(command.dependencies.reads).toStrictEqual([])
-    expect(command.dependencies.writes).toStrictEqual([DataDependencies.repo("RepoItem")])
+    expect(command.dependencies.reads).toStrictEqual(DataDependencies.empty())
+    expect(command.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem")]))
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )
@@ -403,7 +403,7 @@ it.live(
     expect(Exit.isSuccess(query.result)).toBe(true)
     queryReads.set("GetRepoCount", query.dependencies.reads)
     // Before any command, nothing is invalidated.
-    expect(invalidatedBy([])).toStrictEqual([])
+    expect(invalidatedBy(DataDependencies.empty())).toStrictEqual([])
 
     // A command writing the SAME repo the query read => the query is selected for invalidation.
     const save = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))
@@ -413,7 +413,7 @@ it.live(
     // A command writing an UNRELATED repo => the query is NOT invalidated (negative control).
     const saveOther = yield* withDependencyCapture(client.SaveOtherItem.handler({ id: "2", label: "two" }))
     expect(Exit.isSuccess(saveOther.result)).toBe(true)
-    expect(saveOther.dependencies.writes).toStrictEqual([DataDependencies.repo("OtherItem")])
+    expect(saveOther.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("OtherItem")]))
     expect(invalidatedBy(saveOther.dependencies.writes)).toStrictEqual([])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }

@@ -307,7 +307,7 @@ const buildInvalidateCache = <RInvalidator>(
     input: unknown,
     output: Exit.Exit<unknown, unknown>,
     serverKeys: ReadonlyArray<InvalidationKey>,
-    writeDependencies: ReadonlyArray<DataDependencies.DataDependency> = []
+    writeDependencies: DataDependencies.DataDependencies = DataDependencies.empty()
   ) =>
     Effect.suspend(() => {
       const clientKeys = getClientInvalidationKeys(input, output)
@@ -348,8 +348,8 @@ export const invalidateQueries = <RInvalidator>(
   const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
     Effect.gen(function*() {
       const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-      const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-      const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const readsRef = yield* Ref.make(DataDependencies.empty())
+      const writesRef = yield* Ref.make(DataDependencies.empty())
       const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
       const result = yield* eff.pipe(
         Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
@@ -450,8 +450,8 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
           // returns void to keep the server-side invalidation service effect-free.
           (key) => invCache(input, Exit.succeed(undefined), [key]) as Effect.Effect<void>
         )
-        const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-        const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
         const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
         const lastRef = yield* Ref.make<any>(undefined)
         return source.pipe(

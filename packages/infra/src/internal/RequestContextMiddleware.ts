@@ -3,8 +3,8 @@ import { HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-ap
 import * as Layer from "effect-app/Layer"
 import { Locale, LocaleRef, RequestContext, spanAttributes } from "effect-app/RequestContext"
 import { NonEmptyString255 } from "effect-app/Schema"
-import { provideOnRequestScope } from "effect-app/setupRequest"
-import { ContextMapContainer, storeId } from "effect-app/Store"
+import { provideOnRequestScope, requestStateLayer } from "effect-app/setupRequest"
+import { storeId } from "effect-app/Store"
 
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
   HttpMiddleware.make((app) =>
@@ -36,7 +36,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
       })
       yield* Effect.annotateCurrentSpan(spanAttributes(requestContext))
       const layer = Layer.mergeAll(
-        ContextMapContainer.layer,
+        requestStateLayer,
         Layer.succeed(LocaleRef, requestContext.locale),
         Layer.succeed(storeId, requestContext.namespace)
       )

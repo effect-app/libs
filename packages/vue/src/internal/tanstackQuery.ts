@@ -174,8 +174,8 @@ export const makeTanstackQuery = <R>(
             // Record the repository/server read-dependencies seen while fetching, keyed by the
             // tanstack queryKey, so a later mutation whose writes intersect them derives this query
             // as an invalidation target (the tanstack invalidator invalidates by this same key).
-            const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-            const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+            const readsRef = yield* Ref.make(DataDependencies.empty())
+            const writesRef = yield* Ref.make(DataDependencies.empty())
             const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
             const result = yield* q
               .handler(input)

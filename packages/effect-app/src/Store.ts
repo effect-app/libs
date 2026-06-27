@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Data from "effect/Data"
 import type * as Redacted from "effect/Redacted"
 import * as Semaphore from "effect/Semaphore"
 import type { NonEmptyReadonlyArray } from "./Array.ts"
 import type { DatabaseError, OptimisticConcurrencyException } from "./client/errors.ts"
 import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
-import * as Layer from "./Layer.ts"
 import type { FilterResult } from "./Model/filter/filterApi.ts"
 import type { FieldValues } from "./Model/filter/types.ts"
 import type { FieldPath } from "./Model/filter/types/path/index.ts"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.ts"
 import type * as Option from "./Option.ts"
+import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
 import { NonEmptyString255 } from "./Schema.ts"
 
 /**
@@ -235,17 +234,14 @@ const makeMap = Effect.acquireRelease(
 export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
 }
 
-export class ContextMapContainer extends Context.Reference("ContextMapContainer", {
-  defaultValue: (): ContextMap | "root" => "root"
-}) {
-  static readonly layer = Layer.effect(this, ContextMap.make.pipe(Effect.map(ContextMap.of)))
-}
-
-export class ContextMapNotStartedError extends Data.TaggedError("ContextMapNotStartedError") {}
-
-export const getContextMap = ContextMapContainer.pipe(
-  Effect.filterOrFail((_) => _ !== "root", () => new ContextMapNotStartedError())
+export const ContextMapContainer = RequestScopedDependencies.make(
+  "ContextMapContainer",
+  ContextMap.make.pipe(Effect.map(ContextMap.of))
 )
+
+export type ContextMapNotStartedError = RequestScopedDependencies.RequestScopedDependencyNotStartedError
+
+export const getContextMap = ContextMapContainer.current
 
 /**
  * Runs `make` at most once per ContextMap (i.e. per request) and caches the

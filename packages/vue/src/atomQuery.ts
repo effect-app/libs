@@ -100,7 +100,7 @@ const trackReadDependencies =
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
     Atom.transform(atom, (get) => {
       const reads = getReads()
-      if (reads.length > 0) setQueryReadDependencies(key, reads)
+      if (DataDependencies.isNonEmpty(reads)) setQueryReadDependencies(key, reads)
       get.addFinalizer(() => clearQueryReadDependencies(key))
       return get(atom)
     }, { initialValueTarget: atom })
@@ -346,10 +346,10 @@ export const buildQueryFamily = <I, A, E>(
     // later mutation whose writes intersect them can derive this query as an invalidation target.
     // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
     // can re-assert them on a cache-hit remount that never re-runs the handler.
-    let lastReads: DataDependencies.DataDependencies = []
+    let lastReads: DataDependencies.DataDependencies = DataDependencies.empty()
     const recordReads = Effect.gen(function*() {
-      const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-      const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+      const readsRef = yield* Ref.make(DataDependencies.empty())
+      const writesRef = yield* Ref.make(DataDependencies.empty())
       const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
       const result = yield* self
         .handler(input)

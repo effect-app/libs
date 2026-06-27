@@ -65,8 +65,8 @@ describe("repository ext save/remove batching", () => {
   it.effect("records repository read and write dependencies", () =>
     Effect
       .gen(function*() {
-        const readsRef = yield* Ref.make<DataDependencies.DataDependencies>([])
-        const writesRef = yield* Ref.make<DataDependencies.DataDependencies>([])
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
         const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
 
         yield* Effect
@@ -79,8 +79,8 @@ describe("repository ext save/remove batching", () => {
           })
           .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
 
-        expect(yield* Ref.get(readsRef)).toEqual([DataDependencies.repo("DependencyItem")])
-        expect(yield* Ref.get(writesRef)).toEqual([DataDependencies.repo("DependencyItem")])
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
+        expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
       })
       .pipe(
         setupRequestContextFromCurrent(),

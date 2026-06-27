@@ -1,6 +1,7 @@
 import * as Ref from "effect/Ref"
-import * as Context from "./Context.ts"
+import * as Stream from "effect/Stream"
 import * as Effect from "./Effect.ts"
+import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
 import * as S from "./Schema.ts"
 
 export const DataDependency = S.Struct({
@@ -9,8 +10,10 @@ export const DataDependency = S.Struct({
 })
 export type DataDependency = S.Schema.Type<typeof DataDependency>
 
-export const DataDependencies = S.Array(DataDependency)
+export const DataDependencies = S.ReadonlySet(DataDependency)
 export type DataDependencies = S.Schema.Type<typeof DataDependencies>
+
+export const empty = (): DataDependencies => new Set()
 
 export const DataDependencySet = S.Struct({
   reads: DataDependencies,
@@ -26,25 +29,49 @@ export interface DataDependencyRecorderService {
   readonly drainWrites: Effect.Effect<DataDependencies>
 }
 
-const containsDependency = (dependencies: ReadonlyArray<DataDependency>, dependency: DataDependency) =>
-  dependencies.some((_) => _.type === dependency.type && _.name === dependency.name)
+const containsDependency = (dependencies: ReadonlySet<DataDependency>, dependency: DataDependency) => {
+  for (const _ of dependencies) {
+    if (_.type === dependency.type && _.name === dependency.name) return true
+  }
+  return false
+}
 
 const appendDependency = (dependency: DataDependency) => (dependencies: DataDependencies): DataDependencies =>
-  containsDependency(dependencies, dependency) ? dependencies : [...dependencies, dependency]
+  containsDependency(dependencies, dependency) ? dependencies : new Set([...dependencies, dependency])
 
-export const DataDependencyRecorder = Context.Reference<DataDependencyRecorderService>(
+export const DataDependencyRecorder = RequestScopedDependencies.make(
   "effect-app/DataDependencyRecorder",
-  {
-    defaultValue: () => ({
-      read: (_dependency) => Effect.void,
-      write: (_dependency) => Effect.void,
-      get: Effect.succeed({ reads: [], writes: [] }),
-      drain: Effect.succeed({ reads: [], writes: [] }),
-      drainWrites: Effect.succeed([])
-    })
-  }
+  Effect.gen(function*() {
+    const readsRef = yield* Ref.make(empty())
+    const writesRef = yield* Ref.make(empty())
+    return makeDataDependencyRecorder(readsRef, writesRef)
+  })
 )
 export type DataDependencyRecorder = typeof DataDependencyRecorder
+
+export type DataDependencyRecorderNotStartedError = RequestScopedDependencies.RequestScopedDependencyNotStartedError
+
+export const getDataDependencyRecorder = DataDependencyRecorder.current
+
+/**
+ * Guarantee a recorder is in scope for `self`, providing a fresh one per request when none is
+ * (e.g. a top-level client call with no parent query/command tracking its dependencies). An
+ * existing recorder is inherited, so nested calls forward into their parent rather than shadow it.
+ */
+export const ensureDataDependencyRecorder = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.flatMap(
+    DataDependencyRecorder,
+    (current) => current === "root" ? Effect.provide(self, DataDependencyRecorder.layer) : self
+  )
+
+/** Stream variant of {@link ensureDataDependencyRecorder}. */
+export const ensureDataDependencyRecorderStream = <A, E, R>(self: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
+  Stream.unwrap(
+    Effect.map(
+      DataDependencyRecorder,
+      (current) => current === "root" ? Stream.provide(self, DataDependencyRecorder.layer) : self
+    )
+  )
 
 export const makeDataDependencyRecorder = (
   readsRef: Ref.Ref<DataDependencies>,
@@ -57,10 +84,10 @@ export const makeDataDependencyRecorder = (
     writes: Ref.get(writesRef)
   }),
   drain: Effect.all({
-    reads: Ref.getAndSet(readsRef, []),
-    writes: Ref.getAndSet(writesRef, [])
+    reads: Ref.getAndSet(readsRef, empty()),
+    writes: Ref.getAndSet(writesRef, empty())
   }),
-  drainWrites: Ref.getAndSet(writesRef, [])
+  drainWrites: Ref.getAndSet(writesRef, empty())
 })
 
 export const repo = (name: string): DataDependency => ({ type: "repo", name })
@@ -68,11 +95,20 @@ export const signal = (name: string): DataDependency => ({ type: "signal", name 
 
 export const QueryReadDependenciesMetaKey = "effect-app.query.readDependencies"
 
-export const read = (dependency: DataDependency) => DataDependencyRecorder.use((_) => _.read(dependency))
+export const read = (dependency: DataDependency) =>
+  getDataDependencyRecorder.pipe(Effect.flatMap((_) => _.read(dependency)))
 
-export const write = (dependency: DataDependency) => DataDependencyRecorder.use((_) => _.write(dependency))
+export const write = (dependency: DataDependency) =>
+  getDataDependencyRecorder.pipe(Effect.flatMap((_) => _.write(dependency)))
 
 export const intersects = (
-  a: ReadonlyArray<DataDependency>,
-  b: ReadonlyArray<DataDependency>
-) => a.some((dependency) => containsDependency(b, dependency))
+  a: ReadonlySet<DataDependency>,
+  b: ReadonlySet<DataDependency>
+) => {
+  for (const dependency of a) {
+    if (containsDependency(b, dependency)) return true
+  }
+  return false
+}
+
+export const isNonEmpty = (dependencies: DataDependencies) => dependencies.size > 0

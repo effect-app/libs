@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.290
+
+### Patch Changes
+
+- dc07df5: Fix nested DTO subset projection inference for tagged unions.
+
 ## 4.0.0-beta.289
 
 ### Patch Changes

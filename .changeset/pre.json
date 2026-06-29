@@ -247,6 +247,7 @@
     "polite-chefs-drum",
     "project-encoded-type-constraint",
     "project-union-schema",
+    "project-union-subsets",
     "provide-dual",
     "publish-tsconfig-postpack",
     "pure-usesync-cleanup",

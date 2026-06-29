@@ -55,6 +55,13 @@ type ExtractExclusiveness<T> = T extends QueryTogether<any, any, infer Exclusive
 type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any>
   ? TFieldValuesRefined
   : never
+type ProjectableEncoded<I, From> = I extends FieldValues ? {
+    [K in keyof I]: K extends keyof (
+      I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From
+    ) ? I[K]
+      : never
+  }
+  : never
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
@@ -483,6 +490,49 @@ export const project: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: S.Codec<A, I, R>
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends FieldValues,
+    A,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema:
+      & S.Codec<Option.Option<A>, I, R>
+      & S.Codec<Option.Option<A>, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>,
+    mode: "collect"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends FieldValues,
+    A,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema:
+      & S.Codec<A, I, R>
+      & S.Codec<A, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>,
+    mode: "project"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends FieldValues,
+    A,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema:
+      & S.Codec<A, I, R>
+      & S.Codec<A, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>

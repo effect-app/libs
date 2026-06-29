@@ -25,6 +25,52 @@ const union = S.Union([A, B, C])
 
 const a = S.Struct({ id: S.String })
 
+const nestedSourceItem = S.TaggedStruct("source-item", {
+  id: S.StringId,
+  label: S.String
+})
+const nestedProjectedItem = S.TaggedStruct("source-item", {
+  id: S.StringId
+})
+type NestedProjectedItem = typeof nestedProjectedItem.Type
+const nestedSource = S.Struct({
+  id: S.String,
+  items: S.NonEmptyArray(nestedSourceItem),
+  label: S.String
+})
+const nestedProjection = S.Struct({
+  id: S.String,
+  items: S.NonEmptyArray(nestedProjectedItem)
+})
+
+const nestedProjectedItemsOf = (
+  items: readonly [NestedProjectedItem, ...NestedProjectedItem[]]
+) => items
+
+const nestedUnionSourceA = S.TaggedStruct("nested-a", {
+  id: S.String,
+  items: S.NonEmptyArray(nestedSourceItem),
+  label: S.String
+})
+const nestedUnionSourceB = S.TaggedStruct("nested-b", {
+  id: S.String,
+  items: S.NonEmptyArray(nestedSourceItem),
+  count: S.Number
+})
+const nestedUnionSource = S.Union([nestedUnionSourceA, nestedUnionSourceB])
+const nestedUnionProjection = S.Union([
+  nestedUnionSourceA.mapFields((fields) => ({
+    id: fields.id,
+    _tag: fields._tag,
+    items: S.NonEmptyArray(nestedProjectedItem)
+  })),
+  nestedUnionSourceB.mapFields((fields) => ({
+    id: fields.id,
+    _tag: fields._tag,
+    items: S.NonEmptyArray(nestedProjectedItem)
+  }))
+])
+
 describe("repository ext save/remove batching", () => {
   it.effect("supports projecting full repository schema", () =>
     Effect
@@ -36,6 +82,24 @@ describe("repository ext save/remove batching", () => {
         expect(yield* unionRepo.query(Q.project(union))).toEqual([])
         expect(yield* aRepo.query(Q.project(a))).toEqual([])
         expect(yield* ARepo.query(Q.project(A))).toEqual([])
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("supports nested DTO subset projections", () =>
+    Effect
+      .gen(function*() {
+        const repo = yield* makeRepo("NestedProjectionItem", nestedSource, {})
+        const unionRepo = yield* makeRepo("NestedUnionProjectionItem", nestedUnionSource, {})
+        const result = yield* repo.query(Q.project(nestedProjection, "project"))
+        const unionResult = yield* unionRepo.query(Q.project(nestedUnionProjection, "project"))
+
+        result.forEach((_) => nestedProjectedItemsOf(_.items))
+        unionResult.forEach((_) => nestedProjectedItemsOf(_.items))
+        expect(result).toEqual([])
+        expect(unionResult).toEqual([])
       })
       .pipe(
         setupRequestContextFromCurrent(),

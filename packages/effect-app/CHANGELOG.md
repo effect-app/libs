@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.289
+
+### Patch Changes
+
+- a1b59bc: Allow query projections to use a repository's full union schema.
+
 ## 4.0.0-beta.288
 
 ### Minor Changes

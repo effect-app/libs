@@ -246,6 +246,7 @@
     "petite-tables-cover",
     "polite-chefs-drum",
     "project-encoded-type-constraint",
+    "project-union-schema",
     "provide-dual",
     "publish-tsconfig-postpack",
     "pure-usesync-cleanup",

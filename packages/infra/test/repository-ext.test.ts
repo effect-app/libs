@@ -2,6 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import * as DataDependencies from "effect-app/DataDependencies"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
+import { Q } from "effect-app/Model"
 import { makeRepo } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
@@ -16,7 +17,31 @@ class BatchItem extends S.Class<BatchItem>("BatchItem")({
 
 const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)
 
+const A = S.TaggedStruct("A", { id: S.String })
+const B = S.TaggedStruct("B", { id: S.String })
+const C = S.TaggedStruct("C", { id: S.String })
+
+const union = S.Union([A, B, C])
+
+const a = S.Struct({ id: S.String })
+
 describe("repository ext save/remove batching", () => {
+  it.effect("supports projecting full repository schema", () =>
+    Effect
+      .gen(function*() {
+        const unionRepo = yield* makeRepo("UnionItem", union, {})
+        const aRepo = yield* makeRepo("AItem", a, {})
+        const ARepo = yield* makeRepo("TaggedAItem", A, {})
+
+        expect(yield* unionRepo.query(Q.project(union))).toEqual([])
+        expect(yield* aRepo.query(Q.project(a))).toEqual([])
+        expect(yield* ARepo.query(Q.project(A))).toEqual([])
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
   it.effect("supports save batching overload", () =>
     Effect
       .gen(function*() {

@@ -1,15 +1,12 @@
 import { defaultRegistry, registryKey } from "@effect/atom-vue"
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
-import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
-import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
 import type * as Cause from "effect/Cause"
+import * as Layer from "effect/Layer"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import { createApp, effectScope, nextTick } from "vue"
+import { createApp, nextTick } from "vue"
 import { buildQueryFamily, makeAtomClientRuntime } from "../src/atomQuery.js"
-import { makeTanstackQuery } from "../src/internal/tanstackQuery.js"
 import { useAtomQuery } from "../src/query.js"
 
 const fakeHandler = <A, E>(
@@ -29,40 +26,6 @@ const querySpanParentName = Effect.currentSpan.pipe(
     })
   )
 )
-
-function makeTanstackContext(queryClient: QueryClient) {
-  const app = createApp({ render: () => null })
-  app.use(VueQueryPlugin, { queryClient })
-  const scope = effectScope(true)
-  const run = <T>(fn: () => T): T => {
-    let out!: T
-    app.runWithContext(() => {
-      scope.run(() => {
-        out = fn()
-      })
-    })
-    return out
-  }
-  return { run, dispose: () => scope.stop() }
-}
-
-it("passes the current parent span through legacy TanStack refetch", async () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
-  })
-  const query = makeTanstackQuery(() => Context.empty(), queryClient)(
-    fakeHandler("Test/TanStackSpan", () => querySpanParentName)
-  )
-  const ctx = makeTanstackContext(queryClient)
-
-  const [, , , handle] = ctx.run(() => query(undefined, {}))
-  await Effect.runPromise(handle.awaitResult())
-
-  const parentName = await Effect.runPromise(handle.refetch().pipe(Effect.withSpan("trigger")))
-
-  expect(parentName).toBe("trigger")
-  ctx.dispose()
-})
 
 it("passes the current parent span through atom query refetch", async () => {
   defaultRegistry.reset()

@@ -4,7 +4,6 @@ import { invalidateQueries } from "@effect-app/vue/mutate"
 import { defaultRegistry } from "@effect/atom-vue"
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { ApiClientFactory, InvalidStateError, makeRpcClient, NotLoggedInError, OptimisticConcurrencyException } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
@@ -22,12 +21,10 @@ import { FetchHttpClient } from "effect/unstable/http"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { RpcSerialization } from "effect/unstable/rpc"
 import { createServer } from "http"
-import { createApp, effectScope, ref } from "vue"
 import { RequestContextMiddleware } from "../../infra/src/internal/RequestContextMiddleware.ts"
 import { makeRouter } from "../../infra/src/routing.ts"
 import { DefaultGenericMiddlewaresLive } from "../../infra/src/routing/middleware.ts"
 import { MemoryStoreLive } from "../../infra/src/Store/Memory.ts"
-import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../../vue/src/internal/tanstackQuery.ts"
 
 class RequestContextMap extends RpcContextMap.makeMap({
   allowAnonymous: RpcContextMap.makeInverted()(NotLoggedInError)
@@ -207,61 +204,6 @@ it("atom engine: rpc repo write invalidates and refetches; unrelated rpc write d
     expect(after).toBe(before)
   } finally {
     unmount()
-    await runtime.dispose()
-  }
-}, 10_000)
-
-it("tanstack engine: rpc repo write invalidates and refetches; unrelated rpc write does not", async () => {
-  const [runtime, client, context] = await setup()
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
-  })
-  const useQuery = makeTanstackQuery(() => context, queryClient)
-  const invalidator = makeTanstackQueryInvalidator(queryClient)
-  const app = createApp({ render: () => null })
-  app.use(VueQueryPlugin, { queryClient })
-  const scope = effectScope(true)
-  let handle: any
-  let data: any
-  const run = <A, E>(effect: Effect.Effect<A, E, never>) => Effect.runPromise(effect)
-  const save = (id: string) =>
-    run(
-      invalidateQueries(client.SaveRepoItem, undefined, invalidator)(client.SaveRepoItem.handler({ id, label: id }), {
-        id,
-        label: id
-      })
-        .pipe(Effect.provide(context)) as any
-    )
-  const saveOther = (id: string) =>
-    run(
-      invalidateQueries(client.SaveOtherItem, undefined, invalidator)(client.SaveOtherItem.handler({ id, label: id }), {
-        id,
-        label: id
-      })
-        .pipe(Effect.provide(context)) as any
-    )
-
-  app.runWithContext(() =>
-    scope.run(() => {
-      const tuple = useQuery(client.GetRepoCount as any)(ref(undefined) as any, {} as any) as any
-      data = tuple[1]
-      handle = tuple[3]
-    })
-  )
-
-  try {
-    expect(await run(handle.refetch())).toBe(0)
-
-    await save("1")
-    expect(data.value).toBe(1)
-
-    const before = await run(client.GetRepoCountRuns.handler().pipe(Effect.provide(context)) as any)
-    await saveOther("x")
-    const after = await run(client.GetRepoCountRuns.handler().pipe(Effect.provide(context)) as any)
-    expect(after).toBe(before)
-  } finally {
-    scope.stop()
-    queryClient.clear()
     await runtime.dispose()
   }
 }, 10_000)

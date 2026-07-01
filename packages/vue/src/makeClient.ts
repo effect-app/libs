@@ -19,11 +19,10 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
 import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
-import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
-import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
-import { atomQueryCacheUpdater, type AtomQueryNewOptions, combineQueryCacheUpdaters, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, optionalAtomQueryCacheUpdater, type QueryObserverResult, type RefetchOptions, setQueryCacheUpdater, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
+import { atomQueryInvalidator, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
+import { atomQueryCacheUpdater, type AtomQueryNewOptions, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, type QueryObserverResult, type RefetchOptions, setQueryCacheUpdater, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
 import { type Toast } from "./toast.ts"
 
@@ -419,24 +418,15 @@ export const useMutationInt = (queryInvalidator: QueryInvalidator): typeof _useM
 
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
-export interface MakeClientOptions {
-  /**
-   * Selects the engine behind legacy `.query()` / `.suspense()` helpers.
-   * Atom-native `.atom()` / `.family()` / `.queryNew()` / `.suspenseNew()` always use Atom.
-   */
-  readonly legacyQueryEngine?: "atom" | "tanstack"
-}
-
 export class QueryImpl<R> {
   readonly getRuntime: () => Context.Context<R>
 
   constructor(
     getRuntime: () => Context.Context<R>,
-    getAtomRt: () => AtomClientRuntime,
-    legacyUseQuery?: ReturnType<typeof makeQuery<R>>
+    getAtomRt: () => AtomClientRuntime
   ) {
     this.getRuntime = getRuntime
-    this.useQuery = legacyUseQuery ?? makeQuery(this.getRuntime, getAtomRt)
+    this.useQuery = makeQuery(this.getRuntime, getAtomRt)
     this.useQueryNew = makeQueryNew(this.getRuntime, getAtomRt)
     this.useQueryAtom = makeQueryAtom(this.getRuntime, getAtomRt)
     this.useQueryFamily = makeQueryFamily(this.getRuntime, getAtomRt)
@@ -702,8 +692,7 @@ export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>,
-  rtHooks: Layer.Layer<RTHooks, never, Mix>,
-  options?: MakeClientOptions
+  rtHooks: Layer.Layer<RTHooks, never, Mix>
 ) => {
   type RT = RT_ | Mix
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
@@ -717,21 +706,9 @@ export const makeClient = <RT_, RTHooks>(
   const getAtomRt =
     () => (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
 
-  const legacyQueryEngine = options?.legacyQueryEngine ?? "tanstack"
-  let tanstackQueryClient: ReturnType<typeof makeTanstackQueryClient> | undefined
-  const getTanstackQueryClient = () => tanstackQueryClient ??= makeTanstackQueryClient()
   const atomInvalidator = makeResolvedAtomQueryInvalidator(getBaseRt)
-  const queryInvalidator = legacyQueryEngine === "tanstack"
-    ? combineQueryInvalidators(atomInvalidator, makeTanstackQueryInvalidator(getTanstackQueryClient()))
-    : atomInvalidator
-  setQueryCacheUpdater(
-    legacyQueryEngine === "tanstack"
-      ? combineQueryCacheUpdaters(
-        makeTanstackQueryCacheUpdater(getTanstackQueryClient()),
-        optionalAtomQueryCacheUpdater
-      )
-      : atomQueryCacheUpdater
-  )
+  const queryInvalidator = atomInvalidator
+  setQueryCacheUpdater(atomQueryCacheUpdater)
 
   let m: ReturnType<typeof useMutationInt>
   const useMutation = () => m ??= useMutationInt(queryInvalidator)
@@ -739,10 +716,7 @@ export const makeClient = <RT_, RTHooks>(
   let sm2: ReturnType<typeof makeStreamMutation2>
   const useStreamMutation2 = () => sm2 ??= makeStreamMutation2(queryInvalidator)
 
-  const legacyUseQuery = legacyQueryEngine === "tanstack"
-    ? makeTanstackQuery(getBaseRt, getTanstackQueryClient())
-    : undefined
-  const query = new QueryImpl(getBaseRt, getAtomRt, legacyUseQuery)
+  const query = new QueryImpl(getBaseRt, getAtomRt)
   const useQuery = query.useQuery
   const useQueryNew = query.useQueryNew
   const useQueryAtom = query.useQueryAtom
@@ -1245,8 +1219,7 @@ export const makeClient = <RT_, RTHooks>(
   return {
     Command,
     useCommand,
-    clientFor,
-    tanstackQueryClient: getTanstackQueryClient()
+    clientFor
   }
 }
 

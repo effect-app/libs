@@ -17,6 +17,46 @@ import { WithNsTransaction } from "../../Store/SQL.ts"
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
+// Summarize an rpc payload for the `rpc.request.payload` span attribute.
+// Scalars are kept (long strings snipped), nested objects are recursed into up
+// to `PAYLOAD_MAX_DEPTH` so useful inputs (carrier, packageType, dimensions, ids,
+// …) are captured. Arrays are sampled to the first `PAYLOAD_ARRAY_HEAD` elements
+// (with a `…N more` marker when longer) so pack/pick item arrays — one entry per
+// article, quantity folded into `amount` — are diagnosable without dumping the
+// whole tail on every (high-frequency) SaveItems.
+const PAYLOAD_MAX_DEPTH = 4
+const PAYLOAD_ARRAY_HEAD = 20
+const REDACTED_KEYS = new Set(["password", "secret", "token"])
+
+const summarizePayloadValue = (key: string, value: unknown, depth: number): unknown => {
+  if (REDACTED_KEYS.has(key)) return "<redacted>"
+  if (typeof value === "string") return value.length > 256 ? value.substring(0, 253) + "..." : value
+  if (typeof value === "number" || typeof value === "boolean") return value
+  if (value === null || value === undefined) return `${value}`
+  if (Array.isArray(value)) {
+    if (depth >= PAYLOAD_MAX_DEPTH) return `Array[${value.length}]`
+    const head = value.slice(0, PAYLOAD_ARRAY_HEAD).map((v) => summarizePayloadValue(key, v, depth + 1))
+    return value.length > PAYLOAD_ARRAY_HEAD ? [...head, `…${value.length - PAYLOAD_ARRAY_HEAD} more`] : head
+  }
+  if (typeof value === "object") {
+    return depth >= PAYLOAD_MAX_DEPTH
+      ? `Object[${Object.keys(value).length}]`
+      : Object.entries(value).reduce((prev, [k, v]) => {
+        prev[k] = summarizePayloadValue(k, v, depth + 1)
+        return prev
+      }, {} as Record<string, unknown>)
+  }
+  return typeof value
+}
+
+const summarizePayload = (payload: unknown): unknown =>
+  typeof payload === "object" && payload !== null
+    ? Object.entries(payload).reduce((prev, [key, value]) => {
+      prev[key] = summarizePayloadValue(key, value, 1)
+      return prev
+    }, {} as Record<string, unknown>)
+    : payload
+
 // TODO: do we need this as middleware or just as layer?
 export const DevModeLive = Layer.effect(
   DevMode,
@@ -64,24 +104,7 @@ export const LoggerMiddlewareLive = Layer
         Effect
           .annotateCurrentSpan({
             "rpc.method": rpc._tag,
-            "rpc.request.payload": typeof payload === "object" && payload !== null
-              ? Object.entries(payload).reduce((prev, [key, value]: [string, unknown]) => {
-                prev[key] = key === "password"
-                  ? "<redacted>"
-                  : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-                  ? typeof value === "string" && value.length > 256
-                    ? (value.substring(0, 253) + "...")
-                    : value
-                  : Array.isArray(value)
-                  ? `Array[${value.length}]`
-                  : value === null || value === undefined
-                  ? `${value}`
-                  : typeof value === "object" && value
-                  ? `Object[${Object.keys(value).length}]`
-                  : typeof value
-                return prev
-              }, {} as Record<string, string | number | boolean>)
-              : payload
+            "rpc.request.payload": summarizePayload(payload)
           })
           .pipe(
             Effect.andThen(effect),

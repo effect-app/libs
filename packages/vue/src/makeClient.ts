@@ -1268,6 +1268,6 @@ export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>, A, E> {}
 
-export interface CommandFromRequest<I extends { readonly make: (...args: any[]) => any }, A = unknown, E = unknown>
+export interface CommandFromRequest<I extends { readonly fields: S.Struct.Fields }, A = unknown, E = unknown>
   extends EffectCommand<HandlerInput<I>, A, E>
 {}

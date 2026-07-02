@@ -133,8 +133,8 @@ export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string
   RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
-  [] ? void : Parameters<I["make"]>[0]
+export type RequestInputFromMake<I extends { readonly "~type.make.in": unknown; readonly fields: S.Struct.Fields }> =
+  I["~type.make.in"]
 
 // Has no input only when the request schema declares no payload fields (the auto-added
 // `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.
@@ -142,13 +142,14 @@ type HasNoFields<I> = I extends { readonly fields: infer F extends S.Struct.Fiel
   ? [Exclude<keyof F, "_tag">] extends [never] ? true : false
   : false
 
-type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]>[0]
+type RequestInput<I extends { readonly "~type.make.in": unknown; readonly fields: S.Struct.Fields }> =
+  I["~type.make.in"]
 
 /**
  * Caller-facing input type for a request. `void` when the request schema has no fields;
  * otherwise `make`'s first param type.
  */
-export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> = HasNoFields<I> extends true ? void
+export type HandlerInput<I extends { readonly fields: S.Struct.Fields }> = HasNoFields<I> extends true ? void
   : RequestInput<I>
 
 /** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */

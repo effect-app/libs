@@ -301,7 +301,7 @@ const makeApiClientFactory = Effect
               mr.contextEffect.pipe(
                 Effect.flatMap((svcs) => {
                   const rpcEffect = TheClient
-                    .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
+                    .use((client) => (client as any)[requestAttr]!(input) as Effect.Effect<any, any>)
                     .pipe(
                       // local: true → isolate to this RPC call. `layers` is pure today
                       // (RequestName + caller-supplied requestLevelLayers), but the
@@ -324,7 +324,7 @@ const makeApiClientFactory = Effect
                     TheClient
                       .useSync((client) => {
                         const rpcStream = (client as any)[requestAttr]!(
-                          Request.make(input)
+                          input
                         ) as Stream.Stream<any, any, any>
                         return rpcStream.pipe(
                           // Collect server invalidation keys from the "done" chunk, then discard it.

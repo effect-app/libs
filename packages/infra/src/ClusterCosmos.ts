@@ -114,6 +114,10 @@ const messagePartition = (shardId: string) => `message::${shardId}`
 const messageDocId = (envelope: Envelope.Encoded, primaryKey: string | null) =>
   cosmosId(primaryKey === null ? envelopeId(envelope) : `primary::${primaryKey}`)
 const replyPartition = (requestId: string) => `reply::${requestId}`
+const replyDocId = (reply: Reply.Encoded) =>
+  reply._tag === "WithExit"
+    ? cosmosId(`reply::with-exit::${reply.requestId}`)
+    : cosmosId(`reply::chunk::${reply.requestId}::${reply.sequence}`)
 const runnerDocId = (address: string) => cosmosId(`runner::${address}`)
 const lockDocId = (shardId: string) => cosmosId(`lock::${shardId}`)
 const tenMinutes = Duration.toMillis(Duration.minutes(10))
@@ -301,7 +305,7 @@ const envelopeFromDoc = (
 const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
   reply._tag === "WithExit"
     ? {
-      id: cosmosId(reply.id),
+      id: replyDocId(reply),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
@@ -312,7 +316,7 @@ const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
       acked: false
     }
     : {
-      id: cosmosId(reply.id),
+      id: replyDocId(reply),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
@@ -400,17 +404,30 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         )
 
   const markReplyAcked = (requestId: string, replyId: string) =>
-    Effect
-      .tryPromise(() =>
-        container.item(cosmosId(replyId), replyPartition(requestId)).patch<ReplyDoc>([
-          { op: "set", path: "/acked", value: true }
-        ])
-      )
+    queryReplies(
+      "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.rowid = @replyId",
+      [
+        { name: "@requestId", value: requestId },
+        { name: "@replyId", value: replyId }
+      ]
+    )
       .pipe(
-        Effect.tap(annotateItem),
-        Effect.asVoid,
-        Effect.catchIf(isNotFound, () => Effect.void),
-        Effect.catchIf(isPreconditionFailed, () => Effect.void)
+        Effect.flatMap((docs) => {
+          const doc = docs[0]
+          if (doc === undefined) return Effect.void
+          return Effect
+            .tryPromise(() =>
+              container.item(doc.id, replyPartition(requestId)).patch<ReplyDoc>([
+                { op: "set", path: "/acked", value: true }
+              ])
+            )
+            .pipe(
+              Effect.tap(annotateItem),
+              Effect.asVoid,
+              Effect.catchIf(isNotFound, () => Effect.void),
+              Effect.catchIf(isPreconditionFailed, () => Effect.void)
+            )
+        })
       )
 
   const claimMessageRead = (doc: MessageDoc, now: number) =>
@@ -542,8 +559,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         .gen(function*() {
           const doc = replyToDoc(reply)
           yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
-            Effect.tap(annotateItem),
-            Effect.catchIf(isConflict, () => Effect.void)
+            Effect.tap(annotateItem)
           )
           const messages = yield* queryMessages(
             "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
@@ -709,6 +725,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           withTracerDisabled
         ),
 
+    // Cosmos does not expose a general cross-operation transaction matching SQL semantics.
     withTransaction: (effect) => effect
   })
 })

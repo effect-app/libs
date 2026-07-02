@@ -156,6 +156,34 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
         yield* Fiber.await(fiber)
       })
       .pipe(Effect.provide(layerFor())))
+
+  it.effect("fails on duplicate WithExit for the same request", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const request = yield* makeStreamRequest(`duplicate-with-exit/${testRunId}`)
+        yield* storage.saveRequest(request)
+        yield* storage.saveReply(yield* makeStreamReply(request))
+
+        const duplicateAttempt = storage.saveReply(yield* makeStreamReply(request))
+        const error = yield* Effect.flip(duplicateAttempt)
+        assert.strictEqual(error._tag, "PersistenceError")
+      })
+      .pipe(Effect.provide(layerFor())))
+
+  it.effect("fails on duplicate Chunk sequence for the same request", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const request = yield* makeStreamRequest(`duplicate-chunk-sequence/${testRunId}`)
+        yield* storage.saveRequest(request)
+        yield* storage.saveReply(yield* makeChunkReply(request, 0))
+
+        const duplicateAttempt = storage.saveReply(yield* makeChunkReply(request, 0))
+        const error = yield* Effect.flip(duplicateAttempt)
+        assert.strictEqual(error._tag, "PersistenceError")
+      })
+      .pipe(Effect.provide(layerFor())))
 })
 
 describe.skipIf(!cosmosUrl)("ClusterCosmos RunnerStorage", () => {

@@ -1,13 +1,13 @@
 <template>
   <h1>Does editing one field wipe the others?</h1>
   <p>
-    Each column starts with a record already saved on the server: <code>name</code> and <code>age</code> both
-    filled in. The edit dialog below it only exposes <b>name</b>, a narrow edit action that never shows or
-    touches <code>age</code>. Click <b>Save</b> without touching <code>age</code> and watch what happens to it
-    in the "Saved record" box above.
+    Each column starts with a record already saved on the server: <code>name</code> and <code>age</code> both filled in.
+    The edit dialog below it only exposes <b>name</b>, a narrow edit action that never shows or touches <code
+    >age</code>. Click <b>Save</b> without touching <code>age</code> and watch what happens to it in the "Saved record"
+    box above.
   </p>
-  <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-    <section style="flex: 1; min-width: 320px;">
+  <div style="display: flex; gap: 2rem; flex-wrap: wrap">
+    <section style="flex: 1; min-width: 320px">
       <h2>Buggy: plain <code>Struct.omit</code></h2>
 
       <h3>Saved record (server)</h3>
@@ -37,7 +37,7 @@
       <pre>{{ buggyPayload ?? "(not submitted yet)" }}</pre>
     </section>
 
-    <section style="flex: 1; min-width: 320px;">
+    <section style="flex: 1; min-width: 320px">
       <h2>Fixed: <code>S.omitConstructorDefaults</code></h2>
 
       <h3>Saved record (server)</h3>

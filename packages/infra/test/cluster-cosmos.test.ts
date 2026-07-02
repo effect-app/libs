@@ -86,6 +86,33 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
       })
       .pipe(Effect.provide(layerFor())))
 
+  it.effect("rejects duplicate terminal replies and chunk sequences", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+
+        const terminalRequest = yield* makeStreamRequest(
+          `duplicate-terminal/${testRunId}`,
+          testShardId("message-reply-unique")
+        )
+        assert.strictEqual((yield* storage.saveRequest(terminalRequest))._tag, "Success")
+        yield* storage.saveReply(yield* makeStreamReply(terminalRequest))
+
+        const duplicateTerminal = yield* Effect.flip(storage.saveReply(yield* makeStreamReply(terminalRequest)))
+        assert.strictEqual(duplicateTerminal._tag, "PersistenceError")
+
+        const chunkRequest = yield* makeStreamRequest(
+          `duplicate-chunk/${testRunId}`,
+          testShardId("message-reply-unique")
+        )
+        assert.strictEqual((yield* storage.saveRequest(chunkRequest))._tag, "Success")
+        yield* storage.saveReply(yield* makeChunkReply(chunkRequest, 0))
+
+        const duplicateChunk = yield* Effect.flip(storage.saveReply(yield* makeChunkReply(chunkRequest, 0)))
+        assert.strictEqual(duplicateChunk._tag, "PersistenceError")
+      })
+      .pipe(Effect.provide(layerFor())), 20000)
+
   it.effect("returns each unprocessed message to only one concurrent node poll", () =>
     Effect
       .gen(function*() {

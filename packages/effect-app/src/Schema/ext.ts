@@ -39,9 +39,11 @@ import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as Struct from "effect/Struct"
+import { type Simplify } from "effect/Types"
 import { type NonEmptyReadonlyArray } from "../Array.ts"
 import * as Context from "../Context.ts"
-import type * as SchemaAST from "../SchemaAST.ts"
+import * as SchemaAST from "../SchemaAST.ts"
 import { extendM, typedKeysOf } from "../utils.ts"
 import { type AST } from "./schema.ts"
 
@@ -547,6 +549,46 @@ export function makeExactOptional<NER extends S.Struct.Fields>(
   return typedKeysOf(t).reduce((prev, cur) => {
     prev[cur] = S.optionalKey(t[cur] as any)
     return prev
+  }, {} as any)
+}
+
+type StripConstructorDefault<T> = Omit<T, "~type.constructor.default"> & {
+  readonly "~type.constructor.default": "no-default"
+}
+
+const SchemaASTInternal = SchemaAST as unknown as {
+  readonly replaceContext: <A extends SchemaAST.AST>(ast: A, context: SchemaAST.Context | undefined) => A
+}
+
+/** Removes an attached `withConstructorDefault` from a field schema, if present. */
+const stripConstructorDefault = (schema: S.Top): S.Top => {
+  const context = schema.ast.context
+  if (!context?.defaultValue) return schema
+  return schema.rebuild(
+    SchemaASTInternal.replaceContext(
+      schema.ast,
+      new SchemaAST.Context(context.isOptional, context.isMutable, undefined, context.annotations)
+    )
+  )
+}
+
+/**
+ * Like `Struct.omit`, but also strips any `withConstructorDefault` carried by
+ * the fields that remain. Use when deriving a partial-update schema from a
+ * "create" schema, so an omitted field stays omitted in `.make(...)` output
+ * instead of being silently filled in with its inherited default.
+ */
+export function omitConstructorDefaults<
+  Fields extends S.Struct.Fields,
+  const Keys extends ReadonlyArray<keyof Fields>
+>(
+  fields: Fields,
+  keys: Keys
+): Simplify<{ [K in Exclude<keyof Fields, Keys[number]>]: StripConstructorDefault<Fields[K]> }> {
+  const picked = Struct.omit(fields, keys)
+  return typedKeysOf(picked).reduce((acc, k) => {
+    acc[k] = stripConstructorDefault(picked[k] as unknown as S.Top)
+    return acc
   }, {} as any)
 }
 

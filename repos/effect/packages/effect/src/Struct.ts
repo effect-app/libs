@@ -217,6 +217,9 @@ export const pick: {
  *
  * Keys not present in the struct are silently ignored.
  *
+ * On `Schema.Struct` fields, remaining fields keep their `withConstructorDefault`.
+ * Use `S.omitConstructorDefaults` (`effect-app/Schema`) if you need that stripped too.
+ *
  * **Example** (Removing a property)
  *
  * ```ts

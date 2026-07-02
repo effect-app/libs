@@ -26,6 +26,7 @@ import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
 import NullableComponent from "./OmegaForm/Nullable.vue"
 import NullableNestedStructComponent from "./OmegaForm/NullableNestedStruct.vue"
+import OmitConstructorDefaultsComponent from "./OmegaForm/OmitConstructorDefaults.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
@@ -363,6 +364,21 @@ export const Defaults: Story = {
     components: { DefaultsComponent },
     template: "<DefaultsComponent />"
   })
+}
+
+export const OmitConstructorDefaults: Story = {
+  render: () => ({
+    components: { OmitConstructorDefaultsComponent },
+    template: "<OmitConstructorDefaultsComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compares deriving an update schema with plain Struct.omit (leaks inherited withConstructorDefault) against S.omitConstructorDefaults (strips it). Each column starts with a saved record; the edit dialog only lets you change one field. Save without touching the other field and watch whether it survives."
+      }
+    }
+  }
 }
 
 export const Redacted: Story = {

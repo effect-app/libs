@@ -2,6 +2,8 @@
 import * as Array from "effect-app/Array"
 import * as S from "effect-app/Schema"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import * as Effect from "effect/Effect"
+import * as Struct from "effect/Struct"
 import { describe, expect, expectTypeOf, test } from "vitest"
 
 const A = S.Struct({ a: S.NonEmptyString255, email: S.NullOr(S.Email) })
@@ -25,6 +27,30 @@ test("literal default works", () => {
   const l2 = l.changeDefault("b")
   const s2 = S.Struct({ l: l2.withConstructorDefault })
   expect(s2.make({}).l).toBe("b")
+})
+
+// Toy schema for `omitConstructorDefaults`: a field with a constructor
+// default that should NOT auto-populate when deriving a partial-update
+// schema from a "create" schema.
+const Person = S.Struct({
+  name: S.String,
+  notes: S.NullOr(S.String).pipe(S.optionalKey, S.withConstructorDefault(Effect.succeed(null)))
+})
+
+test("plain Struct.omit leaks the inherited constructor default (the bug)", () => {
+  const UpdatePersonBuggy = S.Struct(Struct.omit(Person.fields, [] as const))
+  expect(UpdatePersonBuggy.make({ name: "Mario" })).toEqual({ name: "Mario", notes: null })
+})
+
+test("omitConstructorDefaults strips the inherited constructor default (the fix)", () => {
+  const UpdatePersonFixed = S.Struct(S.omitConstructorDefaults(Person.fields, [] as const))
+  expect(UpdatePersonFixed.make({ name: "Mario" })).toEqual({ name: "Mario" })
+})
+
+test("omitConstructorDefaults still omits the requested keys, like Struct.omit", () => {
+  const NameOnly = S.Struct(S.omitConstructorDefaults(Person.fields, ["notes"] as const))
+  expect(NameOnly.make({ name: "Mario" })).toEqual({ name: "Mario" })
+  expectTypeOf<typeof NameOnly.Type>().toEqualTypeOf<{ readonly name: string }>()
 })
 
 test("NonEmptyString255.Type uses the named brand alias", () => {

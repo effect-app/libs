@@ -16,7 +16,7 @@ import type * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
-import { computed, type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
+import { type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
 import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
 import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
@@ -25,6 +25,7 @@ import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
 import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
 import { atomQueryCacheUpdater, type AtomQueryNewOptions, combineQueryCacheUpdaters, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, optionalAtomQueryCacheUpdater, type QueryObserverResult, type RefetchOptions, setQueryCacheUpdater, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
+import { latestDefined } from "./suspense.ts"
 import { type Toast } from "./toast.ts"
 
 export type { Progress }
@@ -520,13 +521,7 @@ export class QueryImpl<R> {
         signal
       ] = useScopedSuspenseSetup(() => {
         const [resultRef, latestRef, fetch, uqrt] = q<TData>(argOrOptions, options)
-        const latestDefinedRef = computed<TData>(() => {
-          const latest = latestRef.value
-          if (latest === undefined) {
-            throw new Error("Internal Error: suspense resolved without a latest value")
-          }
-          return latest
-        })
+        const latestDefinedRef = latestDefined(() => latestRef.value, "suspense")
         return [resultRef, latestDefinedRef, fetch, uqrt] as const
       })
 
@@ -573,13 +568,7 @@ export class QueryImpl<R> {
     ) => {
       const [{ view, data }, isMounted, signal] = useScopedSuspenseSetup(() => {
         const view = q<TData>(argOrOptions, options)
-        const data = computed<TData>(() => {
-          const latest = view.data.value
-          if (latest === undefined) {
-            throw new Error("Internal Error: suspenseNew resolved without a latest value")
-          }
-          return latest
-        })
+        const data = latestDefined(() => view.data.value, "suspenseNew")
         return { view, data }
       })
 

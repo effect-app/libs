@@ -18,6 +18,7 @@ import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import { latestDefined } from "./suspense.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
 type DefaultError = Error
@@ -315,13 +316,7 @@ export const useAtomSuspense = <A, E>(
 ): Promise<SuspenseQueryView<A, E>> => {
   const [{ view, data }, isMounted, signal] = useScopedSuspenseSetup(() => {
     const view = useAtomQuery(atom)
-    const data = computed<A>(() => {
-      const latest = view.data.value
-      if (latest === undefined) {
-        throw new Error("Internal Error: atom suspense resolved without a latest value")
-      }
-      return latest
-    })
+    const data = latestDefined(() => view.data.value, "atom suspense")
     return { view, data }
   })
 

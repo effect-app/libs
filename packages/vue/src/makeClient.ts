@@ -8,6 +8,8 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as S from "effect-app/Schema"
+import * as Cause from "effect/Cause"
+import * as Data from "effect/Data"
 import * as Exit from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
 import * as Hash from "effect/Hash"
@@ -52,6 +54,31 @@ const useScopedSuspenseSetup = <A>(setup: () => A) => {
 
   return [value, isMounted, controller.signal] as const
 }
+
+/**
+ * A suspense query settled with an interrupt-only cause while its component was still MOUNTED.
+ *
+ * That combination classifies the interrupt's origin: a navigation/unmount cancel interrupts the
+ * suspense *fiber* (via the scope's AbortSignal) or is hidden by effect-core before it can settle —
+ * it never yields a still-mounted `Failure` exit. A `Failure(interrupt-only)` observed while mounted
+ * therefore came from the QUERY side — e.g. the server returned an RPC interrupt `Exit` (over a 200),
+ * or the fetch was superseded — and silencing it leaves the user staring at a blank page.
+ *
+ * Error boundaries can rely on this split: keep silencing raw interrupt-only causes (those are
+ * genuinely "user navigated away"), and render this error as "the request was interrupted — reload?".
+ */
+export class SuspenseInterruptedError extends Data.TaggedError("SuspenseInterruptedError")<{
+  readonly originalCause: Cause.Cause<unknown>
+  readonly source: "suspense" | "suspenseNew"
+}> {
+  override get message() {
+    return "The request was interrupted while the page was still active"
+  }
+}
+
+/** Structural check (by `_tag`) so consumers compiled against older published types can detect it. */
+export const isSuspenseInterruptedError = (e: unknown): e is SuspenseInterruptedError =>
+  typeof e === "object" && e !== null && "_tag" in e && e._tag === "SuspenseInterruptedError"
 
 // TODO: optimize - work from encoded shape directly
 const projectHandler = <
@@ -532,6 +559,12 @@ export class QueryImpl<R> {
           return yield* Effect.interrupt
         }
         if (Exit.isFailure(exit)) {
+          // Still mounted, so this interrupt came from the query side (e.g. a server RPC interrupt
+          // Exit), not from navigation/unmount — surface it as a renderable typed error instead of a
+          // raw interrupt the error boundary would silence into a blank page.
+          if (Cause.hasInterruptsOnly(exit.cause)) {
+            return yield* new SuspenseInterruptedError({ originalCause: exit.cause, source: "suspense" })
+          }
           return yield* Exit.failCause(exit.cause)
         }
 
@@ -579,6 +612,10 @@ export class QueryImpl<R> {
           return yield* Effect.interrupt
         }
         if (Exit.isFailure(exit)) {
+          // Still mounted → query-side interrupt (see SuspenseInterruptedError) — render, don't silence.
+          if (Cause.hasInterruptsOnly(exit.cause)) {
+            return yield* new SuspenseInterruptedError({ originalCause: exit.cause, source: "suspenseNew" })
+          }
           return yield* Exit.failCause(exit.cause)
         }
 

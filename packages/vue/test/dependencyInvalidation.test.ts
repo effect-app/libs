@@ -5,16 +5,18 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeQueryKey } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
+import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
+import * as Stream from "effect/Stream"
 import { TestClock } from "effect/testing"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
 import { clearQueryReadDependencies, getDerivedInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
-import { invalidateQueries, type MutationOptionsBase } from "../src/mutate.js"
+import { invalidateQueries, makeStreamMutation2, type MutationOptionsBase } from "../src/mutate.js"
 
 const repo = DataDependencies.repo("FrontendRepo")
 const otherRepo = DataDependencies.repo("OtherRepo")
@@ -91,6 +93,97 @@ it.effect("a command's write deps invalidate active queries whose recorded reads
 
     expect(result).toBe(123)
     expect(recorded).toContainEqual(inventoryKey)
+  }))
+
+it.effect("opt-in cached success invalidation is replayed when the same mutation input fails", () =>
+  Effect.gen(function*() {
+    const inventoryKey = ["$CachedSuccess", "List", undefined]
+    const cachedRepo = DataDependencies.repo("CachedSuccessRepo")
+    const recorded: Array<ReadonlyArray<unknown>> = []
+    const queryInvalidator = {
+      invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
+        Effect.sync(() => keys.forEach((key) => recorded.push(key)))
+    }
+    const mutate = invalidateQueries(
+      { id: "CachedSuccess.Save" },
+      { invalidateOnFailureFromLastSuccess: true },
+      queryInvalidator
+    )
+
+    yield* mutate(DataDependencies.write(cachedRepo).pipe(Effect.as(123)), { id: "abc" })
+    expect(recorded).toStrictEqual([])
+
+    setQueryReadDependencies(inventoryKey, new Set([cachedRepo]))
+    try {
+      const fiber = yield* Effect.forkChild(mutate(Effect.fail("boom"), { id: "abc" }).pipe(Effect.exit))
+      yield* TestClock.adjust("1 millis")
+      const exit = yield* Fiber.join(fiber)
+
+      expect(Exit.isFailure(exit)).toBe(true)
+      expect(recorded).toContainEqual(inventoryKey)
+    } finally {
+      clearQueryReadDependencies(inventoryKey)
+    }
+  }))
+
+it.effect("cached success invalidation is opt-in", () =>
+  Effect.gen(function*() {
+    const inventoryKey = ["$CachedSuccessOptOut", "List", undefined]
+    const cachedRepo = DataDependencies.repo("CachedSuccessOptOutRepo")
+    const recorded: Array<ReadonlyArray<unknown>> = []
+    const queryInvalidator = {
+      invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
+        Effect.sync(() => keys.forEach((key) => recorded.push(key)))
+    }
+    const mutate = invalidateQueries({ id: "CachedSuccessOptOut.Save" }, undefined, queryInvalidator)
+
+    yield* mutate(DataDependencies.write(cachedRepo).pipe(Effect.as(123)), { id: "abc" })
+    setQueryReadDependencies(inventoryKey, new Set([cachedRepo]))
+    try {
+      const exit = yield* mutate(Effect.fail("boom"), { id: "abc" }).pipe(Effect.exit)
+
+      expect(Exit.isFailure(exit)).toBe(true)
+      expect(recorded).toStrictEqual([])
+    } finally {
+      clearQueryReadDependencies(inventoryKey)
+    }
+  }))
+
+it.effect("stream mutations can replay cached success invalidation on failure", () =>
+  Effect.gen(function*() {
+    const inventoryKey = ["$CachedStreamSuccess", "List", undefined]
+    const cachedRepo = DataDependencies.repo("CachedStreamSuccessRepo")
+    const recorded: Array<ReadonlyArray<unknown>> = []
+    const queryInvalidator = {
+      invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
+        Effect.sync(() => keys.forEach((key) => recorded.push(key)))
+    }
+    let shouldFail = false
+    const mutate = makeStreamMutation2(queryInvalidator)({
+      id: "CachedStreamSuccess.Save",
+      handler: () =>
+        shouldFail
+          ? Stream.fail("boom")
+          : Stream.fromEffect(DataDependencies.write(cachedRepo).pipe(Effect.as(1)))
+    })
+
+    yield* Stream.runDrain(mutate({ id: "abc" }, { invalidateOnFailureFromLastSuccess: true }))
+    expect(recorded).toStrictEqual([])
+
+    shouldFail = true
+    setQueryReadDependencies(inventoryKey, new Set([cachedRepo]))
+    try {
+      const fiber = yield* Effect.forkChild(
+        Stream.runDrain(mutate({ id: "abc" }, { invalidateOnFailureFromLastSuccess: true })).pipe(Effect.exit)
+      )
+      yield* TestClock.adjust("1 millis")
+      const exit = yield* Fiber.join(fiber)
+
+      expect(Exit.isFailure(exit)).toBe(true)
+      expect(recorded).toContainEqual(inventoryKey)
+    } finally {
+      clearQueryReadDependencies(inventoryKey)
+    }
   }))
 
 // --- atom engine: recording wires through buildQueryFamily ---------------------------------------

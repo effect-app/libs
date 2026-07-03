@@ -222,7 +222,7 @@ export type StreamFnStreamExtension<RT, Req> = Req extends
  */
 export type StreamMutation2WithExtensions<RT, Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-    & ((input: I) => Stream.Stream<A, E, R>)
+    & ((input: I, options?: Pick<MutationOptionsBase, "invalidateOnFailureFromLastSuccess">) => Stream.Stream<A, E, R>)
     & {
       readonly id: Id
       readonly wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(

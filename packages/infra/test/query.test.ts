@@ -629,6 +629,7 @@ it("projectComputed validates extra computed keys", () => {
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
     projectComputed(
       S.Struct({ id: S.String }),
+      // @ts-expect-error extra computed keys are rejected statically; keep runtime guard covered
       computed({
         pickedCount: relation<S.Codec.Encoded<typeof baseSchema>>("items").count()
       })
@@ -637,12 +638,70 @@ it("projectComputed validates extra computed keys", () => {
   expect(() => toFilter(query, baseSchema)).toThrowError("Computed projection keys must exist in projection schema")
 })
 
+it("projectComputed constrains projection schema to encoded repo fields and computed outputs", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    name: S.String,
+    items: S.Array(S.Struct({ articleId: S.String, weight: S.Number }))
+  })
+  type Encoded = S.Codec.Encoded<typeof baseSchema>
+
+  make<Encoded>().pipe(
+    projectComputed(
+      S.Struct({
+        id: S.String,
+        itemCount: S.Number,
+        hasItems: S.Boolean,
+        articleIds: S.Array(S.String)
+      }),
+      ({ relation }) => ({
+        itemCount: relation("items").count(),
+        hasItems: relation("items").any(),
+        articleIds: relation("items").collect("articleId")
+      })
+    )
+  )
+
+  make<Encoded>().pipe(
+    // @ts-expect-error missingField is neither an encoded repo field nor a computed projection
+    projectComputed(S.Struct({ missingField: S.String }), computed({}))
+  )
+
+  make<Encoded>().pipe(
+    projectComputed(
+      // @ts-expect-error repo field name is encoded as string
+      S.Struct({ name: S.Number }),
+      computed({})
+    )
+  )
+
+  make<Encoded>().pipe(
+    projectComputed(
+      // @ts-expect-error itemCount computes a number
+      S.Struct({ itemCount: S.String }),
+      computed({ itemCount: relation<Encoded>("items").count() })
+    )
+  )
+
+  make<Encoded>().pipe(
+    projectComputed(
+      S.Struct({ itemCount: S.Number }),
+      // @ts-expect-error extra computed keys must exist in the projection schema
+      computed({
+        itemCount: relation<Encoded>("items").count(),
+        extraCount: relation<Encoded>("items").count()
+      })
+    )
+  )
+})
+
 it("projection schema with computed fields fails without computed map", () => {
   const baseSchema = S.Struct({
     id: S.String,
     items: S.Array(S.Struct({ value: S.Number }))
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    // @ts-expect-error missing computed keys are rejected statically; keep runtime guard covered
     projectComputed(S.Struct({ pickedCount: S.NonNegativeInt }), computed({}))
   )
   expect(() => toFilter(query, baseSchema)).toThrowError("Missing computed projections for schema keys")
@@ -1764,6 +1823,7 @@ it("memFilter: rejects extra computed keys not in projection schema", () => {
   const q = make<ComputedBase>().pipe(
     projectComputed(
       S.Struct({ id: S.String }),
+      // @ts-expect-error extra computed keys are rejected statically; keep runtime guard covered
       computed({
         bogus: relation<ComputedBase>("items").count(where("tag", "a"))
       })

@@ -52,20 +52,29 @@ type ExtractTType<T> = T extends QueryTogether<any, any, any, any, any, any, inf
 type ExtractExclusiveness<T> = T extends QueryTogether<any, any, infer Exclusive extends boolean, any, any, any, any>
   ? Exclusive
   : never
+type ExtractFieldValues<T> = T extends QueryTogether<infer TFieldValues, any, any, any, any, any, any> ? TFieldValues
+  : never
 type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any>
   ? TFieldValuesRefined
   : never
-type ProjectableField<I, From, K extends PropertyKey> = K extends keyof From ? From[K] extends I ? I
-  : I extends From[K] ? I
+type KeysOfUnion<T> = T extends T ? keyof T : never
+type LiteralValue<T> = T extends { readonly literal: infer L } ? L : T
+type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
+  ? [LiteralValue<FromTag>] extends [LiteralValue<Tag>] ? From : never
   : never
+type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? ExtractTagged<From, Tag>
+  : From
+type ProjectableField<I, From, K extends PropertyKey> = K extends KeysOfUnion<From> ? I
   : never
 type ProjectableEncoded<I, From> = I extends FieldValues ? {
-    [K in keyof I]: K extends keyof (
-      I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From
-    ) ? ProjectableField<I[K], I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From, K>
-      : never
+    [K in keyof I]: ProjectableField<
+      I[K],
+      ProjectableSource<I, From>,
+      K
+    >
   }
   : never
+type ProjectableGuard<I, From> = [I] extends [ProjectableEncoded<I, From>] ? unknown : never
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
@@ -204,28 +213,8 @@ export type ComputedProjectionExpression<A = unknown> =
     }
   )
 
-type ComputedProjectionOutputOf<T> = T extends ComputedProjectionExpression<infer A> ? A : never
-
-type ComputedProjectionShape<M extends ComputedProjectionMap> = {
-  readonly [K in keyof M]: ComputedProjectionOutputOf<M[K]>
-}
-
-type ProjectableComputedEncoded<I, From, M extends ComputedProjectionMap> = I extends FieldValues ? {
-    [K in keyof I]: K extends keyof M ? ComputedProjectionShape<M>[K]
-      : K extends keyof (
-        I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From
-      ) ? ProjectableField<
-          I[K],
-          I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From,
-          K
-        >
-      : never
-  }
-  : never
-
-type KeysOfUnion<T> = T extends T ? keyof T : never
-
-type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = Exclude<keyof M, KeysOfUnion<I>> extends never ? unknown
+type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = string extends keyof M ? unknown
+  : Exclude<keyof M, KeysOfUnion<I>> extends never ? unknown
   : never
 
 /**
@@ -540,7 +529,7 @@ export const project: {
   >(
     schema:
       & S.Codec<Option.Option<A>, I, R>
-      & S.Codec<Option.Option<A>, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>,
+      & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -555,7 +544,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & S.Codec<A, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>,
+      & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "project"
   ): (
     current: Q
@@ -569,62 +558,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & S.Codec<A, ProjectableEncoded<I, ExtractFieldValuesRefined<Q>>, R>
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-
-  <
-    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
-    E extends boolean = ExtractExclusiveness<Q>
-  >(
-    schema: S.Codec<
-      Option.Option<A>,
-      {
-        [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
-      },
-      R
-    >,
-    mode: "collect"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-
-  <
-    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
-    E extends boolean = ExtractExclusiveness<Q>
-  >(
-    schema: S.Codec<
-      A,
-      {
-        [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
-      },
-      R
-    >,
-    mode: "project"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-  <
-    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
-    E extends boolean = ExtractExclusiveness<Q>
-  >(
-    schema: S.Codec<
-      A,
-      {
-        [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
-      },
-      R
-    >
+      & ProjectableGuard<I, ExtractFieldValues<Q>>
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
@@ -908,71 +842,71 @@ const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelper
 export const projectComputed: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends FieldValues,
+    Schema extends S.Codec<any, FieldValues, any>,
     M extends ComputedProjectionMap,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
+    I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<Option.Option<A>, I, R>
-      & S.Codec<Option.Option<A>, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
-    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
     current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ) => QueryProjection<
+    ExtractFieldValuesRefined<Q>,
+    S.Schema.Type<Schema> extends Option.Option<infer A> ? A : never,
+    never,
+    ExtractTType<Q>,
+    E
+  >
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends FieldValues,
+    Schema extends S.Codec<any, FieldValues, any>,
     M extends ComputedProjectionMap,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
+    I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<A, I, R>
-      & S.Codec<A, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
-    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (
     current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends FieldValues,
+    Schema extends S.Codec<any, FieldValues, any>,
     M extends ComputedProjectionMap,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
+    I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<Option.Option<A>, I, R>
-      & S.Codec<Option.Option<A>, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    schema: Schema,
     computedProjection: M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
     current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ) => QueryProjection<
+    ExtractFieldValuesRefined<Q>,
+    S.Schema.Type<Schema> extends Option.Option<infer A> ? A : never,
+    never,
+    ExtractTType<Q>,
+    E
+  >
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends FieldValues,
+    Schema extends S.Codec<any, FieldValues, any>,
     M extends ComputedProjectionMap,
-    A = ExtractFieldValuesRefined<Q>,
-    R = never,
+    I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<A, I, R>
-      & S.Codec<A, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    schema: Schema,
     computedProjection: M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (
     current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
 } = (
   schema: any,
   mapOrBuild:

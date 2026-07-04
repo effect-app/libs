@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.295
+
+### Patch Changes
+
+- eb06b32: improve root union select
+
 ## 4.0.0-beta.294
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.295
+
+### Patch Changes
+
+- eb06b32: improve root union select
+- Updated dependencies [eb06b32]
+  - effect-app@4.0.0-beta.295
+
 ## 4.0.0-beta.294
 
 ### Patch Changes

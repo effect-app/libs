@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.294
+
+### Patch Changes
+
+- 7519318: Fix interrupt repro tests to observe expected suspense interruption rejections.
+- Updated dependencies [a211c12]
+  - effect-app@4.0.0-beta.294
+
 ## 4.0.0-beta.293
 
 ### Patch Changes

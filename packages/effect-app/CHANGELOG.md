@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.294
+
+### Patch Changes
+
+- a211c12: Fix projection schema typing for union members and computed projections.
+
 ## 4.0.0-beta.293
 
 ### Patch Changes

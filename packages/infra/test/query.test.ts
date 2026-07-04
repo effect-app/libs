@@ -695,6 +695,52 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
   )
 })
 
+it("projectComputed supports union projection schemas", () => {
+  const baseSchema = S.Union([
+    S.Struct({
+      _tag: S.Literal("open"),
+      id: S.String,
+      items: S.Array(S.Struct({ articleId: S.String, weight: S.Number }))
+    }),
+    S.Struct({
+      _tag: S.Literal("closed"),
+      id: S.String,
+      closedAt: S.String
+    })
+  ])
+  type Encoded = S.Codec.Encoded<typeof baseSchema>
+  const query = make<Encoded>().pipe(
+    projectComputed(
+      S.Union([
+        S.Struct({
+          _tag: S.Literal("open"),
+          id: S.String,
+          articleCount: S.Number,
+          weight: S.Number,
+          articleIds: S.Array(S.String)
+        }),
+        S.Struct({
+          _tag: S.Literal("closed"),
+          id: S.String,
+          closedAt: S.String
+        })
+      ]),
+      computed({
+        articleCount: relation<Encoded>("items").count(),
+        weight: relation<Encoded>("items").sum("weight"),
+        articleIds: relation<Encoded>("items").collect("articleId")
+      })
+    )
+  )
+
+  const interpreted = toFilter(query, baseSchema)
+  expect(interpreted.computed && Object.keys(interpreted.computed).toSorted()).toEqual([
+    "articleCount",
+    "articleIds",
+    "weight"
+  ])
+})
+
 it("projection schema with computed fields fails without computed map", () => {
   const baseSchema = S.Struct({
     id: S.String,

@@ -223,7 +223,9 @@ type ProjectableComputedEncoded<I, From, M extends ComputedProjectionMap> = I ex
   }
   : never
 
-type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = Exclude<keyof M, keyof I> extends never ? unknown
+type KeysOfUnion<T> = T extends T ? keyof T : never
+
+type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = Exclude<keyof M, KeysOfUnion<I>> extends never ? unknown
   : never
 
 /**

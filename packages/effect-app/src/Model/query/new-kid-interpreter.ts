@@ -357,6 +357,21 @@ const walkTransformation = (t: S.AST.AST): S.AST.AST => {
   return t
 }
 
+const objectAsts = (ast: S.AST.AST): readonly S.AST.Objects[] => {
+  const t = walkTransformation(ast)
+  if (S.AST.isObjects(t)) {
+    return [t]
+  }
+  if (S.AST.isUnion(t)) {
+    return t.types.flatMap(objectAsts)
+  }
+  return []
+}
+
+const objectKeys = (ast: S.AST.AST): readonly string[] => [
+  ...new Set(objectAsts(ast).flatMap((object) => object.propertySignatures.map((_) => _.name as string)))
+]
+
 export const toFilter = <
   TFieldValues extends FieldValues,
   A,
@@ -399,9 +414,10 @@ export const toFilter = <
   // TODO: support more complex (nested) schemas?
   if (schema) {
     const t = walkTransformation(SchemaAST.toEncoded(schema.ast))
-    if (S.AST.isObjects(t)) {
-      select = t.propertySignatures.map((_) => _.name as string)
-      for (const prop of t.propertySignatures) {
+    const objects = [...objectAsts(t)]
+    if (Array.isArrayNonEmpty(objects)) {
+      select = [...objectKeys(t)]
+      for (const prop of objects.flatMap((_) => _.propertySignatures)) {
         if (S.AST.isArrays(prop.type)) {
           // make sure we only select when there are actually type literals in the tuple...
           // otherwise we might be dealing with strings etc.
@@ -411,8 +427,7 @@ export const toFilter = <
             subKeys: Array.flatMap(
               prop.type.rest,
               (x) => {
-                const t = walkTransformation(x)
-                return S.AST.isObjects(t) ? t.propertySignatures.map((y) => y.name as string) : []
+                return objectKeys(x)
               }
             )
           }
@@ -443,10 +458,7 @@ export const toFilter = <
       return [] as string[]
     }
     const encoded = walkTransformation(SchemaAST.toEncoded(baseSchema.ast))
-    if (!S.AST.isObjects(encoded)) {
-      return [] as string[]
-    }
-    const encodedKeys = encoded.propertySignatures.map((_) => _.name as string)
+    const encodedKeys = objectKeys(encoded)
     return schemaKeys.filter((key) => !encodedKeys.includes(key))
   })()
   const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(computed && key in computed))

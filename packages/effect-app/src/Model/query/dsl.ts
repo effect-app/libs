@@ -55,10 +55,14 @@ type ExtractExclusiveness<T> = T extends QueryTogether<any, any, infer Exclusive
 type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any>
   ? TFieldValuesRefined
   : never
+type ProjectableField<I, From, K extends PropertyKey> = K extends keyof From ? From[K] extends I ? I
+  : I extends From[K] ? I
+  : never
+  : never
 type ProjectableEncoded<I, From> = I extends FieldValues ? {
     [K in keyof I]: K extends keyof (
       I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From
-    ) ? I[K]
+    ) ? ProjectableField<I[K], I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From, K>
       : never
   }
   : never
@@ -122,74 +126,107 @@ export type ComputedProjectionMathExpression =
     readonly right: ComputedProjectionMathExpression
   }
 
-export type ComputedProjectionExpression =
-  | {
-    readonly _tag: "relation-count"
-    readonly path: string
-    readonly operation?: ComputedProjectionOperation
+declare const ComputedProjectionExpressionTypeId: unique symbol
+
+type ComputedProjectionOutput<A> = {
+  readonly [ComputedProjectionExpressionTypeId]?: Covariant<A>
+}
+
+export type ComputedProjectionExpression<A = unknown> =
+  & ComputedProjectionOutput<A>
+  & (
+    | {
+      readonly _tag: "relation-count"
+      readonly path: string
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-any"
+      readonly path: string
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-every"
+      readonly path: string
+      readonly operation: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-distinct-count"
+      readonly path: string
+      readonly field: string
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-sum"
+      readonly path: string
+      readonly field: string
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-sum-expr"
+      readonly path: string
+      readonly expression: ComputedProjectionMathExpression
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-sum-expr-by"
+      readonly path: string
+      readonly expression: ComputedProjectionMathExpression
+      readonly unit: string
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-sum-expr-normalized"
+      readonly path: string
+      readonly expression: ComputedProjectionMathExpression
+      readonly unit: string
+      readonly toBase: string
+      readonly factors: Readonly<Record<string, number>>
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-collect"
+      readonly path: string
+      readonly field: string
+      readonly distinct: boolean
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-collect-fields"
+      readonly path: string
+      readonly fields: readonly string[]
+      readonly distinct: boolean
+      readonly operation?: ComputedProjectionOperation
+    }
+    | {
+      readonly _tag: "relation-length"
+      readonly path: string
+    }
+  )
+
+type ComputedProjectionOutputOf<T> = T extends ComputedProjectionExpression<infer A> ? A : never
+
+type ComputedProjectionShape<M extends ComputedProjectionMap> = {
+  readonly [K in keyof M]: ComputedProjectionOutputOf<M[K]>
+}
+
+type ProjectableComputedEncoded<I, From, M extends ComputedProjectionMap> = I extends FieldValues ? {
+    [K in keyof I]: K extends keyof M ? ComputedProjectionShape<M>[K]
+      : K extends keyof (
+        I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From
+      ) ? ProjectableField<
+          I[K],
+          I extends { readonly _tag: infer Tag } ? Extract<From, { readonly _tag: Tag }> : From,
+          K
+        >
+      : never
   }
-  | {
-    readonly _tag: "relation-any"
-    readonly path: string
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-every"
-    readonly path: string
-    readonly operation: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-distinct-count"
-    readonly path: string
-    readonly field: string
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-sum"
-    readonly path: string
-    readonly field: string
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-sum-expr"
-    readonly path: string
-    readonly expression: ComputedProjectionMathExpression
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-sum-expr-by"
-    readonly path: string
-    readonly expression: ComputedProjectionMathExpression
-    readonly unit: string
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-sum-expr-normalized"
-    readonly path: string
-    readonly expression: ComputedProjectionMathExpression
-    readonly unit: string
-    readonly toBase: string
-    readonly factors: Readonly<Record<string, number>>
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-collect"
-    readonly path: string
-    readonly field: string
-    readonly distinct: boolean
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-collect-fields"
-    readonly path: string
-    readonly fields: readonly string[]
-    readonly distinct: boolean
-    readonly operation?: ComputedProjectionOperation
-  }
-  | {
-    readonly _tag: "relation-length"
-    readonly path: string
-  }
+  : never
+
+type KeysOfUnion<T> = T extends T ? keyof T : never
+
+type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = Exclude<keyof M, KeysOfUnion<I>> extends never ? unknown
+  : never
 
 /**
  * An expression that aggregates values across documents (for use with {@link aggregate}).
@@ -629,11 +666,11 @@ export const relation = <
       right: ComputedProjectionMathExpression
     ): ComputedProjectionMathExpression => ({ _tag: "mul", left, right })
   },
-  length: (): ComputedProjectionExpression => ({
+  length: (): ComputedProjectionExpression<number> => ({
     _tag: "relation-length",
     path: path as string
   }),
-  count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-count",
@@ -644,7 +681,7 @@ export const relation = <
         _tag: "relation-count",
         path: path as string
       },
-  any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+  any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<boolean> =>
     operation
       ? {
         _tag: "relation-any",
@@ -655,15 +692,15 @@ export const relation = <
         _tag: "relation-any",
         path: path as string
       },
-  every: (operation: ComputedProjectionOperation): ComputedProjectionExpression => ({
+  every: (operation: ComputedProjectionOperation): ComputedProjectionExpression<boolean> => ({
     _tag: "relation-every",
     path: path as string,
     operation
   }),
-  distinctCount: (
-    field: FieldPath<RelationElement<TFieldValues, P>>,
+  distinctCount: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
+    field: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-distinct-count",
@@ -676,10 +713,10 @@ export const relation = <
         path: path as string,
         field: field as string
       },
-  sum: (
-    field: FieldPath<RelationElement<TFieldValues, P>>,
+  sum: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
+    field: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-sum",
@@ -695,7 +732,7 @@ export const relation = <
   sumExpr: (
     expression: ComputedProjectionMathExpression,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-sum-expr",
@@ -708,11 +745,13 @@ export const relation = <
         path: path as string,
         expression
       },
-  sumExprBy: (
+  sumExprBy: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     expression: ComputedProjectionMathExpression,
-    options: { unit: FieldPath<RelationElement<TFieldValues, P>> },
+    options: { unit: F },
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<
+    ReadonlyArray<{ readonly unit: FieldPathValue<RelationElement<TFieldValues, P>, F>; readonly total: number }>
+  > =>
     operation
       ? {
         _tag: "relation-sum-expr-by",
@@ -735,7 +774,7 @@ export const relation = <
       factors: Readonly<Record<string, number>>
     },
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-sum-expr-normalized",
@@ -754,10 +793,10 @@ export const relation = <
         toBase: options.toBase,
         factors: options.factors
       },
-  collect: (
-    field: FieldPath<RelationElement<TFieldValues, P>>,
+  collect: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
+    field: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F>>> =>
     operation
       ? {
         _tag: "relation-collect",
@@ -772,10 +811,10 @@ export const relation = <
         field: field as string,
         distinct: false
       },
-  collectDistinct: (
-    field: FieldPath<RelationElement<TFieldValues, P>>,
+  collectDistinct: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
+    field: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F>>> =>
     operation
       ? {
         _tag: "relation-collect",
@@ -790,10 +829,12 @@ export const relation = <
         field: field as string,
         distinct: true
       },
-  collectFields: (
-    fields: readonly FieldPath<RelationElement<TFieldValues, P>>[],
+  collectFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
+    fields: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<
+    ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>
+  > =>
     operation
       ? {
         _tag: "relation-collect-fields",
@@ -808,10 +849,12 @@ export const relation = <
         fields: fields as readonly string[],
         distinct: false
       },
-  collectDistinctFields: (
-    fields: readonly FieldPath<RelationElement<TFieldValues, P>>[],
+  collectDistinctFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
+    fields: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression =>
+  ): ComputedProjectionExpression<
+    ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>
+  > =>
     operation
       ? {
         _tag: "relation-collect-fields",
@@ -865,13 +908,16 @@ const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelper
 export const projectComputed: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends Record<string, unknown>,
+    I extends FieldValues,
+    M extends ComputedProjectionMap,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<Option.Option<A>, I, R>,
-    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    schema:
+      & S.Codec<Option.Option<A>, I, R>
+      & S.Codec<Option.Option<A>, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
     current: Q
@@ -879,13 +925,16 @@ export const projectComputed: {
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends Record<string, unknown>,
+    I extends FieldValues,
+    M extends ComputedProjectionMap,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<A, I, R>,
-    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => ComputedProjectionMap,
+    schema:
+      & S.Codec<A, I, R>
+      & S.Codec<A, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    build: (helpers: ComputedHelpers<ExtractFieldValuesRefined<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (
     current: Q
@@ -893,13 +942,16 @@ export const projectComputed: {
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends Record<string, unknown>,
+    I extends FieldValues,
+    M extends ComputedProjectionMap,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<Option.Option<A>, I, R>,
-    computedProjection: ComputedProjectionMap,
+    schema:
+      & S.Codec<Option.Option<A>, I, R>
+      & S.Codec<Option.Option<A>, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    computedProjection: M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
     current: Q
@@ -907,13 +959,16 @@ export const projectComputed: {
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I extends Record<string, unknown>,
+    I extends FieldValues,
+    M extends ComputedProjectionMap,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<A, I, R>,
-    computedProjection: ComputedProjectionMap,
+    schema:
+      & S.Codec<A, I, R>
+      & S.Codec<A, ProjectableComputedEncoded<I, ExtractFieldValuesRefined<Q>, M>, R>,
+    computedProjection: M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (
     current: Q

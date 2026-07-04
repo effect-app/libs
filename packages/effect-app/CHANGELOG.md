@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.296
+
+### Patch Changes
+
+- e0c4835: revert bs
+
 ## 4.0.0-beta.295
 
 ### Patch Changes

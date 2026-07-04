@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, computed, make, projectComputed, relation, toFilter, where } from "effect-app/Model/query"
+import { and, computed, make, project, projectComputed, relation, toFilter, where } from "effect-app/Model/query"
 import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { buildWhereCosmosQuery3 } from "../src/Store/Cosmos/query.js"
@@ -37,6 +37,75 @@ describe("cosmos query projection: array length", () => {
     // Must not pull the full array nor reshape via subquery
     expect(result.query).not.toMatch(/ARRAY\s*\(\s*SELECT[^)]*FROM\s+t\s+in\s+f[\.\["]/i)
     expect(result.query).not.toMatch(/SELECT VALUE COUNT/)
+  })
+})
+
+describe("cosmos query projection: union array fields", () => {
+  const PackageView = S.Array(S.Struct({ carrier: S.String }))
+
+  class UnionOrder extends S.Class<UnionOrder>("UnionOrder")({
+    id: S.String,
+    _tag: S.Literals(["picked", "packed"]),
+    packages: PackageView
+  }) {}
+
+  type UnionOrderEnc = S.Codec.Encoded<typeof UnionOrder>
+
+  const ProjectProjection = S.Union([
+    S.TaggedStruct("picked", {
+      id: S.String,
+      packages: PackageView
+    }),
+    S.TaggedStruct("packed", {
+      id: S.String,
+      packages: PackageView
+    })
+  ])
+
+  const ComputedProjection = S.Union([
+    S.TaggedStruct("picked", {
+      id: S.String,
+      packages: PackageView,
+      packageCount: S.NonNegativeInt
+    }),
+    S.TaggedStruct("packed", {
+      id: S.String,
+      packages: PackageView,
+      packageCount: S.NonNegativeInt
+    })
+  ])
+
+  it("dedupes array selects for project union schemas", () => {
+    const q = make<UnionOrderEnc>().pipe(project(ProjectProjection))
+
+    const ir = toFilter(q as any, UnionOrder as any)
+    const select: readonly unknown[] = ir.select ?? []
+    const packageSelects = select.filter((item) =>
+      typeof item === "object" && item !== null && "key" in item && item.key === "packages"
+    )
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select as any)
+
+    expect(packageSelects).toHaveLength(1)
+    expect(result.query.match(/\bAS\s+packages\b/g) ?? []).toHaveLength(1)
+  })
+
+  it("dedupes array selects for projectComputed union schemas", () => {
+    const q = make<UnionOrderEnc>().pipe(
+      projectComputed(
+        ComputedProjection,
+        computed({ packageCount: relation<UnionOrderEnc>("packages").length() })
+      )
+    )
+
+    const ir = toFilter(q as any, UnionOrder as any)
+    const select: readonly unknown[] = ir.select ?? []
+    const packageSelects = select.filter((item) =>
+      typeof item === "object" && item !== null && "key" in item && item.key === "packages"
+    )
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select as any)
+
+    expect(packageSelects).toHaveLength(1)
+    expect(result.query.match(/\bAS\s+packages\b/g) ?? []).toHaveLength(1)
   })
 })
 

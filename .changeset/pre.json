@@ -246,6 +246,7 @@
     "per-namespace-seeding",
     "petite-tables-cover",
     "polite-chefs-drum",
+    "project-computed-type-safety",
     "project-encoded-type-constraint",
     "project-union-schema",
     "project-union-subsets",

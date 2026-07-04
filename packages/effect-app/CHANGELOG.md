@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.293
+
+### Patch Changes
+
+- d1c15d3: Tighten projectComputed projection schema typing against encoded repo fields and computed output types.
+
 ## 4.0.0-beta.292
 
 ## 4.0.0-beta.291

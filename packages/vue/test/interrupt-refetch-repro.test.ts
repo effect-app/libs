@@ -122,6 +122,10 @@ const settle = (p: Promise<any> | undefined) =>
     new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 40))
   ])
 
+const ignoreSuspenseInterrupt = (p: Promise<any> | undefined) => {
+  p?.catch(() => {})
+}
+
 const writeCommand = (repo: DataDependencies.DataDependency) => DataDependencies.write(repo).pipe(Effect.as(undefined))
 const drain = (fiber: Fiber.Fiber<any, any>) =>
   Effect.runPromise(Fiber.interrupt(fiber) as any).then(() => {}, () => {})
@@ -141,6 +145,7 @@ it.fails("A1 — unload during the INITIAL fetch: remount must refetch, not hang
   await ticks(2)
   expect(g.starts()).toBe(1)
 
+  ignoreSuspenseInterrupt(m1.getPromise())
   m1.app.unmount() // page unload -> interrupt the in-flight initial fetch
   await ticks(2)
 
@@ -351,6 +356,7 @@ it("M2 — one of two concurrent callers unmounts mid-fetch: the other still res
   await ticks(2)
   expect(g.starts()).toBe(1)
 
+  ignoreSuspenseInterrupt(a.getPromise())
   a.app.unmount() // caller A loses interest -> interrupts ITS await only
   await ticks(2)
   g.releaseAll() // the shared fetch must survive for caller B
@@ -568,6 +574,7 @@ it.fails("D1 — sole listener interrupts an in-flight request; a NEW listener s
   await ticks(2)
   expect(g.starts()).toBe(1)
 
+  ignoreSuspenseInterrupt(l1.getPromise())
   l1.app.unmount() // the only interested caller leaves -> the in-flight request should be abandoned
   await ticks(2)
   g.setBlocking(false)

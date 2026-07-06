@@ -1,5 +1,31 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.296
+
+### Patch Changes
+
+- e0c4835: revert bs
+
+## 4.0.0-beta.295
+
+### Patch Changes
+
+- eb06b32: improve root union select
+
+## 4.0.0-beta.294
+
+### Patch Changes
+
+- a211c12: Fix projection schema typing for union members and computed projections.
+
+## 4.0.0-beta.293
+
+### Patch Changes
+
+- d1c15d3: Tighten projectComputed projection schema typing against encoded repo fields and computed output types.
+
+## 4.0.0-beta.292
+
 ## 4.0.0-beta.291
 
 ## 4.0.0-beta.290

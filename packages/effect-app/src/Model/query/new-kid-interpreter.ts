@@ -104,6 +104,43 @@ export type ComputedProjectionIrExpression =
     readonly path: string
   }
 
+type SelectItem<TFieldValues extends FieldValues> =
+  | keyof TFieldValues
+  | { key: string; subKeys: string[] }
+  | {
+    key: string
+    computed: ComputedProjectionIrExpression
+  }
+
+const isArraySelect = <TFieldValues extends FieldValues>(
+  item: SelectItem<TFieldValues>
+): item is { key: string; subKeys: string[] } => typeof item === "object" && item !== null && "subKeys" in item
+
+const mergeArraySelect = <TFieldValues extends FieldValues>(
+  select: SelectItem<TFieldValues>[],
+  arraySelect: { key: string; subKeys: string[] }
+) => {
+  const subKeys = [...new Set(arraySelect.subKeys)]
+  const existing = select.find(
+    (item): item is { key: string; subKeys: string[] } => isArraySelect(item) && item.key === arraySelect.key
+  )
+
+  if (existing) {
+    const existingIndex = select.indexOf(existing)
+    select[existingIndex] = {
+      key: arraySelect.key,
+      subKeys: [...new Set([...existing.subKeys, ...subKeys])]
+    }
+  } else {
+    select.push({ key: arraySelect.key, subKeys })
+  }
+
+  const scalarIndex = select.findIndex((item) => item === arraySelect.key)
+  if (scalarIndex >= 0) {
+    select.splice(scalarIndex, 1)
+  }
+}
+
 type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   filter: FilterResult[]
   schema: S.Codec<A, TFieldValues, R> | undefined
@@ -357,6 +394,21 @@ const walkTransformation = (t: S.AST.AST): S.AST.AST => {
   return t
 }
 
+const objectAsts = (ast: S.AST.AST): readonly S.AST.Objects[] => {
+  const t = walkTransformation(ast)
+  if (S.AST.isObjects(t)) {
+    return [t]
+  }
+  if (S.AST.isUnion(t)) {
+    return t.types.flatMap(objectAsts)
+  }
+  return []
+}
+
+const objectKeys = (ast: S.AST.AST): readonly string[] => [
+  ...new Set(objectAsts(ast).flatMap((object) => object.propertySignatures.map((_) => _.name as string)))
+]
+
 export const toFilter = <
   TFieldValues extends FieldValues,
   A,
@@ -392,16 +444,14 @@ export const toFilter = <
   }
 
   const schema = a.schema
-  let select: (keyof TFieldValues | { key: string; subKeys: string[] } | {
-    key: string
-    computed: ComputedProjectionIrExpression
-  })[] = []
+  let select: SelectItem<TFieldValues>[] = []
   // TODO: support more complex (nested) schemas?
   if (schema) {
     const t = walkTransformation(SchemaAST.toEncoded(schema.ast))
-    if (S.AST.isObjects(t)) {
-      select = t.propertySignatures.map((_) => _.name as string)
-      for (const prop of t.propertySignatures) {
+    const objects = [...objectAsts(t)]
+    if (Array.isArrayNonEmpty(objects)) {
+      select = [...objectKeys(t)]
+      for (const prop of objects.flatMap((_) => _.propertySignatures)) {
         if (S.AST.isArrays(prop.type)) {
           // make sure we only select when there are actually type literals in the tuple...
           // otherwise we might be dealing with strings etc.
@@ -411,17 +461,12 @@ export const toFilter = <
             subKeys: Array.flatMap(
               prop.type.rest,
               (x) => {
-                const t = walkTransformation(x)
-                return S.AST.isObjects(t) ? t.propertySignatures.map((y) => y.name as string) : []
+                return objectKeys(x)
               }
             )
           }
           if (arraySelect.subKeys.length > 0) {
-            select.push(arraySelect)
-            // make sure we don't double select?
-            if (select.includes(prop.name as string)) {
-              select.splice(select.indexOf(prop.name as string), 1)
-            }
+            mergeArraySelect(select, arraySelect)
           }
         }
       }
@@ -443,10 +488,7 @@ export const toFilter = <
       return [] as string[]
     }
     const encoded = walkTransformation(SchemaAST.toEncoded(baseSchema.ast))
-    if (!S.AST.isObjects(encoded)) {
-      return [] as string[]
-    }
-    const encodedKeys = encoded.propertySignatures.map((_) => _.name as string)
+    const encodedKeys = objectKeys(encoded)
     return schemaKeys.filter((key) => !encodedKeys.includes(key))
   })()
   const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(computed && key in computed))

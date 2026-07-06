@@ -1,5 +1,51 @@
 # @effect-app/e2e
 
+## 4.0.0-beta.296
+
+### Patch Changes
+
+- Updated dependencies [e0c4835]
+  - effect-app@4.0.0-beta.296
+  - @effect-app/infra@4.0.0-beta.296
+  - @effect-app/vue@4.0.0-beta.296
+
+## 4.0.0-beta.295
+
+### Patch Changes
+
+- Updated dependencies [eb06b32]
+  - effect-app@4.0.0-beta.295
+  - @effect-app/infra@4.0.0-beta.295
+  - @effect-app/vue@4.0.0-beta.295
+
+## 4.0.0-beta.294
+
+### Patch Changes
+
+- Updated dependencies [a211c12]
+- Updated dependencies [7519318]
+  - effect-app@4.0.0-beta.294
+  - @effect-app/vue@4.0.0-beta.294
+  - @effect-app/infra@4.0.0-beta.294
+
+## 4.0.0-beta.293
+
+### Patch Changes
+
+- Updated dependencies [d1c15d3]
+  - effect-app@4.0.0-beta.293
+  - @effect-app/infra@4.0.0-beta.293
+  - @effect-app/vue@4.0.0-beta.293
+
+## 4.0.0-beta.292
+
+### Patch Changes
+
+- Updated dependencies [4622a75]
+  - @effect-app/vue@4.0.0-beta.292
+  - effect-app@4.0.0-beta.292
+  - @effect-app/infra@4.0.0-beta.292
+
 ## 4.0.0-beta.291
 
 ### Patch Changes

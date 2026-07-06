@@ -130,7 +130,6 @@ export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<
     const atoms = atomsForKeys(keys)
     yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
     yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
-    //    for (const a of atoms) defaultRegistry.refresh(a) // refreshes everything even when not mounted
     if (atoms.length === 0) return
     yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
   })
@@ -306,6 +305,49 @@ export const isStaleResult = (r: AsyncResult.AsyncResult<any, any>, staleTimeMs:
 export const staleTimeMsOf = (opts: AtomQueryOptions): number =>
   Duration.toMillis(Duration.fromInputUnsafe(opts.staleTime ?? defaults.staleTime))
 
+// A query fetch that is interrupted (a subscriber lost interest / a refresh superseded it / the
+// component navigated) leaves the family atom `waiting=true` with NO fiber running — effect-core
+// `makeEffect` removes its result-observer before interrupting, so the interrupt is never written
+// back; it stays `waitingFrom(previous)`. `swr`/`isStaleResult` both short-circuit
+// `if (waiting) return false`, so that stuck `waiting` is neither completing nor considered stale —
+// mount/focus/staleness all skip it. Left alone the interrupt is TERMINAL: any current or future
+// subscriber inherits the `waiting` forever (cold → `latestDefined` throws → white screen; warm →
+// the Mako Bauhaus PickList stale wedge).
+//
+// The invariant we restore in this layer (no effect-core change): an interrupt must never be a
+// terminal state. We do NOT auto-retry the interrupted fetch — an interrupt is intentional (that
+// caller lost interest), and the first observer recovers through its normal refresh/staleness rules.
+// We only guarantee that a *genuine* new/parallel/future observer is never stuck on a departed
+// observer's interrupt: per family atom we count live computes (`inFlight`), so "stuck" = a `waiting`
+// result with `inFlight === 0` (nothing is actually fetching). On mount a stuck atom triggers one
+// fresh fetch instead of adopting the dangling `waiting`; a genuinely in-flight fetch (`inFlight > 0`)
+// is joined, not superseded (dedup / re-entrancy preserved). `recovering` dedupes concurrent mounts
+// so exactly one recovery fetch is issued until a fetch is running again.
+export interface QueryFetchState {
+  inFlight: number
+  recovering: boolean
+}
+export const queryFetchStates = new WeakMap<Atom.Atom<any>, QueryFetchState>()
+
+const recoverStuckWaitingOnMount =
+  <A, E>(familyAtom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) =>
+  (wrapped: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
+    Atom.transform(wrapped, (get) => {
+      const current = get.once(wrapped)
+      get.subscribe(wrapped, (value) => get.setSelf(value))
+      const state = queryFetchStates.get(familyAtom)
+      const waiting = current?.waiting === true
+      // Stuck: the result says `waiting` yet nothing is in-flight — an interrupt was hidden and left
+      // `waiting` dangling. Treat it as not-yet-fetched and refetch; a live fetch (`inFlight > 0`) is
+      // joined, not superseded. `recovering` prevents concurrent mounts from issuing more than one
+      // recovery fetch (cleared once a fetch is actually running again).
+      if (state && waiting && state.inFlight === 0 && !state.recovering) {
+        state.recovering = true
+        get.refresh(familyAtom)
+      }
+      return current
+    }, { initialValueTarget: wrapped })
+
 export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
   opts: AtomQueryOptions = {}
@@ -319,6 +361,7 @@ export const withQueryOptions = <A, E>(
     revalidateOnFocus,
     focusSignal: revalidateOnFocus ? focusOrReconnectSignal : undefined
   })(atom)
+  atom = recoverStuckWaitingOnMount(self)(atom)
   if (opts.refetchInterval) atom = Atom.withRefresh(Duration.millis(opts.refetchInterval))(atom)
   if (opts.structuralSharing ?? true) atom = structuralShare(atom)
   return atom
@@ -388,9 +431,16 @@ export const buildQueryFamily = <I, A, E>(
     // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
     // can re-assert them on a cache-hit remount that never re-runs the handler.
     let lastReads: DataDependencies.DataDependencies = DataDependencies.empty()
+    // Fetch bookkeeping read by `recoverStuckWaitingOnMount`. `inFlight` counts live computes, so a
+    // `waiting` result with `inFlight === 0` is a stuck/hidden interrupt. `recovering` guards the
+    // recovery refresh against concurrent mounts; a running fetch clears it.
+    const fetchState: QueryFetchState = { inFlight: 0, recovering: false }
     let atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
     atom = rt.runtime.atom(
       Effect.suspend(() => {
+        // A fetch is now running: the atom is not stuck, and any pending recovery is fulfilled.
+        fetchState.recovering = false
+        fetchState.inFlight++
         const recordReads = Effect.gen(function*() {
           const readsRef = yield* Ref.make(DataDependencies.empty())
           const writesRef = yield* Ref.make(DataDependencies.empty())
@@ -405,6 +455,15 @@ export const buildQueryFamily = <I, A, E>(
         const effect = recordReads.pipe(
           Effect.retry({ times: 5, while: isRetryable }),
           Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+          // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
+          // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that
+          // reads as "stuck", so the next mount recovers it (`recoverStuckWaitingOnMount`). We do not
+          // re-fire here — the interrupt was intentional; recovery is driven by a genuine (re)mount.
+          Effect.onExit(() =>
+            Effect.sync(() => {
+              fetchState.inFlight = Math.max(0, fetchState.inFlight - 1)
+            })
+          ),
           Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
         )
         const parentSpan = takeAtomQueryParentSpan(atom)
@@ -426,7 +485,10 @@ export const buildQueryFamily = <I, A, E>(
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return setAtomQueryMetadata(Atom.withLabel(`query:${self.id}`)(atom))
+    const registered = setAtomQueryMetadata(Atom.withLabel(`query:${self.id}`)(atom))
+    // Key the fetch state by the atom `withQueryOptions` receives, so its mount hook can find it.
+    queryFetchStates.set(registered, fetchState)
+    return registered
   })
 }
 

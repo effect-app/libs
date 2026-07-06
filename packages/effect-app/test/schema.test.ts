@@ -29,7 +29,7 @@ test("literal default works", () => {
   expect(s2.make({}).l).toBe("b")
 })
 
-// Toy schema for `omitConstructorDefaults`: a field with a constructor
+// Toy schema for `dropConstructorDefault`: a field with a constructor
 // default that should NOT auto-populate when deriving a partial-update
 // schema from a "create" schema.
 const Person = S.Struct({
@@ -42,15 +42,20 @@ test("plain Struct.omit leaks the inherited constructor default (the bug)", () =
   expect(UpdatePersonBuggy.make({ name: "Mario" })).toEqual({ name: "Mario", notes: null })
 })
 
-test("omitConstructorDefaults strips the inherited constructor default (the fix)", () => {
-  const UpdatePersonFixed = S.Struct(S.omitConstructorDefaults(Person.fields, [] as const))
+test("Struct.map(S.dropConstructorDefault) strips the inherited constructor default (the fix)", () => {
+  const UpdatePersonFixed = S.Struct(Struct.map(Struct.omit(Person.fields, [] as const), S.dropConstructorDefault))
   expect(UpdatePersonFixed.make({ name: "Mario" })).toEqual({ name: "Mario" })
 })
 
-test("omitConstructorDefaults still omits the requested keys, like Struct.omit", () => {
-  const NameOnly = S.Struct(S.omitConstructorDefaults(Person.fields, ["notes"] as const))
+test("Struct.map(S.dropConstructorDefault) still omits the requested keys, like Struct.omit", () => {
+  const NameOnly = S.Struct(Struct.map(Struct.omit(Person.fields, ["notes"] as const), S.dropConstructorDefault))
   expect(NameOnly.make({ name: "Mario" })).toEqual({ name: "Mario" })
   expectTypeOf<typeof NameOnly.Type>().toEqualTypeOf<{ readonly name: string }>()
+})
+
+test("makeExactOptional drops the inherited constructor default too", () => {
+  const UpdatePerson = S.Struct(S.makeExactOptional(Person.fields))
+  expect(UpdatePerson.make({ name: "Mario" })).toEqual({ name: "Mario" })
 })
 
 test("NonEmptyString255.Type uses the named brand alias", () => {

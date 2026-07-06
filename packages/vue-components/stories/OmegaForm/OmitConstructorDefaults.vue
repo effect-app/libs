@@ -38,7 +38,7 @@
     </section>
 
     <section style="flex: 1; min-width: 320px">
-      <h2>Fixed: <code>S.omitConstructorDefaults</code></h2>
+      <h2>Fixed: <code>Struct.map(S.dropConstructorDefault)</code></h2>
 
       <h3>Saved record (server)</h3>
       <pre>{{ fixedDb }}</pre>
@@ -87,7 +87,7 @@ const Person = S.Struct({
 const UpdatePersonBuggy = S.Struct(Struct.omit(Person.fields, [] as const))
 
 // The fix: same fields, constructor defaults stripped.
-const UpdatePersonFixed = S.Struct(S.omitConstructorDefaults(Person.fields, [] as const))
+const UpdatePersonFixed = S.Struct(Struct.map(Struct.omit(Person.fields, [] as const), S.dropConstructorDefault))
 
 // Simulated server state: a record already saved before the edit dialog opens.
 const buggyDb = ref<{ name: string; age: number }>({ name: "Acme Corp", age: 30 })

@@ -375,7 +375,7 @@ export const OmitConstructorDefaults: Story = {
     docs: {
       description: {
         story:
-          "Compares deriving an update schema with plain Struct.omit (leaks inherited withConstructorDefault) against S.omitConstructorDefaults (strips it). Each column starts with a saved record; the edit dialog only lets you change one field. Save without touching the other field and watch whether it survives."
+          "Compares deriving an update schema with plain Struct.omit (leaks inherited withConstructorDefault) against Struct.map(S.dropConstructorDefault) (strips it). Each column starts with a saved record; the edit dialog only lets you change one field. Save without touching the other field and watch whether it survives."
       }
     }
   }

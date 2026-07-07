@@ -563,7 +563,15 @@ export const makeRpcClient = <
         Payload,
         typeof S.Void,
         ErrorResult<{}>,
-        Record<string, never>,
+        // Empty config, NOT `Record<string, never>`: the config type flows into
+        // `GetEffectContext`/`GetEffectError` as `T`, and `keyof Record<string, never>`
+        // is `string` — so an inverted key like `allowAnonymous` would satisfy
+        // `key extends keyof T`, then `T[key]` (`never`) `extends true` (true, since
+        // `never` is assignable to everything) and the middleware wrongly takes the
+        // "allowAnonymous: true" (anonymous) branch, dropping `UserProfile`. `{}` has
+        // `keyof {} = never`, so no config key is treated as set and the defaults
+        // (auth required, `UserProfile` provided) apply — same as passing `{}` explicitly.
+        {},
         ModuleName,
         Type,
         false,

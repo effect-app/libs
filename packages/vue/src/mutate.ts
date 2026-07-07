@@ -8,6 +8,7 @@ import * as Option from "effect-app/Option"
 import { isReadonlyArrayNonEmpty } from "effect/Array"
 import type * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
+import * as Hash from "effect/Hash"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -151,6 +152,14 @@ const queryKeyFromFilters = (
   return Array.isArray(queryKey) ? queryKey : undefined
 }
 
+interface SuccessfulInvalidation {
+  readonly clientKeys: ReadonlyArray<ReadonlyArray<unknown>>
+  readonly serverKeys: ReadonlyArray<ReadonlyArray<unknown>>
+  readonly writeDependencies: DataDependencies.DataDependencies
+}
+
+const successfulInvalidations = new Map<number, SuccessfulInvalidation>()
+
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
@@ -172,6 +181,12 @@ export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never>
     input?: unknown,
     output?: Exit.Exit<unknown, unknown>
   ) => InvalidationEntry[]
+  /**
+   * On success, remember the invalidation sources for this mutation+input. On a
+   * later failure for the same mutation+input, replay them so stale query data
+   * can self-heal even when the failed response carries no write metadata.
+   */
+  invalidateOnFailureFromLastSuccess?: boolean
   /**
    * Run an additional Effect after the mutation succeeds. Its output becomes the
    * final result returned to the caller. Query cache is invalidated once on
@@ -265,6 +280,7 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
 const buildInvalidateCache = <RInvalidator>(
   self: { id: string; options?: ClientForOptions; disableQueryInvalidation?: boolean },
   queryInvalidation: MutationOptionsBase["queryInvalidation"] | undefined,
+  invalidateOnFailureFromLastSuccess: boolean | undefined,
   queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
   // Concrete reactivity keys to invalidate: a raw query key, one derived from an `{ id }`
@@ -303,6 +319,44 @@ const buildInvalidateCache = <RInvalidator>(
     return []
   }
 
+  const uniqueKeys = (keys: ReadonlyArray<ReadonlyArray<unknown>>): ReadonlyArray<ReadonlyArray<unknown>> => {
+    const out: Array<ReadonlyArray<unknown>> = []
+    const seen = new Set<number>()
+    for (const key of keys) {
+      const hash = Hash.hash(key)
+      if (seen.has(hash)) continue
+      seen.add(hash)
+      out.push(key)
+    }
+    return out
+  }
+
+  const mutationKey = (input: unknown) => Hash.hash([makeQueryKey(self), input])
+
+  const rememberSuccess = (
+    input: unknown,
+    output: Exit.Exit<unknown, unknown>,
+    serverKeys: ReadonlyArray<InvalidationKey>,
+    writeDependencies: DataDependencies.DataDependencies = DataDependencies.empty()
+  ) =>
+    Effect.suspend(() => {
+      if (!invalidateOnFailureFromLastSuccess || self.disableQueryInvalidation || output._tag !== "Success") {
+        return Effect.void
+      }
+      const clientKeys = getClientInvalidationKeys(input, output)
+      const cacheKey = mutationKey(input)
+      if (
+        isReadonlyArrayNonEmpty(clientKeys)
+        || isReadonlyArrayNonEmpty(serverKeys)
+        || DataDependencies.isNonEmpty(writeDependencies)
+      ) {
+        successfulInvalidations.set(cacheKey, { clientKeys, serverKeys, writeDependencies })
+      } else {
+        successfulInvalidations.delete(cacheKey)
+      }
+      return Effect.void
+    })
+
   const invalidateCache = (
     input: unknown,
     output: Exit.Exit<unknown, unknown>,
@@ -318,7 +372,28 @@ const buildInvalidateCache = <RInvalidator>(
       const derivedKeys = getDerivedInvalidationKeys(writeDependencies)
       // Invalidate exact reactivity keys (= the prefixes query atoms register under). Each key
       // array is hashed structurally, matching the query-side registration.
-      const keys: ReadonlyArray<ReadonlyArray<unknown>> = [...clientKeys, ...serverKeys, ...derivedKeys]
+      const cacheKey = invalidateOnFailureFromLastSuccess ? mutationKey(input) : undefined
+      const cached = cacheKey === undefined || output._tag === "Success"
+        ? undefined
+        : successfulInvalidations.get(cacheKey)
+      const cachedKeys = cached === undefined ? [] : [
+        ...cached.clientKeys,
+        ...cached.serverKeys,
+        ...getDerivedInvalidationKeys(cached.writeDependencies)
+      ]
+      const keys = uniqueKeys([...clientKeys, ...serverKeys, ...derivedKeys, ...cachedKeys])
+
+      if (cacheKey !== undefined && output._tag === "Success") {
+        if (
+          isReadonlyArrayNonEmpty(clientKeys)
+          || isReadonlyArrayNonEmpty(serverKeys)
+          || DataDependencies.isNonEmpty(writeDependencies)
+        ) {
+          successfulInvalidations.set(cacheKey, { clientKeys, serverKeys, writeDependencies })
+        } else {
+          successfulInvalidations.delete(cacheKey)
+        }
+      }
 
       if (!isReadonlyArrayNonEmpty(keys)) return Effect.void
 
@@ -341,7 +416,7 @@ const buildInvalidateCache = <RInvalidator>(
         )
     })
 
-  return invalidateCache
+  return Object.assign(invalidateCache, { rememberSuccess })
 }
 
 export const invalidateQueries = <RInvalidator>(
@@ -349,7 +424,12 @@ export const invalidateQueries = <RInvalidator>(
   options: MutationOptionsBase | undefined,
   queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
-  const invalidateCache = buildInvalidateCache(self, options?.queryInvalidation, queryInvalidator)
+  const invalidateCache = buildInvalidateCache(
+    self,
+    options?.queryInvalidation,
+    options?.invalidateOnFailureFromLastSuccess,
+    queryInvalidator
+  )
 
   const select = options?.select
 
@@ -448,16 +528,30 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
-    const invCache = buildInvalidateCache(self, mergedInvalidation, queryInvalidator)
+    const liveInvCache = buildInvalidateCache(self, mergedInvalidation, undefined, queryInvalidator)
 
-    const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
+    const makeInvocationEffect = (
+      input: unknown,
+      source: Stream.Stream<any, any, any>,
+      options?: Pick<MutationOptionsBase, "invalidateOnFailureFromLastSuccess">
+    ) =>
       Effect.gen(function*() {
+        const invCache = buildInvalidateCache(
+          self,
+          mergedInvalidation,
+          options?.invalidateOnFailureFromLastSuccess,
+          queryInvalidator
+        )
         const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
+        const handledKeysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
         const invKeys = makeInvalidationKeysService(
           keysRef,
           // Stream invalidation is sequenced by the injected query invalidator; this callback
           // returns void to keep the server-side invalidation service effect-free.
-          (key) => invCache(input, Exit.succeed(undefined), [key]) as Effect.Effect<void>
+          (key) =>
+            Ref
+              .update(handledKeysRef, (keys) => [...keys, key])
+              .pipe(Effect.andThen(liveInvCache(input, Exit.succeed(undefined), [key]))) as Effect.Effect<void>
         )
         const readsRef = yield* Ref.make(DataDependencies.empty())
         const writesRef = yield* Ref.make(DataDependencies.empty())
@@ -467,17 +561,28 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
           Stream.provideService(InvalidationKeysFromServer, invKeys),
           Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
           Stream.tap((v) => Ref.set(lastRef, v)),
-          Stream.ensuring(
+          Stream.onExit((exit) =>
             Effect.gen(function*() {
               const lastValue = yield* Ref.get(lastRef)
               const serverKeys = yield* Ref.get(keysRef)
+              const handledServerKeys = yield* Ref.get(handledKeysRef)
               const writeDependencies = yield* Ref.get(writesRef)
-              yield* invCache(input, Exit.succeed(lastValue), serverKeys, writeDependencies)
+              const output = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
+              yield* invCache(input, output, serverKeys, writeDependencies)
+              if (exit._tag === "Success" && isReadonlyArrayNonEmpty(handledServerKeys)) {
+                yield* invCache.rememberSuccess(
+                  input,
+                  output,
+                  [...handledServerKeys, ...serverKeys],
+                  writeDependencies
+                )
+              }
             })
           )
         )
       })
 
-    return (i: any) => Stream.unwrap(makeInvocationEffect(i, self.handler(i)))
+    return (i: any, options?: Pick<MutationOptionsBase, "invalidateOnFailureFromLastSuccess">) =>
+      Stream.unwrap(makeInvocationEffect(i, self.handler(i), options))
   }
 }

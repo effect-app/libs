@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.298
+
+### Patch Changes
+
+- 08d092c: Update Atom query caches in memory and accumulate stream invalidations so live events do not cause repeated RPC refetches.
+
 ## 4.0.0-beta.297
 
 ### Patch Changes

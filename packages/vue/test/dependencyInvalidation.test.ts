@@ -8,16 +8,37 @@ import * as Effect from "effect-app/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
+import * as Stream from "effect/Stream"
 import { TestClock } from "effect/testing"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
 import { clearQueryReadDependencies, getDerivedInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
-import { invalidateQueries, type MutationOptionsBase } from "../src/mutate.js"
+import { invalidateQueries, makeStreamMutation2, type MutationOptionsBase } from "../src/mutate.js"
 
 const repo = DataDependencies.repo("FrontendRepo")
 const otherRepo = DataDependencies.repo("OtherRepo")
+
+it.live("stream mutations accumulate repeated server keys and invalidate once when settled", () =>
+  Effect.gen(function*() {
+    const key: InvalidationKey = ["$PickList", "List"]
+    const calls: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+    const queryInvalidator = {
+      invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) => Effect.sync(() => calls.push(keys))
+    }
+    const mutation = makeStreamMutation2(queryInvalidator)({
+      id: "PickList.StartBatchPrint",
+      handler: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.tap(() => InvalidationKeysFromServer.use((service) => service.add(key)))
+        )
+    })
+
+    yield* mutation(undefined).pipe(Stream.runDrain)
+
+    expect(calls).toEqual([[key]])
+  }))
 
 // --- shared registry + derivation logic --------------------------------------------------------
 

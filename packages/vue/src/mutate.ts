@@ -453,12 +453,10 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
     const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
       Effect.gen(function*() {
         const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-        const invKeys = makeInvalidationKeysService(
-          keysRef,
-          // Stream invalidation is sequenced by the injected query invalidator; this callback
-          // returns void to keep the server-side invalidation service effect-free.
-          (key) => invCache(input, Exit.succeed(undefined), [key]) as Effect.Effect<void>
-        )
+        // Stream metadata can arrive after every emitted RPC value. Accumulate its invalidation
+        // keys and flush them once from `ensuring`; invalidating from `add` would refetch live
+        // queries once per message and repeatedly cancel the preceding request.
+        const invKeys = makeInvalidationKeysService(keysRef)
         const readsRef = yield* Ref.make(DataDependencies.empty())
         const writesRef = yield* Ref.make(DataDependencies.empty())
         const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)

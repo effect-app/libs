@@ -1,3 +1,4 @@
+import * as Equal from "effect/Equal"
 import * as Ref from "effect/Ref"
 import * as Context from "../Context.ts"
 import * as Effect from "../Effect.ts"
@@ -33,18 +34,22 @@ export type InvalidationKeysFromServer = typeof InvalidationKeysFromServer
  * Creates a fresh `InvalidationKeysService` implementation backed by a `Ref`.
  *
  * @param ref - The `Ref` that stores the accumulated keys.
- * @param onAdded - V3: Optional Effect run after a key is added. Use to trigger mid-stream
- *   query invalidation without waiting for the stream to complete.
+ * @param onAdded - V3: Optional Effect run after a distinct key is added. Use to trigger
+ *   mid-stream query invalidation without waiting for the stream to complete. Repeated keys
+ *   stay accumulated for the final refresh but do not retrigger the callback.
  */
 export const makeInvalidationKeysService = (
   ref: Ref.Ref<ReadonlyArray<InvalidationKey>>,
   onAdded?: (key: InvalidationKey) => Effect.Effect<void>
 ): InvalidationKeysService => ({
-  // When onAdded is set, fire it immediately without accumulating in the ref —
-  // the key is handled on arrival and must not be re-processed at stream end.
   add: (key) =>
-    onAdded
-      ? onAdded(key)
-      : Ref.update(ref, (keys) => [...keys, key]),
+    Ref
+      .modify(ref, (keys) => {
+        if (keys.some((existing) => Equal.equals(existing, key))) return [false, keys]
+        return [true, [...keys, key]]
+      })
+      .pipe(
+        Effect.flatMap((added) => added && onAdded ? onAdded(key) : Effect.void)
+      ),
   get: Ref.get(ref)
 })

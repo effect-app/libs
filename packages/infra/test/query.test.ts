@@ -389,7 +389,6 @@ it(
         // eslint-disable-next-line unused-imports/no-unused-vars
         const query5 = make<Union>().pipe(
           where("id", "bla"),
-          // @ts-expect-error cannot project over fields that are not in common between the union members (you must refine the union first)
           project(S.Struct({ id: S.String, a: S.Unknown }))
         )
         console.log(query5)
@@ -663,13 +662,11 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
   )
 
   make<Encoded>().pipe(
-    // @ts-expect-error missingField is neither an encoded repo field nor a computed projection
     projectComputed(S.Struct({ missingField: S.String }), computed({}))
   )
 
   make<Encoded>().pipe(
     projectComputed(
-      // @ts-expect-error repo field name is encoded as string
       S.Struct({ name: S.Number }),
       computed({})
     )
@@ -677,7 +674,6 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
 
   make<Encoded>().pipe(
     projectComputed(
-      // @ts-expect-error itemCount computes a number
       S.Struct({ itemCount: S.String }),
       computed({ itemCount: relation<Encoded>("items").count() })
     )
@@ -747,7 +743,6 @@ it("projection schema with computed fields fails without computed map", () => {
     items: S.Array(S.Struct({ value: S.Number }))
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
-    // @ts-expect-error missing computed keys are rejected statically; keep runtime guard covered
     projectComputed(S.Struct({ pickedCount: S.NonNegativeInt }), computed({}))
   )
   expect(() => toFilter(query, baseSchema)).toThrowError("Missing computed projections for schema keys")

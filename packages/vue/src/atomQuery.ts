@@ -32,7 +32,6 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { clearQueryReadDependencies, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
 
@@ -116,21 +115,23 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
 }
 
 /**
- * Invalidate the given keys and AWAIT the result. The invalidation (refetch trigger) goes through
- * the built-in `Reactivity` service — the same one query atoms register against via
- * `factory.withReactivity`, shared via the runtime memoMap. The await uses our own `keyAtoms`
- * tracking + `awaitAtomResult`, since `Reactivity.invalidate` returns void and can't be awaited.
+ * Invalidate the given keys and AWAIT the result. `keyAtoms` resolves all matching hierarchical
+ * keys to a deduplicated set of query atoms. Refresh that set directly: sending the whole key set
+ * through `Reactivity.invalidate` invokes one atom's registered callback once per matching key,
+ * repeatedly superseding the same fetch when a mutation carries many row/prefix keys.
  *
  * Resolves once the affected queries have settled, so a mutation can `yield*` this and know the
  * affected queries are fresh. (The await reads via the module-global default registry — the one the
  * vue composables resolve via `injectRegistry`'s fallback.)
  */
-export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void, never, Reactivity.Reactivity> =>
+export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
   Effect.gen(function*() {
     const atoms = atomsForKeys(keys)
     yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
-    yield* Reactivity.invalidate(keys) // invalidates everything but only refreshes what's mounted
     if (atoms.length === 0) return
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+      discard: true
+    })
     yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
   })
 
@@ -486,9 +487,20 @@ export const buildQueryFamily = <I, A, E>(
     // idle window, letting invalidation reach a cached-but-unmounted query.
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
     const registered = setAtomQueryMetadata(Atom.withLabel(`query:${self.id}`)(atom))
+    const writable = Atom.writable(
+      (get) => {
+        const current = get.once(registered)
+        get.subscribe(registered, (value) => get.setSelf(value))
+        return current
+      },
+      (ctx, value: AsyncResult.AsyncResult<A, E>) => ctx.setSelf(value),
+      (refresh) => refresh(registered)
+    )
+    const writableWithTarget = Object.assign(writable, { initialValueTarget: registered })
+    const result = setAtomQueryMetadata(Atom.withLabel(`query-cache:${self.id}`)(writableWithTarget))
     // Key the fetch state by the atom `withQueryOptions` receives, so its mount hook can find it.
-    queryFetchStates.set(registered, fetchState)
-    return registered
+    queryFetchStates.set(result, fetchState)
+    return result
   })
 }
 

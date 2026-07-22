@@ -4,7 +4,7 @@ import * as Cause from "effect/Cause"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { defineComponent, h, nextTick, onErrorCaptured, ref } from "vue"
 import { createMemoryHistory, createRouter, type Router } from "vue-router"
-import FixedNuxtErrorBoundary from "./FixedNuxtErrorBoundary.vue"
+import FixedNuxtErrorBoundary from "../src/components/FixedNuxtErrorBoundary.vue"
 
 /**
  * Behavior contract of the shared error boundary (extracted from the two

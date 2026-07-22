@@ -1,9 +1,9 @@
 <template>
-  <div style="font-family: sans-serif; padding: 16px;">
+  <div style="font-family: sans-serif; padding: 16px">
     <h2>FixedNuxtErrorBoundary demo</h2>
     <p>Trigger different error types and watch how the boundary reacts.</p>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+    <div style="display: flex; gap: 8px; margin-bottom: 16px">
       <button @click="setupError = true">
         Throw in setup() (supported)
       </button>
@@ -21,16 +21,21 @@
       :debug="true"
     >
       <template #error="{ error, clearError }">
-        <div style="border: 2px solid #d33; padding: 12px;">
+        <div style="border: 2px solid #d33; padding: 12px">
           <strong>Error boundary caught:</strong> {{ error.message }}
           <div>
-            <button @click="() => { setupError = false; clearError() }">
+            <button
+              @click="() => {
+                setupError = false
+                clearError()
+              }"
+            >
               Clear error
             </button>
           </div>
         </div>
       </template>
-      <div style="border: 2px solid #2a2; padding: 12px;">
+      <div style="border: 2px solid #2a2; padding: 12px">
         Page content is alive.
         <ThrowingChild v-if="setupError" />
         <ClickThrowChild v-if="clickError" />

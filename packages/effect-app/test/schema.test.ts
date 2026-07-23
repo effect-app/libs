@@ -58,6 +58,20 @@ test("makeExactOptional drops the inherited constructor default too", () => {
   expect(UpdatePerson.make({ name: "Mario" })).toEqual({ name: "Mario" })
 })
 
+test("dropConstructorDefault stays 'no-default' after annotate/annotateKey (Rebuild fix)", () => {
+  const notesDropped = S.dropConstructorDefault(Person.fields.notes)
+  expectTypeOf<(typeof notesDropped)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const notesAnnotated = notesDropped.annotate({ description: "no longer defaulted" })
+  expectTypeOf<(typeof notesAnnotated)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const notesKeyAnnotated = notesDropped.annotateKey({ description: "no longer defaulted (key)" })
+  expectTypeOf<(typeof notesKeyAnnotated)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const UpdatePerson = S.Struct({ name: Person.fields.name, notes: notesAnnotated })
+  expect(UpdatePerson.make({ name: "Mario" })).toEqual({ name: "Mario" })
+})
+
 test("NonEmptyString255.Type uses the named brand alias", () => {
   type A = typeof S.NonEmptyString255.Type
   type B = string & S.NonEmptyString255Brand

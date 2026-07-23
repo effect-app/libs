@@ -110,6 +110,7 @@
     "empty-rules-check",
     "eslint-codegen-glob-11",
     "expose-make-on-query-command",
+    "extract-fixed-nuxt-error-boundary",
     "facade-hardening-error-facade",
     "fair-baboons-marry",
     "fair-oranges-wave",

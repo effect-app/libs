@@ -217,10 +217,6 @@ export const pick: {
  *
  * Keys not present in the struct are silently ignored.
  *
- * On `Schema.Struct` fields, remaining fields keep their `withConstructorDefault`.
- * Compose with `Struct.map(S.dropConstructorDefault)` (`effect-app/Schema`) if
- * you need that stripped too, e.g. `flow(Struct.omit(keys), Struct.map(S.dropConstructorDefault))`.
- *
  * **Example** (Removing a property)
  *
  * ```ts

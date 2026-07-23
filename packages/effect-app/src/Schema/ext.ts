@@ -544,6 +544,10 @@ export type DropConstructorDefault<T> = Omit<T, "~type.constructor.default"> & {
   readonly "~type.constructor.default": "no-default"
 }
 
+// `replaceContext` is `@internal` in `effect/SchemaAST` (stripped from its public types, though the
+// export itself still ships in the compiled JS). Effect's own `withConstructorDefault` goes through the
+// same function internally, so this mirrors an existing code path rather than reaching for something
+// novel, but it's still an internal API that could move or disappear without a signal.
 const SchemaASTInternal = SchemaAST as unknown as {
   readonly replaceContext: <A extends SchemaAST.AST>(ast: A, context: SchemaAST.Context | undefined) => A
 }
@@ -562,6 +566,12 @@ export interface DropConstructorDefaultLambda extends Struct.Lambda {
  * ```ts
  * import { flow } from "effect/Function"
  * import * as Struct from "effect/Struct"
+ * import * as S from "effect-app/Schema"
+ *
+ * const Person = S.Struct({
+ *   id: S.String,
+ *   name: S.String.pipe(S.optionalKey, S.withConstructorDefault(() => ""))
+ * })
  *
  * const UpdatePerson = Person.mapFields(
  *   flow(Struct.omit(["id"]), Struct.map(S.dropConstructorDefault))

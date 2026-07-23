@@ -540,8 +540,9 @@ export function makeOptional<NER extends S.Struct.Fields>(
   }, {} as any)
 }
 
-export type DropConstructorDefault<T> = Omit<T, "~type.constructor.default"> & {
+export type DropConstructorDefault<T> = Omit<T, "~type.constructor.default" | "Rebuild"> & {
   readonly "~type.constructor.default": "no-default"
+  readonly "Rebuild": DropConstructorDefault<T>
 }
 
 // `replaceContext` is `@internal` in `effect/SchemaAST` (stripped from its public types, though the

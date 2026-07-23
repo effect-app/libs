@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.299
+
+### Patch Changes
+
+- b4ea50f: Add `FixedNuxtErrorBoundary`, extracted from duplicated per-project copies. Wraps Nuxt's error boundary with injectable `captureException`/`toastError`/`debug` props, distinguishes supported errors (setup/template) from unsupported ones (native event handlers, reported but not rendered), ignores interrupts-only Effect `CauseException` failures, and clears itself on route change.
+  - effect-app@4.0.0-beta.299
+  - @effect-app/vue@4.0.0-beta.299
+
 ## 4.0.0-beta.298
 
 ### Patch Changes

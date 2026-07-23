@@ -1,5 +1,20 @@
 # @effect-app/vue
 
+## 4.0.0-beta.298
+
+### Patch Changes
+
+- 08d092c: Update Atom query caches in memory and accumulate stream invalidations so live events do not cause repeated RPC refetches.
+- Updated dependencies [08d092c]
+  - effect-app@4.0.0-beta.298
+
+## 4.0.0-beta.297
+
+### Patch Changes
+
+- Updated dependencies [30c512d]
+  - effect-app@4.0.0-beta.297
+
 ## 4.0.0-beta.296
 
 ### Patch Changes

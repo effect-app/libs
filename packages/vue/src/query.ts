@@ -91,7 +91,9 @@ export type SuspenseQueryView<A, E> =
   }
   & SuspenseQueryTuple<A, E>
 
-export type QueryAtomFamily<I, A, E> = (input: I) => Atom.Atom<AsyncResult.AsyncResult<A, E>>
+export type QueryAtomFamily<I, A, E> = (
+  input: I
+) => Atom.Writable<AsyncResult.AsyncResult<A, E>, AsyncResult.AsyncResult<A, E>>
 export type StreamQueryAtomFamily<I, A, E> = (input: I) => Atom.Writable<Atom.PullResult<A, E>, void>
 
 interface QueryFamilyDescriptor<I, A, E> {
@@ -145,7 +147,12 @@ const getStreamQueryFamily = <I, A, E>(
 }
 
 const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater => ({
-  update: (registry, query, input) => {
+  update: <I, A, E, R, Request extends Req, Name extends string>(
+    registry: ReturnType<typeof injectRegistry>,
+    query: RequestHandlerWithInput<I, A, E, R, Request, Name>,
+    input: I,
+    updater: (data: NoInfer<A>) => NoInfer<A>
+  ) => {
     const family = queryFamilyByKey.get(queryFamilyCacheKey(query))
     if (!family) {
       if (warnIfMissing) {
@@ -153,7 +160,10 @@ const makeAtomQueryCacheUpdater = (warnIfMissing: boolean): QueryCacheUpdater =>
       }
       return
     }
-    registry.refresh(family(input))
+    const atom: Atom.Writable<AsyncResult.AsyncResult<A, E>, AsyncResult.AsyncResult<A, E>> = family(input)
+    const current = registry.get(atom)
+    const next = AsyncResult.map(current, updater)
+    registry.set(atom, next)
   }
 })
 

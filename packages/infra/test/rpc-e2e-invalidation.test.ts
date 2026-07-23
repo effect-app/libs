@@ -330,7 +330,7 @@ it.live(
 )
 
 it.live(
-  "stream: per-chunk metadata drains keys mid-stream",
+  "stream: per-chunk metadata accumulates distinct keys",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const ref = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
@@ -340,9 +340,7 @@ it.live(
     )
     const keys = yield* Ref.get(ref)
     expect(values).toStrictEqual([1, 2, 3])
-    // Handler taps `InvalidationSet.use` once per emitted value; routing's V3 mid-stream
-    // metadata drain forwards each batch as it arrives.
-    expect(keys).toStrictEqual([StreamKey, StreamKey, StreamKey])
+    expect(keys).toStrictEqual([StreamKey])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

@@ -1,0 +1,79 @@
+# Intended contents of .github/workflows/release.yaml for npm Trusted Publishing (OIDC).
+# Apply with: cp .github/release.oidc.yaml .github/workflows/release.yaml
+# (Bot cannot push workflow file updates; a maintainer must apply this once.)
+name: Changesets
+on:
+  push:
+    branches:
+      - main
+# id-token: write enables npm Trusted Publishing (OIDC).
+# Do not pass NPM_TOKEN on the publish step — changesets/action prefers a
+# long-lived token when set and will skip OIDC.
+# See .github/npm-trusted-publishing.md for npmjs.com setup.
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+env:
+  CI: true
+  PNPM_CACHE_FOLDER: .pnpm-store
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  version:
+    needs: [ci]
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing requires npm CLI >= 11.5.1
+      - name: Ensure npm supports OIDC trusted publishing
+        run: npm install -g npm@latest && npm --version
+
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: install packages
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: create and publish versions
+        uses: changesets/action@v1
+        with:
+          version: pnpm ci:version
+          commit: "chore: update versions"
+          title: "chore: update versions"
+          publish: pnpm ci:publish
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

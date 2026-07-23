@@ -5,6 +5,11 @@
   "license": "MIT",
   "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/eslint-shared-config"
+  },
   "sideEffects": false,
   "scripts": {
     "watch": "pnpm build -w",

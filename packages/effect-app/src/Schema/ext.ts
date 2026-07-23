@@ -540,9 +540,22 @@ export function makeOptional<NER extends S.Struct.Fields>(
   }, {} as any)
 }
 
-export type DropConstructorDefault<T> = Omit<T, "~type.constructor.default" | "Rebuild"> & {
+// `Omit` erases the polymorphic `this` of "this-returning" methods (`annotate`, `annotateKey`,
+// `check`, `rebuild`): extracting them through a mapped type binds their `this["Rebuild"]` back to
+// the original `T`, not to this intersection. So overriding just `Rebuild` above is not enough, those
+// four methods have to be redeclared here with a concrete return type instead of `this["Rebuild"]`.
+export type DropConstructorDefault<T extends S.Top> = Omit<
+  T,
+  "~type.constructor.default" | "Rebuild" | "annotate" | "annotateKey" | "check" | "rebuild"
+> & {
   readonly "~type.constructor.default": "no-default"
   readonly "Rebuild": DropConstructorDefault<T>
+  annotate(annotations: S.Annotations.Bottom<T["Type"], T["~type.parameters"]>): DropConstructorDefault<T>
+  annotateKey(annotations: S.Annotations.Key<T["Type"]>): DropConstructorDefault<T>
+  check(
+    ...checks: readonly [SchemaAST.Check<T["Type"]>, ...Array<SchemaAST.Check<T["Type"]>>]
+  ): DropConstructorDefault<T>
+  rebuild(ast: T["ast"]): DropConstructorDefault<T>
 }
 
 // `replaceContext` is `@internal` in `effect/SchemaAST` (stripped from its public types, though the
@@ -555,7 +568,7 @@ const SchemaASTInternal = SchemaAST as unknown as {
 
 export interface DropConstructorDefaultLambda extends Struct.Lambda {
   <T extends S.Top>(self: T): DropConstructorDefault<T>
-  readonly "~lambda.out": DropConstructorDefault<this["~lambda.in"]>
+  readonly "~lambda.out": DropConstructorDefault<this["~lambda.in"] & S.Top>
 }
 
 /**

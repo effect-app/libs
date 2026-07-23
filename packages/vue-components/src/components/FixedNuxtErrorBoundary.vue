@@ -64,6 +64,14 @@ function handleError(...args: Parameters<Parameters<typeof onErrorCaptured<Error
   // PRO: don't render interruptions..
   // e.g when we run useSuspenseQuery, and we navigate away before a query is finished, we get a CancelledError
   // if we however render it here instead of the default slot, we will show the cancellation error of the previous page, instead of rendering the new page
+  //
+  // NOTE the engine-side contract that makes this blanket silence safe: `useSuspenseQuery(New)`
+  // converts an interrupt that settles while the component is STILL MOUNTED (a query-side interrupt,
+  // e.g. a server RPC interrupt Exit — the thing that used to blank the page) into a typed
+  // `SuspenseInterruptedError` (@effect-app/vue makeClient), whose cause is NOT interrupt-only and
+  // therefore falls through to the error slot below. What remains interrupt-only here is genuinely
+  // "navigated away / unmounted" — silencing it is correct and avoids rendering the previous page's
+  // cancellation over the new page.
   if (fiberFailure && Cause.hasInterruptsOnly(fiberFailure.originalCause)) {
     return
   }

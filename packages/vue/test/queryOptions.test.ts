@@ -1,5 +1,6 @@
 import { expect, it } from "@effect/vitest"
 import * as Cause from "effect/Cause"
+import * as Option from "effect/Option"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { shallowRef } from "vue"
 import { withDataFallback } from "../src/query.js"
@@ -76,8 +77,8 @@ it("withDataFallback: does not mask Failure without previousSuccess", () => {
 })
 
 it("withDataFallback: Failure with previousSuccess still surfaces as Failure", () => {
-  const fail = AsyncResult.failureWithPrevious(Cause.fail("boom"), {
-    previous: AsyncResult.success(10)
+  const fail = AsyncResult.failureWithPrevious<number, string>(Cause.fail("boom"), {
+    previous: Option.some(AsyncResult.success(10))
   })
   const raw = shallowRef<AsyncResult.AsyncResult<number, string>>(fail)
   const out = withDataFallback(raw, { placeholderData: 99 })

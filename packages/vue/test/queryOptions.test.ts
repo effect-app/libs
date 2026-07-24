@@ -1,4 +1,5 @@
 import { expect, it } from "@effect/vitest"
+import * as Cause from "effect/Cause"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { shallowRef } from "vue"
 import { withDataFallback } from "../src/query.js"
@@ -62,4 +63,25 @@ it("withDataFallback: select applies to the placeholder when layered after the f
 
   raw.value = AsyncResult.success(456)
   expect(selected()).toMatchObject({ _tag: "Success", value: "456", waiting: false })
+})
+
+it("withDataFallback: does not mask Failure without previousSuccess", () => {
+  const fail = AsyncResult.failure<number, string>(Cause.fail("boom"))
+  const raw = shallowRef<AsyncResult.AsyncResult<number, string>>(fail)
+  const out = withDataFallback(raw, { placeholderData: 1, initialData: 2 })
+
+  // Failure has no value — old gate would have fabricated Success; must pass Failure through
+  expect(out.value).toBe(fail)
+  expect(AsyncResult.isFailure(out.value)).toBe(true)
+})
+
+it("withDataFallback: Failure with previousSuccess still surfaces as Failure", () => {
+  const fail = AsyncResult.failureWithPrevious(Cause.fail("boom"), {
+    previous: AsyncResult.success(10)
+  })
+  const raw = shallowRef<AsyncResult.AsyncResult<number, string>>(fail)
+  const out = withDataFallback(raw, { placeholderData: 99 })
+
+  expect(out.value).toBe(fail)
+  expect(AsyncResult.isFailure(out.value)).toBe(true)
 })

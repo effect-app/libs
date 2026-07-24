@@ -268,11 +268,12 @@ export interface AtomStreamQueryOptions {
 
 /**
  * Layer TanStack `initialData` / `placeholderData` over a raw query result as a DISPLAY fallback.
- * When the result has no concrete value yet (Initial — a Failure keeps its `previousSuccess`), show
- * the seed value: `initialData` as resolved data, `placeholderData` as provisional (`waiting: true`,
- * dropped once real data exists). `placeholderData` in function form receives the last seen concrete
- * value, giving basic keep-previous behaviour across refetches/input changes. Returns the raw ref
- * untouched when neither option is set. Neither value is written to the atom cache.
+ * Only while the result is still `Initial` (pending, never settled): show `initialData` as resolved
+ * data, or `placeholderData` as provisional (`waiting: true`). Once real data exists the seed is
+ * dropped. Failures are never masked — including failures without `previousSuccess` (where
+ * `AsyncResult.value` is empty). `placeholderData` in function form receives the last seen concrete
+ * value for basic keep-previous across input changes. Returns the raw ref untouched when neither
+ * option is set. Neither value is written to the atom cache.
  */
 export const withDataFallback = <A, E>(
   rawResult: Ref<AsyncResult.AsyncResult<A, E>>,
@@ -293,6 +294,9 @@ export const withDataFallback = <A, E>(
     const concrete = AsyncResult.value(r)
     if (Option.isSome(concrete)) {
       lastData = concrete.value
+    }
+    // Fallback is pending-only. Failure (even without previousSuccess) and Success pass through.
+    if (!AsyncResult.isInitial(r)) {
       return r
     }
     if (initialData !== undefined) {
@@ -546,9 +550,8 @@ const makeQueryView = <I, A, E, TData>(
   const family = getQueryFamily(atomRt, q)
   const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
   const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
-  // `initialData` / `placeholderData` display fallback (old `.query()` API). Both surface a value
-  // while the query has none yet; `initialData` is shown as resolved data, `placeholderData` stays
-  // provisional (`waiting`) and is dropped the moment real data arrives. Neither is written to cache
+  // `initialData` / `placeholderData` display fallback (old `.query()` API). Applied only while the
+  // result is still Initial; Failures/Success pass through unmasked. Neither is written to cache
   // (the base atom stays Initial, so the mount-staleness check still triggers the real fetch). The
   // fallback runs PRE-select, matching TanStack (`initialData`/`placeholderData` are TQueryData).
   const fallbackResult = withDataFallback(rawResult, options)

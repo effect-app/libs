@@ -16,7 +16,7 @@ import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
-import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
+import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, type Ref, ref, toValue, type WatchSource } from "vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 import { latestDefined } from "./suspense.ts"
 
@@ -266,6 +266,46 @@ export interface AtomStreamQueryOptions {
   readonly refetchInterval?: number
 }
 
+/**
+ * Layer TanStack `initialData` / `placeholderData` over a raw query result as a DISPLAY fallback.
+ * When the result has no concrete value yet (Initial — a Failure keeps its `previousSuccess`), show
+ * the seed value: `initialData` as resolved data, `placeholderData` as provisional (`waiting: true`,
+ * dropped once real data exists). `placeholderData` in function form receives the last seen concrete
+ * value, giving basic keep-previous behaviour across refetches/input changes. Returns the raw ref
+ * untouched when neither option is set. Neither value is written to the atom cache.
+ */
+export const withDataFallback = <A, E>(
+  rawResult: Ref<AsyncResult.AsyncResult<A, E>>,
+  options?: unknown
+): ComputedRef<AsyncResult.AsyncResult<A, E>> => {
+  const opts = options as
+    | { readonly initialData?: A | (() => A); readonly placeholderData?: A | ((prev: A | undefined) => A) }
+    | undefined
+  const initialData = opts?.initialData
+  const placeholderData = opts?.placeholderData
+  if (initialData === undefined && placeholderData === undefined) {
+    return rawResult as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  }
+
+  let lastData: A | undefined
+  return computed(() => {
+    const r = rawResult.value
+    const concrete = AsyncResult.value(r)
+    if (Option.isSome(concrete)) {
+      lastData = concrete.value
+      return r
+    }
+    if (initialData !== undefined) {
+      const v = typeof initialData === "function" ? (initialData as () => A)() : initialData
+      return AsyncResult.success(v, { waiting: r.waiting })
+    }
+    const v = typeof placeholderData === "function"
+      ? (placeholderData as (prev: A | undefined) => A)(lastData)
+      : placeholderData
+    return v === undefined ? r : AsyncResult.success(v, { waiting: true })
+  })
+}
+
 const normalizeQueryOptions = (options?: {
   readonly staleTime?: number
   readonly gcTime?: number | "infinity"
@@ -506,10 +546,16 @@ const makeQueryView = <I, A, E, TData>(
   const family = getQueryFamily(atomRt, q)
   const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
   const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  // `initialData` / `placeholderData` display fallback (old `.query()` API). Both surface a value
+  // while the query has none yet; `initialData` is shown as resolved data, `placeholderData` stays
+  // provisional (`waiting`) and is dropped the moment real data arrives. Neither is written to cache
+  // (the base atom stays Initial, so the mount-staleness check still triggers the real fetch). The
+  // fallback runs PRE-select, matching TanStack (`initialData`/`placeholderData` are TQueryData).
+  const fallbackResult = withDataFallback(rawResult, options)
   const select = options?.select
   const result = (select
-    ? computed(() => AsyncResult.map(rawResult.value, select))
-    : rawResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
+    ? computed(() => AsyncResult.map(fallbackResult.value, select))
+    : fallbackResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () =>
     select

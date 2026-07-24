@@ -7,6 +7,15 @@ This is the Effect App library repository, focusing on functional programming pa
 - The git base branch is `main`
 - Use `pnpm` as the package manager
 
+### Pull requests
+
+Always open a PR for agent work that changes the repo — do not leave finished work only on a local branch.
+
+- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while local validation is still in flight.
+- **Keep the PR current**: push commits as you go; update the PR body if scope shifts.
+- **Ready when done**: after mandatory validation (`pnpm lint-fix`, `pnpm check`, and relevant tests) passes, mark the PR ready for review (undraft / publish). Do not leave a finished, validated change as draft.
+- **Base**: target `main` unless the work is explicitly stacked on another branch.
+
 ### Core Principles
 
 - **Zero Tolerance for Errors**: All automated checks must pass

@@ -34,7 +34,7 @@ node packages/cli/dist/index.js effa <command>
 
 ### `effa ue` - Update Effect/Effect-App
 
-Updates Effect and Effect-App packages using npm-check-updates.
+Updates Effect and Effect-App packages to the highest versions allowed by their existing semver ranges using npm-check-updates.
 
 ```bash
 pnpm effa ue

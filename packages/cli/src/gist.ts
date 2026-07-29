@@ -549,7 +549,7 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
         const CONFIG = yield* Config.all({
           company: Config.string("COMPANY"),
           env: Config.string("ENV").pipe(Config.withDefault("local-dev")),
-          gistCacheId: Config.string("EFFA_GIST_CACHE_ID")
+          gistCacheId: Config.nonEmptyString("EFFA_GIST_CACHE_ID")
         })
 
         yield* Effect.logInfo(`Company: ${CONFIG.company}, ENV: ${CONFIG.env}`)

@@ -1,11 +1,19 @@
+# Intended contents of .github/workflows/release.yaml for npm Trusted Publishing (OIDC).
+# Apply with: cp .github/release.oidc.yaml .github/workflows/release.yaml
+# (Bot cannot push workflow file updates; a maintainer must apply this once.)
 name: Changesets
 on:
   push:
     branches:
       - main
+# id-token: write enables npm Trusted Publishing (OIDC).
+# Do not pass NPM_TOKEN on the publish step — changesets/action prefers a
+# long-lived token when set and will skip OIDC.
+# See .github/npm-trusted-publishing.md for npmjs.com setup.
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 env:
   CI: true
   PNPM_CACHE_FOLDER: .pnpm-store
@@ -27,6 +35,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.14
+          registry-url: https://registry.npmjs.org
 
       - uses: pnpm/action-setup@v3
         name: Install pnpm
@@ -53,10 +62,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # - name: setup pnpm config
-      #   run: pnpm config set store-dir $PNPM_CACHE_FOLDER
 
       - name: create and publish versions
         uses: changesets/action@v1
@@ -68,4 +73,3 @@ jobs:
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

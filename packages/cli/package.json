@@ -1,8 +1,13 @@
 {
   "name": "@effect-app/cli",
-  "version": "2.1.0-beta.37",
+  "version": "2.1.0-beta.38",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "effect-app": "./bin.js",
     "effa": "./bin.js",

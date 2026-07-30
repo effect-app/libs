@@ -19,6 +19,7 @@ import { patchArgvForWrapCommands } from "./argv-patch.js"
 import { syncEffectAppSubtree } from "./sync-effect-app-subtree.js"
 import { syncEffectSubtree } from "./sync-effect-subtree.js"
 import { syncDiff, syncPush, syncShared } from "./sync-shared.js"
+import { makeNcuUpdateCommand } from "./update-packages.js"
 
 patchArgvForWrapCommands(process.argv)
 
@@ -33,27 +34,27 @@ NodeRuntime.runMain(
       yield* Effect.addFinalizer(() => Effect.logInfo(`CLI has finished executing`))
 
       /**
-       * Updates effect-app packages to their latest versions using npm-check-updates.
+       * Updates effect-app packages within their existing semver ranges using npm-check-updates.
        * Runs both at workspace root and recursively in all workspace packages.
        */
       const updateEffectAppPackages = Effect.fn("effa-cli.ue.updateEffectAppPackages")(function*() {
         const filters = ["effect-app", "@effect-app/*"]
         for (const filter of filters) {
-          yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
-          yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
+          yield* runGetExitCode(makeNcuUpdateCommand(filter))
+          yield* runGetExitCode(makeNcuUpdateCommand(filter, { recursive: true }))
         }
       })()
 
       /**
-       * Updates Effect ecosystem packages to their latest versions using npm-check-updates.
+       * Updates Effect ecosystem packages within their existing semver ranges using npm-check-updates.
        * Covers core Effect packages, Effect ecosystem packages, and Effect Atom packages.
        * Runs both at workspace root and recursively in all workspace packages.
        */
       const updateEffectPackages = Effect.fn("effa-cli.ue.updateEffectPackages")(function*() {
         const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
         for (const filter of effectFilters) {
-          yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
-          yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
+          yield* runGetExitCode(makeNcuUpdateCommand(filter))
+          yield* runGetExitCode(makeNcuUpdateCommand(filter, { recursive: true }))
         }
       })()
 

@@ -1,8 +1,13 @@
 {
   "name": "effect-app",
-  "version": "4.0.0-beta.299",
+  "version": "4.0.0-beta.301",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/effect-app"
+  },
   "dependencies": {
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.4.0",

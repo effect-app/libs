@@ -1,5 +1,18 @@
 # @effect-app/vue
 
+## 4.0.0-beta.301
+
+### Patch Changes
+
+- 413022d: Restore TanStack `placeholderData` / `initialData` as a display-level fallback in query views. While pending with no cached value, `data` now returns the resolved placeholder (with `select` applied when set); neither option is written to the atom cache.
+  - effect-app@4.0.0-beta.301
+
+## 4.0.0-beta.300
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.300
+
 ## 4.0.0-beta.299
 
 ### Patch Changes

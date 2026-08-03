@@ -120,7 +120,11 @@ if (command === "prepack") {
   _fs.rmSync(stageDir, { recursive: true, force: true })
 
   const packOutput = run("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"])
-  const [pack] = JSON.parse(packOutput)
+  const parsedPack = JSON.parse(packOutput)
+  const pack = Array.isArray(parsedPack) ? parsedPack[0] : parsedPack
+  if (pack === undefined || !Array.isArray(pack.files)) {
+    throw new Error("npm pack --json returned an unsupported payload")
+  }
 
   _fs.mkdirSync(stageDir, { recursive: true })
 

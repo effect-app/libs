@@ -58,3 +58,7 @@ run.sh
 
 # Generated publish staging directories
 packages/*/.publish/
+
+# agent gh shim (generated) + local ship-gate state
+.tools/
+.run/

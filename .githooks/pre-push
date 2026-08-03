@@ -1,0 +1,12 @@
+# Agent-only ship gate (humans: no-op). See scripts/agent-pre-push.mjs.
+# Draft / no PR: free push. Ready PR: check + lint + test.
+# Publish: pnpm pr:ready, or raw `gh pr ready` — the shim runs the same gate first.
+#
+# Humans: SKIP_AGENT_PREPUSH=1 git push
+# Agents: never SKIP_AGENT_PREPUSH / never --no-verify
+# Nested Git commands must discover their own repositories, not inherit this
+# hook's GIT_DIR/GIT_WORK_TREE from the outer push.
+for name in $(git rev-parse --local-env-vars); do
+  unset "$name"
+done
+pnpm exec node scripts/agent-pre-push.mjs

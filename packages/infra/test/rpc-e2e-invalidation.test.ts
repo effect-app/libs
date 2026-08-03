@@ -358,8 +358,8 @@ it.live(
     const writes = yield* Ref.get(writesRef)
     expect(values).toStrictEqual([1, 2, 3])
     // Each emitted value writes to RepoItem; routing drains the writes per chunk and the client
-    // accumulates them — the recorder dedupes, so a single RepoItem entry is recorded.
-    expect(writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem")]))
+    // accumulates their entity ids into one dependency.
+    expect(writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem", ["1", "2", "3"])]))
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )
@@ -377,7 +377,7 @@ it.live(
     const command = yield* withDependencyCapture(client.SaveRepoItem.handler({ id: "1", label: "one" }))
     expect(Exit.isSuccess(command.result)).toBe(true)
     expect(command.dependencies.reads).toStrictEqual(DataDependencies.empty())
-    expect(command.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem")]))
+    expect(command.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("RepoItem", ["1"])]))
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )
@@ -411,7 +411,7 @@ it.live(
     // A command writing an UNRELATED repo => the query is NOT invalidated (negative control).
     const saveOther = yield* withDependencyCapture(client.SaveOtherItem.handler({ id: "2", label: "two" }))
     expect(Exit.isSuccess(saveOther.result)).toBe(true)
-    expect(saveOther.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("OtherItem")]))
+    expect(saveOther.dependencies.writes).toStrictEqual(new Set([DataDependencies.repo("OtherItem", ["2"])]))
     expect(invalidatedBy(saveOther.dependencies.writes)).toStrictEqual([])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }

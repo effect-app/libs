@@ -82,8 +82,8 @@ git push
 That workflow includes:
 
 - `permissions.id-token: write`
-- npm CLI upgraded to latest (≥ `11.5.1` required for OIDC)
-- Node `24.14`
+- Node `24` (latest 24.x; npm 12 needs Node ≥ `24.15` — pin the major, not a stale patch like `24.14`)
+- Workflow upgrades to `npm@latest` after setup-node (OIDC needs npm ≥ `11.5.1`)
 - **No** `NPM_TOKEN` on the publish step
 - Package `repository.url` points at `https://github.com/effect-app/libs.git` (set in package.json)
 

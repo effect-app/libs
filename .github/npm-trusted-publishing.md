@@ -48,42 +48,25 @@ npm does **not** validate the config on save — mismatches only show up at publ
 ## Order of operations (important)
 
 1. **Configure trusted publishers** for all packages above (npm side).
-2. **Merge** the PR with package `repository` fields + this doc + `.github/release.oidc.yaml`.
-3. **Apply the workflow** (maintainer, local credentials with `workflows` permission):
-
-   ```bash
-   cp .github/release.oidc.yaml .github/workflows/release.yaml
-   git add .github/workflows/release.yaml && git commit -m "ci: enable npm OIDC trusted publishing" && git push
-   ```
-
-4. On push to `main`, the Changesets workflow publishes any unpublished versions (e.g. `4.0.0-beta.299`).
-5. Confirm success in the Actions log: look for  
+2. **Merge** the PR that enables OIDC in `.github/workflows/release.yaml` (`id-token: write`, no `NPM_TOKEN` on publish).
+3. On push to `main`, the Changesets workflow publishes any unpublished versions.
+4. Confirm success in the Actions log: look for  
    `No NPM_TOKEN found, but OIDC is available - using npm trusted publishing`.
-6. After a successful OIDC publish, optionally harden each package:
+5. After a successful OIDC publish, optionally harden each package:
    - **Publishing access** → **Require two-factor authentication and disallow tokens**
    - Revoke the old GitHub secret `NPM_TOKEN` and any automation tokens on npm.
 
 Do **not** set `NPM_TOKEN` on the publish step once OIDC is intended — `changesets/action` will use the long-lived token instead of OIDC when that env var is present.
 
-## GitHub workflow (apply once)
+## GitHub workflow
 
-The intended Changesets workflow lives at **`.github/release.oidc.yaml`**.
+Live workflow: **`.github/workflows/release.yaml`**.
 
-A GitHub App without the `workflows` permission cannot update files under
-`.github/workflows/`. A maintainer must apply it once:
-
-```bash
-cp .github/release.oidc.yaml .github/workflows/release.yaml
-git add .github/workflows/release.yaml
-git commit -m "ci: enable npm OIDC trusted publishing in Changesets workflow"
-git push
-```
-
-That workflow includes:
+It includes:
 
 - `permissions.id-token: write`
-- npm CLI upgraded to latest (≥ `11.5.1` required for OIDC)
-- Node `24.14`
+- Node `24` (latest 24.x; npm 12 needs Node ≥ `24.15` — pin the major, not a stale patch like `24.14`)
+- Workflow upgrades to `npm@latest` after setup-node (OIDC needs npm ≥ `11.5.1`)
 - **No** `NPM_TOKEN` on the publish step
 - Package `repository.url` points at `https://github.com/effect-app/libs.git` (set in package.json)
 
@@ -94,6 +77,7 @@ That workflow includes:
 | `E404` / “could not be found or you do not have permission” | Trusted publisher mismatch (org/repo/workflow filename), or OIDC not used because `NPM_TOKEN` is still set |
 | `ENEEDAUTH` / unable to authenticate | Missing `id-token: write`, old npm CLI, or self-hosted runner (not supported) |
 | Only some packages publish | Trusted publisher missing on those packages |
+| `EBADENGINE` installing `npm@latest` | Node pin too old (e.g. `24.14`); use major `24` so runners are ≥ `24.15` |
 
 ## Optional hardening
 

@@ -58,6 +58,9 @@ export interface RepositoryOptions<
    */
   schemaContext?: Context.Context<RCtx>
 
+  /** IDs, including aliases, that identify an entity for dependency invalidation. */
+  dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
+
   overrides?: (
     repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>
   ) => Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>

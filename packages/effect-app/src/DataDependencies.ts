@@ -1,13 +1,22 @@
+import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
+import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
 import * as S from "./Schema.ts"
 
-export const DataDependency = S.Struct({
-  type: S.Literals(["repo", "signal"]),
-  name: S.String
-})
+export const DataDependency = S.Union([
+  S.Struct({
+    type: S.Literal("repo"),
+    name: S.String,
+    ids: S.optional(S.NonEmptyArray(S.String))
+  }),
+  S.Struct({
+    type: S.Literal("signal"),
+    name: S.String
+  })
+])
 export type DataDependency = S.Schema.Type<typeof DataDependency>
 
 export const DataDependencies = S.ReadonlySet(DataDependency)
@@ -29,15 +38,39 @@ export interface DataDependencyRecorderService {
   readonly drainWrites: Effect.Effect<DataDependencies>
 }
 
+const sameDomain = (a: DataDependency, b: DataDependency) => a.type === b.type && a.name === b.name
+
+const dependenciesOverlap = (a: DataDependency, b: DataDependency) => {
+  if (!sameDomain(a, b)) return false
+  if (a.type === "signal" || b.type === "signal") return true
+  if (a.ids === undefined || b.ids === undefined) return true
+  return a.ids.some((id) => b.ids?.includes(id))
+}
+
 const containsDependency = (dependencies: ReadonlySet<DataDependency>, dependency: DataDependency) => {
   for (const _ of dependencies) {
-    if (_.type === dependency.type && _.name === dependency.name) return true
+    if (dependenciesOverlap(_, dependency)) return true
   }
   return false
 }
 
-const appendDependency = (dependency: DataDependency) => (dependencies: DataDependencies): DataDependencies =>
-  containsDependency(dependencies, dependency) ? dependencies : new Set([...dependencies, dependency])
+const appendDependency = (dependency: DataDependency) => (dependencies: DataDependencies): DataDependencies => {
+  const existing = [...dependencies].find((_) => sameDomain(_, dependency))
+  if (existing === undefined) return new Set([...dependencies, dependency])
+  if (existing.type === "signal" || dependency.type === "signal") return dependencies
+  if (existing.ids === undefined) return dependencies
+  if (dependency.ids === undefined) {
+    return new Set([...dependencies].filter((_) => _ !== existing).concat(dependency))
+  }
+  const first = existing.ids[0]
+  const ids: NonEmptyReadonlyArray<string> = [
+    first,
+    ...new Set([...existing.ids.slice(1), ...dependency.ids].filter((id) => id !== first))
+  ]
+  if (ids.length === existing.ids.length) return dependencies
+  const merged = repo(existing.name, ids)
+  return new Set([...dependencies].filter((_) => _ !== existing).concat(merged))
+}
 
 export const DataDependencyRecorder = RequestScopedDependencies.make(
   "effect-app/DataDependencyRecorder",
@@ -90,8 +123,24 @@ export const makeDataDependencyRecorder = (
   drainWrites: Ref.getAndSet(writesRef, empty())
 })
 
-export const repo = (name: string): DataDependency => ({ type: "repo", name })
+export const repo = (name: string, ids?: NonEmptyReadonlyArray<string>): DataDependency =>
+  ids === undefined ? { type: "repo", name } : { type: "repo", name, ids }
 export const signal = (name: string): DataDependency => ({ type: "signal", name })
+
+const RepoReadScope = Context.Reference<DataDependency | undefined>("effect-app/DataDependencies/RepoReadScope", {
+  defaultValue: () => undefined
+})
+
+export const readRepo = (name: string) =>
+  Effect.flatMap(
+    RepoReadScope,
+    (scope) => read(scope?.type === "repo" && scope.name === name ? scope : repo(name))
+  )
+
+export const withRepoReadScope =
+  (name: string, ids: NonEmptyReadonlyArray<string>) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.provideService(self, RepoReadScope, repo(name, ids))
 
 export const QueryReadDependenciesMetaKey = "effect-app.query.readDependencies"
 

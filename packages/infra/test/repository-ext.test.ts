@@ -170,7 +170,65 @@ describe("repository ext save/remove batching", () => {
           .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
 
         expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
-        expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
+        expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["1"])]))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("narrows direct repository reads to the requested entity", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {})
+            yield* repo.find("1")
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["1"])]))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it("matches entity dependencies by overlapping ids with a coarse fallback", () => {
+    const item1 = new Set([DataDependencies.repo("DependencyItem", ["1"])])
+    const item2 = new Set([DataDependencies.repo("DependencyItem", ["2"])])
+    const collection = new Set([DataDependencies.repo("DependencyItem")])
+
+    expect(DataDependencies.intersects(item1, item2)).toBe(false)
+    expect(DataDependencies.intersects(item1, item1)).toBe(true)
+    expect(DataDependencies.intersects(collection, item2)).toBe(true)
+  })
+
+  it.effect("matches an explicit query scope to a write alias", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {
+              dependencyIds: (item) => [item.id, `alias-${item.id}`]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* repo.all.pipe(DataDependencies.withRepoReadScope("DependencyItem", ["alias-1"]))
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["alias-1"])]))
+        expect(yield* Ref.get(writesRef)).toEqual(
+          new Set([DataDependencies.repo("DependencyItem", ["1", "alias-1"])])
+        )
       })
       .pipe(
         setupRequestContextFromCurrent(),

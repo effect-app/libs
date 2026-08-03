@@ -114,6 +114,7 @@ export function makeRepoInternal<
       args: [Evt] extends [never] ? {
           schemaContext?: Context.Context<RCtx>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
+          dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
           }
@@ -122,6 +123,7 @@ export function makeRepoInternal<
           schemaContext?: Context.Context<RCtx>
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
+          dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
           }
@@ -143,9 +145,21 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
-          const repoDependency = DataDependencies.repo(name)
-          const recordRead = DataDependencies.read(repoDependency)
-          const recordWrite = DataDependencies.write(repoDependency)
+          const recordRead = DataDependencies.readRepo(name)
+          const entityDependency = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
+            DataDependencies.repo(name, [String(ids[0]), ...ids.slice(1).map(String)])
+          const itemDependency = (items: NonEmptyReadonlyArray<T>) => {
+            const firstIds = args.dependencyIds?.(items[0]) ?? [String(items[0][idKey])]
+            return DataDependencies.repo(name, [
+              firstIds[0],
+              ...firstIds.slice(1),
+              ...items.slice(1).flatMap((item) => args.dependencyIds?.(item) ?? [String(item[idKey])])
+            ])
+          }
+          const recordEntityRead = (id: T[IdKey]) => DataDependencies.read(entityDependency([id]))
+          const recordEntityWrite = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
+            DataDependencies.write(entityDependency(ids))
+          const recordItemWrite = (items: NonEmptyReadonlyArray<T>) => DataDependencies.write(itemDependency(items))
           const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
             get: (id: string) => _.get(`${name}.${id}`),
             set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
@@ -282,7 +296,7 @@ export function makeRepoInternal<
             kind: "client",
             attributes: { "app.entity": name }
           })(function*(id: T[IdKey]) {
-            yield* recordRead
+            yield* recordEntityRead(id)
             yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
             return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
@@ -310,8 +324,11 @@ export function makeRepoInternal<
 
           const saveAndPublish = Effect.fn("Repository.saveAndPublish", { attributes: { "app.entity": name } })(
             function*(items: Iterable<T>, events: Iterable<Evt> = []) {
-              yield* recordWrite
               const it = Chunk.fromIterable(items)
+              if (Chunk.isNonEmpty(it)) {
+                const values = Chunk.toReadonlyArray(it)
+                yield* recordItemWrite([values[0], ...values.slice(1)])
+              }
               const evts = [...events]
               yield* Effect.annotateCurrentSpan({
                 "app.entity.ids": Chunk.map(it, (_) => _[idKey]),
@@ -330,9 +347,11 @@ export function makeRepoInternal<
 
           const removeAndPublish = Effect.fn("Repository.removeAndPublish", { attributes: { "app.entity": name } })(
             function*(a: Iterable<T>, events: Iterable<Evt> = []) {
-              yield* recordWrite
               const { set } = yield* cms
               const it = [...a]
+              if (Array.isReadonlyArrayNonEmpty(it)) {
+                yield* recordItemWrite(it)
+              }
               const evts = [...events]
               yield* Effect.annotateCurrentSpan({
                 "app.entity.ids": it.map((_) => _[idKey]),
@@ -359,13 +378,13 @@ export function makeRepoInternal<
 
           const removeById = Effect.fn("Repository.removeById", { attributes: { "app.entity": name } })(
             function*(idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) {
-              yield* recordWrite
               const ids = globalThis.Array.isArray(idOrIds)
                 ? idOrIds as readonly T[IdKey][]
                 : [idOrIds as T[IdKey]]
               if (!Array.isReadonlyArrayNonEmpty(ids)) {
                 return
               }
+              yield* recordEntityWrite(ids)
               const { set } = yield* cms
               const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
               yield* Effect.annotateCurrentSpan({ "app.entity.ids": eids })
@@ -640,7 +659,7 @@ export function makeRepoInternal<
                 ),
                 find: (id: T[IdKey]) =>
                   flatMapOption(findE(id), dec).pipe(
-                    Effect.tap(() => recordRead),
+                    Effect.tap(() => recordEntityRead(id)),
                     Effect.withSpan("Repository.mapped.find", {
                       ...spanAttrs,
                       attributes: { ...spanAttrs.attributes, "app.entity.id": id }
@@ -669,7 +688,11 @@ export function makeRepoInternal<
                       (_) => saveAllE(_)
                     )
                     .pipe(
-                      Effect.tap(() => recordWrite),
+                      Effect.tap(() =>
+                        Array.isReadonlyArrayNonEmpty(xes)
+                          ? recordEntityWrite([xes[0][idKey], ...xes.slice(1).map((_) => _[idKey])])
+                          : Effect.void
+                      ),
                       Effect.withSpan("Repository.mapped.save", spanAttrs, { captureStackTrace: false })
                     )
               }

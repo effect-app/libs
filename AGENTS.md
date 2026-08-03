@@ -11,10 +11,39 @@ This is the Effect App library repository, focusing on functional programming pa
 
 Always open a PR for agent work that changes the repo — do not leave finished work only on a local branch.
 
-- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while local validation is still in flight.
+- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while local validation is still in flight. Pushes to a draft are free — the gate does not run on them.
 - **Keep the PR current**: push commits as you go; update the PR body if scope shifts.
-- **Ready when done**: after mandatory validation (`pnpm lint-fix`, `pnpm check`, and relevant tests) passes, mark the PR ready for review (undraft / publish). Do not leave a finished, validated change as draft.
+- **Ready when done**: publish with `pnpm pr:ready`, or with plain `gh pr ready` — both run the ship gate first and undraft only if it passes. Do not hand-run the checks beforehand and do not leave a finished, validated change as draft.
 - **Base**: target `main` unless the work is explicitly stacked on another branch.
+
+### The gate runs the checks — you do not
+
+`.githooks/pre-push` is the agent ship gate. It is a **no-op for humans** and
+fires only for coding agents (`GROK_AGENT` / `T3_AGENT` / `AI_AGENT` / Claude /
+Cursor / Codex env markers).
+
+| Branch PR state         | Agent pre-push                    |
+| ----------------------- | --------------------------------- |
+| No open PR              | **skip** — free push              |
+| **Draft**               | **skip** — free push, share early |
+| **Ready** for review    | full ship gate                    |
+| `gh` / PR lookup failed | full ship gate (**fail closed**)  |
+
+The gate is `pnpm check` → `pnpm lint` → `pnpm test`, which is what CI runs and
+nothing more. This is a library monorepo — no application to stand up, no browser
+suite — so the unit run *is* the gate. It caches the validated HEAD SHA in
+`.run/agent-ship-gate.json`, so **one commit is validated once** however many
+times you push or publish it. Force a re-run with `AGENT_SHIP_GATE_FORCE=1`.
+
+**Do not hand-run `pnpm check` / `lint` / `test` as routine verification.**
+Validating the same commit repeatedly costs the same each time and proves nothing
+the first run did not. While iterating, narrow proof is the right tool — the one
+test you are fixing, or a typecheck of the package you touched. Whole-gate runs
+belong to the push.
+
+`.envrc` puts the `gh` shim on `PATH`; run **`direnv allow`** once after cloning
+(`command -v gh` should print `.tools/bin/gh`). Never `--no-verify`, and never set
+`SKIP_AGENT_PREPUSH` — that is the human escape hatch.
 
 ### Core Principles
 
@@ -48,13 +77,18 @@ Anti-patterns that mean you skipped the checklist:
 - Adding a sleep / retry to "give it time to work" instead of finding the missing wake signal.
 - Disabling a hook (`--no-verify`) or a check to make the diff land.
 
-### Mandatory Validation Steps
+### Validation
 
-After **all** changes are made, run these from the **repo root**:
+The ship gate owns validation — see *The gate runs the checks — you do not*. It
+runs `pnpm check` → `pnpm lint` → `pnpm test` on publish and on pushes to a ready
+PR, once per commit.
 
-1. `pnpm lint-fix` — auto-formats and fixes lint issues across all packages; apply all resulting changes
-2. `pnpm check` — type-checks all packages (dependency changes in one package can break others); fix all reported errors
-   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
+`pnpm lint-fix` is the one thing worth running by hand, because it *writes*: it
+formats and auto-fixes across packages, and the gate only reports what it would
+have fixed. Run it when you are done editing, stage what it changes, then push.
+
+If type checking fails in a way that makes no sense against the diff, `pnpm clean`
+clears the caches — stale incremental state produces phantom errors.
 
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->
 <!-- - Build the project: `pnpm build`

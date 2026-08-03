@@ -9,6 +9,7 @@
 import type * as Scope from "effect/Scope"
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Context from "../../Context.ts"
+import type * as DataDependencies from "../../DataDependencies.ts"
 import * as Effect from "../../Effect.ts"
 import type * as S from "../../Schema.ts"
 import type { StoreConfig, StoreMaker } from "../../Store.ts"
@@ -60,6 +61,13 @@ export interface RepositoryOptions<
 
   /** IDs, including aliases, that identify an entity for dependency invalidation. */
   dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
+
+  /**
+   * Additional derived queries or resources affected by writing an item.
+   * Saves invalidate dependencies derived from both the previous and next item;
+   * removals derive them from the removed item.
+   */
+  additionalWriteDependencies?: (item: T) => ReadonlyArray<DataDependencies.DataDependency>
 
   overrides?: (
     repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>

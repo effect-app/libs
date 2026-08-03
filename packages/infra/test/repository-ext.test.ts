@@ -245,6 +245,81 @@ describe("repository ext save/remove batching", () => {
         Effect.provide(TestStoreLive)
       ))
 
+  it.effect("records repository and affected-query write dependencies", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {
+              dependencyIds: (item) => [item.id, `alias-${item.id}`],
+              additionalWriteDependencies: (item) => [
+                DataDependencies.signal("DependencyItem.List", [item.label])
+              ]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* DataDependencies.read(DataDependencies.signal("DependencyItem.List", ["one"]))
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(
+          new Set([DataDependencies.signal("DependencyItem.List", ["one"])])
+        )
+        expect(yield* Ref.get(writesRef)).toEqual(
+          new Set([
+            DataDependencies.repo("DependencyItem", ["1", "alias-1"]),
+            DataDependencies.signal("DependencyItem.List", ["one"])
+          ])
+        )
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("invalidates derived dependencies from previous saves and removeById", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DerivedDependencyItem", BatchItem, {
+              additionalWriteDependencies: (item) => [
+                DataDependencies.signal("DerivedDependencyItem.List", [item.label])
+              ]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "old" }))
+            yield* recorder.drainWrites
+
+            yield* repo.save(new BatchItem({ id: "1", label: "new" }))
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([
+                DataDependencies.repo("DerivedDependencyItem", ["1"]),
+                DataDependencies.signal("DerivedDependencyItem.List", ["new", "old"])
+              ])
+            )
+
+            yield* repo.removeById("1")
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([
+                DataDependencies.repo("DerivedDependencyItem", ["1"]),
+                DataDependencies.signal("DerivedDependencyItem.List", ["new"])
+              ])
+            )
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
   it.effect("records schema timing on repository spans without codec child spans", () =>
     Effect
       .gen(function*() {

@@ -16,7 +16,7 @@ index 9f0bd6c5f96011be225269a71365a878cb822bb7..bdfeb1dee761de629736e750a1d3f16e
      if (json !== null && json !== void 0 && json.error) {
        var _json$error$detail;
 -      if (json.error.code === "E403" && isAlreadyPublishedError(json.error.summary)) {
-+      if (json.error.code === "E403" && (isAlreadyPublishedError(json.error.summary) || isAlreadyPublishedError(json.error.detail))) {
++      if (json.error.code === "E403" && [json.error.summary, json.error.detail, json.error.message].some(isAlreadyPublishedError)) {
          // we don't need to log anything here, it just turned out the version was already published so we gracefully exit the publish process
          return {
            result: "skipped"

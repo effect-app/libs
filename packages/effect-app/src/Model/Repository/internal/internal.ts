@@ -4,6 +4,7 @@ import * as Equivalence from "effect/Equivalence"
 import { flow, pipe } from "effect/Function"
 import * as HashMap from "effect/HashMap"
 import * as HashSet from "effect/HashSet"
+import * as Metric from "effect/Metric"
 import * as Pipeable from "effect/Pipeable"
 import * as Ref from "effect/Ref"
 import * as Result from "effect/Result"
@@ -30,6 +31,47 @@ import type { ChangeFeed, ChangeFeedEvent, Repository } from "../service.ts"
 import { ValidationError, ValidationResult } from "../validation.ts"
 
 const dedupe = Array.dedupeWith(Equivalence.String)
+
+const schemaDurationBoundaries = [0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1_000]
+const schemaDecodeDuration = Metric.histogram("app.schema.decode.duration", { boundaries: schemaDurationBoundaries })
+const schemaEncodeDuration = Metric.histogram("app.schema.encode.duration", { boundaries: schemaDurationBoundaries })
+const schemaItemCount = Metric.histogram("app.schema.item_count", {
+  boundaries: [0, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1_000, 5_000]
+})
+
+const timeSchema = (
+  operation: "decode" | "encode",
+  entity: string,
+  queryMode: "aggregate" | "collect" | "project" | "transform" | undefined,
+  itemCount: number
+) =>
+<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.clockWith((clock) => {
+    const startedAt = clock.currentTimeNanosUnsafe()
+    const attributes = {
+      "app.entity": entity,
+      "app.schema.operation": operation,
+      ...(queryMode !== undefined && { "app.query.mode": queryMode })
+    }
+    return Effect.onExit(self, () => {
+      const durationMs = Number(clock.currentTimeNanosUnsafe() - startedAt) / 1_000_000
+      return Effect.all([
+        Effect.annotateCurrentSpan({
+          [`app.schema.${operation}.duration_ms`]: durationMs,
+          "app.schema.item_count": itemCount,
+          ...(queryMode !== undefined && { "app.query.mode": queryMode })
+        }),
+        Metric.update(
+          Metric.withAttributes(
+            operation === "decode" ? schemaDecodeDuration : schemaEncodeDuration,
+            attributes
+          ),
+          durationMs
+        ),
+        Metric.update(Metric.withAttributes(schemaItemCount, attributes), itemCount)
+      ], { discard: true })
+    })
+  })
 
 /**
  * A base implementation to create a repository.
@@ -89,11 +131,11 @@ export function makeRepoInternal<
         .gen(function*() {
           const rctx: Context.Context<RCtx> = args.schemaContext ?? Context.empty() as any
           const provideRctx = Effect.provide(rctx)
-          const encodeMany = flow(
-            S.encodeEffect(S.Array(schema)),
-            provideRctx,
-            Effect.withSpan("encodeMany", { attributes: { "app.entity": name } }, { captureStackTrace: false })
-          )
+          const encodeMany = (items: readonly T[]) =>
+            S.encodeEffect(S.Array(schema))(items).pipe(
+              provideRctx,
+              timeSchema("encode", name, undefined, items.length)
+            )
           const decode = flow(S.decodeEffectConcurrently(schema), provideRctx)
           const decodeMany = flow(
             S.decodeEffectConcurrently(S.Array(schema)),
@@ -163,7 +205,11 @@ export function makeRepoInternal<
           const all = Effect
             .flatMap(
               allE,
-              (_) => decodeMany(_).pipe(Effect.orDie)
+              (items) =>
+                decodeMany(items).pipe(
+                  Effect.orDie,
+                  timeSchema("decode", name, undefined, items.length)
+                )
             )
             .pipe(
               Effect.tap(() => recordRead),
@@ -331,12 +377,13 @@ export function makeRepoInternal<
             }
           )
 
-          const parseMany = Effect.fn("parseMany", {
-            attributes: { "app.entity": name, "app.query.mode": "transform" }
-          })(
+          const parseMany = Effect.fnUntraced(
             function*(items: readonly PM[]) {
               const cm = yield* cms
-              return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+              return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(
+                Effect.orDie,
+                timeSchema("decode", name, "transform", items.length)
+              )
             }
           )
           const decodeManyCache = new WeakMap<
@@ -351,12 +398,13 @@ export function makeRepoInternal<
             }
             return dec
           }
-          const parseMany2 = Effect.fn("parseMany", {
-            attributes: { "app.entity": name, "app.query.mode": "transform" }
-          })(
+          const parseMany2 = Effect.fnUntraced(
             function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
               const cm = yield* cms
-              return yield* getDecodeMany(schema)(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+              return yield* getDecodeMany(schema)(items.map((_) => mapReverse(_, cm.set))).pipe(
+                Effect.orDie,
+                timeSchema("decode", name, "transform", items.length)
+              )
             }
           )
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
@@ -399,13 +447,11 @@ export function makeRepoInternal<
                 // Decode raw aggregate rows directly — no PM reverse-mapping, no id/_etag needed.
                 .pipe(
                   Effect.andThen(
-                    flow(
-                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema)),
-                      provideRctx,
-                      Effect.withSpan("parseMany", {
-                        attributes: { "app.entity": name, "app.query.mode": "aggregate" }
-                      })
-                    )
+                    (items) =>
+                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema))(items).pipe(
+                        provideRctx,
+                        timeSchema("decode", name, "aggregate", items.length)
+                      )
                   )
                 )
               : a.mode === "project"
@@ -413,27 +459,24 @@ export function makeRepoInternal<
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
                   Effect.andThen(
-                    flow(
-                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema)),
-                      provideRctx,
-                      Effect.withSpan("parseMany", {
-                        attributes: { "app.entity": name, "app.query.mode": "project" }
-                      })
-                    )
+                    (items) =>
+                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema))(items).pipe(
+                        provideRctx,
+                        timeSchema("decode", name, "project", items.length)
+                      )
                   )
                 )
               : a.mode === "collect"
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
-                  Effect.flatMap(flow(
-                    S.decodeEffectConcurrently(S.Array(a.schema)),
-                    Effect.map(Array.getSomes),
-                    provideRctx,
-                    Effect.withSpan("parseMany", {
-                      attributes: { "app.entity": name, "app.query.mode": "collect" }
-                    })
-                  ))
+                  Effect.flatMap((items) =>
+                    S.decodeEffectConcurrently(S.Array(a.schema))(items).pipe(
+                      Effect.map(Array.getSomes),
+                      provideRctx,
+                      timeSchema("decode", name, "collect", items.length)
+                    )
+                  )
                 )
               : Effect.flatMap(
                 filter(a),
@@ -559,9 +602,12 @@ export function makeRepoInternal<
             seedNamespace: (namespace: string) => store.seedNamespace(namespace),
             validateSample,
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
-              const dec = S.decodeEffectConcurrently(S.Array(schema))
               return store.queryRaw(q).pipe(
-                Effect.flatMap(dec),
+                Effect.flatMap((items) =>
+                  S.decodeEffectConcurrently(S.Array(schema))(items).pipe(
+                    timeSchema("decode", name, undefined, items.length)
+                  )
+                ),
                 Effect.tap(() => recordRead),
                 Effect.withSpan("Repository.queryRaw", {
                   kind: "client",
@@ -583,7 +629,11 @@ export function makeRepoInternal<
               const spanAttrs = { kind: "client" as const, attributes: { "app.entity": name } }
               return {
                 all: allE.pipe(
-                  Effect.flatMap(decMany),
+                  Effect.flatMap((items) =>
+                    decMany(items).pipe(
+                      timeSchema("decode", name, undefined, items.length)
+                    )
+                  ),
                   Effect.tap(() => recordRead),
                   Effect.map((_) => _ as any[]),
                   Effect.withSpan("Repository.mapped.all", spanAttrs, { captureStackTrace: false })
@@ -613,10 +663,15 @@ export function makeRepoInternal<
                 //     )
                 // },
                 save: (...xes: any[]) =>
-                  Effect.flatMap(encMany(xes), (_) => saveAllE(_)).pipe(
-                    Effect.tap(() => recordWrite),
-                    Effect.withSpan("Repository.mapped.save", spanAttrs, { captureStackTrace: false })
-                  )
+                  Effect
+                    .flatMap(
+                      encMany(xes).pipe(timeSchema("encode", name, undefined, xes.length)),
+                      (_) => saveAllE(_)
+                    )
+                    .pipe(
+                      Effect.tap(() => recordWrite),
+                      Effect.withSpan("Repository.mapped.save", spanAttrs, { captureStackTrace: false })
+                    )
               }
             }
           }

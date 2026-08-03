@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.305
+
+### Patch Changes
+
+- 8bd9a11: Support ID-scoped signal dependencies and additive repository dependencies derived from previous and current entities.
+- Updated dependencies [8bd9a11]
+  - effect-app@4.0.0-beta.305
+
 ## 4.0.0-beta.304
 
 ### Patch Changes

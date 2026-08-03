@@ -403,6 +403,7 @@
     "three-hotels-roll",
     "tidy-caches-reflect",
     "tidy-cosmos-batches",
+    "tidy-derived-dependencies",
     "tidy-dprint-oxlint-config",
     "tidy-pans-rule",
     "tidy-poets-think",

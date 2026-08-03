@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.305
+
+### Minor Changes
+
+- 8bd9a11: Support ID-scoped signal dependencies and additive repository dependencies derived from previous and current entities.
+
 ## 4.0.0-beta.304
 
 ### Patch Changes

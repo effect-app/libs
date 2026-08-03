@@ -9,4 +9,8 @@
 for name in $(git rev-parse --local-env-vars); do
   unset "$name"
 done
-pnpm exec node scripts/agent-pre-push.mjs
+# Plain `node`, not `pnpm exec node`: pnpm runs a dependency-status check first
+# and will try to purge node_modules when the lockfile moved (a rebase does it),
+# which aborts without a TTY — the hook then fails with a pnpm error instead of
+# anything about the gate. The gate puts node_modules/.bin on PATH itself.
+node scripts/agent-pre-push.mjs

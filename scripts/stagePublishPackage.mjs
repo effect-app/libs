@@ -121,7 +121,11 @@ if (command === "prepack") {
 
   const packOutput = run("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"])
   const parsedPack = JSON.parse(packOutput)
-  const pack = Array.isArray(parsedPack) ? parsedPack[0] : parsedPack
+  const pack = Array.isArray(parsedPack)
+    ? parsedPack[0]
+    : parsedPack.files !== undefined
+    ? parsedPack
+    : parsedPack[packageJson.name]
   if (pack === undefined || !Array.isArray(pack.files)) {
     throw new Error("npm pack --json returned an unsupported payload")
   }

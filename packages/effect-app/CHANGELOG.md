@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.303
+
+### Patch Changes
+
+- 33b0544: Replace repository codec child spans with parent-span timing attributes and bounded metrics, and record database operation timing for instrumented stores.
+
 ## 4.0.0-beta.302
 
 ### Patch Changes

@@ -9,6 +9,8 @@ index 9f0bd6c5f96011be225269a71365a878cb822bb7..bdfeb1dee761de629736e750a1d3f16e
 -  return output.includes("cannot publish over the previously published version");
 +  return typeof output === "string" && output.includes("cannot publish over the previously published version");
  }
+ // we have this so that we can do try a publish again after a publish without
+ // the call being wrapped in the npm request limit and causing the publishes to potentially never run
 @@ -950,7 +950,7 @@ async function internalPublish(packageJson, opts, twoFactorState) {
      let json = getLastJsonObjectFromString(stderr.toString()) || getLastJsonObjectFromString(stdout.toString());
      if (json !== null && json !== void 0 && json.error) {
@@ -18,5 +20,3 @@ index 9f0bd6c5f96011be225269a71365a878cb822bb7..bdfeb1dee761de629736e750a1d3f16e
          // we don't need to log anything here, it just turned out the version was already published so we gracefully exit the publish process
          return {
            result: "skipped"
- // we have this so that we can do try a publish again after a publish without
- // the call being wrapped in the npm request limit and causing the publishes to potentially never run

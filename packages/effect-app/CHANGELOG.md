@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.304
+
+### Patch Changes
+
+- 412f08b: Include changed entity IDs in repository data dependencies, with explicit query scopes and configurable write aliases, while retaining coarse collection dependencies.
+
 ## 4.0.0-beta.303
 
 ### Patch Changes

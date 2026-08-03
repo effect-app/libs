@@ -1,0 +1,13 @@
+diff --git a/dist/changesets-cli.cjs.js b/dist/changesets-cli.cjs.js
+index 9f0bd6c5f96011be225269a71365a878cb822bb7..bdfeb1dee761de629736e750a1d3f16eb1dedadc 100644
+--- a/dist/changesets-cli.cjs.js
++++ b/dist/changesets-cli.cjs.js
+@@ -870,7 +870,7 @@ async function infoAllow404(packageJson) {
+ // we check `npm info` before publishing but `npm info` can return stale data at times
+ // so we need to gracefully handle this situation
+ function isAlreadyPublishedError(output) {
+-  return output.includes("cannot publish over the previously published version");
++  return typeof output === "string" && output.includes("cannot publish over the previously published version");
+ }
+ // we have this so that we can do try a publish again after a publish without
+ // the call being wrapped in the npm request limit and causing the publishes to potentially never run

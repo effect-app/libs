@@ -10,6 +10,7 @@ overrides:
   vue: ^3.5.35
 
 patchedDependencies:
+  '@changesets/cli@2.31.0': fd46b35ea112fa0b09f18204478a1802aeacba0ad95bca1ee89f162674c529fa
   '@sendgrid/mail': 3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a
   '@tanstack/query-core': c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2
   ts-plugin-sort-import-suggestions: 4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561
@@ -31,7 +32,7 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: ^2.31.0
-        version: 2.31.0(@types/node@25.9.1)
+        version: 2.31.0(patch_hash=fd46b35ea112fa0b09f18204478a1802aeacba0ad95bca1ee89f162674c529fa)(@types/node@25.9.1)
       '@effect-app/cli':
         specifier: 2.1.0-beta.35
         version: 2.1.0-beta.35(ioredis@5.9.3(supports-color@8.1.1))
@@ -7038,7 +7039,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.31.0(@types/node@25.9.1)':
+  '@changesets/cli@2.31.0(patch_hash=fd46b35ea112fa0b09f18204478a1802aeacba0ad95bca1ee89f162674c529fa)(@types/node@25.9.1)':
     dependencies:
       '@changesets/apply-release-plan': 7.1.1
       '@changesets/assemble-release-plan': 6.0.10

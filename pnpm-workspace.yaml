@@ -16,3 +16,4 @@ patchedDependencies:
   "@tanstack/query-core": patches/@tanstack__query-core.patch
   typescript@6.0.3: patches/typescript.patch
   "@sendgrid/mail": patches/@sendgrid__mail.patch
+  '@changesets/cli@2.31.0': patches/@changesets__cli@2.31.0.patch

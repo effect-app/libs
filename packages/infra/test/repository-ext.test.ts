@@ -208,6 +208,16 @@ describe("repository ext save/remove batching", () => {
     expect(DataDependencies.intersects(collection, item2)).toBe(true)
   })
 
+  it("decodes repository dependencies produced before entity ids were added", () => {
+    expect(
+      S.decodeUnknownSync(DataDependencies.DataDependency)({
+        type: "repo",
+        name: "DependencyItem"
+      })
+    )
+      .toEqual(DataDependencies.repo("DependencyItem"))
+  })
+
   it.effect("matches an explicit query scope to a write alias", () =>
     Effect
       .gen(function*() {

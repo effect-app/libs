@@ -1,6 +1,6 @@
+import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
-import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
@@ -137,7 +137,8 @@ export const readRepo = (name: string) =>
     (scope) => read(scope?.type === "repo" && scope.name === name ? scope : repo(name))
   )
 
-export const withRepoReadScope = (name: string, ids: NonEmptyReadonlyArray<string>) =>
+export const withRepoReadScope =
+  (name: string, ids: NonEmptyReadonlyArray<string>) =>
   <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     Effect.provideService(self, RepoReadScope, repo(name, ids))
 

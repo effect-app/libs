@@ -156,12 +156,10 @@ export function makeRepoInternal<
               ...items.slice(1).flatMap((item) => args.dependencyIds?.(item) ?? [String(item[idKey])])
             ])
           }
-          const recordEntityRead = (id: T[IdKey]) =>
-            DataDependencies.read(entityDependency([id]))
+          const recordEntityRead = (id: T[IdKey]) => DataDependencies.read(entityDependency([id]))
           const recordEntityWrite = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
             DataDependencies.write(entityDependency(ids))
-          const recordItemWrite = (items: NonEmptyReadonlyArray<T>) =>
-            DataDependencies.write(itemDependency(items))
+          const recordItemWrite = (items: NonEmptyReadonlyArray<T>) => DataDependencies.write(itemDependency(items))
           const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
             get: (id: string) => _.get(`${name}.${id}`),
             set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)

@@ -8,6 +8,7 @@ import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import * as Ref from "effect/Ref"
+import * as Tracer from "effect/Tracer"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 class BatchItem extends S.Class<BatchItem>("BatchItem")({
@@ -170,6 +171,43 @@ describe("repository ext save/remove batching", () => {
 
         expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
         expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("records schema timing on repository spans without codec child spans", () =>
+    Effect
+      .gen(function*() {
+        const spans: Tracer.NativeSpan[] = []
+        const tracer = Tracer.make({
+          span(options) {
+            const span = new Tracer.NativeSpan(options)
+            spans.push(span)
+            return span
+          }
+        })
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("TelemetryItem", BatchItem, {})
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* repo.all
+          })
+          .pipe(Effect.provideService(Tracer.Tracer, tracer))
+
+        expect(spans.map((_) => _.name)).not.toContain("parseMany")
+        expect(spans.map((_) => _.name)).not.toContain("encodeMany")
+
+        const saveSpan = spans.find((_) => _.name === "Repository.saveAndPublish")
+        const allSpan = spans.find((_) => _.name === "Repository.all")
+        expect(saveSpan?.attributes.get("app.schema.encode.duration_ms")).toEqual(expect.any(Number))
+        expect(saveSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(saveSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
+        expect(allSpan?.attributes.get("app.schema.decode.duration_ms")).toEqual(expect.any(Number))
+        expect(allSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(allSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
       })
       .pipe(
         setupRequestContextFromCurrent(),

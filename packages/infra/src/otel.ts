@@ -10,6 +10,7 @@
  */
 
 import * as Effect from "effect-app/Effect"
+import * as Metric from "effect/Metric"
 
 export type DbSystem =
   | "postgresql"
@@ -47,6 +48,30 @@ const dbAttributes = (a: DbSpanOptions): Record<string, unknown> => ({
   ...a.extra
 })
 
+const dbOperationDuration = Metric.histogram("db.client.operation.duration", {
+  boundaries: [0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000],
+  description: "Caller-observed database operation duration in milliseconds"
+})
+
+const timeDbOperation = (a: DbSpanOptions) => <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.clockWith((clock) => {
+    const startedAt = clock.currentTimeNanosUnsafe()
+    return Effect.onExit(self, () => {
+      const durationMs = Number(clock.currentTimeNanosUnsafe() - startedAt) / 1_000_000
+      return Effect.all([
+        Effect.annotateCurrentSpan({ "db.operation.duration_ms": durationMs }),
+        Metric.update(
+          Metric.withAttributes(dbOperationDuration, {
+            "db.system.name": a.system,
+            "db.operation.name": a.operation,
+            ...(a.entity !== undefined && { "app.entity": a.entity })
+          }),
+          durationMs
+        )
+      ], { discard: true })
+    })
+  })
+
 /**
  * Wrap an effect with an OTel-semconv database span.
  *
@@ -68,7 +93,7 @@ export const withDbSpan = (a: DbSpanOptions) =>
  * No-op if there is no current span.
  */
 export const annotateDb = (a: DbSpanOptions) => <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  Effect.flatMap(Effect.annotateCurrentSpan(dbAttributes(a)), () => self)
+  Effect.flatMap(Effect.annotateCurrentSpan(dbAttributes(a)), () => self.pipe(timeDbOperation(a)))
 
 /** Annotate the current span with response metrics from a DB call. */
 export const annotateDbResponse = (m: {

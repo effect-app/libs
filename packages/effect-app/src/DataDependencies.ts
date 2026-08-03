@@ -14,7 +14,8 @@ export const DataDependency = S.Union([
   }),
   S.Struct({
     type: S.Literal("signal"),
-    name: S.String
+    name: S.String,
+    ids: S.optional(S.NonEmptyArray(S.String))
   })
 ])
 export type DataDependency = S.Schema.Type<typeof DataDependency>
@@ -42,7 +43,6 @@ const sameDomain = (a: DataDependency, b: DataDependency) => a.type === b.type &
 
 const dependenciesOverlap = (a: DataDependency, b: DataDependency) => {
   if (!sameDomain(a, b)) return false
-  if (a.type === "signal" || b.type === "signal") return true
   if (a.ids === undefined || b.ids === undefined) return true
   return a.ids.some((id) => b.ids?.includes(id))
 }
@@ -57,7 +57,6 @@ const containsDependency = (dependencies: ReadonlySet<DataDependency>, dependenc
 const appendDependency = (dependency: DataDependency) => (dependencies: DataDependencies): DataDependencies => {
   const existing = [...dependencies].find((_) => sameDomain(_, dependency))
   if (existing === undefined) return new Set([...dependencies, dependency])
-  if (existing.type === "signal" || dependency.type === "signal") return dependencies
   if (existing.ids === undefined) return dependencies
   if (dependency.ids === undefined) {
     return new Set([...dependencies].filter((_) => _ !== existing).concat(dependency))
@@ -68,8 +67,16 @@ const appendDependency = (dependency: DataDependency) => (dependencies: DataDepe
     ...new Set([...existing.ids.slice(1), ...dependency.ids].filter((id) => id !== first))
   ]
   if (ids.length === existing.ids.length) return dependencies
-  const merged = repo(existing.name, ids)
+  const merged = existing.type === "repo" ? repo(existing.name, ids) : signal(existing.name, ids)
   return new Set([...dependencies].filter((_) => _ !== existing).concat(merged))
+}
+
+export const merge = (...groups: ReadonlyArray<DataDependencies>): DataDependencies => {
+  let merged = empty()
+  for (const group of groups) {
+    for (const dependency of group) merged = appendDependency(dependency)(merged)
+  }
+  return merged
 }
 
 export const DataDependencyRecorder = RequestScopedDependencies.make(
@@ -125,7 +132,8 @@ export const makeDataDependencyRecorder = (
 
 export const repo = (name: string, ids?: NonEmptyReadonlyArray<string>): DataDependency =>
   ids === undefined ? { type: "repo", name } : { type: "repo", name, ids }
-export const signal = (name: string): DataDependency => ({ type: "signal", name })
+export const signal = (name: string, ids?: NonEmptyReadonlyArray<string>): DataDependency =>
+  ids === undefined ? { type: "signal", name } : { type: "signal", name, ids }
 
 const RepoReadScope = Context.Reference<DataDependency | undefined>("effect-app/DataDependencies/RepoReadScope", {
   defaultValue: () => undefined

@@ -61,6 +61,7 @@
     "effect-app": "workspace:*",
     "eslint": "^10.4.1",
     "json5": "^2.2.3",
+    "lint-staged": "^17.3.0",
     "madge": "^8.0.0",
     "npm-check-updates": "^22.2.1",
     "oxlint": "^1.67.0",

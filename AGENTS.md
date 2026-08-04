@@ -11,7 +11,7 @@ This is the Effect App library repository, focusing on functional programming pa
 
 Always open a PR for agent work that changes the repo — do not leave finished work only on a local branch.
 
-- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while local validation is still in flight. Pushes to a draft are free — the gate does not run on them.
+- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while the rest of the work continues. Pushes to a draft run the same gate as any other push — the draft is about review status, not about skipping checks.
 - **Keep the PR current**: push commits as you go; update the PR body if scope shifts.
 - **Ready when done**: publish with `pnpm pr:ready`, or with plain `gh pr ready` — both run the ship gate first and undraft only if it passes. Do not hand-run the checks beforehand and do not leave a finished, validated change as draft.
 - **Base**: target `main` unless the work is explicitly stacked on another branch.
@@ -22,16 +22,14 @@ Always open a PR for agent work that changes the repo — do not leave finished 
 fires only for coding agents (`GROK_AGENT` / `T3_AGENT` / `AI_AGENT` / Claude /
 Cursor / Codex env markers).
 
-| Branch PR state         | Agent pre-push                    |
-| ----------------------- | --------------------------------- |
-| No open PR              | **skip** — free push              |
-| **Draft**               | **skip** — free push, share early |
-| **Ready** for review    | full ship gate                    |
-| `gh` / PR lookup failed | full ship gate (**fail closed**)  |
+It runs on **every** agent push — draft, ready, or no PR at all. There is no
+browser or API suite here that a draft could usefully defer, and a pushed commit
+that does not compile or whose tests fail is worth nothing to a reviewer whatever
+the PR says.
 
 The gate is `pnpm check` → `pnpm lint` → `pnpm test`, which is what CI runs and
 nothing more. This is a library monorepo — no application to stand up, no browser
-suite — so the unit run *is* the gate. It caches the validated HEAD SHA in
+suite — so the unit run _is_ the gate. It caches the validated HEAD SHA in
 `.run/agent-ship-gate.json`, so **one commit is validated once** however many
 times you push or publish it. Force a re-run with `AGENT_SHIP_GATE_FORCE=1`.
 
@@ -79,11 +77,11 @@ Anti-patterns that mean you skipped the checklist:
 
 ### Validation
 
-The ship gate owns validation — see *The gate runs the checks — you do not*. It
-runs `pnpm check` → `pnpm lint` → `pnpm test` on publish and on pushes to a ready
-PR, once per commit.
+The ship gate owns validation — see _The gate runs the checks — you do not_. It
+runs `pnpm check` → `pnpm lint` → `pnpm test` on every push and on publish, once
+per commit.
 
-`pnpm lint-fix` is the one thing worth running by hand, because it *writes*: it
+`pnpm lint-fix` is the one thing worth running by hand, because it _writes_: it
 formats and auto-fixes across packages, and the gate only reports what it would
 have fixed. Run it when you are done editing, stage what it changes, then push.
 
@@ -186,14 +184,14 @@ context. On an HTTP server, that MemoMap lives on the server fiber and is
 shared by every request that server handles. The first request to build a
 stateful layer (anything using `Layer.effect` / `Effect.acquireRelease`)
 memoizes the resulting value onto the server fiber; every subsequent request
-then receives the *same instance* — including its `clear()` / dispose
+then receives the _same instance_ — including its `clear()` / dispose
 finalizer, which now fires at the wrong time.
 
 When you call `Effect.provide(layer)` (or `Stream.provide(layer)`) inside a
 per-request hot path:
 
 - Pass `{ local: true }` if the layer is pure / stateless or you genuinely
-  want it scoped to *this* effect only, or
+  want it scoped to _this_ effect only, or
 - Build it explicitly against the request scope with a fresh `MemoMap`
   (`Layer.makeMemoMap` + `Layer.buildWithMemoMap(layer, memoMap, requestScope)`)
   — see `provideOnRequestScope` in `packages/infra/src/setupRequest.ts`.

@@ -1,5 +1,6 @@
 # Agent-only ship gate (humans: no-op). See scripts/agent-pre-push.mjs.
-# Draft / no PR: free push. Ready PR: check + lint + test.
+# Every push (draft included): check + lint + test. No browser/API suite exists
+# here, so there is nothing a draft could usefully defer.
 # Publish: pnpm pr:ready, or raw `gh pr ready` — the shim runs the same gate first.
 #
 # Humans: SKIP_AGENT_PREPUSH=1 git push

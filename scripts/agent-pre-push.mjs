@@ -4,11 +4,9 @@
  *
  * Humans: no-op (exit 0) — self-responsible; not forced by the hook.
  *
- * Agents:
- *   - Draft PR or no open PR: free push (open a draft early, push freely).
- *   - Ready-for-review PR (or unknown PR state): ship gate below.
- *   - Publishing runs the same gate whichever way it is reached: `pnpm pr:ready`
- *     explicitly, or raw `gh pr ready`, which the shim gates rather than refuses.
+ * Agents: every push runs the gate — draft, ready, or no PR at all. Publishing
+ * runs the same gate whichever way it is reached: `pnpm pr:ready` explicitly, or
+ * raw `gh pr ready`, which the shim gates rather than refuses.
  *
  * Ship gate — the JS quality path CI runs, and nothing else:
  *   1. `pnpm check`  — tsgo --build ./tsconfig.all.json
@@ -18,7 +16,10 @@
  * This is a library monorepo: there is no application to stand up and no browser
  * suite, so the unit run is the whole story. That keeps the gate honest about
  * being the same thing CI runs (`ci.yml` runs `pnpm lint` and `pnpm test`)
- * rather than a superset nobody else executes.
+ * rather than a superset nobody else executes — and it is why draft pushes are
+ * not exempted here: there is no expensive half to defer, only the checks that
+ * decide whether the pushed commit is worth anyone's attention. The SHA cache
+ * below keeps that from being paid twice.
  *
  * Checks run **once**, at the right moment: the validated HEAD SHA is cached
  * under `.run/`, so a commit is never re-validated because it was pushed twice.
@@ -33,14 +34,7 @@ import path from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
 import { isCodingAgent } from "./lib/agent-env.mjs"
-import { resolveOpenPrState, shouldRunShipGateOnPush } from "./lib/agent-pr-state.mjs"
-import {
-  isShipGateForce,
-  isShipGateShaCached,
-  readHeadSha,
-  readShipGateCache,
-  writeShipGateCache
-} from "./lib/agent-ship-gate-cache.mjs"
+import { isShipGateForce, isShipGateShaCached, readHeadSha, readShipGateCache, writeShipGateCache } from "./lib/agent-ship-gate-cache.mjs"
 
 export { isCodingAgent }
 
@@ -84,8 +78,8 @@ export const isWorktreeClean = (root = process.cwd(), opts = {}) => {
 }
 
 /**
- * Shared by pre-push (ready PRs) and `pnpm pr:ready`. Caches the validated HEAD
- * SHA so push + publish never double-run for the same commit.
+ * Shared by pre-push (every agent push) and `pnpm pr:ready`. Caches the
+ * validated HEAD SHA so push + publish never double-run for the same commit.
  * Force: AGENT_SHIP_GATE_FORCE=1.
  *
  * @param {{ root?: string, force?: boolean, env?: NodeJS.ProcessEnv }} [opts]
@@ -139,23 +133,8 @@ const invokedAs = process.argv[1] ? path.resolve(process.argv[1]) : ""
 if (invokedAs === thisFile) {
   if (!isCodingAgent()) process.exit(0)
 
-  const root = process.cwd()
-  const prState = resolveOpenPrState({ cwd: root })
-
-  if (!shouldRunShipGateOnPush(prState.mode)) {
-    const why = prState.mode === "draft"
-      ? `draft PR${prState.pr?.number != null ? ` #${prState.pr.number}` : ""} — free push`
-      : "no open PR — free push (open a draft to share)"
-    console.error(`agent pre-push: skip ship gate (${why})`)
-    process.exit(0)
-  }
-
-  if (prState.mode === "unknown") {
-    console.error(
-      `agent pre-push: PR state unknown (${prState.detail ?? "gh failed"}) — fail closed, running ship gate`
-    )
-  }
-
-  await runAgentShipGate({ root })
+  // No PR-state lookup: the gate runs on every push, so what `gh` would say
+  // cannot change the outcome.
+  await runAgentShipGate({ root: process.cwd() })
   process.exit(0)
 }

@@ -62,19 +62,86 @@ type LiteralValue<T> = T extends { readonly literal: infer L } ? L : T
 type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
   ? [LiteralValue<FromTag>] extends [LiteralValue<Tag>] ? From : never
   : never
-type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? ExtractTagged<From, Tag>
+/**
+ * Domain shape that may supply stored fields for projection member `I`.
+ *
+ * - True tagged unions (`A | B` with different fields per `_tag`) resolve to the
+ *   matching member so state-owned keys are not treated as universal.
+ * - Flat models that only carry `_tag: "a" | "b"` on a shared shape (no
+ *   per-tag members in the Encoded union) fall back to the full `From` so
+ *   existing Class+Literals projections keep typechecking.
+ */
+type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
+    [ExtractTagged<From, Tag>] extends [never] ? From : ExtractTagged<From, Tag>
+  )
   : From
-type ProjectableField<I, From, K extends PropertyKey> = K extends KeysOfUnion<From> ? I
-  : never
-type ProjectableEncoded<I, From> = I extends FieldValues ? {
-    [K in keyof I]: ProjectableField<
-      I[K],
-      ProjectableSource<I, From>,
-      K
-    >
+
+/**
+ * One projection member is projectable when every key is either:
+ * - in `ExtraKeys` (computed by the query / not stored on the domain row), or
+ * - a key of the matching domain source member, with a type assignable to the
+ *   domain field (so `name: number` fails when the domain encodes `name` as
+ *   string).
+ *
+ * Uses `keyof Source` (not `KeysOfUnion` of the whole domain union) so a field
+ * owned only by some tags cannot be required on every branch.
+ */
+type ProjectableEncodedMember<
+  I,
+  From,
+  ExtraKeys extends PropertyKey = never
+> = I extends FieldValues ? {
+    [K in keyof I]-?: K extends ExtraKeys ? I[K]
+      : K extends keyof ProjectableSource<I, From> ? ProjectableSource<I, From>[K]
+      : never
   }
   : never
-type ProjectableGuard<I, From> = [I] extends [ProjectableEncoded<I, From>] ? unknown : never
+
+/**
+ * Distribute over tagged-union projection Encoded types. A non-distributive
+ * `[I] extends [...]` check against a union only sees `keyof (A|B)` (key
+ * intersection) and misses branch-only fields like cancel-only omissions.
+ */
+type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends
+  [ProjectableEncodedMember<I, From, ExtraKeys>] ? true : false
+
+/**
+ * `unknown` when every member of projection Encoded `I` is projectable from
+ * domain Encoded `From` (plus optional ExtraKeys for computed fields); `never`
+ * otherwise — use as an intersection constraint on a schema argument.
+ */
+type ProjectableGuard<I, From, ExtraKeys extends PropertyKey = never> = false extends (
+  I extends any ? IsProjectableMember<I, From, ExtraKeys> : never
+) ? never
+  : unknown
+
+/**
+ * Compile-time proof that a projection Encoded shape only requires stored keys
+ * that exist on the matching domain tagged state (or non-tagged source), plus
+ * any `ExtraKeys` filled by `projectComputed` (counts, flags, collects, …).
+ *
+ * Catches the class of Overview.List SchemaError where a cancel/recovery state
+ * omits a workflow lock field (`activeRequest`) in the domain model but the
+ * projection still requires it on every branch.
+ *
+ * @example
+ * ```ts
+ * type _ok = ProjectableFromDomain<
+ *   { readonly _tag: "cancelled"; readonly id: string },
+ *   DomainEnc
+ * > // unknown
+ *
+ * type _bad = ProjectableFromDomain<
+ *   { readonly _tag: "cancelled"; readonly id: string; readonly activeRequest: null },
+ *   DomainEnc
+ * > // never — activeRequest is not on domain cancelled
+ * ```
+ */
+export type ProjectableFromDomain<
+  ProjectionEncoded,
+  DomainEncoded,
+  ExtraKeys extends PropertyKey = never
+> = ProjectableGuard<ProjectionEncoded, DomainEncoded, ExtraKeys>
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
@@ -839,6 +906,22 @@ const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelper
   relation: (path) => relation<TFieldValues, typeof path>(path)
 })
 
+/**
+ * `projectComputed` projection schemas must only require:
+ * - keys present on the matching domain Encoded member (tag-aware), or
+ * - keys produced by the computed map (`ExtraKeys` = `keyof M`).
+ *
+ * Intersected onto the schema argument so a cancel branch that demands a
+ * pack-only field (`activeRequest`) fails at the call site, not in prod decode.
+ */
+type ProjectComputedSchema<
+  Schema extends S.Codec<any, FieldValues, any>,
+  Domain,
+  M extends ComputedProjectionMap
+> =
+  & Schema
+  & ProjectableGuard<S.Codec.Encoded<Schema>, Domain, string & keyof M>
+
 export const projectComputed: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -847,7 +930,7 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: Schema,
+    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
     build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
@@ -867,7 +950,7 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: Schema,
+    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
     build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (
@@ -881,7 +964,7 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: Schema,
+    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
     computedProjection: M & NoExtraComputedKeys<M, I>,
     mode: "collect"
   ): (
@@ -901,7 +984,7 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: Schema,
+    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
     computedProjection: M & NoExtraComputedKeys<M, I>,
     mode?: "project"
   ): (

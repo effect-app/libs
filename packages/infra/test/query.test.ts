@@ -4,7 +4,7 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
-import { and, computed, count, expr, make, one, or, order, page, project, projectComputed, type QueryEnd, type QueryProjection, type QueryWhere, relation, toFilter, where } from "effect-app/Model/query"
+import { and, computed, count, expr, make, one, or, order, page, project, type ProjectableFromDomain, projectComputed, type QueryEnd, type QueryProjection, type QueryWhere, relation, toFilter, where } from "effect-app/Model/query"
 import { makeRepo } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as Option from "effect-app/Option"
@@ -662,16 +662,20 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
   )
 
   make<Encoded>().pipe(
+    // @ts-expect-error missingField is neither an encoded repo field nor a computed projection
     projectComputed(S.Struct({ missingField: S.String }), computed({}))
   )
 
   make<Encoded>().pipe(
+    // @ts-expect-error repo field name is encoded as string — projection type must match domain Encoded
     projectComputed(
       S.Struct({ name: S.Number }),
       computed({})
     )
   )
 
+  // Computed field *value* types are not yet constrained against the expression
+  // result (only key presence). Keeping this as a documentation call site.
   make<Encoded>().pipe(
     projectComputed(
       S.Struct({ itemCount: S.String }),
@@ -735,6 +739,96 @@ it("projectComputed supports union projection schemas", () => {
     "articleIds",
     "weight"
   ])
+})
+
+/**
+ * MACS-SCANNER-API-KS class of bug: domain cancel omits pack/print ownership
+ * (`activeRequest`); a hand-built overview projection that still requires it on
+ * every branch must fail at the `projectComputed` call site, not in prod decode.
+ */
+it("projectComputed rejects state-owned fields required on the wrong tagged branch", () => {
+  const domain = S.Union([
+    S.Struct({
+      _tag: S.Literal("packing"),
+      id: S.String,
+      activeRequest: S.NullOr(S.String),
+      items: S.Array(S.Struct({ articleId: S.String }))
+    }),
+    S.Struct({
+      _tag: S.Literal("cancelled"),
+      id: S.String,
+      items: S.Array(S.Struct({ articleId: S.String }))
+    })
+  ])
+  type DomainEnc = S.Codec.Encoded<typeof domain>
+
+  // Good: activeRequest only on packing; cancel omits it; articleCount is computed.
+  make<DomainEnc>().pipe(
+    projectComputed(
+      S.Union([
+        S.Struct({
+          _tag: S.Literal("packing"),
+          id: S.String,
+          activeRequest: S.NullOr(S.String),
+          articleCount: S.Number
+        }),
+        S.Struct({
+          _tag: S.Literal("cancelled"),
+          id: S.String,
+          articleCount: S.Number
+        })
+      ]),
+      computed({
+        articleCount: relation<DomainEnc>("items").count()
+      })
+    )
+  )
+
+  make<DomainEnc>().pipe(
+    // @ts-expect-error activeRequest is not on domain cancelled — cannot project it there
+    projectComputed(
+      S.Union([
+        S.Struct({
+          _tag: S.Literal("packing"),
+          id: S.String,
+          activeRequest: S.NullOr(S.String),
+          articleCount: S.Number
+        }),
+        S.Struct({
+          _tag: S.Literal("cancelled"),
+          id: S.String,
+          activeRequest: S.NullOr(S.String),
+          articleCount: S.Number
+        })
+      ]),
+      computed({
+        articleCount: relation<DomainEnc>("items").count()
+      })
+    )
+  )
+})
+
+it("ProjectableFromDomain distributes over tagged union Encoded", () => {
+  type DomainEnc =
+    | { readonly _tag: "packing"; readonly id: string; readonly activeRequest: string | null }
+    | { readonly _tag: "cancelled"; readonly id: string }
+
+  type Good =
+    | { readonly _tag: "packing"; readonly id: string; readonly activeRequest: string | null; readonly n: number }
+    | { readonly _tag: "cancelled"; readonly id: string; readonly n: number }
+
+  type Bad =
+    | { readonly _tag: "packing"; readonly id: string; readonly activeRequest: string | null }
+    | { readonly _tag: "cancelled"; readonly id: string; readonly activeRequest: string | null }
+
+  type GoodCheck = ProjectableFromDomain<Good, DomainEnc, "n">
+  type BadCheck = ProjectableFromDomain<Bad, DomainEnc>
+
+  const _good: GoodCheck = undefined as unknown
+  // @ts-expect-error cancelled branch requires activeRequest not present on domain cancelled
+  const _bad: BadCheck = undefined as unknown
+  void _good
+  void _bad
 })
 
 it("projection schema with computed fields fails without computed map", () => {

@@ -58,10 +58,36 @@ type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldVal
   ? TFieldValuesRefined
   : never
 type KeysOfUnion<T> = T extends T ? keyof T : never
-type LiteralValue<T> = T extends { readonly literal: infer L } ? L : T
-type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
-  ? [LiteralValue<FromTag>] extends [LiteralValue<Tag>] ? From : never
+/** Peel Schema `tag`/`Literal` brands down to the underlying literal value. */
+type LiteralValue<T> = T extends { readonly literal: infer L } ? L
+  : T extends string | number | boolean | null | bigint ? T
+  // Schema.tag<"x"> / withConstructorDefault wrappers are object brands whose
+  // nominal shape is not a PropertyKey — fall back to never so callers treat
+  // them via UnwrapTag below.
   : never
+// Last-resort: if T is a single object brand wrapping a string literal in its
+// structure, treat non-union object tags as single-literal for same-tag duals.
+type TagKey<T> = [LiteralValue<T>] extends [never] ? (
+    string extends T ? string
+      : [T] extends [PropertyKey] ? T
+      // object brand (e.g. tag<"packing">): treat as single opaque tag token
+      : T
+  )
+  : LiteralValue<T>
+// One-directional: domain tag may be a single literal that is a member of a
+// multi-tag projection (`"picking" extends "picking"|"picked"`). Bidirectional
+// equality would reject every multi-tag flat projection.
+type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
+  ? [TagKey<FromTag>] extends [TagKey<Tag>] ? From : never
+  : never
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never
+/**
+ * True when `Tag` is a single tag token (string literal or opaque brand like
+ * Schema.tag<"packing">), not a union of tags and not bare `string`.
+ */
+type IsSingleLiteralTag<Tag> = string extends Tag ? false
+  : [Tag] extends [UnionToIntersection<Tag>] ? true
+  : false
 /**
  * Domain shape that may supply stored fields for projection member `I`.
  *
@@ -83,37 +109,48 @@ type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
  *   field types may be narrowed by the projection).
  *
  * Uses `keyof Source` (not `KeysOfUnion` of the whole domain union) so a field
- * owned only by some tags cannot be required on every branch.
+ * owned only by some tags cannot be required on every branch — except for a
+ * single literal tag that maps to several domain variants (same `_tag`,
+ * different payloads), where `KeysOfUnion` allows each variant's keys.
  */
 /**
  * Keys the domain may supply for projection member `I`.
- * - Tagged `I`: only keys of the matching domain state.
+ * - Single-literal tagged `I` (`_tag: "packing"`): keys of *any* same-tag
+ *   domain variant (`KeysOfUnion`) — dual packing/closed shapes stay projectable.
+ * - Multi-tag / string-tagged `I` (`_tag: "a"|"b"` or `string`): keys of the
+ *   *intersection* of matched domain members (`keyof` of the source union) so
+ *   a flat multi-tag DTO cannot claim state-only fields (e.g. `batchId` on
+ *   `initial`).
  * - Untagged `I` (plain project DTOs): keys present on *any* domain member
  *   (`KeysOfUnion`), matching historical `project()` behavior.
  */
-type ProjectableDomainKeys<I, From> = I extends { readonly _tag: any } ? keyof ProjectableSource<I, From>
+type ProjectableDomainKeys<I, From> = I extends { readonly _tag: infer Tag } ? (
+    IsSingleLiteralTag<Tag> extends true ? KeysOfUnion<ProjectableSource<I, From>>
+      : keyof ProjectableSource<I, From>
+  )
   : KeysOfUnion<From>
 
-type ProjectableEncodedMember<
-  I,
-  From,
-  ExtraKeys extends PropertyKey = never
-> = I extends FieldValues ? {
-    // Keep `I[K]` (key presence only). Requiring domain field types would reject
-    // legitimate projections that narrow nested shapes (e.g. package views).
-    [K in keyof I]-?: K extends ExtraKeys ? I[K]
-      : K extends ProjectableDomainKeys<I, From> ? I[K]
-      : never
-  }
-  : never
+/**
+ * Keys on projection member `I` that are neither computed (`ExtraKeys`) nor
+ * present on the matching domain source. Key presence only — nested field
+ * types may be narrowed by the projection, and optional domain/projection
+ * keys must not fail via `{ k?: T } extends { k: T }` (the old `-?` mapped
+ * assignability check rejected legitimate optionalKey fields like closed.batchId).
+ */
+type UnprojectableKeys<I, From, ExtraKeys extends PropertyKey> = {
+  [K in keyof I]-?: K extends ExtraKeys ? never
+    : K extends ProjectableDomainKeys<I, From> ? never
+    : K
+}[keyof I]
 
 /**
  * Distribute over tagged-union projection Encoded types. A non-distributive
- * `[I] extends [...]` check against a union only sees `keyof (A|B)` (key
- * intersection) and misses branch-only fields like cancel-only omissions.
+ * check against a union only sees `keyof (A|B)` (key intersection) and misses
+ * branch-only fields like cancel-only omissions.
  */
-type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends
-  [ProjectableEncodedMember<I, From, ExtraKeys>] ? true : false
+type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends [FieldValues]
+  ? ([UnprojectableKeys<I, From, ExtraKeys>] extends [never] ? true : false)
+  : false
 
 /**
  * `unknown` when every member of projection Encoded `I` is projectable from
@@ -152,16 +189,6 @@ export type ProjectableFromDomain<
   DomainEncoded,
   ExtraKeys extends PropertyKey = never
 > = ProjectableGuard<ProjectionEncoded, DomainEncoded, ExtraKeys>
-
-/**
- * Loose key-presence guard for {@link project}: every projection key must exist
- * on *some* domain member (`KeysOfUnion`). Does **not** enforce per-tag
- * ownership — views may reshape freely. Use {@link ProjectableFromDomain} /
- * `projectComputed` when tag-scoped ownership matters.
- */
-type ProjectableKeyGuard<I, From> = [I] extends [FieldValues]
-  ? (Exclude<keyof I, KeysOfUnion<From> | "_tag"> extends never ? unknown : never)
-  : unknown
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
@@ -616,7 +643,7 @@ export const project: {
   >(
     schema:
       & S.Codec<Option.Option<A>, I, R>
-      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>,
+      & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -631,7 +658,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>,
+      & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "project"
   ): (
     current: Q
@@ -645,7 +672,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>
+      & ProjectableGuard<I, ExtractFieldValues<Q>>
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>

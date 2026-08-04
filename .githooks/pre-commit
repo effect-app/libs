@@ -1,0 +1,12 @@
+#!/bin/sh
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 1
+if [ ! -x "$root/node_modules/.bin/lint-staged" ]; then
+  echo "pre-commit: worktree preparation is incomplete (lint-staged is missing)" >&2
+  echo "pre-commit: run pnpm install before committing" >&2
+  exit 1
+fi
+# The binary directly, not `pnpm lint-staged`: pnpm runs a dependency-status
+# check first and will try to purge node_modules when the lockfile moved, which
+# aborts without a TTY — the commit then fails with a pnpm error that says
+# nothing about linting. The guard above already established this path exists.
+exec "$root/node_modules/.bin/lint-staged"

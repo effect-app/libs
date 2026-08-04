@@ -1,0 +1,82 @@
+#!/bin/sh
+# 1) After a branch/worktree checkout: drop TypeScript project-reference emit so
+#    tsgo --build never typechecks against foreign-tree .tsbuildinfo / .d.ts.
+# 2) Reconcile pnpm when package.json / lockfile changed.
+
+PATH="$HOME/.local/bin:$HOME/.local/share/pnpm:$HOME/.local/share/mise/shims:/run/current-system/sw/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH
+
+# post-checkout also runs after file-only checkouts; those are not a tree switch.
+[ "${3:-0}" = "1" ] || exit 0
+
+wt_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+[ -f "$wt_root/package.json" ] || exit 0
+
+# --- TS build-cache wipe (every branch / worktree checkout) -----------------
+#
+# Why: `pnpm check` is `tsgo --build` with composite + incremental. Package
+# outputs live in packages/*/dist (gitignored). After checkout/rebase, sources
+# belong to HEAD but dist may still be from another branch. tsgo can treat
+# projects as up-to-date and typecheck new sources against old .d.ts → phantom
+# errors that vanish on `pnpm rbuild` (clean+check).
+#
+# Same class as macs-holding/scanner#1495 / #2166 and upstream typescript-go
+# incremental gaps (#2666, #4664, #4262, #3787).
+#
+# Workaround only — remove when upstream invalidation is reliable. Do not
+# re-introduce foreign dist reuse without an exact source-identity key.
+#
+clean_ts_project_emit() {
+  root=$1
+  removed=0
+
+  for d in \
+    "$root"/packages/*/dist \
+    "$root"/packages/*/build \
+    "$root"/dist
+  do
+    [ -e "$d" ] || continue
+    rm -rf "$d"
+    removed=1
+  done
+
+  if [ -d "$root" ]; then
+    tsbuild_files=$(
+      find "$root" \
+        \( -path "$root/node_modules" -o -path "$root/repos" -o -path "$root/.git" -o -path "$root/.run" -o -path "$root/build" \) -prune -o \
+        -type f -name '*.tsbuildinfo' -print 2>/dev/null || true
+    )
+    if [ -n "$tsbuild_files" ]; then
+      printf '%s\n' "$tsbuild_files" | while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        rm -f "$f"
+      done
+      removed=1
+    fi
+  fi
+
+  if [ "$removed" = 1 ]; then
+    echo "post-checkout: cleared TypeScript project emit (dist / tsbuildinfo) under $root" >&2
+    echo "post-checkout: workaround for tsgo stale incremental cache after tree switch — see .githooks/README.md (remove when upstream fixed)" >&2
+  fi
+}
+
+clean_ts_project_emit "$wt_root"
+
+# --- pnpm install when lockfile / package.json changed -----------------------
+[ -f "$wt_root/pnpm-lock.yaml" ] || exit 0
+state_file="$wt_root/node_modules/.pnpm-checkout-state"
+state=$(cksum "$wt_root/package.json" "$wt_root/pnpm-lock.yaml" | cksum | awk '{print $1 ":" $2}')
+if [ -f "$wt_root/node_modules/.modules.yaml" ] && [ "$(cat "$state_file" 2>/dev/null)" = "$state" ]; then
+  exit 0
+fi
+command -v pnpm >/dev/null 2>&1 || {
+  echo "post-checkout: pnpm not on PATH; node_modules not installed" >&2
+  exit 1
+}
+
+export CI=1
+echo "post-checkout: pnpm install in $wt_root" >&2
+cd "$wt_root" || exit 1
+pnpm install --frozen-lockfile --prefer-offline --config.confirmModulesPurge=false || exit $?
+printf '%s\n' "$state" >"$state_file"

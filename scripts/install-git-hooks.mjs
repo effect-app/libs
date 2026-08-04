@@ -47,6 +47,15 @@ try {
   console.error(`install-git-hooks: could not install agent gh shim: ${error?.message ?? error}`)
 }
 
+for (const name of ["post-checkout", "pre-commit", "pre-push"]) {
+  const p = path.join(root, ".githooks", name)
+  try {
+    chmodSync(p, 0o755)
+  } catch {
+    // best-effort when the hook is absent or chmod is unavailable
+  }
+}
+
 try {
   execFileSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: root })
 } catch (error) {

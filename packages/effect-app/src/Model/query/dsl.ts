@@ -153,6 +153,16 @@ export type ProjectableFromDomain<
   ExtraKeys extends PropertyKey = never
 > = ProjectableGuard<ProjectionEncoded, DomainEncoded, ExtraKeys>
 
+/**
+ * Loose key-presence guard for {@link project}: every projection key must exist
+ * on *some* domain member (`KeysOfUnion`). Does **not** enforce per-tag
+ * ownership — views may reshape freely. Use {@link ProjectableFromDomain} /
+ * `projectComputed` when tag-scoped ownership matters.
+ */
+type ProjectableKeyGuard<I, From> = [I] extends [FieldValues]
+  ? (Exclude<keyof I, KeysOfUnion<From> | "_tag"> extends never ? unknown : never)
+  : unknown
+
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
 export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues>
@@ -606,7 +616,7 @@ export const project: {
   >(
     schema:
       & S.Codec<Option.Option<A>, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>,
+      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -621,7 +631,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>,
+      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>,
     mode: "project"
   ): (
     current: Q
@@ -635,7 +645,7 @@ export const project: {
   >(
     schema:
       & S.Codec<A, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>
+      & ProjectableKeyGuard<I, ExtractFieldValues<Q>>
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>

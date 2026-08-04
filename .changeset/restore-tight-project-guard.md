@@ -5,4 +5,12 @@
 "@effect-app/vue-components": patch
 ---
 
-Restore tag-aware `ProjectableGuard` on `project()` (revert the view-DTO paper-over). Projections must be domain-derived per tagged state.
+Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+Hardening:
+
+- single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+- multi-tag / string tags still require keys on every matched member
+- optional projection/domain keys checked by key presence only (not optional-assignability)
+
+Call sites must project domain-owned fields per tagged state.

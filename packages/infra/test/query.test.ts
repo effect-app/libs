@@ -831,6 +831,34 @@ it("ProjectableFromDomain distributes over tagged union Encoded", () => {
   void _bad
 })
 
+it("ProjectableFromDomain allows dual same-tag domain variants", () => {
+  // EasyLife packing/closed: two domain shapes share `_tag` with different fields.
+  type DomainEnc =
+    | { readonly _tag: "packing"; readonly id: string; readonly packages: readonly string[] }
+    | { readonly _tag: "packing"; readonly id: string; readonly units: readonly string[] }
+    | { readonly _tag: "initial"; readonly id: string }
+
+  type Good =
+    | { readonly _tag: "packing"; readonly id: string; readonly packages: readonly string[] }
+    | { readonly _tag: "packing"; readonly id: string; readonly units: readonly string[] }
+
+  // Flat multi-tag + state-only field must still fail (batchId not on initial).
+  type BadFlat = {
+    readonly _tag: "packing" | "initial"
+    readonly id: string
+    readonly packages: readonly string[]
+  }
+
+  type GoodCheck = ProjectableFromDomain<Good, DomainEnc>
+  type BadFlatCheck = ProjectableFromDomain<BadFlat, DomainEnc>
+
+  const _good: GoodCheck = undefined as unknown
+  // @ts-expect-error packages is not on domain initial; multi-tag flat intersection rejects it
+  const _badFlat: BadFlatCheck = undefined as unknown
+  void _good
+  void _badFlat
+})
+
 it("projection schema with computed fields fails without computed map", () => {
   const baseSchema = S.Struct({
     id: S.String,

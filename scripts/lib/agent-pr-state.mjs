@@ -1,11 +1,13 @@
 /**
- * Resolve whether the current branch's open PR should enforce the agent ship gate.
+ * Resolve the current branch's open PR state, for the publish path (`pnpm
+ * pr:ready` / the `gh` shim). Pushes do not consult it: the gate runs on all of
+ * them.
  *
  * Modes:
- *   none    — no open PR (or closed/merged): free agent push
- *   draft   — open draft PR: free agent push (GitHub Diff UI)
- *   ready   — open non-draft PR: ship gate on every agent push
- *   unknown — gh missing / failed: fail closed (run the gate)
+ *   none    — no open PR (or closed/merged)
+ *   draft   — open draft PR: publishing undrafts it after the gate
+ *   ready   — open non-draft PR
+ *   unknown — gh missing / failed: fail closed
  */
 import { spawnSync } from "node:child_process"
 import process from "node:process"
@@ -21,12 +23,6 @@ export const classifyPrPayload = (pr) => {
   if (pr.isDraft === true) return "draft"
   return "ready"
 }
-
-/**
- * @param {"none" | "draft" | "ready" | "unknown"} mode
- * @returns {boolean}
- */
-export const shouldRunShipGateOnPush = (mode) => mode === "ready" || mode === "unknown"
 
 /**
  * @param {{

@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.306
+
+### Patch Changes
+
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- Updated dependencies [0fe925d]
+  - effect-app@4.0.0-beta.306
+
 ## 4.0.0-beta.305
 
 ### Patch Changes

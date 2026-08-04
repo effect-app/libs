@@ -1,5 +1,20 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.307
+
+### Patch Changes
+
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
 ## 4.0.0-beta.306
 
 ### Patch Changes

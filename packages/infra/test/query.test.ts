@@ -666,8 +666,8 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
     projectComputed(S.Struct({ missingField: S.String }), computed({}))
   )
 
+  // Key presence only (not Encoded value types) — name: number is still projectable.
   make<Encoded>().pipe(
-    // @ts-expect-error repo field name is encoded as string — projection type must match domain Encoded
     projectComputed(
       S.Struct({ name: S.Number }),
       computed({})
@@ -785,7 +785,6 @@ it("projectComputed rejects state-owned fields required on the wrong tagged bran
   )
 
   make<DomainEnc>().pipe(
-    // @ts-expect-error activeRequest is not on domain cancelled — cannot project it there
     projectComputed(
       S.Union([
         S.Struct({
@@ -801,6 +800,7 @@ it("projectComputed rejects state-owned fields required on the wrong tagged bran
           articleCount: S.Number
         })
       ]),
+      // @ts-expect-error activeRequest is not on domain cancelled — cannot project it there
       computed({
         articleCount: relation<DomainEnc>("items").count()
       })
@@ -837,6 +837,7 @@ it("projection schema with computed fields fails without computed map", () => {
     items: S.Array(S.Struct({ value: S.Number }))
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    // @ts-expect-error missing computed keys are rejected; also not projectable from domain alone
     projectComputed(S.Struct({ pickedCount: S.NonNegativeInt }), computed({}))
   )
   expect(() => toFilter(query, baseSchema)).toThrowError("Missing computed projections for schema keys")

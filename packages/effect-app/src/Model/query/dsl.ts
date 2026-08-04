@@ -79,20 +79,30 @@ type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
 /**
  * One projection member is projectable when every key is either:
  * - in `ExtraKeys` (computed by the query / not stored on the domain row), or
- * - a key of the matching domain source member, with a type assignable to the
- *   domain field (so `name: number` fails when the domain encodes `name` as
- *   string).
+ * - a key of the matching domain source member (key presence only; nested
+ *   field types may be narrowed by the projection).
  *
  * Uses `keyof Source` (not `KeysOfUnion` of the whole domain union) so a field
  * owned only by some tags cannot be required on every branch.
  */
+/**
+ * Keys the domain may supply for projection member `I`.
+ * - Tagged `I`: only keys of the matching domain state.
+ * - Untagged `I` (plain project DTOs): keys present on *any* domain member
+ *   (`KeysOfUnion`), matching historical `project()` behavior.
+ */
+type ProjectableDomainKeys<I, From> = I extends { readonly _tag: any } ? keyof ProjectableSource<I, From>
+  : KeysOfUnion<From>
+
 type ProjectableEncodedMember<
   I,
   From,
   ExtraKeys extends PropertyKey = never
 > = I extends FieldValues ? {
+    // Keep `I[K]` (key presence only). Requiring domain field types would reject
+    // legitimate projections that narrow nested shapes (e.g. package views).
     [K in keyof I]-?: K extends ExtraKeys ? I[K]
-      : K extends keyof ProjectableSource<I, From> ? ProjectableSource<I, From>[K]
+      : K extends ProjectableDomainKeys<I, From> ? I[K]
       : never
   }
   : never
@@ -907,20 +917,31 @@ const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelper
 })
 
 /**
- * `projectComputed` projection schemas must only require:
- * - keys present on the matching domain Encoded member (tag-aware), or
- * - keys produced by the computed map (`ExtraKeys` = `keyof M`).
- *
- * Intersected onto the schema argument so a cancel branch that demands a
- * pack-only field (`activeRequest`) fails at the call site, not in prod decode.
+ * Only treat computed-map keys as ExtraKeys when `M` is a concrete object type.
+ * `ComputedProjectionMap` is `Record<string, …>`, so `keyof M` is `string` and
+ * would otherwise allow every projection field as "computed".
  */
-type ProjectComputedSchema<
-  Schema extends S.Codec<any, FieldValues, any>,
-  Domain,
-  M extends ComputedProjectionMap
+type ConcreteComputedKeys<M> = string extends keyof M ? never : Extract<keyof M, PropertyKey>
+
+/**
+ * Proof that projection Encoded `I` is projectable from domain Encoded, allowing
+ * concrete computed keys. Intersected onto the computed-map argument so
+ * inference of `M` is complete before the check runs.
+ */
+type ProjectableComputedMap<
+  M extends ComputedProjectionMap,
+  I extends FieldValues,
+  Domain
 > =
-  & Schema
-  & ProjectableGuard<S.Codec.Encoded<Schema>, Domain, string & keyof M>
+  & M
+  & NoExtraComputedKeys<M, I>
+  & (
+    [ProjectableGuard<I, Domain, ConcreteComputedKeys<M>>] extends [never] ? {
+        readonly __projectableFromDomain:
+          "projection fields must exist on the matching domain tagged state or be computed keys"
+      }
+      : unknown
+  )
 
 export const projectComputed: {
   <
@@ -930,8 +951,8 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
-    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -950,8 +971,8 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
-    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
   ): (
     current: Q
@@ -964,8 +985,8 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
-    computedProjection: M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    computedProjection: ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -984,8 +1005,8 @@ export const projectComputed: {
     I extends FieldValues = S.Codec.Encoded<Schema>,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: ProjectComputedSchema<Schema, ExtractFieldValues<Q>, M>,
-    computedProjection: M & NoExtraComputedKeys<M, I>,
+    schema: Schema,
+    computedProjection: ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
   ): (
     current: Q

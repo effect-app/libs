@@ -25,6 +25,16 @@ const sqlIsTransient = (e: unknown) =>
 // which would turn it into an opaque, non-serializable defect).
 const toDatabaseError = (e: unknown) =>
   new DatabaseError({ message: `SQL request failed: ${sqlErrorMessage(e)}`, transient: sqlIsTransient(e), cause: e })
+// withTransaction may re-raise setInternal's typed errors or add SqlError on begin/commit.
+// Preserve DatabaseError / OCC by `_tag` (not instanceof — dual package instances break it);
+// map residual SQL failures to DatabaseError.
+const preserveStoreError = (e: unknown): DatabaseError | OptimisticConcurrencyException => {
+  if (e !== null && typeof e === "object" && "_tag" in e) {
+    if (e._tag === "DatabaseError") return e as DatabaseError
+    if (e._tag === "OptimisticConcurrencyException") return e as OptimisticConcurrencyException
+  }
+  return toDatabaseError(e)
+}
 
 export type WithNsTransactionFn = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 
@@ -155,7 +165,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           sql
             .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
             .pipe(
-              Effect.orDie,
+              Effect.mapError(preserveStoreError),
               Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
             )
 
@@ -172,7 +182,12 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
           const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
           const ne = toNonEmptyArray([...items])
-          if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+          // Seed inserts are not concurrent; OCC here is a programming defect.
+          if (Option.isSome(ne)) {
+            yield* bulkSetInternal(ne.value, ns).pipe(
+              Effect.catchTag("OptimisticConcurrencyException", Effect.die)
+            )
+          }
           yield* exec(
             `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
             [`${tableName}::${ns}`, tableName]
@@ -488,7 +503,7 @@ function makeSQLiteStorePerNs(
           sql
             .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
             .pipe(
-              Effect.orDie,
+              Effect.mapError(preserveStoreError),
               Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
             ))
 
@@ -506,7 +521,12 @@ function makeSQLiteStorePerNs(
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
         const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
         const ne = toNonEmptyArray([...items])
-        if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+        // Seed inserts are not concurrent; OCC here is a programming defect.
+        if (Option.isSome(ne)) {
+          yield* bulkSetInternal(ne.value, ns).pipe(
+            Effect.catchTag("OptimisticConcurrencyException", Effect.die)
+          )
+        }
         yield* exec(
           ns,
           `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,

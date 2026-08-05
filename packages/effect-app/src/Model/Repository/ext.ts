@@ -5,7 +5,7 @@ import * as Request from "effect/Request"
 import * as RequestResolver from "effect/RequestResolver"
 import * as Array from "../../Array.ts"
 import type { NonEmptyArray } from "../../Array.ts"
-import { type InvalidStateError, NotFoundError, type OptimisticConcurrencyException } from "../../client/errors.ts"
+import { type DatabaseError, type InvalidStateError, NotFoundError, type OptimisticConcurrencyException } from "../../client/errors.ts"
 import * as Effect from "../../Effect.ts"
 import * as Option from "../../Option.ts"
 import { type FixEnv, type PureEnv, runTerm } from "../../Pure.ts"
@@ -89,7 +89,11 @@ export const extendRepo = <
     A
   >(
     gen: Effect.Effect<readonly [Iterable<P>, Iterable<Evt>, A], E, R>
-  ) {
+  ): Effect.Effect<
+    A,
+    E | InvalidStateError | OptimisticConcurrencyException | DatabaseError,
+    R | RSchema | RPublish
+  > {
     return Effect.flatMap(gen, ([items, events, a]) => repo.saveAndPublish(items, events).pipe(Effect.map(() => a)))
   }
 
@@ -113,6 +117,8 @@ export const extendRepo = <
     )
   }
 
+  type PureStoreError = InvalidStateError | OptimisticConcurrencyException | DatabaseError
+
   const queryAndSavePure: {
     <A, E2, R2, T2 extends T>(
       q: (
@@ -121,8 +127,10 @@ export const extendRepo = <
       pure: Effect.Effect<A, E2, FixEnv<R2, Evt, T, T2>>
     ): Effect.Effect<
       A,
-      InvalidStateError | OptimisticConcurrencyException | NotFoundError<ItemType> | E2,
-      Exclude<R2, {
+      PureStoreError | NotFoundError<ItemType> | E2,
+      | RSchema
+      | RPublish
+      | Exclude<R2, {
         env: PureEnv<Evt, T, T2>
       }>
     >
@@ -136,7 +144,7 @@ export const extendRepo = <
       pure: Effect.Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>
     ): Effect.Effect<
       A,
-      InvalidStateError | OptimisticConcurrencyException | E2,
+      PureStoreError | E2,
       | RSchema
       | RPublish
       | Exclude<R2, {
@@ -154,23 +162,25 @@ export const extendRepo = <
       batch: "batched" | number
     ): Effect.Effect<
       A[],
-      InvalidStateError | OptimisticConcurrencyException | E2,
+      PureStoreError | E2,
       | RSchema
       | RPublish
       | Exclude<R2, {
         env: PureEnv<Evt, readonly T[], readonly T2[]>
       }>
     >
-  } = (q, pure, batch?: "batched" | number) =>
+  } = ((q: any, pure: any, batch?: "batched" | number) =>
+    // Overload dispatch: query returns T | T[]; pure helpers are generic on item shape.
+    // Runtime path is query → pure term → saveAndPublish (which raises DatabaseError).
     repo.query(q).pipe(
       Effect.andThen((_) =>
         Array.isArray(_)
           ? batch === undefined
-            ? saveManyWithPure_(_ as any, pure as any)
-            : saveManyWithPureBatched_(_ as any, pure as any, batch === "batched" ? 100 : batch)
-          : saveWithPure_(_ as any, pure as any)
+            ? saveManyWithPure_(_ as T[], pure)
+            : saveManyWithPureBatched_(_ as T[], pure, batch === "batched" ? 100 : batch)
+          : saveWithPure_(_ as T, pure)
       )
-    ) as any
+    )) as typeof queryAndSavePure
 
   const saveManyWithPure: {
     <R, A, E, S1 extends T, S2 extends T>(
@@ -178,7 +188,7 @@ export const extendRepo = <
       pure: Effect.Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>
     ): Effect.Effect<
       A,
-      InvalidStateError | OptimisticConcurrencyException | E,
+      PureStoreError | E,
       | RSchema
       | RPublish
       | Exclude<R, {
@@ -191,25 +201,25 @@ export const extendRepo = <
       batch: "batched" | number
     ): Effect.Effect<
       A[],
-      InvalidStateError | OptimisticConcurrencyException | E,
+      PureStoreError | E,
       | RSchema
       | RPublish
       | Exclude<R, {
         env: PureEnv<Evt, readonly S1[], readonly S2[]>
       }>
     >
-  } = (items, pure, batch?: "batched" | number) =>
+  } = ((items: Iterable<T>, pure: any, batch?: "batched" | number) =>
     batch
       ? Effect.forEach(
-        Array.chunksOf(items, batch === "batched" ? 100 : batch),
-        (batch) =>
+        Array.chunksOf([...items], batch === "batched" ? 100 : batch),
+        (batchItems) =>
           saveAllWithEffectInt(
-            runTerm(pure, batch)
+            runTerm(pure, batchItems as any)
           )
       )
       : saveAllWithEffectInt(
-        runTerm(pure, [...items])
-      )
+        runTerm(pure, [...items] as any)
+      )) as typeof saveManyWithPure
 
   const byIdAndSaveWithPure: {
     <R, A, E, S2 extends T>(
@@ -217,17 +227,19 @@ export const extendRepo = <
       pure: Effect.Effect<A, E, FixEnv<R, Evt, T, S2>>
     ): Effect.Effect<
       A,
-      InvalidStateError | OptimisticConcurrencyException | NotFoundError<ItemType> | E,
+      PureStoreError | NotFoundError<ItemType> | E,
       | RSchema
       | RPublish
       | Exclude<R, {
         env: PureEnv<Evt, T, S2>
       }>
     >
-  } = (id, pure): any => get(id).pipe(Effect.flatMap((item) => saveWithPure_(item, pure)))
+  } = (id, pure) => get(id).pipe(Effect.flatMap((item) => saveWithPure_(item, pure)))
 
+  // query can raise DatabaseError; NotFound is completed per-entry. Dual package
+  // round-trips may still surface other store errors via failCause — keep channel honest.
   type Req =
-    & Request.Request<T, NotFoundError<ItemType>>
+    & Request.Request<T, NotFoundError<ItemType> | DatabaseError>
     & { _tag: `Get${ItemType}`; id: T[IdKey] }
   const _request = Request.tagged<Req>(`Get${repo.itemType}`)
 
@@ -237,9 +249,9 @@ export const extendRepo = <
       _key: unknown
     ) =>
       (repo.query(Q.where(repo.idKey as any, "in" as any, entries.map((_) => _.request.id)) as any) as Effect.Effect<
-        readonly T[]
+        readonly T[],
+        DatabaseError
       >)
-        // TODO
         .pipe(
           Effect.andThen((items) =>
             Effect.forEach(entries, (entry) =>
@@ -270,7 +282,7 @@ export const extendRepo = <
      * Enables chunked writes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are saved independently.
      */
-    save: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
+    save: (itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
       const items = asReadonlyArray(itemOrItems)
       if (!Array.isReadonlyArrayNonEmpty(items)) {
         return Effect.void
@@ -284,23 +296,16 @@ export const extendRepo = <
         (batch) => repo.saveAndPublish(batch),
         { discard: true }
       )
-    }) as (
-      itemOrItems: T | ReadonlyArray<T>,
-      options?: BatchOptions
-    ) => Effect.Effect<
-      void,
-      InvalidStateError | OptimisticConcurrencyException,
-      RSchema | RPublish
-    >,
+    },
     saveWithEvents: (events: Iterable<Evt>) => (...items: NonEmptyArray<T>) => repo.saveAndPublish(items, events),
     /**
      * Enables chunked deletes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are removed independently.
      */
-    remove: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
+    remove: (itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
       const items = asReadonlyArray(itemOrItems)
       if (!Array.isReadonlyArrayNonEmpty(items)) {
-        return Effect.void
+        return Effect.void as Effect.Effect<void, DatabaseError, RSchema | RPublish>
       }
       const batchSize = getBatchSize(options?.batch)
       if (batchSize === undefined) {
@@ -311,18 +316,15 @@ export const extendRepo = <
         (batch) => repo.removeAndPublish(batch),
         { discard: true }
       )
-    }) as (
-      itemOrItems: T | ReadonlyArray<T>,
-      options?: BatchOptions
-    ) => Effect.Effect<void, never, RSchema | RPublish>,
+    },
     /**
      * Enables chunked deletes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are removed independently.
      */
-    removeById: ((idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>, options?: BatchOptions) => {
+    removeById: (idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>, options?: BatchOptions) => {
       const ids = asReadonlyArray(idOrIds)
       if (!Array.isReadonlyArrayNonEmpty(ids)) {
-        return Effect.void
+        return Effect.void as Effect.Effect<void, DatabaseError, RSchema>
       }
       const batchSize = getBatchSize(options?.batch)
       if (batchSize === undefined) {
@@ -333,10 +335,7 @@ export const extendRepo = <
         (batch) => repo.removeById(batch),
         { discard: true }
       )
-    }) as (
-      idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>,
-      options?: BatchOptions
-    ) => Effect.Effect<void, never, RSchema>,
+    },
     queryAndSavePure,
     saveManyWithPure,
     byIdAndSaveWithPure,

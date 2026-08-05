@@ -286,8 +286,9 @@ export const withDataFallback = <A, E>(
   const initialData = opts?.initialData
   const placeholderData = opts?.placeholderData
   if (initialData === undefined && placeholderData === undefined) {
-    // useAtomValue returns Readonly<Ref>, not ComputedRef — wrap so QueryView.result stays a real ComputedRef.
-    return computed(() => rawResult.value)
+    // Identity when no fallback options. Callers that need a real ComputedRef
+    // (e.g. useAtomValue's Readonly<Ref>) wrap before calling this helper.
+    return rawResult as ComputedRef<AsyncResult.AsyncResult<A, E>>
   }
 
   let lastData: A | undefined

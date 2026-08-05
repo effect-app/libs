@@ -1,10 +1,15 @@
 {
   "name": "@effect-app/eslint-shared-config",
-  "version": "0.6.0-beta.35",
+  "version": "0.6.0-beta.36",
   "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
   "license": "MIT",
   "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/eslint-shared-config"
+  },
   "sideEffects": false,
   "scripts": {
     "watch": "pnpm build -w",

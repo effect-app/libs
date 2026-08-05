@@ -1,5 +1,97 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.308
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.308
+- @effect-app/vue@4.0.0-beta.308
+
+## 4.0.0-beta.307
+
+### Patch Changes
+
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+- Updated dependencies [40585ca]
+- Updated dependencies [ad0ede6]
+  - effect-app@4.0.0-beta.307
+  - @effect-app/vue@4.0.0-beta.307
+
+## 4.0.0-beta.306
+
+### Patch Changes
+
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- Updated dependencies [0fe925d]
+  - effect-app@4.0.0-beta.306
+  - @effect-app/vue@4.0.0-beta.306
+
+## 4.0.0-beta.305
+
+### Patch Changes
+
+- Updated dependencies [8bd9a11]
+  - effect-app@4.0.0-beta.305
+  - @effect-app/vue@4.0.0-beta.305
+
+## 4.0.0-beta.304
+
+### Patch Changes
+
+- Updated dependencies [412f08b]
+  - effect-app@4.0.0-beta.304
+  - @effect-app/vue@4.0.0-beta.304
+
+## 4.0.0-beta.303
+
+### Patch Changes
+
+- Updated dependencies [33b0544]
+  - effect-app@4.0.0-beta.303
+  - @effect-app/vue@4.0.0-beta.303
+
+## 4.0.0-beta.302
+
+### Patch Changes
+
+- Updated dependencies [c0e5a1b]
+  - effect-app@4.0.0-beta.302
+  - @effect-app/vue@4.0.0-beta.302
+
+## 4.0.0-beta.301
+
+### Patch Changes
+
+- Updated dependencies [413022d]
+  - @effect-app/vue@4.0.0-beta.301
+  - effect-app@4.0.0-beta.301
+
+## 4.0.0-beta.300
+
+### Patch Changes
+
+- ab2fd8d: Fix `FixedNuxtErrorBoundary` losing the app's router: `vue-router` was missing from `vite.config.mts`'s Rollup `external` list, so it got bundled into the library output with its own `Symbol("router")` injection key a different instance from the host app's real `routerKey`. `useRouter()` inside the component therefore always returned `undefined`, crashing on `.afterEach` (500 in SSR). `vue-router` is now external like `vue`, so the component resolves the host app's actual router instance.
+  - effect-app@4.0.0-beta.300
+  - @effect-app/vue@4.0.0-beta.300
+
+## 4.0.0-beta.299
+
+### Patch Changes
+
+- b4ea50f: Add `FixedNuxtErrorBoundary`, extracted from duplicated per-project copies. Wraps Nuxt's error boundary with injectable `captureException`/`toastError`/`debug` props, distinguishes supported errors (setup/template) from unsupported ones (native event handlers, reported but not rendered), ignores interrupts-only Effect `CauseException` failures, and clears itself on route change.
+  - effect-app@4.0.0-beta.299
+  - @effect-app/vue@4.0.0-beta.299
+
 ## 4.0.0-beta.298
 
 ### Patch Changes

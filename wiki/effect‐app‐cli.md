@@ -34,7 +34,7 @@ node packages/cli/dist/index.js effa <command>
 
 ### `effa ue` - Update Effect/Effect-App
 
-Updates Effect and Effect-App packages using npm-check-updates.
+Updates Effect and Effect-App packages to the highest versions allowed by their existing semver ranges using npm-check-updates.
 
 ```bash
 pnpm effa ue
@@ -203,6 +203,7 @@ pnpm effa gist [options]
 **Environment Variables:**
 
 - `GIST_GITHUB_TOKEN`: GitHub Personal Access Token with gist permissions
+- `EFFA_GIST_CACHE_ID`: ID of the pre-created secret Gist used for pointer storage
 - `COMPANY`: Company identifier for multi-tenant gist management
 - `ENV`: Environment name (defaults to "local-dev")
 
@@ -210,10 +211,10 @@ pnpm effa gist [options]
 
 ```bash
 # Using default config file (gists.yaml)
-COMPANY=acme GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist
+COMPANY=acme EFFA_GIST_CACHE_ID=abc123 GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist
 
 # Using custom config file with specific environment
-COMPANY=acme ENV=production GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist --config my-gists.yaml
+COMPANY=acme ENV=production EFFA_GIST_CACHE_ID=abc123 GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist --config my-gists.yaml
 ```
 
 **YAML Configuration Format:**
@@ -271,9 +272,10 @@ gists:
    - Handles file name collisions (GitHub gists have flat structure)
 5. **GitHub Integration**:
    - Supports both public and private gists
-   - Persistent cache stored as a secret GitHub gist with company-specific files (e.g., `company1.json`, `company2.json`)
-   - Automatic gist deletion when removed from configuration
-   - Robust error handling for cache creation and company-specific cache files
+   - Uses the secret cache Gist configured by `EFFA_GIST_CACHE_ID`
+   - Never discovers or automatically creates the cache Gist
+   - Automatically initializes a missing company file, such as `company1.json`, inside the configured cache Gist
+   - Automatically deletes target gists removed from configuration
 
 **Example File Structure in Gists:**
 When `ENV=production`, files are automatically renamed with environment prefixes:
@@ -288,6 +290,7 @@ This allows multiple environments to coexist in the same gist without conflicts.
 
 - GitHub CLI (`gh`) installed and configured
 - GitHub Personal Access Token with gist scope
+- A pre-created secret cache Gist, configured through `EFFA_GIST_CACHE_ID`
 - YAML configuration file with proper structure
 - `COMPANY` environment variable set for multi-tenant operations (each company gets its own cache file)
 

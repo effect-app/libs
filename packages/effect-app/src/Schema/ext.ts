@@ -39,9 +39,10 @@ import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as Struct from "effect/Struct"
 import { type NonEmptyReadonlyArray } from "../Array.ts"
 import * as Context from "../Context.ts"
-import type * as SchemaAST from "../SchemaAST.ts"
+import * as SchemaAST from "../SchemaAST.ts"
 import { extendM, typedKeysOf } from "../utils.ts"
 import { type AST } from "./schema.ts"
 
@@ -539,13 +540,81 @@ export function makeOptional<NER extends S.Struct.Fields>(
   }, {} as any)
 }
 
+// `Omit` erases the polymorphic `this` of "this-returning" methods (`annotate`, `annotateKey`,
+// `check`, `rebuild`): extracting them through a mapped type binds their `this["Rebuild"]` back to
+// the original `T`, not to this intersection. So overriding just `Rebuild` above is not enough, those
+// four methods have to be redeclared here with a concrete return type instead of `this["Rebuild"]`.
+export type DropConstructorDefault<T extends S.Top> =
+  & Omit<
+    T,
+    "~type.constructor.default" | "Rebuild" | "annotate" | "annotateKey" | "check" | "rebuild"
+  >
+  & {
+    readonly "~type.constructor.default": "no-default"
+    readonly "Rebuild": DropConstructorDefault<T>
+    annotate(annotations: S.Annotations.Bottom<T["Type"], T["~type.parameters"]>): DropConstructorDefault<T>
+    annotateKey(annotations: S.Annotations.Key<T["Type"]>): DropConstructorDefault<T>
+    check(
+      ...checks: readonly [SchemaAST.Check<T["Type"]>, ...Array<SchemaAST.Check<T["Type"]>>]
+    ): DropConstructorDefault<T>
+    rebuild(ast: T["ast"]): DropConstructorDefault<T>
+  }
+
+// `replaceContext` is `@internal` in `effect/SchemaAST` (stripped from its public types, though the
+// export itself still ships in the compiled JS). Effect's own `withConstructorDefault` goes through the
+// same function internally, so this mirrors an existing code path rather than reaching for something
+// novel, but it's still an internal API that could move or disappear without a signal.
+const SchemaASTInternal = SchemaAST as unknown as {
+  readonly replaceContext: <A extends SchemaAST.AST>(ast: A, context: SchemaAST.Context | undefined) => A
+}
+
+export interface DropConstructorDefaultLambda extends Struct.Lambda {
+  <T extends S.Top>(self: T): DropConstructorDefault<T>
+  readonly "~lambda.out": DropConstructorDefault<this["~lambda.in"] & S.Top>
+}
+
+/**
+ * A `Struct.Lambda` that removes a field's `withConstructorDefault`, if any.
+ * Compose with `Struct.pick`/`Struct.omit` via `Struct.map` to derive a
+ * partial-update schema from a "create" schema without inheriting defaults
+ * that would resurrect omitted fields in `.make(...)` output:
+ *
+ * ```ts
+ * import { flow } from "effect/Function"
+ * import * as Struct from "effect/Struct"
+ * import * as S from "effect-app/Schema"
+ *
+ * const Person = S.Struct({
+ *   id: S.String,
+ *   name: S.String.pipe(S.optionalKey, S.withConstructorDefault(() => ""))
+ * })
+ *
+ * const UpdatePerson = Person.mapFields(
+ *   flow(Struct.omit(["id"]), Struct.map(S.dropConstructorDefault))
+ * )
+ * ```
+ */
+export const dropConstructorDefault: DropConstructorDefaultLambda = Struct.lambda<DropConstructorDefaultLambda>(
+  (schema) => {
+    const context = schema.ast.context
+    if (!context?.defaultValue) return schema
+    return schema.rebuild(
+      SchemaASTInternal.replaceContext(
+        schema.ast,
+        new SchemaAST.Context(context.isOptional, context.isMutable, undefined, context.annotations)
+      )
+    )
+  }
+)
+
 export function makeExactOptional<NER extends S.Struct.Fields>(
   t: NER
 ): {
-  [K in keyof NER]: NER[K] extends S.Top ? ReturnType<typeof S.optionalKey<NER[K] & S.Top>> : any
+  [K in keyof NER]: NER[K] extends S.Top ? DropConstructorDefault<ReturnType<typeof S.optionalKey<NER[K] & S.Top>>>
+    : any
 } {
   return typedKeysOf(t).reduce((prev, cur) => {
-    prev[cur] = S.optionalKey(t[cur] as any)
+    prev[cur] = dropConstructorDefault(S.optionalKey(t[cur] as any))
     return prev
   }, {} as any)
 }

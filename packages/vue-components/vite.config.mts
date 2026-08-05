@@ -59,6 +59,7 @@ export default defineConfig({
         /^effect-app(\/|$)/,
         /^@effect-app\//,
         "vue",
+        "vue-router",
         /primevue\/.+/,
         /@tanstack/,
         /@mdi/,

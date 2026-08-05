@@ -2,6 +2,8 @@
 import * as Array from "effect-app/Array"
 import * as S from "effect-app/Schema"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import * as Effect from "effect/Effect"
+import * as Struct from "effect/Struct"
 import { describe, expect, expectTypeOf, test } from "vitest"
 
 const A = S.Struct({ a: S.NonEmptyString255, email: S.NullOr(S.Email) })
@@ -25,6 +27,49 @@ test("literal default works", () => {
   const l2 = l.changeDefault("b")
   const s2 = S.Struct({ l: l2.withConstructorDefault })
   expect(s2.make({}).l).toBe("b")
+})
+
+// Toy schema for `dropConstructorDefault`: a field with a constructor
+// default that should NOT auto-populate when deriving a partial-update
+// schema from a "create" schema.
+const Person = S.Struct({
+  name: S.String,
+  notes: S.NullOr(S.String).pipe(S.optionalKey, S.withConstructorDefault(Effect.succeed(null)))
+})
+
+test("plain Struct.omit leaks the inherited constructor default (the bug)", () => {
+  const UpdatePersonBuggy = S.Struct(Struct.omit(Person.fields, [] as const))
+  expect(UpdatePersonBuggy.make({ name: "Mario" })).toEqual({ name: "Mario", notes: null })
+})
+
+test("Struct.map(S.dropConstructorDefault) strips the inherited constructor default (the fix)", () => {
+  const UpdatePersonFixed = S.Struct(Struct.map(Struct.omit(Person.fields, [] as const), S.dropConstructorDefault))
+  expect(UpdatePersonFixed.make({ name: "Mario" })).toEqual({ name: "Mario" })
+})
+
+test("Struct.map(S.dropConstructorDefault) still omits the requested keys, like Struct.omit", () => {
+  const NameOnly = S.Struct(Struct.map(Struct.omit(Person.fields, ["notes"] as const), S.dropConstructorDefault))
+  expect(NameOnly.make({ name: "Mario" })).toEqual({ name: "Mario" })
+  expectTypeOf<typeof NameOnly.Type>().toEqualTypeOf<{ readonly name: string }>()
+})
+
+test("makeExactOptional drops the inherited constructor default too", () => {
+  const UpdatePerson = S.Struct(S.makeExactOptional(Person.fields))
+  expect(UpdatePerson.make({ name: "Mario" })).toEqual({ name: "Mario" })
+})
+
+test("dropConstructorDefault stays 'no-default' after annotate/annotateKey (Rebuild fix)", () => {
+  const notesDropped = S.dropConstructorDefault(Person.fields.notes)
+  expectTypeOf<(typeof notesDropped)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const notesAnnotated = notesDropped.annotate({ description: "no longer defaulted" })
+  expectTypeOf<(typeof notesAnnotated)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const notesKeyAnnotated = notesDropped.annotateKey({ description: "no longer defaulted (key)" })
+  expectTypeOf<(typeof notesKeyAnnotated)["~type.constructor.default"]>().toEqualTypeOf<"no-default">()
+
+  const UpdatePerson = S.Struct({ name: Person.fields.name, notes: notesAnnotated })
+  expect(UpdatePerson.make({ name: "Mario" })).toEqual({ name: "Mario" })
 })
 
 test("NonEmptyString255.Type uses the named brand alias", () => {

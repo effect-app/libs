@@ -1,5 +1,17 @@
 # @effect-app/cli
 
+## 2.1.0-beta.39
+
+### Patch Changes
+
+- 68f1b39: Make `effa ue` update Effect and Effect App packages to the highest versions allowed by their existing semver ranges, including compatible prerelease updates.
+
+## 2.1.0-beta.38
+
+### Patch Changes
+
+- e2c9ebd: Require an explicit `EFFA_GIST_CACHE_ID`, remove cache Gist discovery and automatic creation, and initialize missing company pointer files once.
+
 ## 2.1.0-beta.37
 
 ### Patch Changes

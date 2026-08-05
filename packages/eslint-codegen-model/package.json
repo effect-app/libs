@@ -4,6 +4,11 @@
   "sideEffects": false,
   "type": "module",
   "version": "2.0.0-beta.27",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/eslint-codegen-model"
+  },
   "bin": {
     "effect-app-codegen": "./dist/cli.js"
   },

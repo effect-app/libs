@@ -7,6 +7,42 @@ This is the Effect App library repository, focusing on functional programming pa
 - The git base branch is `main`
 - Use `pnpm` as the package manager
 
+### Pull requests
+
+Always open a PR for agent work that changes the repo — do not leave finished work only on a local branch.
+
+- **Draft early**: open a draft PR as soon as there is a meaningful commit (or when starting multi-step work that will land), so review/CI can track progress while the rest of the work continues. Pushes to a draft run the same gate as any other push — the draft is about review status, not about skipping checks.
+- **Keep the PR current**: push commits as you go; update the PR body if scope shifts.
+- **Ready when done**: publish with `pnpm pr:ready`, or with plain `gh pr ready` — both run the ship gate first and undraft only if it passes. Do not hand-run the checks beforehand and do not leave a finished, validated change as draft.
+- **Base**: target `main` unless the work is explicitly stacked on another branch.
+
+### The gate runs the checks — you do not
+
+`.githooks/pre-push` is the agent ship gate. It is a **no-op for humans** and
+fires only for coding agents (`GROK_AGENT` / `T3_AGENT` / `AI_AGENT` / Claude /
+Cursor / Codex env markers).
+
+It runs on **every** agent push — draft, ready, or no PR at all. There is no
+browser or API suite here that a draft could usefully defer, and a pushed commit
+that does not compile or whose tests fail is worth nothing to a reviewer whatever
+the PR says.
+
+The gate is `pnpm check` → `pnpm lint` → `pnpm test`, which is what CI runs and
+nothing more. This is a library monorepo — no application to stand up, no browser
+suite — so the unit run _is_ the gate. It caches the validated HEAD SHA in
+`.run/agent-ship-gate.json`, so **one commit is validated once** however many
+times you push or publish it. Force a re-run with `AGENT_SHIP_GATE_FORCE=1`.
+
+**Do not hand-run `pnpm check` / `lint` / `test` as routine verification.**
+Validating the same commit repeatedly costs the same each time and proves nothing
+the first run did not. While iterating, narrow proof is the right tool — the one
+test you are fixing, or a typecheck of the package you touched. Whole-gate runs
+belong to the push.
+
+`.envrc` puts the `gh` shim on `PATH`; run **`direnv allow`** once after cloning
+(`command -v gh` should print `.tools/bin/gh`). Never `--no-verify`, and never set
+`SKIP_AGENT_PREPUSH` — that is the human escape hatch.
+
 ### Core Principles
 
 - **Zero Tolerance for Errors**: All automated checks must pass
@@ -39,13 +75,18 @@ Anti-patterns that mean you skipped the checklist:
 - Adding a sleep / retry to "give it time to work" instead of finding the missing wake signal.
 - Disabling a hook (`--no-verify`) or a check to make the diff land.
 
-### Mandatory Validation Steps
+### Validation
 
-After **all** changes are made, run these from the **repo root**:
+The ship gate owns validation — see _The gate runs the checks — you do not_. It
+runs `pnpm check` → `pnpm lint` → `pnpm test` on every push and on publish, once
+per commit.
 
-1. `pnpm lint-fix` — auto-formats and fixes lint issues across all packages; apply all resulting changes
-2. `pnpm check` — type-checks all packages (dependency changes in one package can break others); fix all reported errors
-   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
+`pnpm lint-fix` is the one thing worth running by hand, because it _writes_: it
+formats and auto-fixes across packages, and the gate only reports what it would
+have fixed. Run it when you are done editing, stage what it changes, then push.
+
+If type checking fails in a way that makes no sense against the diff, `pnpm clean`
+clears the caches — stale incremental state produces phantom errors.
 
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->
 <!-- - Build the project: `pnpm build`
@@ -143,14 +184,14 @@ context. On an HTTP server, that MemoMap lives on the server fiber and is
 shared by every request that server handles. The first request to build a
 stateful layer (anything using `Layer.effect` / `Effect.acquireRelease`)
 memoizes the resulting value onto the server fiber; every subsequent request
-then receives the *same instance* — including its `clear()` / dispose
+then receives the _same instance_ — including its `clear()` / dispose
 finalizer, which now fires at the wrong time.
 
 When you call `Effect.provide(layer)` (or `Stream.provide(layer)`) inside a
 per-request hot path:
 
 - Pass `{ local: true }` if the layer is pure / stateless or you genuinely
-  want it scoped to *this* effect only, or
+  want it scoped to _this_ effect only, or
 - Build it explicitly against the request scope with a fresh `MemoMap`
   (`Layer.makeMemoMap` + `Layer.buildWithMemoMap(layer, memoMap, requestScope)`)
   — see `provideOnRequestScope` in `packages/infra/src/setupRequest.ts`.

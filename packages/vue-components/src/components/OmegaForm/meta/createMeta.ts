@@ -115,16 +115,16 @@ export const metadataFromAst = <From, To>(
     // Root-level discriminated union
     classifyAndWalkUnion(ast, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
+    return { meta: newMeta, defaultValues, unionMeta }
   }
 
   if (S.AST.isObjects(ast)) {
     walkStruct(ast.propertySignatures, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
+    return { meta: newMeta, defaultValues, unionMeta }
   }
 
-  return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
+  return { meta: newMeta, defaultValues, unionMeta }
 }
 
 export const generateMetaFromSchema = <From, To>(

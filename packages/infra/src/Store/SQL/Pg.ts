@@ -9,11 +9,29 @@ import * as Option from "effect-app/Option"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
 import * as Struct from "effect/Struct"
 import { SqlClient } from "effect/unstable/sql"
-import { OptimisticConcurrencyException } from "../../errors.ts"
+import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
 import { makeETag } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
+
+const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
+const sqlIsTransient = (e: unknown) =>
+  /timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|connection|deadlock|too many connections/i.test(sqlErrorMessage(e))
+// Map a SqlError into a typed, serializable DatabaseError (instead of `.orDie`,
+// which would turn it into an opaque, non-serializable defect).
+const toDatabaseError = (e: unknown) =>
+  new DatabaseError({ message: `SQL request failed: ${sqlErrorMessage(e)}`, transient: sqlIsTransient(e), cause: e })
+// withTransaction may re-raise setInternal's typed errors or add SqlError on begin/commit.
+// Preserve DatabaseError / OCC by `_tag` (not instanceof — dual package instances break it);
+// map residual SQL failures to DatabaseError.
+const preserveStoreError = (e: unknown): DatabaseError | OptimisticConcurrencyException => {
+  if (e !== null && typeof e === "object" && "_tag" in e) {
+    if (e._tag === "DatabaseError") return e as DatabaseError
+    if (e._tag === "OptimisticConcurrencyException") return e as OptimisticConcurrencyException
+  }
+  return toDatabaseError(e)
+}
 
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown },
@@ -85,7 +103,8 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         return { id, _etag: newE._etag!, data, item: newE }
       }
 
-      const exec = (query: string, params?: readonly unknown[]) => sql.unsafe(query, params as any).pipe(Effect.orDie)
+      const exec = (query: string, params?: readonly unknown[]) =>
+        sql.unsafe(query, params as any).pipe(Effect.mapError(toDatabaseError))
 
       const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
         const row = toRow(e)
@@ -130,12 +149,12 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         sql
           .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
           .pipe(
-            Effect.orDie,
+            Effect.mapError(preserveStoreError),
             Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
           )
 
       const ctx = yield* Effect.context<R>()
-      const seedCache = new Map<string, Effect.Effect<void>>()
+      const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
       const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
         yield* ensureTable
         if (!seed) return
@@ -147,7 +166,12 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
         const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
         const ne = toNonEmptyArray([...items])
-        if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+        // Seed inserts are not concurrent; OCC here is a programming defect.
+        if (Option.isSome(ne)) {
+          yield* bulkSetInternal(ne.value, ns).pipe(
+            Effect.catchTag("OptimisticConcurrencyException", Effect.die)
+          )
+        }
         yield* exec(
           `INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`,
           [`${tableName}::${ns}`, tableName]
@@ -349,8 +373,10 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           )
       }
 
-      // Eagerly seed primary namespace on initialization
-      yield* seedNamespace("primary")
+      // Eagerly seed primary namespace on initialization. A seed failure at
+      // construction is fatal (orDie); the per-call `seedNamespace` still
+      // surfaces DatabaseError to callers.
+      yield* seedNamespace("primary").pipe(Effect.orDie)
 
       return s
     })

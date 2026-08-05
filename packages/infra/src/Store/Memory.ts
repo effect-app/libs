@@ -421,7 +421,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               collection: modelName,
               namespace,
               entity: modelName,
-              extra: { "app.entity.id": id as unknown }
+              extra: { "app.entity.id": id }
             })
           ),
       filter: (f) =>
@@ -456,7 +456,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               collection: modelName,
               namespace,
               entity: modelName,
-              extra: { "app.entity.id": e[idKey] as unknown }
+              extra: { "app.entity.id": e[idKey] }
             })
           ),
       batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>

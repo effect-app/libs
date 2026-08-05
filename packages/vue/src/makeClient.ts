@@ -1031,7 +1031,7 @@ export const makeClient = <RT_, RTHooks>(
             fromRequestConfig(
               defaultKey,
               queryResources as never,
-              input as never,
+              input,
               output as never
             ) as InvalidationEntry[])
           : undefined
@@ -1111,7 +1111,7 @@ export const makeClient = <RT_, RTHooks>(
                   fromRequestConfig(
                     defaultKey,
                     queryResources as never,
-                    input as never,
+                    input,
                     output as never
                   ) as InvalidationEntry[])
                 : undefined
@@ -1142,7 +1142,7 @@ export const makeClient = <RT_, RTHooks>(
                     fromRequestConfig(
                       defaultKey,
                       queryResources as never,
-                      input as never,
+                      input,
                       output as never
                     ) as InvalidationEntry[])
                   : undefined

@@ -58,23 +58,137 @@ type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldVal
   ? TFieldValuesRefined
   : never
 type KeysOfUnion<T> = T extends T ? keyof T : never
-type LiteralValue<T> = T extends { readonly literal: infer L } ? L : T
+/** Peel Schema `tag`/`Literal` brands down to the underlying literal value. */
+type LiteralValue<T> = T extends { readonly literal: infer L } ? L
+  : T extends string | number | boolean | null | bigint ? T
+  // Schema.tag<"x"> / withConstructorDefault wrappers are object brands whose
+  // nominal shape is not a PropertyKey — fall back to never so callers treat
+  // them via UnwrapTag below.
+  : never
+// Last-resort: if T is a single object brand wrapping a string literal in its
+// structure, treat non-union object tags as single-literal for same-tag duals.
+type TagKey<T> = [LiteralValue<T>] extends [never] ? (
+    string extends T ? string
+      : [T] extends [PropertyKey] ? T
+      // object brand (e.g. tag<"packing">): treat as single opaque tag token
+      : T
+  )
+  : LiteralValue<T>
+// One-directional: domain tag may be a single literal that is a member of a
+// multi-tag projection (`"picking" extends "picking"|"picked"`). Bidirectional
+// equality would reject every multi-tag flat projection.
 type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
-  ? [LiteralValue<FromTag>] extends [LiteralValue<Tag>] ? From : never
+  ? [TagKey<FromTag>] extends [TagKey<Tag>] ? From : never
   : never
-type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? ExtractTagged<From, Tag>
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never
+/**
+ * True when `Tag` is a single tag token (string literal or opaque brand like
+ * Schema.tag<"packing">), not a union of tags and not bare `string`.
+ */
+type IsSingleLiteralTag<Tag> = string extends Tag ? false
+  : [Tag] extends [UnionToIntersection<Tag>] ? true
+  : false
+/**
+ * Domain shape that may supply stored fields for projection member `I`.
+ *
+ * - True tagged unions (`A | B` with different fields per `_tag`) resolve to the
+ *   matching member so state-owned keys are not treated as universal.
+ * - Flat models that only carry `_tag: "a" | "b"` on a shared shape (no
+ *   per-tag members in the Encoded union) fall back to the full `From` so
+ *   existing Class+Literals projections keep typechecking.
+ */
+type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
+    [ExtractTagged<From, Tag>] extends [never] ? From : ExtractTagged<From, Tag>
+  )
   : From
-type ProjectableField<I, From, K extends PropertyKey> = K extends KeysOfUnion<From> ? I
-  : never
-type ProjectableEncoded<I, From> = I extends FieldValues ? {
-    [K in keyof I]: ProjectableField<
-      I[K],
-      ProjectableSource<I, From>,
-      K
-    >
-  }
-  : never
-type ProjectableGuard<I, From> = [I] extends [ProjectableEncoded<I, From>] ? unknown : never
+
+/**
+ * One projection member is projectable when every key is either:
+ * - in `ExtraKeys` (computed by the query / not stored on the domain row), or
+ * - a key of the matching domain source member (key presence only; nested
+ *   field types may be narrowed by the projection).
+ *
+ * Uses `keyof Source` (not `KeysOfUnion` of the whole domain union) so a field
+ * owned only by some tags cannot be required on every branch — except for a
+ * single literal tag that maps to several domain variants (same `_tag`,
+ * different payloads), where `KeysOfUnion` allows each variant's keys.
+ */
+/**
+ * Keys the domain may supply for projection member `I`.
+ * - Single-literal tagged `I` (`_tag: "packing"`): keys of *any* same-tag
+ *   domain variant (`KeysOfUnion`) — dual packing/closed shapes stay projectable.
+ * - Multi-tag / string-tagged `I` (`_tag: "a"|"b"` or `string`): keys of the
+ *   *intersection* of matched domain members (`keyof` of the source union) so
+ *   a flat multi-tag DTO cannot claim state-only fields (e.g. `batchId` on
+ *   `initial`).
+ * - Untagged `I` (plain project DTOs): keys present on *any* domain member
+ *   (`KeysOfUnion`), matching historical `project()` behavior.
+ */
+type ProjectableDomainKeys<I, From> = I extends { readonly _tag: infer Tag } ? (
+    IsSingleLiteralTag<Tag> extends true ? KeysOfUnion<ProjectableSource<I, From>>
+      : keyof ProjectableSource<I, From>
+  )
+  : KeysOfUnion<From>
+
+/**
+ * Keys on projection member `I` that are neither computed (`ExtraKeys`) nor
+ * present on the matching domain source. Key presence only — nested field
+ * types may be narrowed by the projection, and optional domain/projection
+ * keys must not fail via `{ k?: T } extends { k: T }` (the old `-?` mapped
+ * assignability check rejected legitimate optionalKey fields like closed.batchId).
+ */
+type UnprojectableKeys<I, From, ExtraKeys extends PropertyKey> = {
+  [K in keyof I]-?: K extends ExtraKeys ? never
+    : K extends ProjectableDomainKeys<I, From> ? never
+    : K
+}[keyof I]
+
+/**
+ * Distribute over tagged-union projection Encoded types. A non-distributive
+ * check against a union only sees `keyof (A|B)` (key intersection) and misses
+ * branch-only fields like cancel-only omissions.
+ */
+type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends [FieldValues]
+  ? ([UnprojectableKeys<I, From, ExtraKeys>] extends [never] ? true : false)
+  : false
+
+/**
+ * `unknown` when every member of projection Encoded `I` is projectable from
+ * domain Encoded `From` (plus optional ExtraKeys for computed fields); `never`
+ * otherwise — use as an intersection constraint on a schema argument.
+ */
+type ProjectableGuard<I, From, ExtraKeys extends PropertyKey = never> = false extends (
+  I extends any ? IsProjectableMember<I, From, ExtraKeys> : never
+) ? never
+  : unknown
+
+/**
+ * Compile-time proof that a projection Encoded shape only requires stored keys
+ * that exist on the matching domain tagged state (or non-tagged source), plus
+ * any `ExtraKeys` filled by `projectComputed` (counts, flags, collects, …).
+ *
+ * Catches the class of Overview.List SchemaError where a cancel/recovery state
+ * omits a workflow lock field (`activeRequest`) in the domain model but the
+ * projection still requires it on every branch.
+ *
+ * @example
+ * ```ts
+ * type _ok = ProjectableFromDomain<
+ *   { readonly _tag: "cancelled"; readonly id: string },
+ *   DomainEnc
+ * > // unknown
+ *
+ * type _bad = ProjectableFromDomain<
+ *   { readonly _tag: "cancelled"; readonly id: string; readonly activeRequest: null },
+ *   DomainEnc
+ * > // never — activeRequest is not on domain cancelled
+ * ```
+ */
+export type ProjectableFromDomain<
+  ProjectionEncoded,
+  DomainEncoded,
+  ExtraKeys extends PropertyKey = never
+> = ProjectableGuard<ProjectionEncoded, DomainEncoded, ExtraKeys>
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
@@ -593,7 +707,7 @@ export const relation = <
   expr: {
     field: (field: FieldPath<RelationElement<TFieldValues, P>>): ComputedProjectionMathExpression => ({
       _tag: "field",
-      field: field as string
+      field
     }),
     mul: (
       left: ComputedProjectionMathExpression,
@@ -602,33 +716,33 @@ export const relation = <
   },
   length: (): ComputedProjectionExpression<number> => ({
     _tag: "relation-length",
-    path: path as string
+    path
   }),
   count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-count",
-        path: path as string,
+        path,
         operation
       }
       : {
         _tag: "relation-count",
-        path: path as string
+        path
       },
   any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<boolean> =>
     operation
       ? {
         _tag: "relation-any",
-        path: path as string,
+        path,
         operation
       }
       : {
         _tag: "relation-any",
-        path: path as string
+        path
       },
   every: (operation: ComputedProjectionOperation): ComputedProjectionExpression<boolean> => ({
     _tag: "relation-every",
-    path: path as string,
+    path,
     operation
   }),
   distinctCount: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -638,14 +752,14 @@ export const relation = <
     operation
       ? {
         _tag: "relation-distinct-count",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         operation
       }
       : {
         _tag: "relation-distinct-count",
-        path: path as string,
-        field: field as string
+        path,
+        field
       },
   sum: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     field: F,
@@ -654,14 +768,14 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         operation
       }
       : {
         _tag: "relation-sum",
-        path: path as string,
-        field: field as string
+        path,
+        field
       },
   sumExpr: (
     expression: ComputedProjectionMathExpression,
@@ -670,13 +784,13 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr",
-        path: path as string,
+        path,
         expression,
         operation
       }
       : {
         _tag: "relation-sum-expr",
-        path: path as string,
+        path,
         expression
       },
   sumExprBy: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -689,16 +803,16 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr-by",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         operation
       }
       : {
         _tag: "relation-sum-expr-by",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string
+        unit: options.unit
       },
   sumExprNormalized: (
     expression: ComputedProjectionMathExpression,
@@ -712,18 +826,18 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr-normalized",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         toBase: options.toBase,
         factors: options.factors,
         operation
       }
       : {
         _tag: "relation-sum-expr-normalized",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         toBase: options.toBase,
         factors: options.factors
       },
@@ -734,15 +848,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: false,
         operation
       }
       : {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: false
       },
   collectDistinct: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -752,15 +866,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: true
       },
   collectFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
@@ -772,15 +886,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: false,
         operation
       }
       : {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: false
       },
   collectDistinctFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
@@ -792,15 +906,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: true
       }
 })
@@ -816,7 +930,7 @@ export const relation = <
 export const expr = {
   field: <T extends FieldValues = FieldValues>(
     field: FieldPath<T>
-  ): ComputedProjectionMathExpression => ({ _tag: "field", field: field as string }),
+  ): ComputedProjectionMathExpression => ({ _tag: "field", field }),
   mul: (
     left: ComputedProjectionMathExpression,
     right: ComputedProjectionMathExpression
@@ -839,6 +953,33 @@ const makeComputedHelpers = <TFieldValues extends FieldValues>(): ComputedHelper
   relation: (path) => relation<TFieldValues, typeof path>(path)
 })
 
+/**
+ * Only treat computed-map keys as ExtraKeys when `M` is a concrete object type.
+ * `ComputedProjectionMap` is `Record<string, …>`, so `keyof M` is `string` and
+ * would otherwise allow every projection field as "computed".
+ */
+type ConcreteComputedKeys<M> = string extends keyof M ? never : Extract<keyof M, PropertyKey>
+
+/**
+ * Proof that projection Encoded `I` is projectable from domain Encoded, allowing
+ * concrete computed keys. Intersected onto the computed-map argument so
+ * inference of `M` is complete before the check runs.
+ */
+type ProjectableComputedMap<
+  M extends ComputedProjectionMap,
+  I extends FieldValues,
+  Domain
+> =
+  & M
+  & NoExtraComputedKeys<M, I>
+  & (
+    [ProjectableGuard<I, Domain, ConcreteComputedKeys<M>>] extends [never] ? {
+        readonly __projectableFromDomain:
+          "projection fields must exist on the matching domain tagged state or be computed keys"
+      }
+      : unknown
+  )
+
 export const projectComputed: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -848,7 +989,7 @@ export const projectComputed: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: Schema,
-    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -868,7 +1009,7 @@ export const projectComputed: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: Schema,
-    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => M & NoExtraComputedKeys<M, I>,
+    build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
   ): (
     current: Q
@@ -882,7 +1023,7 @@ export const projectComputed: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: Schema,
-    computedProjection: M & NoExtraComputedKeys<M, I>,
+    computedProjection: ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode: "collect"
   ): (
     current: Q
@@ -902,7 +1043,7 @@ export const projectComputed: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: Schema,
-    computedProjection: M & NoExtraComputedKeys<M, I>,
+    computedProjection: ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
   ): (
     current: Q
@@ -918,7 +1059,7 @@ export const projectComputed: {
   const computedProjection = typeof mapOrBuild === "function"
     ? mapOrBuild(makeComputedHelpers())
     : mapOrBuild
-  return new Project({ current, schema, mode, computed: computedProjection } as any)
+  return new Project({ current, schema, mode, computed: computedProjection })
 }
 
 /**
@@ -936,12 +1077,12 @@ export interface AggBuilder<TFieldValues extends FieldValues> {
 }
 
 const makeAggBuilder = <TFieldValues extends FieldValues>(): AggBuilder<TFieldValues> => ({
-  field: (path) => ({ _tag: "agg-field", path: path as string }),
+  field: (path) => ({ _tag: "agg-field", path }),
   count: () => ({ _tag: "agg-count" }),
   countWhen: (operation) => ({ _tag: "agg-count-when", operation }),
-  sum: (field) => ({ _tag: "agg-sum", field: field as string }),
-  min: (field) => ({ _tag: "agg-min", field: field as string }),
-  max: (field) => ({ _tag: "agg-max", field: field as string })
+  sum: (field) => ({ _tag: "agg-sum", field }),
+  min: (field) => ({ _tag: "agg-min", field }),
+  max: (field) => ({ _tag: "agg-max", field })
 })
 
 /**

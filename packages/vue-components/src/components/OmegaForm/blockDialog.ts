@@ -31,7 +31,7 @@ export const usePreventClose = (mkIsDirty: () => Ref<boolean>) => {
         const message = formatMessage
           ? formatMessage({ id: "form.unsaved_changes_confirm", defaultMessage })
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- key may not be registered in the locale catalog
-          : trans?.("form.unsaved_changes_confirm" as any) ?? defaultMessage
+          : trans?.("form.unsaved_changes_confirm") ?? defaultMessage
         if (!confirm(message)) {
           evt.prevent = true
         }

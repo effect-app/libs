@@ -266,6 +266,53 @@ export interface AtomStreamQueryOptions {
   readonly refetchInterval?: number
 }
 
+/**
+ * Layer TanStack `initialData` / `placeholderData` over a raw query result as a DISPLAY fallback.
+ * Only while the result is still `Initial` (pending, never settled): show `initialData` as resolved
+ * data, or `placeholderData` as provisional (`waiting: true`). Once real data exists the seed is
+ * dropped. Failures are never masked — including failures without `previousSuccess` (where
+ * `AsyncResult.value` is empty). `placeholderData` in function form receives the last seen concrete
+ * value for basic keep-previous across input changes. Returns the raw ref untouched when neither
+ * option is set. Neither value is written to the atom cache.
+ */
+export const withDataFallback = <A, E>(
+  // Structural read so both Ref and Readonly<Ref> from useAtomValue are accepted.
+  rawResult: { readonly value: AsyncResult.AsyncResult<A, E> },
+  options?: unknown
+): ComputedRef<AsyncResult.AsyncResult<A, E>> => {
+  const opts = options as
+    | { readonly initialData?: A | (() => A); readonly placeholderData?: A | ((prev: A | undefined) => A) }
+    | undefined
+  const initialData = opts?.initialData
+  const placeholderData = opts?.placeholderData
+  if (initialData === undefined && placeholderData === undefined) {
+    // Identity when no fallback options. Callers that need a real ComputedRef
+    // (e.g. useAtomValue's Readonly<Ref>) wrap before calling this helper.
+    return rawResult as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  }
+
+  let lastData: A | undefined
+  return computed(() => {
+    const r = rawResult.value
+    const concrete = AsyncResult.value(r)
+    if (Option.isSome(concrete)) {
+      lastData = concrete.value
+    }
+    // Fallback is pending-only. Failure (even without previousSuccess) and Success pass through.
+    if (!AsyncResult.isInitial(r)) {
+      return r
+    }
+    if (initialData !== undefined) {
+      const v = typeof initialData === "function" ? (initialData as () => A)() : initialData
+      return AsyncResult.success(v, { waiting: r.waiting })
+    }
+    const v = typeof placeholderData === "function"
+      ? (placeholderData as (prev: A | undefined) => A)(lastData)
+      : placeholderData
+    return v === undefined ? r : AsyncResult.success(v, { waiting: true })
+  })
+}
+
 const normalizeQueryOptions = (options?: {
   readonly staleTime?: number
   readonly gcTime?: number | "infinity"
@@ -505,11 +552,18 @@ const makeQueryView = <I, A, E, TData>(
   const [req, enabledRef] = optionValue<I>(arg, options)
   const family = getQueryFamily(atomRt, q)
   const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
-  const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  // useAtomValue returns Readonly<Ref>, not ComputedRef — re-wrap before withDataFallback / QueryView.
+  const rawAtomResult = useAtomValue(() => atomRef.value)
+  const rawResult = computed(() => rawAtomResult.value)
+  // `initialData` / `placeholderData` display fallback (old `.query()` API). Applied only while the
+  // result is still Initial; Failures/Success pass through unmasked. Neither is written to cache
+  // (the base atom stays Initial, so the mount-staleness check still triggers the real fetch). The
+  // fallback runs PRE-select, matching TanStack (`initialData`/`placeholderData` are TQueryData).
+  const fallbackResult = withDataFallback(rawResult, options)
   const select = options?.select
   const result = (select
-    ? computed(() => AsyncResult.map(rawResult.value, select))
-    : rawResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
+    ? computed(() => AsyncResult.map(fallbackResult.value, select))
+    : fallbackResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () =>
     select

@@ -1,5 +1,60 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.308
+
+## 4.0.0-beta.307
+
+### Patch Changes
+
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+## 4.0.0-beta.306
+
+### Patch Changes
+
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+
+## 4.0.0-beta.305
+
+### Minor Changes
+
+- 8bd9a11: Support ID-scoped signal dependencies and additive repository dependencies derived from previous and current entities.
+
+## 4.0.0-beta.304
+
+### Patch Changes
+
+- 412f08b: Include changed entity IDs in repository data dependencies, with explicit query scopes and configurable write aliases, while retaining coarse collection dependencies.
+
+## 4.0.0-beta.303
+
+### Patch Changes
+
+- 33b0544: Replace repository codec child spans with parent-span timing attributes and bounded metrics, and record database operation timing for instrumented stores.
+
+## 4.0.0-beta.302
+
+### Patch Changes
+
+- c0e5a1b: Add `Schema.dropConstructorDefault`, a `Struct.Lambda` that clears a field's `withConstructorDefault`. Compose it with `Struct.omit`/`Struct.map` when deriving a partial-update schema from a "create" schema, so omitted fields' constructor defaults don't resurrect themselves in `.make(...)` output.
+
+  Also, `makeExactOptional` now drops constructor defaults automatically, matching this behavior.
+
+## 4.0.0-beta.301
+
+## 4.0.0-beta.300
+
+## 4.0.0-beta.299
+
 ## 4.0.0-beta.298
 
 ### Patch Changes

@@ -1,8 +1,13 @@
 {
   "name": "@effect-app/infra",
-  "version": "4.0.0-beta.298",
+  "version": "4.0.0-beta.308",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/effect-app/libs.git",
+    "directory": "packages/infra"
+  },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "effect-app": "workspace:*",

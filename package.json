@@ -1,19 +1,8 @@
 {
   "private": true,
-  "packageManager": "pnpm@10.33.4",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "patchedDependencies": {
-      "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
-      "@tanstack/query-core": "patches/@tanstack__query-core.patch",
-      "typescript@6.0.3": "patches/typescript.patch",
-      "@sendgrid/mail": "patches/@sendgrid__mail.patch"
-    }
-  },
+  "packageManager": "pnpm@11.18.0",
   "engines": {
-    "pnpm": ">= 10.0.0"
+    "pnpm": ">= 11.0.0"
   },
   "scripts": {
     "all": "pnpm -r",
@@ -28,6 +17,7 @@
     "lint": "pnpm -r lint",
     "circular:dist": "pnpm -r circular:dist",
     "test": "pnpm -r --no-bail test:run",
+    "pr:ready": "node scripts/agent-pr-ready.mjs",
     "testsuite": "pnpm -r --no-bail testsuite",
     "up-all": "pnpm --recursive update",
     "u": "pnpm run update && pnpm i && pnpm dedupe",
@@ -45,13 +35,8 @@
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
-    "prepare": "node -e \"const v=require('typescript/package.json').version;if(v.startsWith('6.')){require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\"",
+    "prepare": "node -e \"const v=require('typescript/package.json').version;if(v.startsWith('6.')){require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\" && effect-tsgo patch --no-typescript --oxlint && node scripts/install-git-hooks.mjs",
     "subtree:effect": "node scripts/sync-effect-subtree.js"
-  },
-  "resolutions": {
-    "date-fns": "$date-fns",
-    "fast-check": "$fast-check",
-    "vue": "$vue"
   },
   "dependencies": {
     "date-fns": "^4.4.0",
@@ -64,6 +49,7 @@
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.86.2",
+    "@effect/tsgo": "^0.31.0",
     "@effect/platform-node": "4.0.0-beta.90",
     "@effect/vitest": "4.0.0-beta.90",
     "@tsconfig/strictest": "^2.0.8",
@@ -76,10 +62,11 @@
     "effect-app": "workspace:*",
     "eslint": "^10.4.1",
     "json5": "^2.2.3",
+    "lint-staged": "^17.3.0",
     "madge": "^8.0.0",
     "npm-check-updates": "^22.2.1",
-    "oxlint": "^1.67.0",
-    "oxlint-tsgolint": "^0.23.0",
+    "oxlint": "1.77.0",
+    "oxlint-tsgolint": "7.0.2001",
     "pkg-pr-new": "0.0.75",
     "ts-plugin-sort-import-suggestions": "^1.0.4",
     "typescript": "~6.0.3",

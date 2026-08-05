@@ -8,6 +8,7 @@ import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import * as Ref from "effect/Ref"
+import * as Tracer from "effect/Tracer"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 class BatchItem extends S.Class<BatchItem>("BatchItem")({
@@ -169,7 +170,187 @@ describe("repository ext save/remove batching", () => {
           .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
 
         expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
-        expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem")]))
+        expect(yield* Ref.get(writesRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["1"])]))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("narrows direct repository reads to the requested entity", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {})
+            yield* repo.find("1")
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["1"])]))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it("matches entity dependencies by overlapping ids with a coarse fallback", () => {
+    const item1 = new Set([DataDependencies.repo("DependencyItem", ["1"])])
+    const item2 = new Set([DataDependencies.repo("DependencyItem", ["2"])])
+    const collection = new Set([DataDependencies.repo("DependencyItem")])
+
+    expect(DataDependencies.intersects(item1, item2)).toBe(false)
+    expect(DataDependencies.intersects(item1, item1)).toBe(true)
+    expect(DataDependencies.intersects(collection, item2)).toBe(true)
+  })
+
+  it("decodes repository dependencies produced before entity ids were added", () => {
+    expect(
+      S.decodeUnknownSync(DataDependencies.DataDependency)({
+        type: "repo",
+        name: "DependencyItem"
+      })
+    )
+      .toEqual(DataDependencies.repo("DependencyItem"))
+  })
+
+  it.effect("matches an explicit query scope to a write alias", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {
+              dependencyIds: (item) => [item.id, `alias-${item.id}`]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* repo.all.pipe(DataDependencies.withRepoReadScope("DependencyItem", ["alias-1"]))
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["alias-1"])]))
+        expect(yield* Ref.get(writesRef)).toEqual(
+          new Set([DataDependencies.repo("DependencyItem", ["1", "alias-1"])])
+        )
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("records repository and affected-query write dependencies", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {
+              dependencyIds: (item) => [item.id, `alias-${item.id}`],
+              additionalWriteDependencies: (item) => [
+                DataDependencies.signal("DependencyItem.List", [item.label])
+              ]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* DataDependencies.read(DataDependencies.signal("DependencyItem.List", ["one"]))
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(
+          new Set([DataDependencies.signal("DependencyItem.List", ["one"])])
+        )
+        expect(yield* Ref.get(writesRef)).toEqual(
+          new Set([
+            DataDependencies.repo("DependencyItem", ["1", "alias-1"]),
+            DataDependencies.signal("DependencyItem.List", ["one"])
+          ])
+        )
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("invalidates derived dependencies from previous saves and removeById", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DerivedDependencyItem", BatchItem, {
+              additionalWriteDependencies: (item) => [
+                DataDependencies.signal("DerivedDependencyItem.List", [item.label])
+              ]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "old" }))
+            yield* recorder.drainWrites
+
+            yield* repo.save(new BatchItem({ id: "1", label: "new" }))
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([
+                DataDependencies.repo("DerivedDependencyItem", ["1"]),
+                DataDependencies.signal("DerivedDependencyItem.List", ["new", "old"])
+              ])
+            )
+
+            yield* repo.removeById("1")
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([
+                DataDependencies.repo("DerivedDependencyItem", ["1"]),
+                DataDependencies.signal("DerivedDependencyItem.List", ["new"])
+              ])
+            )
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("records schema timing on repository spans without codec child spans", () =>
+    Effect
+      .gen(function*() {
+        const spans: Tracer.NativeSpan[] = []
+        const tracer = Tracer.make({
+          span(options) {
+            const span = new Tracer.NativeSpan(options)
+            spans.push(span)
+            return span
+          }
+        })
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("TelemetryItem", BatchItem, {})
+            yield* repo.save(new BatchItem({ id: "1", label: "one" }))
+            yield* repo.all
+          })
+          .pipe(Effect.provideService(Tracer.Tracer, tracer))
+
+        expect(spans.map((_) => _.name)).not.toContain("parseMany")
+        expect(spans.map((_) => _.name)).not.toContain("encodeMany")
+
+        const saveSpan = spans.find((_) => _.name === "Repository.saveAndPublish")
+        const allSpan = spans.find((_) => _.name === "Repository.all")
+        expect(saveSpan?.attributes.get("app.schema.encode.duration_ms")).toEqual(expect.any(Number))
+        expect(saveSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(saveSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
+        expect(allSpan?.attributes.get("app.schema.decode.duration_ms")).toEqual(expect.any(Number))
+        expect(allSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(allSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
       })
       .pipe(
         setupRequestContextFromCurrent(),

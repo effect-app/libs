@@ -16,7 +16,7 @@ import * as Exit from "effect/Exit"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
-import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, type Ref, ref, toValue, type WatchSource } from "vue"
+import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
 import { latestDefined } from "./suspense.ts"
 
@@ -276,7 +276,8 @@ export interface AtomStreamQueryOptions {
  * option is set. Neither value is written to the atom cache.
  */
 export const withDataFallback = <A, E>(
-  rawResult: Ref<AsyncResult.AsyncResult<A, E>>,
+  // Structural read so both Ref and Readonly<Ref> from useAtomValue are accepted.
+  rawResult: { readonly value: AsyncResult.AsyncResult<A, E> },
   options?: unknown
 ): ComputedRef<AsyncResult.AsyncResult<A, E>> => {
   const opts = options as
@@ -285,6 +286,8 @@ export const withDataFallback = <A, E>(
   const initialData = opts?.initialData
   const placeholderData = opts?.placeholderData
   if (initialData === undefined && placeholderData === undefined) {
+    // Identity when no fallback options. Callers that need a real ComputedRef
+    // (e.g. useAtomValue's Readonly<Ref>) wrap before calling this helper.
     return rawResult as ComputedRef<AsyncResult.AsyncResult<A, E>>
   }
 
@@ -549,7 +552,9 @@ const makeQueryView = <I, A, E, TData>(
   const [req, enabledRef] = optionValue<I>(arg, options)
   const family = getQueryFamily(atomRt, q)
   const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
-  const rawResult = useAtomValue(() => atomRef.value) as ComputedRef<AsyncResult.AsyncResult<A, E>>
+  // useAtomValue returns Readonly<Ref>, not ComputedRef — re-wrap before withDataFallback / QueryView.
+  const rawAtomResult = useAtomValue(() => atomRef.value)
+  const rawResult = computed(() => rawAtomResult.value)
   // `initialData` / `placeholderData` display fallback (old `.query()` API). Applied only while the
   // result is still Initial; Failures/Success pass through unmasked. Neither is written to cache
   // (the base atom stays Initial, so the mount-staleness check still triggers the real fetch). The

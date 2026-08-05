@@ -18,16 +18,10 @@
       //     "effect-app": []
       //   }
       // },
-      // {
-      //   "name": "@effect/language-service",
-      //   "ignoreEffectWarningsInTscExitCode": true,
-      //   "diagnosticSeverity": {
-      //     "missingEffectServiceDependency": "error",
-      //     "effectFnOpportunity": "warning",
-      //     "globalErrorInEffectFailure": "warning",
-      //     "preferSchemaOverJson": "warning"
-      //   }
-      // }
+      {
+        "name": "@effect/language-service",
+        "diagnostics": false
+      }
     ]
   }
 }

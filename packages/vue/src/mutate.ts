@@ -212,7 +212,7 @@ export const asResult = <Args extends readonly any[], A, E, R>(
         ))
       )
 
-  return tuple(computed(() => state.value), act) as any
+  return tuple(computed(() => state.value), act)
 }
 
 /**
@@ -259,7 +259,7 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
 
   const act = (...args: Args) => runStream(handler(...args))
 
-  return tuple(computed(() => state.value), act) as any
+  return tuple(computed(() => state.value), act)
 }
 
 const buildInvalidateCache = <RInvalidator>(

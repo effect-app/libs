@@ -7,6 +7,7 @@ import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 const extractDefaultFromLink = (link: any): unknown | undefined => {
   if (!link?.transformation?.decode?.run) return undefined
   try {
+    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- vue-tsc needs the decoded value narrowed at this boundary
     const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
     return Option.isSome(result) ? result.value : undefined
   } catch {

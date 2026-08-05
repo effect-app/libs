@@ -707,7 +707,7 @@ export const relation = <
   expr: {
     field: (field: FieldPath<RelationElement<TFieldValues, P>>): ComputedProjectionMathExpression => ({
       _tag: "field",
-      field: field as string
+      field
     }),
     mul: (
       left: ComputedProjectionMathExpression,
@@ -716,33 +716,33 @@ export const relation = <
   },
   length: (): ComputedProjectionExpression<number> => ({
     _tag: "relation-length",
-    path: path as string
+    path
   }),
   count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<number> =>
     operation
       ? {
         _tag: "relation-count",
-        path: path as string,
+        path,
         operation
       }
       : {
         _tag: "relation-count",
-        path: path as string
+        path
       },
   any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<boolean> =>
     operation
       ? {
         _tag: "relation-any",
-        path: path as string,
+        path,
         operation
       }
       : {
         _tag: "relation-any",
-        path: path as string
+        path
       },
   every: (operation: ComputedProjectionOperation): ComputedProjectionExpression<boolean> => ({
     _tag: "relation-every",
-    path: path as string,
+    path,
     operation
   }),
   distinctCount: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -752,14 +752,14 @@ export const relation = <
     operation
       ? {
         _tag: "relation-distinct-count",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         operation
       }
       : {
         _tag: "relation-distinct-count",
-        path: path as string,
-        field: field as string
+        path,
+        field
       },
   sum: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     field: F,
@@ -768,14 +768,14 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         operation
       }
       : {
         _tag: "relation-sum",
-        path: path as string,
-        field: field as string
+        path,
+        field
       },
   sumExpr: (
     expression: ComputedProjectionMathExpression,
@@ -784,13 +784,13 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr",
-        path: path as string,
+        path,
         expression,
         operation
       }
       : {
         _tag: "relation-sum-expr",
-        path: path as string,
+        path,
         expression
       },
   sumExprBy: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -803,16 +803,16 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr-by",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         operation
       }
       : {
         _tag: "relation-sum-expr-by",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string
+        unit: options.unit
       },
   sumExprNormalized: (
     expression: ComputedProjectionMathExpression,
@@ -826,18 +826,18 @@ export const relation = <
     operation
       ? {
         _tag: "relation-sum-expr-normalized",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         toBase: options.toBase,
         factors: options.factors,
         operation
       }
       : {
         _tag: "relation-sum-expr-normalized",
-        path: path as string,
+        path,
         expression,
-        unit: options.unit as string,
+        unit: options.unit,
         toBase: options.toBase,
         factors: options.factors
       },
@@ -848,15 +848,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: false,
         operation
       }
       : {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: false
       },
   collectDistinct: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
@@ -866,15 +866,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect",
-        path: path as string,
-        field: field as string,
+        path,
+        field,
         distinct: true
       },
   collectFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
@@ -886,15 +886,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: false,
         operation
       }
       : {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: false
       },
   collectDistinctFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
@@ -906,15 +906,15 @@ export const relation = <
     operation
       ? {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: true,
         operation
       }
       : {
         _tag: "relation-collect-fields",
-        path: path as string,
-        fields: fields as readonly string[],
+        path,
+        fields,
         distinct: true
       }
 })
@@ -930,7 +930,7 @@ export const relation = <
 export const expr = {
   field: <T extends FieldValues = FieldValues>(
     field: FieldPath<T>
-  ): ComputedProjectionMathExpression => ({ _tag: "field", field: field as string }),
+  ): ComputedProjectionMathExpression => ({ _tag: "field", field }),
   mul: (
     left: ComputedProjectionMathExpression,
     right: ComputedProjectionMathExpression
@@ -1059,7 +1059,7 @@ export const projectComputed: {
   const computedProjection = typeof mapOrBuild === "function"
     ? mapOrBuild(makeComputedHelpers())
     : mapOrBuild
-  return new Project({ current, schema, mode, computed: computedProjection } as any)
+  return new Project({ current, schema, mode, computed: computedProjection })
 }
 
 /**
@@ -1077,12 +1077,12 @@ export interface AggBuilder<TFieldValues extends FieldValues> {
 }
 
 const makeAggBuilder = <TFieldValues extends FieldValues>(): AggBuilder<TFieldValues> => ({
-  field: (path) => ({ _tag: "agg-field", path: path as string }),
+  field: (path) => ({ _tag: "agg-field", path }),
   count: () => ({ _tag: "agg-count" }),
   countWhen: (operation) => ({ _tag: "agg-count-when", operation }),
-  sum: (field) => ({ _tag: "agg-sum", field: field as string }),
-  min: (field) => ({ _tag: "agg-min", field: field as string }),
-  max: (field) => ({ _tag: "agg-max", field: field as string })
+  sum: (field) => ({ _tag: "agg-sum", field }),
+  min: (field) => ({ _tag: "agg-min", field }),
+  max: (field) => ({ _tag: "agg-max", field })
 })
 
 /**

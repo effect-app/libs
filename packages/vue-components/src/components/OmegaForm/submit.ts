@@ -65,7 +65,7 @@ export const wrapOnSubmit = <From, To>(
       // validators only validate, they don't actually transform, so we have to do that manually here.
       const parsedValue = await runPromise(decode(value))
       const r = userOnSubmit({
-        formApi: formApi as OmegaFormApi<From, To>,
+        formApi,
         meta,
         value: parsedValue
       })

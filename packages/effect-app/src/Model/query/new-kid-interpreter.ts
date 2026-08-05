@@ -316,17 +316,17 @@ const interpret = <
                 case "relation-count":
                 case "relation-any":
                 case "relation-every":
-                  return [key, { _tag: e._tag, path: e.path, filter } as ComputedProjectionIrExpression]
+                  return [key, { _tag: e._tag, path: e.path, filter }]
                 case "relation-distinct-count":
                 case "relation-sum":
                   return [
                     key,
-                    { _tag: e._tag, path: e.path, field: e.field, filter } as ComputedProjectionIrExpression
+                    { _tag: e._tag, path: e.path, field: e.field, filter }
                   ]
                 case "relation-sum-expr":
                   return [
                     key,
-                    { _tag: e._tag, path: e.path, expression: e.expression, filter } as ComputedProjectionIrExpression
+                    { _tag: e._tag, path: e.path, expression: e.expression, filter }
                   ]
                 case "relation-sum-expr-by":
                   return [
@@ -337,7 +337,7 @@ const interpret = <
                       expression: e.expression,
                       unit: e.unit,
                       filter
-                    } as ComputedProjectionIrExpression
+                    }
                   ]
                 case "relation-sum-expr-normalized":
                   return [
@@ -350,7 +350,7 @@ const interpret = <
                       toBase: e.toBase,
                       factors: e.factors,
                       filter
-                    } as ComputedProjectionIrExpression
+                    }
                   ]
                 case "relation-collect":
                   return [
@@ -361,7 +361,7 @@ const interpret = <
                       field: e.field,
                       distinct: e.distinct,
                       filter
-                    } as ComputedProjectionIrExpression
+                    }
                   ]
                 case "relation-collect-fields":
                   return [
@@ -372,10 +372,10 @@ const interpret = <
                       fields: e.fields,
                       distinct: e.distinct,
                       filter
-                    } as ComputedProjectionIrExpression
+                    }
                   ]
                 case "relation-length":
-                  return [key, { _tag: e._tag, path: e.path } as ComputedProjectionIrExpression]
+                  return [key, { _tag: e._tag, path: e.path }]
               }
             })
           )

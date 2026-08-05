@@ -7,6 +7,15 @@ allowBuilds:
   esbuild: false
   msgpackr-extract: false
   vue-demi: false
+minimumReleaseAgeExclude:
+  - "@effect/tsgo-darwin-arm64@0.31.0"
+  - "@effect/tsgo-darwin-x64@0.31.0"
+  - "@effect/tsgo-linux-arm64@0.31.0"
+  - "@effect/tsgo-linux-arm@0.31.0"
+  - "@effect/tsgo-linux-x64@0.31.0"
+  - "@effect/tsgo-win32-arm64@0.31.0"
+  - "@effect/tsgo-win32-x64@0.31.0"
+  - "@effect/tsgo@0.31.0"
 overrides:
   date-fns: ^4.4.0
   fast-check: ^4.8.0
@@ -16,4 +25,4 @@ patchedDependencies:
   "@tanstack/query-core": patches/@tanstack__query-core.patch
   typescript@6.0.3: patches/typescript.patch
   "@sendgrid/mail": patches/@sendgrid__mail.patch
-  '@changesets/cli@2.31.0': patches/@changesets__cli@2.31.0.patch
+  "@changesets/cli@2.31.0": patches/@changesets__cli@2.31.0.patch

@@ -63,6 +63,13 @@ clean_ts_project_emit() {
 
 clean_ts_project_emit "$wt_root"
 
+# T3 launches the configured worktree setup command in a visible terminal. Keep
+# cleanup synchronous, but leave dependency installation to that async setup.
+if [ "${T3CODE_DEFER_DEPENDENCY_INSTALL:-0}" = "1" ]; then
+  echo "post-checkout: dependency installation deferred to T3 workspace initialization" >&2
+  exit 0
+fi
+
 # --- pnpm install when lockfile / package.json changed -----------------------
 [ -f "$wt_root/pnpm-lock.yaml" ] || exit 0
 state_file="$wt_root/node_modules/.pnpm-checkout-state"
@@ -78,5 +85,14 @@ command -v pnpm >/dev/null 2>&1 || {
 export CI=1
 echo "post-checkout: pnpm install in $wt_root" >&2
 cd "$wt_root" || exit 1
-pnpm install --frozen-lockfile --prefer-offline --config.confirmModulesPurge=false || exit $?
-printf '%s\n' "$state" >"$state_file"
+if pnpm install --frozen-lockfile --prefer-offline \
+    --config.package-import-method=hardlink \
+    --config.confirmModulesPurge=false
+then
+  printf '%s\n' "$state" >"$state_file"
+else
+  status=$?
+  echo "post-checkout: dependency preparation failed (exit $status); worktree remains usable but degraded" >&2
+  [ "${T3CODE_WORKTREE_PREPARATION_STRICT:-0}" = "1" ] && exit "$status"
+  exit 0
+fi

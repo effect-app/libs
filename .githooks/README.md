@@ -37,6 +37,13 @@ source-identity key.
 Records package/lockfile state under `node_modules` so T3 handoff does not
 repeat an install Git already completed.
 
+When T3 launches the configured worktree setup script, it sets
+`T3CODE_DEFER_DEPENDENCY_INSTALL=1`. Cleanup still runs synchronously, while the
+setup terminal installs dependencies asynchronously with hardlink imports from
+the shared pnpm store. Raw Git worktrees still install during checkout. Their
+install failure is best-effort; T3 can request the real exit status with
+`T3CODE_WORKTREE_PREPARATION_STRICT=1` without removing the created worktree.
+
 ## `pre-commit` / `pre-push`
 
 lint-staged on commit; agent ship gate on push (see repo AGENTS.md).

@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.36
+
+### Patch Changes
+
+- c63c0af: Run configured Effect diagnostics through Oxlint's type-aware lint integration.
+  - @effect-app/eslint-codegen-model@2.0.0-beta.27
+
 ## 0.6.0-beta.35
 
 ### Patch Changes

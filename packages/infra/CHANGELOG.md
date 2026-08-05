@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.308
+
+### Patch Changes
+
+- b4d5f55: fix DatabaseError typing
+  - effect-app@4.0.0-beta.308
+
 ## 4.0.0-beta.307
 
 ### Patch Changes

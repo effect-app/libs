@@ -52,7 +52,7 @@ export const leafMetaForAst = (
       nullableOrUndefined,
       type: "select",
       members: [ast.literal]
-    } as FieldMeta
+    }
   }
 
   return {
@@ -143,7 +143,7 @@ export const classifyAndWalkUnion = <T>(
       if (tagValue) {
         const existing = ctx.unionMeta[tagValue]
         if (existing) Object.assign(existing, branchCtx.acc as MetaRecord<T>)
-        else ctx.unionMeta[tagValue] = branchCtx.acc as MetaRecord<T>
+        else ctx.unionMeta[tagValue] = branchCtx.acc
       }
 
       for (const [metaKey, metaValue] of Object.entries(branchCtx.acc)) {
@@ -171,7 +171,7 @@ export const classifyAndWalkUnion = <T>(
           type: "select",
           members: discriminatorValues,
           required: !isNullableDiscriminatedUnion
-        } as FieldMeta
+        }
       }
     }
     return
@@ -192,7 +192,7 @@ export const classifyAndWalkUnion = <T>(
       nullableOrUndefined,
       type: "select",
       members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
-    } as FieldMeta
+    }
     if (isOptionalKey) leaf.isOptionalKey = true
     acc[key as NestedKeyOf<T>] = leaf
     return

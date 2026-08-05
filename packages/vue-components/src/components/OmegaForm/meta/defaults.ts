@@ -7,7 +7,7 @@ import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 const extractDefaultFromLink = (link: any): unknown | undefined => {
   if (!link?.transformation?.decode?.run) return undefined
   try {
-    const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
+    const result = Effect.runSync(link.transformation.decode.run(Option.none()))
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined

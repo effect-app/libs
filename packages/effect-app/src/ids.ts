@@ -28,7 +28,7 @@ export const RequestId = extendM(
     function make(input: string, options?: S.MakeOptions): NonEmptyString255
     function make(input?: string, options?: S.MakeOptions): NonEmptyString255 {
       const id = input === undefined ? StringId.make() : StringId.make(input, options)
-      return id as NonEmptyString255
+      return id
     }
     return ({
       make,

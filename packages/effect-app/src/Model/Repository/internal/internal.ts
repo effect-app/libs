@@ -166,12 +166,6 @@ export function makeRepoInternal<
               DataDependencies.write,
               { discard: true }
             )
-          const recordAdditionalItemWrites = (items: ReadonlyArray<T>) =>
-            Effect.forEach(
-              DataDependencies.merge(new Set(items.flatMap((item) => args.additionalWriteDependencies?.(item) ?? []))),
-              DataDependencies.write,
-              { discard: true }
-            )
           const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
             get: (id: string) => _.get(`${name}.${id}`),
             set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
@@ -353,7 +347,7 @@ export function makeRepoInternal<
               const it = Chunk.fromIterable(items)
               if (Chunk.isNonEmpty(it)) {
                 const values = Chunk.toReadonlyArray(it)
-                const previous = args.additionalWriteDependencies
+                const previous = args.additionalWriteDependencies || args.dependencyIds
                   ? yield* loadExistingItems(values.map((item) => item[idKey]))
                   : []
                 yield* recordItemWrite([values[0], ...values.slice(1), ...previous])
@@ -414,8 +408,9 @@ export function makeRepoInternal<
                 return
               }
               yield* recordEntityWrite(ids)
-              if (args.additionalWriteDependencies) {
-                yield* loadExistingItems(ids).pipe(Effect.flatMap(recordAdditionalItemWrites))
+              if (args.additionalWriteDependencies || args.dependencyIds) {
+                const previous = yield* loadExistingItems(ids)
+                if (Array.isReadonlyArrayNonEmpty(previous)) yield* recordItemWrite(previous)
               }
               const { set } = yield* cms
               const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
@@ -647,6 +642,7 @@ export function makeRepoInternal<
             idKey,
             find,
             all,
+            withReadScope: (ids: NonEmptyReadonlyArray<string>) => DataDependencies.withRepoReadScope(name, ids),
             saveAndPublish,
             removeAndPublish,
             removeById,

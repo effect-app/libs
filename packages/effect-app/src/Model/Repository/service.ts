@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as Scope from "effect/Scope"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type { DatabaseError, InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as Option from "../../Option.ts"
@@ -51,6 +52,10 @@ export interface Repository<
   readonly idKey: IdKey
   readonly find: (id: T[IdKey]) => Effect.Effect<Option.Option<T>, DatabaseError, RSchema>
   readonly all: Effect.Effect<T[], DatabaseError, RSchema>
+  /** Scope repository reads to relationship IDs used by dependency invalidation. */
+  readonly withReadScope: (
+    ids: NonEmptyReadonlyArray<string>
+  ) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   readonly saveAndPublish: (
     items: Iterable<T>,
     events?: Iterable<Evt>

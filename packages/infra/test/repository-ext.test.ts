@@ -231,7 +231,7 @@ describe("repository ext save/remove batching", () => {
               dependencyIds: (item) => [item.id, `alias-${item.id}`]
             })
             yield* repo.save(new BatchItem({ id: "1", label: "one" }))
-            yield* repo.all.pipe(DataDependencies.withRepoReadScope("DependencyItem", ["alias-1"]))
+            yield* repo.all.pipe(repo.withReadScope(["alias-1"]))
           })
           .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
 
@@ -239,6 +239,38 @@ describe("repository ext save/remove batching", () => {
         expect(yield* Ref.get(writesRef)).toEqual(
           new Set([DataDependencies.repo("DependencyItem", ["1", "alias-1"])])
         )
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("records previous and next relationship aliases", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("DependencyItem", BatchItem, {
+              dependencyIds: (item) => [item.id, `label-${item.label}`]
+            })
+            yield* repo.save(new BatchItem({ id: "1", label: "old" }))
+            yield* recorder.drainWrites
+
+            yield* repo.save(new BatchItem({ id: "1", label: "new" }))
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([DataDependencies.repo("DependencyItem", ["1", "label-new", "label-old"])])
+            )
+
+            yield* repo.removeById("1")
+            expect(yield* recorder.drainWrites).toEqual(
+              new Set([DataDependencies.repo("DependencyItem", ["1", "label-new"])])
+            )
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
       })
       .pipe(
         setupRequestContextFromCurrent(),

@@ -25,8 +25,10 @@ import { type Codec, NonNegativeInt } from "../../../Schema.ts"
 import * as SchemaAST from "../../../SchemaAST.ts"
 import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
 import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, storeId, StoreMaker } from "../../../Store.ts"
+import type { FilterResult } from "../../filter/filterApi.ts"
 import type { FieldValues } from "../../filter/types.ts"
 import * as Q from "../../query.ts"
+import { repositoryDependencyPaths } from "../dependency.ts"
 import type { ChangeFeed, ChangeFeedEvent, Repository } from "../service.ts"
 import { ValidationError, ValidationResult } from "../validation.ts"
 
@@ -147,15 +149,54 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
+          const dependencyPaths = repositoryDependencyPaths(schema)
           const recordRead = DataDependencies.readRepo(name)
           const entityDependency = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
             DataDependencies.repo(name, [String(ids[0]), ...ids.slice(1).map(String)])
+          const valuesAtPath = (value: unknown, path: string): readonly unknown[] => {
+            if (path.length === 0) return [value]
+            const [head, ...tail] = path.split(".")
+            if (head === undefined) return [value]
+            if (head === "-1") {
+              return globalThis.Array.isArray(value)
+                ? value.flatMap((item) => valuesAtPath(item, tail.join(".")))
+                : []
+            }
+            return typeof value === "object" && value !== null
+              ? valuesAtPath((value as Record<string, unknown>)[head], tail.join("."))
+              : []
+          }
+          const dependencyIds = (item: T): NonEmptyReadonlyArray<string> => {
+            const configured = dependencyPaths
+              .flatMap((path) => valuesAtPath(item, String(path)))
+              .filter((value): value is string => typeof value === "string") ?? []
+            const ids = args.dependencyIds?.(item) ?? [String(item[idKey]), ...configured]
+            return [ids[0], ...ids.slice(1)]
+          }
           const itemDependencies = (item: T) => {
-            const ids = args.dependencyIds?.(item) ?? [String(item[idKey])]
+            const ids = dependencyIds(item)
             return [
               DataDependencies.repo(name, ids),
               ...(args.additionalWriteDependencies?.(item) ?? [])
             ]
+          }
+          const queryDependencyIds = (filter: readonly FilterResult[] | undefined): readonly string[] => {
+            if (!filter) return []
+            const paths = new Set([String(idKey), ...dependencyPaths])
+            const visit = (items: readonly FilterResult[]): readonly string[] => {
+              if (items.some((item) => item.t === "or" || item.t === "or-scope")) return []
+              return items.flatMap((item) => {
+                if ("result" in item) return visit(item.result)
+                if (!paths.has(item.path)) return []
+                const value: unknown = item.value
+                if (item.op === "eq" && typeof value === "string") return [value]
+                if (item.op === "in" && globalThis.Array.isArray(value)) {
+                  return value.filter((entry): entry is string => typeof entry === "string")
+                }
+                return []
+              })
+            }
+            return [...new Set(visit(filter))]
           }
           const recordEntityRead = (id: T[IdKey]) => DataDependencies.read(entityDependency([id]))
           const recordEntityWrite = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
@@ -163,12 +204,6 @@ export function makeRepoInternal<
           const recordItemWrite = (items: NonEmptyReadonlyArray<T>) =>
             Effect.forEach(
               DataDependencies.merge(new Set(items.flatMap(itemDependencies))),
-              DataDependencies.write,
-              { discard: true }
-            )
-          const recordAdditionalItemWrites = (items: ReadonlyArray<T>) =>
-            Effect.forEach(
-              DataDependencies.merge(new Set(items.flatMap((item) => args.additionalWriteDependencies?.(item) ?? []))),
               DataDependencies.write,
               { discard: true }
             )
@@ -353,7 +388,7 @@ export function makeRepoInternal<
               const it = Chunk.fromIterable(items)
               if (Chunk.isNonEmpty(it)) {
                 const values = Chunk.toReadonlyArray(it)
-                const previous = args.additionalWriteDependencies
+                const previous = args.additionalWriteDependencies || args.dependencyIds || dependencyPaths.length > 0
                   ? yield* loadExistingItems(values.map((item) => item[idKey]))
                   : []
                 yield* recordItemWrite([values[0], ...values.slice(1), ...previous])
@@ -414,8 +449,9 @@ export function makeRepoInternal<
                 return
               }
               yield* recordEntityWrite(ids)
-              if (args.additionalWriteDependencies) {
-                yield* loadExistingItems(ids).pipe(Effect.flatMap(recordAdditionalItemWrites))
+              if (args.additionalWriteDependencies || args.dependencyIds || dependencyPaths.length > 0) {
+                const previous = yield* loadExistingItems(ids)
+                if (Array.isReadonlyArrayNonEmpty(previous)) yield* recordItemWrite(previous)
               }
               const { set } = yield* cms
               const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
@@ -485,6 +521,10 @@ export function makeRepoInternal<
             ): Effect.Effect<readonly A[], never, Exclude<R, RCtx>>
           } = (<A, R, EncodedRefined extends Encoded = Encoded>(q: Q.QAll<Encoded, EncodedRefined, A, R>) => {
             const a = Q.toFilter(q, schema)
+            const scopedIds = queryDependencyIds(a.filter)
+            const recordQueryRead = Array.isReadonlyArrayNonEmpty(scopedIds)
+              ? DataDependencies.read(DataDependencies.repo(name, scopedIds))
+              : recordRead
             // Mode dispatch — see `Q.project` JSDoc for the contract:
             //   aggregate: GROUP BY + aggregate functions at DB level; decode raw rows with schema; SchemaError surfaces.
             //   project  : decode raw encoded rows with schema; no PM reverse-mapping; SchemaError surfaces.
@@ -563,7 +603,7 @@ export function makeRepoInternal<
                   "db.response.returned_rows": Array.isArray(r) ? r.length : 1
                 })
               ),
-              Effect.tap(() => recordRead),
+              Effect.tap(() => recordQueryRead),
               Effect.withSpan("Repository.query", {
                 kind: "client",
                 attributes: { "app.entity": name }

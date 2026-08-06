@@ -21,6 +21,10 @@ export const clearQueryReadDependencies = (key: ReadonlyArray<unknown>) => {
   readDependencies.delete(Hash.hash(key))
 }
 
+export const getQueryReadDependencies = (
+  key: ReadonlyArray<unknown>
+): DataDependencies.DataDependencies => readDependencies.get(Hash.hash(key))?.reads ?? DataDependencies.empty()
+
 /**
  * Reactivity keys of every live query whose recorded read-dependencies intersect this
  * mutation's `writeDependencies`. Returned keys are passed to `invalidateAndAwait`, refreshing

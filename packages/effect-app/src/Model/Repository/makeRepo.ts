@@ -14,7 +14,6 @@ import * as Effect from "../../Effect.ts"
 import type * as S from "../../Schema.ts"
 import type { StoreConfig, StoreMaker } from "../../Store.ts"
 import type { FieldValues } from "../filter/types.ts"
-import type { FieldPath, FieldPathValue } from "../filter/types/path/eager.ts"
 import { type ExtendedRepository, extendRepo } from "./ext.ts"
 import { makeRepoInternal } from "./internal/internal.ts"
 import { RepositoryRegistry } from "./Registry.ts"
@@ -62,16 +61,6 @@ export interface RepositoryOptions<
 
   /** IDs, including aliases, that identify an entity for dependency invalidation. */
   dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
-
-  /**
-   * Model paths whose values identify an entity for dependency invalidation.
-   * Matching equality predicates in repository queries are scoped automatically.
-   */
-  dependencyPaths?: ReadonlyArray<
-    {
-      [Path in FieldPath<Encoded>]: FieldPathValue<Encoded, Path> extends string ? Path : never
-    }[FieldPath<Encoded>]
-  >
 
   /**
    * Additional derived queries or resources affected by writing an item.

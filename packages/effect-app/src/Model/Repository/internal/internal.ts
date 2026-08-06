@@ -27,8 +27,8 @@ import { setupRequestContextFromCurrent } from "../../../setupRequest.ts"
 import { type FilterArgs, getContextMap, type PersistenceModelType, type StoreConfig, storeId, StoreMaker } from "../../../Store.ts"
 import type { FilterResult } from "../../filter/filterApi.ts"
 import type { FieldValues } from "../../filter/types.ts"
-import type { FieldPath } from "../../filter/types/path/eager.ts"
 import * as Q from "../../query.ts"
+import { repositoryDependencyPaths } from "../dependency.ts"
 import type { ChangeFeed, ChangeFeedEvent, Repository } from "../service.ts"
 import { ValidationError, ValidationResult } from "../validation.ts"
 
@@ -117,7 +117,6 @@ export function makeRepoInternal<
           schemaContext?: Context.Context<RCtx>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
-          dependencyPaths?: ReadonlyArray<FieldPath<Encoded>>
           additionalWriteDependencies?: (item: T) => ReadonlyArray<DataDependencies.DataDependency>
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
@@ -128,7 +127,6 @@ export function makeRepoInternal<
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           dependencyIds?: (item: T) => NonEmptyReadonlyArray<string>
-          dependencyPaths?: ReadonlyArray<FieldPath<Encoded>>
           additionalWriteDependencies?: (item: T) => ReadonlyArray<DataDependencies.DataDependency>
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
@@ -151,6 +149,7 @@ export function makeRepoInternal<
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
+          const dependencyPaths = repositoryDependencyPaths(schema)
           const recordRead = DataDependencies.readRepo(name)
           const entityDependency = (ids: NonEmptyReadonlyArray<T[IdKey]>) =>
             DataDependencies.repo(name, [String(ids[0]), ...ids.slice(1).map(String)])
@@ -168,9 +167,8 @@ export function makeRepoInternal<
               : []
           }
           const dependencyIds = (item: T): NonEmptyReadonlyArray<string> => {
-            const configured = args
-              .dependencyPaths
-              ?.flatMap((path) => valuesAtPath(item, String(path)))
+            const configured = dependencyPaths
+              .flatMap((path) => valuesAtPath(item, String(path)))
               .filter((value): value is string => typeof value === "string") ?? []
             const ids = args.dependencyIds?.(item) ?? [String(item[idKey]), ...configured]
             return [ids[0], ...ids.slice(1)]
@@ -184,7 +182,7 @@ export function makeRepoInternal<
           }
           const queryDependencyIds = (filter: readonly FilterResult[] | undefined): readonly string[] => {
             if (!filter) return []
-            const paths = new Set([String(idKey), ...(args.dependencyPaths?.map(String) ?? [])])
+            const paths = new Set([String(idKey), ...dependencyPaths])
             const visit = (items: readonly FilterResult[]): readonly string[] => {
               if (items.some((item) => item.t === "or" || item.t === "or-scope")) return []
               return items.flatMap((item) => {
@@ -390,7 +388,7 @@ export function makeRepoInternal<
               const it = Chunk.fromIterable(items)
               if (Chunk.isNonEmpty(it)) {
                 const values = Chunk.toReadonlyArray(it)
-                const previous = args.additionalWriteDependencies || args.dependencyIds || args.dependencyPaths
+                const previous = args.additionalWriteDependencies || args.dependencyIds || dependencyPaths.length > 0
                   ? yield* loadExistingItems(values.map((item) => item[idKey]))
                   : []
                 yield* recordItemWrite([values[0], ...values.slice(1), ...previous])
@@ -451,7 +449,7 @@ export function makeRepoInternal<
                 return
               }
               yield* recordEntityWrite(ids)
-              if (args.additionalWriteDependencies || args.dependencyIds || args.dependencyPaths) {
+              if (args.additionalWriteDependencies || args.dependencyIds || dependencyPaths.length > 0) {
                 const previous = yield* loadExistingItems(ids)
                 if (Array.isReadonlyArrayNonEmpty(previous)) yield* recordItemWrite(previous)
               }

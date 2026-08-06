@@ -2,4 +2,4 @@
 "effect-app": patch
 ---
 
-Derive scoped dependency reads from typed query filters and repository relationship paths, and record previous aliases on writes.
+Derive scoped dependency reads and writes from typed query filters and annotated model relationships, including previous aliases.

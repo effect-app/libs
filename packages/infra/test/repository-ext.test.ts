@@ -16,6 +16,11 @@ class BatchItem extends S.Class<BatchItem>("BatchItem")({
   label: S.String
 }) {}
 
+class NestedDependencyItem extends S.Class<NestedDependencyItem>("NestedDependencyItem")({
+  id: S.String,
+  parts: S.Array(S.Struct({ id: S.String }))
+}) {}
+
 const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)
 
 const A = S.TaggedStruct("A", { id: S.String })
@@ -218,7 +223,7 @@ describe("repository ext save/remove batching", () => {
       .toEqual(DataDependencies.repo("DependencyItem"))
   })
 
-  it.effect("matches an explicit query scope to a write alias", () =>
+  it.effect("derives matching read and write scopes from a dependency path", () =>
     Effect
       .gen(function*() {
         const readsRef = yield* Ref.make(DataDependencies.empty())
@@ -228,16 +233,45 @@ describe("repository ext save/remove batching", () => {
         yield* Effect
           .gen(function*() {
             const repo = yield* makeRepo("DependencyItem", BatchItem, {
-              dependencyIds: (item) => [item.id, `alias-${item.id}`]
+              dependencyPaths: ["label"]
             })
             yield* repo.save(new BatchItem({ id: "1", label: "one" }))
-            yield* repo.all.pipe(repo.withReadScope(["alias-1"]))
+            yield* repo.query(Q.where("label", "one"))
           })
           .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
 
-        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["alias-1"])]))
+        expect(yield* Ref.get(readsRef)).toEqual(new Set([DataDependencies.repo("DependencyItem", ["one"])]))
         expect(yield* Ref.get(writesRef)).toEqual(
-          new Set([DataDependencies.repo("DependencyItem", ["1", "alias-1"])])
+          new Set([DataDependencies.repo("DependencyItem", ["1", "one"])])
+        )
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("derives a nested relationship scope from whereSome", () =>
+    Effect
+      .gen(function*() {
+        const readsRef = yield* Ref.make(DataDependencies.empty())
+        const writesRef = yield* Ref.make(DataDependencies.empty())
+        const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("NestedDependencyItem", NestedDependencyItem, {
+              dependencyPaths: ["parts.-1.id"]
+            })
+            yield* repo.save(new NestedDependencyItem({ id: "root", parts: [{ id: "part-1" }] }))
+            yield* repo.query(Q.whereSome("parts", Q.where("id", "part-1")))
+          })
+          .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+
+        expect(yield* Ref.get(readsRef)).toEqual(
+          new Set([DataDependencies.repo("NestedDependencyItem", ["part-1"])])
+        )
+        expect(yield* Ref.get(writesRef)).toEqual(
+          new Set([DataDependencies.repo("NestedDependencyItem", ["root", "part-1"])])
         )
       })
       .pipe(

@@ -2,4 +2,4 @@
 "effect-app": patch
 ---
 
-Add repository-owned dependency read scopes and record previous relationship aliases on writes.
+Derive scoped dependency reads from typed query filters and repository relationship paths, and record previous aliases on writes.

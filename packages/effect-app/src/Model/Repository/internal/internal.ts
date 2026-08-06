@@ -687,7 +687,6 @@ export function makeRepoInternal<
             idKey,
             find,
             all,
-            withReadScope: (ids: NonEmptyReadonlyArray<string>) => DataDependencies.withRepoReadScope(name, ids),
             saveAndPublish,
             removeAndPublish,
             removeById,

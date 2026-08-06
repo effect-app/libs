@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 4.0.0-beta.309
+
+### Minor Changes
+
+- 99c43c4: Add query-owned live invalidation with recorded dependency filtering, connect-before-fetch coordination, race buffering, and configurable client-side coalescing.
+
+### Patch Changes
+
+- Updated dependencies [99c43c4]
+  - effect-app@4.0.0-beta.309
+
 ## 4.0.0-beta.308
 
 ### Patch Changes

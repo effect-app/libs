@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.309
+
+### Patch Changes
+
+- 99c43c4: Derive scoped dependency reads and writes from typed query filters and annotated model relationships, including previous aliases.
+
 ## 4.0.0-beta.308
 
 ## 4.0.0-beta.307

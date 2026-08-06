@@ -17,7 +17,8 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
-import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, queryKeyForAtom, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import type { LiveQueryOptions } from "./liveQueryInvalidation.ts"
 import { latestDefined } from "./suspense.ts"
 
 // --- minimal local types (replacing the former @tanstack/vue-query type imports) ---
@@ -201,6 +202,7 @@ export interface CustomUseQueryOptions<
   readonly structuralSharing?: boolean
   /** poll: re-fetch every N ms (tanstack refetchInterval) */
   readonly refetchInterval?: number
+  readonly live?: boolean | LiveQueryOptions
   readonly select?: (data: TQueryFnData) => TData
   /** accepted for source compatibility; not used by the atom engine */
   readonly retry?: boolean | number
@@ -253,6 +255,7 @@ export interface AtomQueryNewOptions<TQueryFnData = unknown, TData = TQueryFnDat
   readonly structuralSharing?: boolean
   readonly refreshEvery?: number
   readonly refetchInterval?: number
+  readonly live?: boolean | LiveQueryOptions
   readonly select?: (data: TQueryFnData) => TData
 }
 
@@ -263,6 +266,7 @@ export interface AtomStreamQueryOptions {
   readonly revalidateOnFocus?: boolean
   readonly refetchOnWindowFocus?: boolean
   readonly refreshEvery?: number
+  readonly live?: boolean | LiveQueryOptions
   readonly refetchInterval?: number
 }
 
@@ -322,6 +326,7 @@ const normalizeQueryOptions = (options?: {
   readonly structuralSharing?: boolean
   readonly refetchInterval?: number
   readonly refreshEvery?: number
+  readonly live?: boolean | LiveQueryOptions
 }): AtomQueryOptions => {
   const out: {
     staleTime?: number
@@ -329,6 +334,7 @@ const normalizeQueryOptions = (options?: {
     revalidateOnFocus?: boolean
     structuralSharing?: boolean
     refetchInterval?: number
+    live?: boolean | LiveQueryOptions
   } = {}
   if (options?.staleTime !== undefined) out.staleTime = options.staleTime
   const gcTime = options?.idleTTL ?? options?.gcTime
@@ -338,6 +344,7 @@ const normalizeQueryOptions = (options?: {
   if (options?.structuralSharing !== undefined) out.structuralSharing = options.structuralSharing
   const refetchInterval = options?.refreshEvery ?? options?.refetchInterval
   if (refetchInterval !== undefined) out.refetchInterval = refetchInterval
+  if (options?.live !== undefined) out.live = options.live
   return out
 }
 
@@ -513,8 +520,10 @@ const observedAtom = <A, E>(
     readonly structuralSharing?: boolean
     readonly refetchInterval?: number
     readonly refreshEvery?: number
+    readonly live?: boolean | LiveQueryOptions
   }
-): Atom.Atom<AsyncResult.AsyncResult<A, E>> => withQueryOptions(atom, normalizeQueryOptions(options))
+): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
+  withQueryOptions(atom, normalizeQueryOptions(options), queryKeyForAtom(atom))
 
 const observedStreamAtom = <A, E>(
   atom: Atom.Writable<Atom.PullResult<A, E>, void>,

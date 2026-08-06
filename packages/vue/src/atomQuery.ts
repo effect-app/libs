@@ -32,8 +32,9 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { clearQueryReadDependencies, setQueryReadDependencies } from "./dependencyMetadata.ts"
+import { clearQueryReadDependencies, getQueryReadDependencies, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
+import { beginLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, registerLiveQuery } from "./liveQueryInvalidation.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
 const prefixesOf = (key: ReadonlyArray<unknown>): ReadonlyArray<ReadonlyArray<unknown>> =>
@@ -226,6 +227,8 @@ export interface AtomQueryOptions {
   readonly structuralSharing?: boolean
   /** poll: re-fetch every N ms (tanstack refetchInterval). */
   readonly refetchInterval?: number
+  /** Refresh when writes intersect the dependencies recorded by this query. */
+  readonly live?: boolean | LiveQueryOptions
 }
 
 const defaults = { staleTime: Duration.seconds(5), gcTime: Duration.minutes(5) }
@@ -236,6 +239,11 @@ export interface AtomQueryMetadata {
 
 const atomQueryMetadata = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, AtomQueryMetadata>()
 const atomQueryParentSpans = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, Tracer.AnySpan>()
+const atomQueryKeys = new WeakMap<Atom.Atom<AsyncResult.AsyncResult<any, any>>, ReadonlyArray<unknown>>()
+
+export const queryKeyForAtom = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): ReadonlyArray<unknown> | undefined => atomQueryKeys.get(atom)
 
 const atomSpanTarget = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
   let target = atom
@@ -351,11 +359,24 @@ const recoverStuckWaitingOnMount =
 
 export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  opts: AtomQueryOptions = {}
+  opts: AtomQueryOptions = {},
+  liveKey?: ReadonlyArray<unknown>
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
   setAtomQueryMetadata(self, opts)
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
   let atom = self
+  if (opts.live && liveKey !== undefined) {
+    const liveOptions = opts.live === true ? {} : opts.live
+    atom = Atom.transform(atom, (get) => {
+      const unregister = registerLiveQuery(
+        liveKey,
+        () => getQueryReadDependencies(liveKey),
+        liveOptions
+      )
+      get.addFinalizer(unregister)
+      return get(self)
+    }, { initialValueTarget: self })
+  }
   const revalidateOnFocus = opts.revalidateOnFocus ?? true
   atom = Atom.swr({
     staleTime,
@@ -442,31 +463,38 @@ export const buildQueryFamily = <I, A, E>(
         // A fetch is now running: the atom is not stuck, and any pending recovery is fulfilled.
         fetchState.recovering = false
         fetchState.inFlight++
-        const recordReads = Effect.gen(function*() {
-          const readsRef = yield* Ref.make(DataDependencies.empty())
-          const writesRef = yield* Ref.make(DataDependencies.empty())
-          const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
-          const result = yield* self
-            .handler(input)
-            .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
-          lastReads = yield* Ref.get(readsRef)
-          setQueryReadDependencies(fullKey, lastReads)
-          return result
-        })
-        const effect = recordReads.pipe(
-          Effect.retry({ times: 5, while: isRetryable }),
-          Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-          // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
-          // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that
-          // reads as "stuck", so the next mount recovers it (`recoverStuckWaitingOnMount`). We do not
-          // re-fire here — the interrupt was intentional; recovery is driven by a genuine (re)mount.
-          Effect.onExit(() =>
-            Effect.sync(() => {
-              fetchState.inFlight = Math.max(0, fetchState.inFlight - 1)
-            })
-          ),
-          Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
-        )
+        const recordReads = Effect
+          .gen(function*() {
+            const readsRef = yield* Ref.make(DataDependencies.empty())
+            const writesRef = yield* Ref.make(DataDependencies.empty())
+            const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+            const result = yield* self
+              .handler(input)
+              .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
+            lastReads = yield* Ref.get(readsRef)
+            setQueryReadDependencies(fullKey, lastReads)
+            return result
+          })
+        let liveFetch = false
+        const effect = Effect
+          .gen(function*() {
+            liveFetch = yield* Effect.promise(() => beginLiveQueryFetch(fullKey))
+            return yield* recordReads.pipe(Effect.retry({ times: 5, while: isRetryable }))
+          })
+          .pipe(
+            Effect.ensuring(Effect.sync(() => endLiveQueryFetch(liveFetch))),
+            Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+            // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
+            // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that
+            // reads as "stuck", so the next mount recovers it (`recoverStuckWaitingOnMount`). We do not
+            // re-fire here — the interrupt was intentional; recovery is driven by a genuine (re)mount.
+            Effect.onExit(() =>
+              Effect.sync(() => {
+                fetchState.inFlight = Math.max(0, fetchState.inFlight - 1)
+              })
+            ),
+            Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
+          )
         const parentSpan = takeAtomQueryParentSpan(atom)
         return parentSpan === undefined
           ? effect
@@ -500,6 +528,7 @@ export const buildQueryFamily = <I, A, E>(
     const result = setAtomQueryMetadata(Atom.withLabel(`query-cache:${self.id}`)(writableWithTarget))
     // Key the fetch state by the atom `withQueryOptions` receives, so its mount hook can find it.
     queryFetchStates.set(result, fetchState)
+    atomQueryKeys.set(result, fullKey)
     return result
   })
 }

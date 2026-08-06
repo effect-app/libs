@@ -1,3 +1,4 @@
+export { repositoryDependency } from "./Repository/dependency.ts"
 export * from "./Repository/ext.ts"
 export * from "./Repository/legacy.ts"
 export { makeRepo } from "./Repository/makeRepo.ts"

@@ -15,6 +15,7 @@ import type * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { invalidateAndAwait, invalidateSoft } from "./atomQuery.ts"
 import { getDerivedInvalidationKeys, partitionInvalidationKeys } from "./dependencyMetadata.ts"
+import { reportRuntimeError } from "./lib.ts"
 
 export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => string[]
 
@@ -347,7 +348,12 @@ const buildInvalidateCache = <RInvalidator>(
           // mutation resolves the affected queries are fresh.
           Effect.gen(function*() {
             if (softKeys.length > 0) {
-              yield* queryInvalidator.invalidateSoft?.(softKeys) ?? Effect.void
+              yield* (queryInvalidator.invalidateSoft?.(softKeys) ?? Effect.void).pipe(
+                Effect.catchCause((cause) =>
+                  reportRuntimeError(cause, { invalidation: "soft", keys: softKeys }).pipe(Effect.asVoid)
+                ),
+                Effect.forkDetach({ startImmediately: true })
+              )
             }
             if (awaitKeys.length > 0) {
               yield* queryInvalidator.invalidateAndAwait(awaitKeys)

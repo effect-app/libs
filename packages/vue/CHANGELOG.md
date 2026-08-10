@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.310
+
+### Patch Changes
+
+- 0fa0e80: Allow query consumers to opt into non-blocking invalidation refetches.
+  - effect-app@4.0.0-beta.310
+
 ## 4.0.0-beta.309
 
 ### Minor Changes

@@ -41,11 +41,9 @@ export const getDerivedInvalidationKeys = (
   return keys
 }
 
-/** Work overview queries are soft-fresh: domain mutations should not wait for their refetch. */
-export const isSoftInvalidationKey = (key: ReadonlyArray<unknown>): boolean => key[0] === "$Work"
-
 export const partitionInvalidationKeys = (
-  keys: ReadonlyArray<ReadonlyArray<unknown>>
+  keys: ReadonlyArray<ReadonlyArray<unknown>>,
+  modeForKey: (key: ReadonlyArray<unknown>) => "await" | "soft"
 ): {
   readonly awaitKeys: ReadonlyArray<ReadonlyArray<unknown>>
   readonly softKeys: ReadonlyArray<ReadonlyArray<unknown>>
@@ -53,7 +51,7 @@ export const partitionInvalidationKeys = (
   const awaitKeys: Array<ReadonlyArray<unknown>> = []
   const softKeys: Array<ReadonlyArray<unknown>> = []
   for (const key of keys) {
-    if (isSoftInvalidationKey(key)) softKeys.push(key)
+    if (modeForKey(key) === "soft") softKeys.push(key)
     else awaitKeys.push(key)
   }
   return { awaitKeys, softKeys }

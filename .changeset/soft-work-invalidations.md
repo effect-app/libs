@@ -2,4 +2,4 @@
 "@effect-app/vue": patch
 ---
 
-Refetch Work overview queries without blocking command completion.
+Allow applications to mark selected query invalidations as non-blocking.

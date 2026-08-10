@@ -58,14 +58,18 @@ it("getDerivedInvalidationKeys returns keys of queries whose reads intersect the
   }
 })
 
-it("partitions Work queries into non-blocking invalidations", () => {
-  const workKey = ["$Work", "$List", undefined]
+it("partitions caller-selected queries into non-blocking invalidations", () => {
+  const overviewKey = ["$Overview", "$List", undefined]
   const pickListKey = ["$PickList", "$List", undefined]
 
-  expect(partitionInvalidationKeys([workKey, pickListKey])).toEqual({
-    awaitKeys: [pickListKey],
-    softKeys: [workKey]
-  })
+  expect(partitionInvalidationKeys(
+    [overviewKey, pickListKey],
+    (key) => key[0] === "$Overview" ? "soft" : "await"
+  ))
+    .toEqual({
+      awaitKeys: [pickListKey],
+      softKeys: [overviewKey]
+    })
 })
 
 it("clearing read dependencies drops the query from derivation", () => {

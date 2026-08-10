@@ -13,7 +13,7 @@ import { TestClock } from "effect/testing"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
-import { clearQueryReadDependencies, getDerivedInvalidationKeys, partitionInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
+import { clearQueryReadDependencies, getDerivedInvalidationKeys, partitionInvalidationKeys, registerQueryInvalidationMode, setQueryReadDependencies } from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
 import { invalidateQueries, makeStreamMutation2, type MutationOptionsBase } from "../src/mutate.js"
 
@@ -58,18 +58,28 @@ it("getDerivedInvalidationKeys returns keys of queries whose reads intersect the
   }
 })
 
-it("partitions caller-selected queries into non-blocking invalidations", () => {
+it("uses the strictest active query invalidation mode", () => {
   const overviewKey = ["$Overview", "$List", undefined]
   const pickListKey = ["$PickList", "$List", undefined]
 
-  expect(partitionInvalidationKeys(
-    [overviewKey, pickListKey],
-    (key) => key[0] === "$Overview" ? "soft" : "await"
-  ))
-    .toEqual({
+  const unregisterSoft = registerQueryInvalidationMode(overviewKey, "soft")
+  const unregisterAwait = registerQueryInvalidationMode(pickListKey, "await")
+  const unregisterStrictOverview = registerQueryInvalidationMode(overviewKey, "await")
+  try {
+    expect(partitionInvalidationKeys([overviewKey, pickListKey])).toEqual({
+      awaitKeys: [overviewKey, pickListKey],
+      softKeys: []
+    })
+    unregisterStrictOverview()
+    expect(partitionInvalidationKeys([overviewKey, pickListKey])).toEqual({
       awaitKeys: [pickListKey],
       softKeys: [overviewKey]
     })
+  } finally {
+    unregisterStrictOverview()
+    unregisterSoft()
+    unregisterAwait()
+  }
 })
 
 it("clearing read dependencies drops the query from derivation", () => {

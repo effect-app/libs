@@ -2,4 +2,4 @@
 "@effect-app/vue": patch
 ---
 
-Allow applications to mark selected query invalidations as non-blocking.
+Allow query consumers to opt into non-blocking invalidation refetches.

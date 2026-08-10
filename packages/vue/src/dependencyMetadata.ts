@@ -7,6 +7,33 @@ import * as Hash from "effect/Hash"
 // cached-within-ttl) — the atom equivalent of the former tanstack query cache.
 type Entry = { readonly key: ReadonlyArray<unknown>; readonly reads: DataDependencies.DataDependencies }
 const readDependencies = new Map<number, Entry>()
+export type QueryInvalidationMode = "await" | "soft"
+type InvalidationModeEntry = { awaitSubscribers: number; softSubscribers: number }
+const invalidationModes = new Map<number, InvalidationModeEntry>()
+
+export const registerQueryInvalidationMode = (
+  key: ReadonlyArray<unknown>,
+  mode: QueryInvalidationMode
+): () => void => {
+  const hash = Hash.hash(key)
+  const entry = invalidationModes.get(hash) ?? { awaitSubscribers: 0, softSubscribers: 0 }
+  if (mode === "soft") entry.softSubscribers++
+  else entry.awaitSubscribers++
+  invalidationModes.set(hash, entry)
+  let active = true
+  return () => {
+    if (!active) return
+    active = false
+    if (mode === "soft") entry.softSubscribers--
+    else entry.awaitSubscribers--
+    if (entry.awaitSubscribers === 0 && entry.softSubscribers === 0) invalidationModes.delete(hash)
+  }
+}
+
+export const getQueryInvalidationMode = (key: ReadonlyArray<unknown>): QueryInvalidationMode => {
+  const entry = invalidationModes.get(Hash.hash(key))
+  return entry !== undefined && entry.awaitSubscribers === 0 && entry.softSubscribers > 0 ? "soft" : "await"
+}
 
 export const setQueryReadDependencies = (
   key: ReadonlyArray<unknown>,
@@ -42,8 +69,7 @@ export const getDerivedInvalidationKeys = (
 }
 
 export const partitionInvalidationKeys = (
-  keys: ReadonlyArray<ReadonlyArray<unknown>>,
-  modeForKey: (key: ReadonlyArray<unknown>) => "await" | "soft"
+  keys: ReadonlyArray<ReadonlyArray<unknown>>
 ): {
   readonly awaitKeys: ReadonlyArray<ReadonlyArray<unknown>>
   readonly softKeys: ReadonlyArray<ReadonlyArray<unknown>>
@@ -51,7 +77,7 @@ export const partitionInvalidationKeys = (
   const awaitKeys: Array<ReadonlyArray<unknown>> = []
   const softKeys: Array<ReadonlyArray<unknown>> = []
   for (const key of keys) {
-    if (modeForKey(key) === "soft") softKeys.push(key)
+    if (getQueryInvalidationMode(key) === "soft") softKeys.push(key)
     else awaitKeys.push(key)
   }
   return { awaitKeys, softKeys }

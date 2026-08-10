@@ -117,11 +117,6 @@ export type InvalidationEntry = InvalidateQueryInstruction<QueryKeyInvalidationF
 export type QueryInvalidationEffect<R = never> = (
   keys: ReadonlyArray<ReadonlyArray<unknown>>
 ) => Effect.Effect<void, never, R>
-export type QueryInvalidationMode = "await" | "soft"
-export type QueryInvalidationModeForKey = (key: ReadonlyArray<unknown>) => QueryInvalidationMode
-
-const awaitInvalidation: QueryInvalidationModeForKey = () => "await"
-
 export interface QueryInvalidator<R = never> {
   readonly invalidateAndAwait: QueryInvalidationEffect<R>
   readonly invalidateSoft?: QueryInvalidationEffect<R>
@@ -278,8 +273,7 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
 const buildInvalidateCache = <RInvalidator>(
   self: { id: string; options?: ClientForOptions; disableQueryInvalidation?: boolean },
   queryInvalidation: MutationOptionsBase["queryInvalidation"] | undefined,
-  queryInvalidator: QueryInvalidator<RInvalidator>,
-  modeForKey: QueryInvalidationModeForKey
+  queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
   // Concrete reactivity keys to invalidate: a raw query key, one derived from an `{ id }`
   // entry, or a compatibility `{ filters: { queryKey } }` entry.
@@ -336,7 +330,7 @@ const buildInvalidateCache = <RInvalidator>(
 
       if (!isReadonlyArrayNonEmpty(keys)) return Effect.void
 
-      const { awaitKeys, softKeys } = partitionInvalidationKeys(keys, modeForKey)
+      const { awaitKeys, softKeys } = partitionInvalidationKeys(keys)
 
       return Effect
         .andThen(
@@ -372,10 +366,9 @@ const buildInvalidateCache = <RInvalidator>(
 export const invalidateQueries = <RInvalidator>(
   self: { id: string; options?: ClientForOptions; disableQueryInvalidation?: boolean },
   options: MutationOptionsBase | undefined,
-  queryInvalidator: QueryInvalidator<RInvalidator>,
-  modeForKey: QueryInvalidationModeForKey = awaitInvalidation
+  queryInvalidator: QueryInvalidator<RInvalidator>
 ) => {
-  const invalidateCache = buildInvalidateCache(self, options?.queryInvalidation, queryInvalidator, modeForKey)
+  const invalidateCache = buildInvalidateCache(self, options?.queryInvalidation, queryInvalidator)
 
   const select = options?.select
 
@@ -424,10 +417,7 @@ export interface MutationFn<I, A, E, R, Id extends string> {
   readonly id: Id
 }
 
-export const makeMutation = <RInvalidator>(
-  queryInvalidator: QueryInvalidator<RInvalidator>,
-  modeForKey: QueryInvalidationModeForKey = awaitInvalidation
-) => {
+export const makeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   /**
    * Pass a function that returns an Effect, e.g from a client action.
    * Executes query cache invalidation based on default rules or provided option.
@@ -437,16 +427,13 @@ export const makeMutation = <RInvalidator>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
     const r = (i: I, options?: MutationOptionsBase) =>
-      invalidateQueries(self, options, queryInvalidator, modeForKey)(self.handler(i), i)
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
 }
 
-export const useMakeMutation = <RInvalidator>(
-  queryInvalidator: QueryInvalidator<RInvalidator>,
-  modeForKey: QueryInvalidationModeForKey = awaitInvalidation
-) => {
+export const useMakeMutation = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   /**
    * Pass a function that returns an Effect, e.g from a client action.
    * Executes query cache invalidation based on default rules or provided option.
@@ -456,7 +443,7 @@ export const useMakeMutation = <RInvalidator>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id>
   ): MutationFn<I, A, E, R, Id> => {
     const r = (i: I, options?: MutationOptionsBase) =>
-      invalidateQueries(self, options, queryInvalidator, modeForKey)(self.handler(i), i)
+      invalidateQueries(self, options, queryInvalidator)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
@@ -470,10 +457,7 @@ export const useMakeMutation = <RInvalidator>(
  * Use with `streamFn` / `Command.streamFn(id)(mutateHandler, ...combinators)` so that
  * the command manages its own reactive state internally.
  */
-export const makeStreamMutation2 = <RInvalidator>(
-  queryInvalidator: QueryInvalidator<RInvalidator>,
-  modeForKey: QueryInvalidationModeForKey = awaitInvalidation
-) => {
+export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalidator<RInvalidator>) => {
   return (
     self: {
       id: string
@@ -483,7 +467,7 @@ export const makeStreamMutation2 = <RInvalidator>(
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
-    const invCache = buildInvalidateCache(self, mergedInvalidation, queryInvalidator, modeForKey)
+    const invCache = buildInvalidateCache(self, mergedInvalidation, queryInvalidator)
 
     const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
       Effect.gen(function*() {

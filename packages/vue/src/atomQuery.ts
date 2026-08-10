@@ -115,6 +115,17 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   return [...atoms]
 }
 
+/** Refresh registered query atoms without making the triggering mutation await them. */
+export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
+  Effect.gen(function*() {
+    const atoms = atomsForKeys(keys)
+    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
+    if (atoms.length === 0) return
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+      discard: true
+    })
+  })
+
 /**
  * Invalidate the given keys and AWAIT the result. `keyAtoms` resolves all matching hierarchical
  * keys to a deduplicated set of query atoms. Refresh that set directly: sending the whole key set

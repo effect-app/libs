@@ -111,6 +111,13 @@ export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInv
         },
         { discard: true, concurrency: "inherit" }
       )
+    }),
+  invalidateSoft: (keys) =>
+    Effect.gen(function*() {
+      const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+      for (const queryKey of keys) {
+        void queryClient.invalidateQueries({ queryKey }, { updateMeta: { span } })
+      }
     })
 })
 

@@ -19,7 +19,7 @@ import * as Struct from "effect/Struct"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
-import { type AtomClientRuntime, invalidateAndAwait, makeAtomClientRuntime } from "./atomQuery.ts"
+import { type AtomClientRuntime, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
 import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
@@ -719,6 +719,10 @@ const makeResolvedAtomQueryInvalidator = <R>(getContext: () => Context.Context<R
   return {
     invalidateAndAwait: (keys) =>
       invalidateAndAwait(keys).pipe(
+        Effect.provideService(Reactivity.Reactivity, getReactivity())
+      ),
+    invalidateSoft: (keys) =>
+      invalidateSoft(keys).pipe(
         Effect.provideService(Reactivity.Reactivity, getReactivity())
       )
   }

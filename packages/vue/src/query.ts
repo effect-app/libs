@@ -18,6 +18,7 @@ import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
 import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, queryKeyForAtom, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import type { QueryInvalidationMode } from "./dependencyMetadata.ts"
 import type { LiveQueryOptions } from "./liveQueryInvalidation.ts"
 import { latestDefined } from "./suspense.ts"
 
@@ -203,6 +204,7 @@ export interface CustomUseQueryOptions<
   /** poll: re-fetch every N ms (tanstack refetchInterval) */
   readonly refetchInterval?: number
   readonly live?: boolean | LiveQueryOptions
+  readonly invalidation?: QueryInvalidationMode
   readonly select?: (data: TQueryFnData) => TData
   /** accepted for source compatibility; not used by the atom engine */
   readonly retry?: boolean | number
@@ -256,6 +258,7 @@ export interface AtomQueryNewOptions<TQueryFnData = unknown, TData = TQueryFnDat
   readonly refreshEvery?: number
   readonly refetchInterval?: number
   readonly live?: boolean | LiveQueryOptions
+  readonly invalidation?: QueryInvalidationMode
   readonly select?: (data: TQueryFnData) => TData
 }
 
@@ -327,6 +330,7 @@ const normalizeQueryOptions = (options?: {
   readonly refetchInterval?: number
   readonly refreshEvery?: number
   readonly live?: boolean | LiveQueryOptions
+  readonly invalidation?: QueryInvalidationMode
 }): AtomQueryOptions => {
   const out: {
     staleTime?: number
@@ -335,6 +339,7 @@ const normalizeQueryOptions = (options?: {
     structuralSharing?: boolean
     refetchInterval?: number
     live?: boolean | LiveQueryOptions
+    invalidation?: QueryInvalidationMode
   } = {}
   if (options?.staleTime !== undefined) out.staleTime = options.staleTime
   const gcTime = options?.idleTTL ?? options?.gcTime
@@ -345,6 +350,7 @@ const normalizeQueryOptions = (options?: {
   const refetchInterval = options?.refreshEvery ?? options?.refetchInterval
   if (refetchInterval !== undefined) out.refetchInterval = refetchInterval
   if (options?.live !== undefined) out.live = options.live
+  if (options?.invalidation !== undefined) out.invalidation = options.invalidation
   return out
 }
 
@@ -521,6 +527,7 @@ const observedAtom = <A, E>(
     readonly refetchInterval?: number
     readonly refreshEvery?: number
     readonly live?: boolean | LiveQueryOptions
+    readonly invalidation?: QueryInvalidationMode
   }
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
   withQueryOptions(atom, normalizeQueryOptions(options), queryKeyForAtom(atom))

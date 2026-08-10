@@ -13,7 +13,7 @@ import { TestClock } from "effect/testing"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
-import { clearQueryReadDependencies, getDerivedInvalidationKeys, setQueryReadDependencies } from "../src/dependencyMetadata.js"
+import { clearQueryReadDependencies, getDerivedInvalidationKeys, partitionInvalidationKeys, registerQueryInvalidationMode, setQueryReadDependencies } from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
 import { invalidateQueries, makeStreamMutation2, type MutationOptionsBase } from "../src/mutate.js"
 
@@ -55,6 +55,30 @@ it("getDerivedInvalidationKeys returns keys of queries whose reads intersect the
   } finally {
     clearQueryReadDependencies(inventoryKey)
     clearQueryReadDependencies(ordersKey)
+  }
+})
+
+it("uses the strictest active query invalidation mode", () => {
+  const overviewKey = ["$Overview", "$List", undefined]
+  const pickListKey = ["$PickList", "$List", undefined]
+
+  const unregisterSoft = registerQueryInvalidationMode(overviewKey, "soft")
+  const unregisterAwait = registerQueryInvalidationMode(pickListKey, "await")
+  const unregisterStrictOverview = registerQueryInvalidationMode(overviewKey, "await")
+  try {
+    expect(partitionInvalidationKeys([overviewKey, pickListKey])).toEqual({
+      awaitKeys: [overviewKey, pickListKey],
+      softKeys: []
+    })
+    unregisterStrictOverview()
+    expect(partitionInvalidationKeys([overviewKey, pickListKey])).toEqual({
+      awaitKeys: [pickListKey],
+      softKeys: [overviewKey]
+    })
+  } finally {
+    unregisterStrictOverview()
+    unregisterSoft()
+    unregisterAwait()
   }
 })
 
@@ -135,7 +159,7 @@ it("atom engine: a query records its read deps so a command's writes derive it",
 
   const unmount = defaultRegistry.mount(atom)
   try {
-    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any)
+    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
     expect(runs).toBe(1)
 
     const fullKey = [...makeQueryKey(self), undefined]
@@ -224,7 +248,7 @@ it("atom engine: disposing the query atom clears its recorded reads", async () =
   const fullKey = [...makeQueryKey(self), undefined]
 
   const unmount = defaultRegistry.mount(atom)
-  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any)
+  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
   expect(getDerivedInvalidationKeys(new Set([atomRepo]))).toContainEqual(fullKey)
 
   // Disposing the registry runs the atom's finalizers, including `trackReadDependencies`.
@@ -291,12 +315,12 @@ const makeAtomHarness = (queryRepo: DataDependencies.DataDependency): EngineHarn
   return {
     queryFullKey: [...makeQueryKey(self), undefined],
     serverInvalidationKey: makeQueryKey(self),
-    fetchInitial: () => Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any),
+    fetchInitial: () => Effect.runPromise(awaitAtomResult(defaultRegistry, atom)),
     runs: () => runs,
     runCommand: (options, command) =>
       Effect.runPromise(
         invalidateQueries({ id: "MatrixAtom.Save" }, options, invalidator)(command, { id: "x" })
-          .pipe(Effect.andThen(awaitAtomResult(defaultRegistry, atom).pipe(Effect.exit))) as any
+          .pipe(Effect.andThen(awaitAtomResult(defaultRegistry, atom).pipe(Effect.exit)))
       ),
     dispose: () => {
       unmount()

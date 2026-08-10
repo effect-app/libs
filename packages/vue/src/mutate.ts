@@ -13,8 +13,9 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { computed, type ComputedRef, shallowRef } from "vue"
-import { invalidateAndAwait } from "./atomQuery.ts"
-import { getDerivedInvalidationKeys } from "./dependencyMetadata.ts"
+import { invalidateAndAwait, invalidateSoft } from "./atomQuery.ts"
+import { getDerivedInvalidationKeys, partitionInvalidationKeys } from "./dependencyMetadata.ts"
+import { reportRuntimeError } from "./lib.ts"
 
 export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => string[]
 
@@ -119,10 +120,12 @@ export type QueryInvalidationEffect<R = never> = (
 ) => Effect.Effect<void, never, R>
 export interface QueryInvalidator<R = never> {
   readonly invalidateAndAwait: QueryInvalidationEffect<R>
+  readonly invalidateSoft?: QueryInvalidationEffect<R>
 }
 
 export const atomQueryInvalidator: QueryInvalidator<Reactivity.Reactivity> = {
-  invalidateAndAwait
+  invalidateAndAwait,
+  invalidateSoft
 }
 
 export const combineQueryInvalidators = <R>(
@@ -132,6 +135,12 @@ export const combineQueryInvalidators = <R>(
     Effect.forEach(
       invalidators,
       (invalidator) => invalidator.invalidateAndAwait(keys),
+      { discard: true, concurrency: "inherit" }
+    ),
+  invalidateSoft: (keys) =>
+    Effect.forEach(
+      invalidators,
+      (invalidator) => invalidator.invalidateSoft?.(keys) ?? Effect.void,
       { discard: true, concurrency: "inherit" }
     )
 })
@@ -322,10 +331,14 @@ const buildInvalidateCache = <RInvalidator>(
 
       if (!isReadonlyArrayNonEmpty(keys)) return Effect.void
 
+      const { awaitKeys, softKeys } = partitionInvalidationKeys(keys)
+
       return Effect
         .andThen(
           Effect.annotateCurrentSpan({
             keys,
+            awaitKeys,
+            softKeys,
             clientKeys,
             serverKeys,
             derivedKeys,
@@ -333,7 +346,19 @@ const buildInvalidateCache = <RInvalidator>(
           }),
           // refetch + AWAIT every live query registered under these keys, so by the time the
           // mutation resolves the affected queries are fresh.
-          queryInvalidator.invalidateAndAwait(keys)
+          Effect.gen(function*() {
+            if (softKeys.length > 0) {
+              yield* (queryInvalidator.invalidateSoft?.(softKeys) ?? Effect.void).pipe(
+                Effect.catchCause((cause) =>
+                  reportRuntimeError(cause, { invalidation: "soft", keys: softKeys }).pipe(Effect.asVoid)
+                ),
+                Effect.forkDetach({ startImmediately: true })
+              )
+            }
+            if (awaitKeys.length > 0) {
+              yield* queryInvalidator.invalidateAndAwait(awaitKeys)
+            }
+          })
         )
         .pipe(
           Effect.tap(Effect.sleep(0.1)), // allow for refs to update etc

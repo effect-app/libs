@@ -32,7 +32,7 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { clearQueryReadDependencies, getQueryReadDependencies, setQueryReadDependencies } from "./dependencyMetadata.ts"
+import { clearQueryReadDependencies, getQueryReadDependencies, type QueryInvalidationMode, registerQueryInvalidationMode, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
 import { beginLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, registerLiveQuery } from "./liveQueryInvalidation.ts"
 
@@ -114,6 +114,17 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   }
   return [...atoms]
 }
+
+/** Refresh registered query atoms without making the triggering mutation await them. */
+export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
+  Effect.gen(function*() {
+    const atoms = atomsForKeys(keys)
+    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
+    if (atoms.length === 0) return
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+      discard: true
+    })
+  })
 
 /**
  * Invalidate the given keys and AWAIT the result. `keyAtoms` resolves all matching hierarchical
@@ -213,6 +224,7 @@ export interface AtomQueryOptions {
   readonly staleTime?: Duration.Input
   /** dispose-when-idle (TanStack gcTime; default 5min). "infinity" => keepAlive */
   readonly gcTime?: Duration.Input | "infinity"
+  readonly invalidation?: QueryInvalidationMode
   /**
    * Revalidate a stale query on window focus AND on network reconnect (default on, matching
    * tanstack refetchOnWindowFocus + refetchOnReconnect).
@@ -365,6 +377,13 @@ export const withQueryOptions = <A, E>(
   setAtomQueryMetadata(self, opts)
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
   let atom = self
+  if (liveKey !== undefined) {
+    atom = Atom.transform(atom, (get) => {
+      const unregister = registerQueryInvalidationMode(liveKey, opts.invalidation ?? "await")
+      get.addFinalizer(unregister)
+      return get(self)
+    }, { initialValueTarget: self })
+  }
   if (opts.live && liveKey !== undefined) {
     const liveOptions = opts.live === true ? {} : opts.live
     atom = Atom.transform(atom, (get) => {

@@ -15,7 +15,7 @@ import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import { computed, type MaybeRefOrGetter, shallowRef, toValue, watch, type WatchSource } from "vue"
 import { replaceEqualDeep } from "../atomQuery.ts"
-import { clearQueryReadDependencies, setQueryReadDependencies } from "../dependencyMetadata.ts"
+import { clearQueryReadDependencies, registerQueryInvalidationMode, setQueryReadDependencies } from "../dependencyMetadata.ts"
 import { reportRuntimeError } from "../lib.ts"
 import type { QueryInvalidator } from "../mutate.ts"
 import type { CustomDefinedInitialQueryOptions, CustomDefinedPlaceholderQueryOptions, CustomUndefinedInitialQueryOptions, CustomUseQueryOptions, MakeQuery2, QueryCacheUpdater, QueryHandle, QueryObserverResult, RefetchOptions } from "../query.ts"
@@ -111,6 +111,15 @@ export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInv
         },
         { discard: true, concurrency: "inherit" }
       )
+    }),
+  invalidateSoft: (keys) =>
+    Effect.gen(function*() {
+      const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+      yield* Effect.forEach(
+        keys,
+        (queryKey) => Effect.promise(() => queryClient.invalidateQueries({ queryKey }, { updateMeta: { span } })),
+        { discard: true, concurrency: "inherit" }
+      )
     })
 })
 
@@ -165,15 +174,21 @@ export const makeTanstackQuery = <R>(
       ...(options?.refetchInterval !== undefined ? { refetchInterval: options.refetchInterval } : {}),
       ...(options?.select !== undefined ? { select: options.select } : {})
     }
+    const resolvedQueryKey = computed(() => {
+      const input = resolveInput(arg, options?.mode)
+      return fullQueryKey(q, queryKey, input)
+    })
+    watch(
+      resolvedQueryKey,
+      (key, _, onCleanup) => onCleanup(registerQueryInvalidationMode(key, options?.invalidation ?? "await")),
+      { immediate: true }
+    )
     const tanstack = useTanstackQuery<A, CauseException<E>, TData>({
       ...tanstackOptions,
       enabled,
       throwOnError: false,
       retry: (retryCount: number, error: unknown) => isRetryable(error) && retryCount < 5,
-      queryKey: computed(() => {
-        const input = resolveInput(arg, options?.mode)
-        return fullQueryKey(q, queryKey, input)
-      }),
+      queryKey: resolvedQueryKey,
       queryFn: (
         { meta, signal }: {
           readonly meta?: { readonly span?: Tracer.AnySpan | undefined } | undefined

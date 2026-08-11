@@ -1,4 +1,4 @@
-import { Cause, Equal, Option, Predicate, Result } from "effect"
+import { Cause, Equal, Option, Predicate, Result, SchemaIssue } from "effect"
 import * as Exit from "effect/Exit"
 import * as assert from "node:assert"
 import { assert as vassert } from "vitest"
@@ -15,15 +15,27 @@ export function fail(message: string) {
 }
 
 export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.deepStrictEqual(actual, expected, message)
+  if (message === undefined) {
+    assert.deepStrictEqual(actual, expected)
+  } else {
+    assert.deepStrictEqual(actual, expected, message)
+  }
 }
 
 export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.notDeepStrictEqual(actual, expected, message)
+  if (message !== undefined) {
+    assert.notDeepStrictEqual(actual, expected, message)
+  } else {
+    assert.notDeepStrictEqual(actual, expected)
+  }
 }
 
 export function strictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.strictEqual(actual, expected, message)
+  if (message !== undefined) {
+    assert.strictEqual(actual, expected, message)
+  } else {
+    assert.strictEqual(actual, expected)
+  }
 }
 
 /**
@@ -62,6 +74,17 @@ export function assertTrue(self: unknown, message?: string, ..._: Array<never>):
 
 export function assertFalse(self: boolean, message?: string, ..._: Array<never>) {
   strictEqual(self, false, message)
+}
+
+export function assertSchemaIssueError(
+  self: unknown,
+  expectedIssueMessage: string,
+  ..._: Array<never>
+): asserts self is Error & { readonly cause: SchemaIssue.Issue } {
+  assertInstanceOf(self, Error)
+  strictEqual(self.message, "Schema validation failed")
+  assertTrue(SchemaIssue.isIssue(self.cause))
+  strictEqual(SchemaIssue.defaultFormatter(self.cause), expectedIssueMessage)
 }
 
 export function assertInclude(actual: string | undefined, expected: string, ..._: Array<never>) {

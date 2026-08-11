@@ -83,7 +83,7 @@ export const make = Effect.gen(function*() {
       | Rpc.Rpc<
         "activity",
         Schema.Struct<
-          { name: typeof Schema.String; attempt: typeof Schema.Number; withTransaction: typeof Schema.Boolean }
+          { name: typeof Schema.String; attempt: typeof Schema.Int; withTransaction: typeof Schema.Boolean }
         >,
         Schema.declare<Workflow.Result<any, any>>
       >
@@ -97,7 +97,7 @@ export const make = Effect.gen(function*() {
       | Rpc.Rpc<"deferred", Schema.Struct<{ name: typeof Schema.String; exit: typeof ExitUnknown }>, typeof ExitUnknown>
       | Rpc.Rpc<
         "activity",
-        Schema.Struct<{ name: typeof Schema.String; attempt: typeof Schema.Number }>,
+        Schema.Struct<{ name: typeof Schema.String; attempt: typeof Schema.Int }>,
         Schema.declare<Workflow.Result<any, any>>
       >
       | Rpc.Rpc<"resume">
@@ -133,6 +133,7 @@ export const make = Effect.gen(function*() {
       if (!entity) {
         return yield* Effect.die(`Workflow ${workflowName} not registered`)
       }
+      yield* RcMap.invalidate(clientsPartial, workflowName)
       return yield* entity.client
     }),
     idleTimeToLive: "5 minutes"
@@ -166,12 +167,16 @@ export const make = Effect.gen(function*() {
     readonly payload: unknown
   }) {
     const payload = (options.rpc.payloadSchema as any).make(options.payload)
+    const span = yield* Effect.orDie(Effect.currentSpan)
     const envelope = Envelope.makeRequest<any>({
       requestId: yield* sharding.getSnowflake,
       address: options.address,
       tag: options.rpc._tag as any,
       payload,
-      headers: Headers.empty
+      headers: Headers.empty,
+      traceId: span.traceId,
+      spanId: span.spanId,
+      sampled: span.sampled
     })
     yield* sharding.sendOutgoing(
       new Message.OutgoingRequest({
@@ -613,7 +618,10 @@ export const make = Effect.gen(function*() {
             payload: {
               name: options.clock.name,
               workflowName: workflow._tag,
-              wakeUp: DateTime.addDuration(now, options.clock.duration)
+              wakeUp: DateTime.mapEpochMillis(
+                DateTime.addDuration(now, options.clock.duration),
+                Math.ceil
+              )
             }
           })
         ),
@@ -625,9 +633,10 @@ export const make = Effect.gen(function*() {
   return engine
 })
 
-const retryPolicy = Schedule.exponential(200, 1.5).pipe(
-  Schedule.either(Schedule.spaced("1 minute"))
-)
+const retryPolicy = Schedule.min([
+  Schedule.exponential(200, 1.5),
+  Schedule.spaced("1 minute")
+])
 
 const ensureSuccess = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
@@ -642,7 +651,7 @@ const ExitUnknown = Schema.Exit(AnyOrVoid, AnyOrVoid, Schema.Any)
 const ActivityRpc = Rpc.make("activity", {
   payload: {
     name: Schema.String,
-    attempt: Schema.Number,
+    attempt: Schema.Int,
     withTransaction: Schema.Boolean.pipe(
       Schema.withDecodingDefault(Effect.succeed(false))
     )

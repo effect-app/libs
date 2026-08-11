@@ -9,7 +9,6 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
-import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
 import * as Equ from "../../Equivalence.ts"
@@ -17,11 +16,11 @@ import { dual } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
 import type { Inspectable } from "../../Inspectable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
+import * as InternalRecord from "../../internal/record.ts"
 import * as Option from "../../Option.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
-import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
@@ -65,6 +64,7 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
  * @since 4.0.0
  */
 export type Input =
+  | UrlParams
   | CoercibleRecordInput
   | Iterable<readonly [string, Coercible]>
   | URLSearchParams
@@ -157,6 +157,9 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
  * @since 4.0.0
  */
 export const fromInput = (input: Input): UrlParams => {
+  if (isUrlParams(input)) {
+    return input
+  }
   const parsed = fromInputNested(input)
   const out: Array<[string, string]> = []
   for (let i = 0; i < parsed.length; i++) {
@@ -234,15 +237,15 @@ export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray
 export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
   isUrlParams,
   {
-    typeConstructor: {
-      _tag: "effect/http/UrlParams"
+    representation: {
+      id: "effect/http/UrlParams",
+      payload: null
     },
-    generation: {
-      runtime: `UrlParams.UrlParamsSchema`,
-      Type: `UrlParams.UrlParams`,
-      Encoded: `typeof UrlParams.UrlParamsSchema["Encoded"]`,
-      importDeclaration: `import * as UrlParams from "effect/unstable/http/UrlParams"`
-    },
+    toCode: () => ({
+      runtime: "UrlParams.UrlParamsSchema",
+      Type: "UrlParams.UrlParams",
+      importDeclarations: [`import * as UrlParams from "effect/unstable/http/UrlParams"`]
+    }),
     expected: "UrlParams",
     toEquivalence: () => Equivalence,
     toCodec: () =>
@@ -447,67 +450,12 @@ export const remove: {
 } = dual(2, (self: UrlParams, key: string): UrlParams => transform(self, Arr.filter(([k]) => k !== key)))
 
 /**
- * Error returned when constructing a `URL` from `UrlParams` fails.
- *
- * @category errors
- * @since 4.0.0
- */
-export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
-  cause: unknown
-}> {}
-
-/**
- * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
- *
- * **Details**
- *
- * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
- * constructed.
- *
- * @category converting
- * @since 4.0.0
- */
-export const makeUrl = (
-  url: string,
-  params: UrlParams,
-  hash: string | undefined
-): Result.Result<URL, UrlParamsError> => {
-  try {
-    const urlInstance = new URL(url, baseUrl())
-    for (let i = 0; i < params.params.length; i++) {
-      const [key, value] = params.params[i]
-      if (value !== undefined) {
-        urlInstance.searchParams.append(key, value)
-      }
-    }
-    if (hash !== undefined) {
-      urlInstance.hash = hash
-    }
-    return Result.succeed(urlInstance)
-  } catch (e) {
-    return Result.fail(new UrlParamsError({ cause: e }))
-  }
-}
-
-/**
  * Serializes `UrlParams` to a URL query string without a leading question mark.
  *
  * @category converting
  * @since 4.0.0
  */
-export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
-
-const baseUrl = (): string | undefined => {
-  if (
-    "location" in globalThis &&
-    globalThis.location !== undefined &&
-    globalThis.location.origin !== undefined &&
-    globalThis.location.pathname !== undefined
-  ) {
-    return location.origin + location.pathname
-  }
-  return undefined
-}
+export const toString = (input: Input): string => new URLSearchParams(fromInput(input).params as any).toString()
 
 /**
  * Builds a `Record` containing all the key-value pairs in the given `UrlParams`
@@ -516,9 +464,8 @@ const baseUrl = (): string | undefined => {
  *
  * **Example** (Converting parameters to a record)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { UrlParams } from "effect/unstable/http"
- * import * as assert from "node:assert"
  *
  * const urlParams = UrlParams.fromInput({
  *   a: 1,
@@ -526,12 +473,7 @@ const baseUrl = (): string | undefined => {
  *   c: "string",
  *   e: [1, 2, 3]
  * })
- * const result = UrlParams.toRecord(urlParams)
- *
- * assert.deepStrictEqual(
- *   result,
- *   { "a": "1", "b": "true", "c": "string", "e": ["1", "2", "3"] }
- * )
+ * UrlParams.toRecord(urlParams) // => { a: "1", b: "true", c: "string", e: ["1", "2", "3"] }
  * ```
  *
  * @category converting
@@ -540,13 +482,15 @@ const baseUrl = (): string | undefined => {
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
   const out: Record<string, string | Arr.NonEmptyArray<string>> = {}
   for (const [k, value] of self.params) {
-    const curr = out[k]
-    if (curr === undefined) {
-      out[k] = value
-    } else if (typeof curr === "string") {
-      out[k] = [curr, value]
+    if (!Object.hasOwn(out, k)) {
+      InternalRecord.assignProperty(out, k, value)
     } else {
-      curr.push(value)
+      const current = out[k]
+      if (typeof current === "string") {
+        InternalRecord.assignProperty(out, k, [current, value])
+      } else {
+        current.push(value)
+      }
     }
   }
   return out
@@ -572,7 +516,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
  * @category schemas
  * @since 4.0.0
  */
-export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
+export interface schemaJsonField extends Schema.decodeTo<Schema.fromJsonString<Schema.Unknown>, UrlParamsSchema> {}
 
 /**
  * Extracts a JSON value from the first occurrence of the given `field` in the
@@ -580,7 +524,7 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  *
  * **Example** (Decoding JSON parameter fields)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { UrlParams } from "effect/unstable/http"
  *
@@ -591,12 +535,11 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  *   }))
  * )
  *
- * console.log(
- *   Schema.decodeSync(extractFoo)(UrlParams.fromInput({
- *     foo: JSON.stringify({ some: "bar", number: 42 }),
+ * const decoded = Schema.decodeSync(extractFoo)(UrlParams.fromInput({
+ *     foo: `{"some":"bar","number":42}`,
  *     baz: "qux"
  *   }))
- * )
+ * const result = [decoded.some, decoded.number] // => ["bar", 42]
  * ```
  *
  * @category schemas
@@ -642,7 +585,7 @@ export interface schemaRecord extends
  *
  * **Example** (Decoding URL parameters to a record)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { UrlParams } from "effect/unstable/http"
  *
@@ -653,12 +596,11 @@ export interface schemaRecord extends
  *   }))
  * )
  *
- * console.log(
- *   Schema.decodeSync(toStruct)(UrlParams.fromInput({
+ * const decoded = Schema.decodeSync(toStruct)(UrlParams.fromInput({
  *     some: "value",
  *     number: 42
  *   }))
- * )
+ * const result = [decoded.some, decoded.number] // => ["value", 42]
  * ```
  *
  * @category schemas

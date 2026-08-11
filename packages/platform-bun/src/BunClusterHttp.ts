@@ -29,6 +29,7 @@ import type { ServeError } from "effect/unstable/http/HttpServerError"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import { layerK8sHttpClient } from "./BunClusterSocket.ts"
+import * as BunCrypto from "./BunCrypto.ts"
 import * as BunFileSystem from "./BunFileSystem.ts"
 import * as BunHttpServer from "./BunHttpServer.ts"
 import type { BunServices } from "./BunServices.ts"
@@ -102,6 +103,7 @@ export const layer = <
 >(options: {
   readonly transport: "http" | "websocket"
   readonly serialization?: "msgpack" | "ndjson" | undefined
+  readonly serializationMaxBufferSize?: number | "unbounded" | undefined
   readonly clientOnly?: ClientOnly | undefined
   readonly storage?: Storage | undefined
   readonly runnerHealth?: "ping" | "k8s" | undefined
@@ -157,7 +159,7 @@ export const layer = <
         ? MessageStorage.layerNoop
         : options?.storage === "byo"
         ? Layer.empty
-        : Layer.orDie(SqlMessageStorage.layer)
+        : Layer.orDie(SqlMessageStorage.layer).pipe(Layer.provide(BunCrypto.layer))
     ),
     Layer.provide(
       options?.storage === "local"
@@ -168,7 +170,9 @@ export const layer = <
     ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
-      options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
+      options?.serialization === "ndjson"
+        ? RpcSerialization.layerNdjsonWith({ maxBufferSize: options.serializationMaxBufferSize })
+        : RpcSerialization.layerMsgPackWith({ maxBufferSize: options.serializationMaxBufferSize })
     )
   ) as any
 }

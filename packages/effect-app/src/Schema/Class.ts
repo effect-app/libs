@@ -380,7 +380,9 @@ type OpaqueClassFacadeInput<DecodingServices, EncodingServices> =
 
 type PrototypeFunction = Function & { prototype: object }
 
-const ClassAnnotationId = "~effect/Schema/Class"
+// Class schemas expose a constructor descriptor under this key (was previously
+// identified via a `~effect/Schema/Class` annotation id).
+const ConstructorAnnotationKey = "~constructor"
 
 const getOwnOrInheritedPropertyDescriptor = (value: object, property: PropertyKey): PropertyDescriptor | undefined => {
   let current: object | null = value
@@ -393,8 +395,14 @@ const getOwnOrInheritedPropertyDescriptor = (value: object, property: PropertyKe
 
 const isClassSchemaConstructor = (value: unknown): value is PrototypeFunction => {
   if (typeof value !== "function") return false
+  // Transformed schemas (e.g. `Class.pipe(S.encodeKeys(...))`) are also functions with a
+  // Declaration AST that still carries `~constructor`, but they are not constructable classes.
+  // Real Schema.Class constructors expose a static `identifier`.
+  if (typeof (value as { readonly identifier?: unknown }).identifier !== "string") return false
   const ast = (value as { readonly ast?: unknown }).ast
-  return SchemaAST.isAST(ast) && SchemaAST.isDeclaration(ast) && ast.annotations?.[ClassAnnotationId] !== undefined
+  return SchemaAST.isAST(ast)
+    && SchemaAST.isDeclaration(ast)
+    && ast.annotations?.[ConstructorAnnotationKey] !== undefined
 }
 
 const getFacadeClassSchema = (schema: OpaqueFacadeInput<any, any>): PrototypeFunction | undefined => {
@@ -631,7 +639,7 @@ export function OpaqueErrorFacadeClass<
       & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
       & OpaqueFacadeStatics<SchemaS>
 
-    if (typeof schema === "function") {
+    if (isClassSchemaConstructor(schema)) {
       return schema as SchemaS & FacadeSchema
     }
 

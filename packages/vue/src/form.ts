@@ -289,20 +289,22 @@ function buildFieldInfo(
       return custom(err, e, v)
     }
 
-    // parse specific error types for better translation support
-    const integerMatch = err.match(/Expected.*integer.*(?:actual|got)\s+([^)]+)/i)
+    // parse specific error types for better translation support.
+    // beta.107 formatters often omit ", actual/got <value>" from the issue string;
+    // fall back to the rejected input `v` when the regex has no capture.
+    const integerMatch = err.match(/Expected.*integer(?:.*(?:actual|got)\s+([^)\s]+))?/i)
     if (integerMatch) {
       return translate.value(
         { defaultMessage: "Expected an integer, actual {actualValue}", id: "validation.integer.expected" },
-        { actualValue: integerMatch[1] }
+        { actualValue: integerMatch[1] ?? String(v) }
       )
     }
 
-    const numberMatch = err.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
+    const numberMatch = err.match(/Expected.*number(?:.*(?:actual|got)\s+([^)\s]+))?/i)
     if (numberMatch) {
       return translate.value(
         { defaultMessage: "Expected a number, actual {actualValue}", id: "validation.number.expected" },
-        { actualValue: numberMatch[1] }
+        { actualValue: numberMatch[1] ?? String(v) }
       )
     }
 

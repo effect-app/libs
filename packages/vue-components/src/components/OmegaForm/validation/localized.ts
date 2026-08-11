@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { StandardSchemaV1 } from "@tanstack/vue-form"
-import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import type { useIntl } from "../../../utils"
 
@@ -15,6 +14,27 @@ type FilterMeta =
   | { readonly _tag: "isLessThanOrEqualTo"; readonly maximum: number }
   | { readonly _tag: "isLessThan"; readonly exclusiveMaximum: number }
   | { readonly _tag?: undefined }
+
+/** Map filter annotations (representation since beta.107, legacy meta before) to FilterMeta. */
+const filterMetaOf = (filter: {
+  readonly annotations?: {
+    readonly meta?: unknown
+    readonly representation?: { readonly id?: string; readonly payload?: unknown }
+  }
+}): FilterMeta => {
+  const rep = filter.annotations?.representation
+  if (rep && typeof rep.id === "string") {
+    const tag = rep.id.replace(/^effect\/schema\//, "")
+    const payload = rep.payload !== null && typeof rep.payload === "object"
+      ? rep.payload as Record<string, unknown>
+      : {}
+    return { _tag: tag, ...payload } as FilterMeta
+  }
+  return (filter.annotations?.meta ?? {})
+}
+
+const reportedInput = (issue: { readonly input?: unknown }): unknown =>
+  S.SchemaIssue.hasInput(issue) ? issue.input : undefined
 
 export const makeStandardSchemaV1Hooks = (
   trans: TransFn
@@ -31,14 +51,13 @@ export const makeStandardSchemaV1Hooks = (
       case "InvalidType": {
         const ast = issue.ast
         // Detect undefined/missing actual values across required leaves and return a uniform empty message.
-        const actualUndefined = Option.isNone(issue.actual)
-          || (Option.isSome(issue.actual) && issue.actual.value === undefined)
+        const input = reportedInput(issue)
+        const actualUndefined = input === undefined
         if (actualUndefined) return trans("validation.empty")
         if (S.AST.isString(ast)) return trans("validation.empty")
         if (S.AST.isBoolean(ast)) return trans("validation.not_a_valid", { type: "boolean" })
         if (S.AST.isNumber(ast)) {
-          const actual = Option.isSome(issue.actual) ? String(issue.actual.value) : "NaN"
-          return trans("validation.number.expected", { actualValue: actual })
+          return trans("validation.number.expected", { actualValue: String(input) })
         }
         return trans("validation.not_a_valid")
       }
@@ -48,13 +67,13 @@ export const makeStandardSchemaV1Hooks = (
   }
 
   const checkHook: S.SchemaIssue.CheckHook = (issue) => {
-    // S.Email's `refine(isValidEmail, ...)` has no `meta._tag` but carries
+    // S.Email's `refine(isValidEmail, ...)` has no representation meta but carries
     // `identifier: "Email"`. Localize it explicitly — otherwise the
     // formatter falls back to the generic "Expected <filter>, got <actual>".
     if (issue.filter.annotations?.identifier === "Email") {
       return trans("validation.email.invalid")
     }
-    const meta = (issue.filter.annotations?.meta ?? {}) as FilterMeta
+    const meta = filterMetaOf(issue.filter)
     switch (meta._tag) {
       case "isMinLength":
         return meta.minLength === 1
@@ -63,7 +82,8 @@ export const makeStandardSchemaV1Hooks = (
       case "isMaxLength":
         return trans("validation.string.maxLength", { maxLength: meta.maxLength })
       case "isInt": {
-        const actual = issue.actual !== undefined ? String(issue.actual) : "NaN"
+        const input = reportedInput(issue)
+        const actual = input !== undefined ? String(input) : "NaN"
         return trans("validation.integer.expected", { actualValue: actual })
       }
       case "isGreaterThanOrEqualTo":
@@ -97,7 +117,12 @@ export const toLocalizedStandardSchemaV1 = <To, From>(
   trans: TransFn
 ): StandardSchemaV1<From, To> => {
   const { checkHook, leafHook } = makeStandardSchemaV1Hooks(trans)
-  return S.toStandardSchemaV1(schema, { leafHook, checkHook })
+  // reportInput so leaf/check hooks can include the rejected value in messages
+  return S.toStandardSchemaV1(schema, {
+    leafHook,
+    checkHook,
+    parseOptions: { reportInput: true, errors: "all" }
+  })
 }
 
 /*

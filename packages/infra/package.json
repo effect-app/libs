@@ -11,7 +11,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "effect-app": "workspace:*",
-    "fast-check": "~4.8.0",
+    "fast-check": "^4.9.0",
     "jose": "^6.2.3",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "8.4.0",
@@ -20,7 +20,7 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-sqlite-node": "4.0.0-beta.90",
+    "@effect/sql-sqlite-node": "4.0.0-beta.107",
     "@sentry/node": "10.55.0",
     "@sentry/opentelemetry": "10.55.0",
     "@types/better-sqlite3": "^7.6.13",
@@ -39,12 +39,12 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/vitest": "^4.0.0-beta.90",
+    "@effect/vitest": "^4.0.0-beta.107",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.55.0",
     "@sentry/opentelemetry": "10.55.0",
-    "effect": "^4.0.0-beta.90",
+    "effect": "^4.0.0-beta.107",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0"

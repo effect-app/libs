@@ -587,12 +587,20 @@ describe("String", () => {
     it("handles single word", () => {
       strictEqual(S.snakeToCamel("hello"), "hello")
     })
+
+    it("handles an empty string", () => {
+      strictEqual(S.snakeToCamel(""), "")
+    })
   })
 
   describe("snakeToPascal", () => {
     it("converts snake_case to PascalCase", () => {
       strictEqual(S.snakeToPascal("hello_world"), "HelloWorld")
       strictEqual(S.snakeToPascal("foo_bar_baz"), "FooBarBaz")
+    })
+
+    it("handles an empty string", () => {
+      strictEqual(S.snakeToPascal(""), "")
     })
   })
 
@@ -634,9 +642,30 @@ describe("String", () => {
       strictEqual(pipe("helloWorld", S.noCase({ delimiter: "-" })), "hello-world")
     })
 
+    it("uses a custom split regular expression", () => {
+      strictEqual(S.noCase("ab", { splitRegExp: /([a])([b])/g }), "a b")
+    })
+
+    it("uses custom split regular expressions", () => {
+      strictEqual(S.noCase("abc", { splitRegExp: [/([a])([b])/g, /([b])([c])/g] }), "a b c")
+    })
+
+    it("uses a custom strip regular expression", () => {
+      strictEqual(S.noCase("a_b-c", { stripRegExp: /_/g }), "a b-c")
+    })
+
+    it("uses custom strip regular expressions", () => {
+      strictEqual(S.noCase("a_b-c", { stripRegExp: [/_/g, /-/g] }), "a b c")
+    })
+
     it("handles underscores and hyphens", () => {
       strictEqual(S.noCase("hello_world"), "hello world")
       strictEqual(S.noCase("hello-world"), "hello world")
+    })
+
+    it("splits digit-letter boundaries", () => {
+      strictEqual(S.noCase("field2value"), "field 2 value")
+      strictEqual(S.noCase("field2Value"), "field 2 value")
     })
   })
 
@@ -646,6 +675,11 @@ describe("String", () => {
       strictEqual(S.pascalCase("hello_world"), "HelloWorld")
       strictEqual(S.pascalCase("helloWorld"), "HelloWorld")
     })
+
+    it("does not prefix numeric segments with underscores", () => {
+      strictEqual(S.pascalCase("foo 2 bar"), "Foo2Bar")
+      strictEqual(S.pascalCase("api-v2 xml"), "ApiV2Xml")
+    })
   })
 
   describe("camelCase", () => {
@@ -654,12 +688,27 @@ describe("String", () => {
       strictEqual(S.camelCase("hello_world"), "helloWorld")
       strictEqual(S.camelCase("HelloWorld"), "helloWorld")
     })
+
+    it("does not prefix numeric segments with underscores", () => {
+      strictEqual(S.camelCase("foo 2 bar"), "foo2Bar")
+      strictEqual(S.camelCase("api-v2 xml"), "apiV2Xml")
+    })
   })
 
   describe("constantCase", () => {
     it("converts to CONSTANT_CASE", () => {
       strictEqual(S.constantCase("hello world"), "HELLO_WORLD")
       strictEqual(S.constantCase("helloWorld"), "HELLO_WORLD")
+      strictEqual(S.constantCase("api-v2 xml"), "API_V_2_XML")
+    })
+  })
+
+  describe("configCase", () => {
+    it("converts to CONFIG_CASE", () => {
+      strictEqual(S.configCase("hello world"), "HELLO_WORLD")
+      strictEqual(S.configCase("helloWorld"), "HELLO_WORLD")
+      strictEqual(S.configCase("api-v2 xml"), "API_V2_XML")
+      strictEqual(S.configCase("field2Value"), "FIELD2_VALUE")
     })
   })
 

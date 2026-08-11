@@ -39,6 +39,8 @@ import {
   ProcessId
 } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
+import { PassThrough } from "node:stream"
+import { buildSpawnOptions } from "./internal/nodeChildProcessSpawner.ts"
 import { handleErrnoException } from "./internal/utils.ts"
 import * as NodeSink from "./NodeSink.ts"
 import * as NodeStream from "./NodeStream.ts"
@@ -63,6 +65,17 @@ const toPlatformError = (
 
 type ExitCodeWithSignal = readonly [code: number | null, signal: NodeJS.Signals | null]
 type ExitSignal = Deferred.Deferred<ExitCodeWithSignal>
+
+const taskkill = (
+  childProcess: NodeChildProcess.ChildProcess,
+  onExit: (error: NodeChildProcess.ExecException | null) => void = () => {}
+) =>
+  NodeChildProcess.execFile(
+    "taskkill",
+    ["/pid", String(childProcess.pid!), "/T", "/F"],
+    { windowsHide: true },
+    onExit
+  )
 
 const make = Effect.gen(function*() {
   const fs = yield* FileSystem.FileSystem
@@ -220,8 +233,11 @@ const make = Effect.gen(function*() {
           // Create a stream to read from for output file descriptors
           let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
           if (nodeStream && "read" in nodeStream) {
+            const passThrough = new PassThrough()
+            nodeStream.on("error", (error) => passThrough.destroy(error))
+            nodeStream.pipe(passThrough)
             stream = NodeStream.fromReadable({
-              evaluate: () => nodeStream,
+              evaluate: () => passThrough,
               onError: (error) => toPlatformError(`fromReadable(fd${fd})`, toError(error), command)
             })
           }
@@ -281,16 +297,26 @@ const make = Effect.gen(function*() {
     all: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   } => {
     let stdout = childProcess.stdout ?
-      NodeStream.fromReadable({
-        evaluate: () => childProcess.stdout!,
-        onError: (error) => toPlatformError("fromReadable(stdout)", toError(error), command)
-      }) :
+      (() => {
+        const passThrough = new PassThrough()
+        childProcess.stdout!.on("error", (error) => passThrough.destroy(error))
+        childProcess.stdout!.pipe(passThrough)
+        return NodeStream.fromReadable({
+          evaluate: () => passThrough,
+          onError: (error) => toPlatformError("fromReadable(stdout)", toError(error), command)
+        })
+      })() :
       Stream.empty
     let stderr = childProcess.stderr ?
-      NodeStream.fromReadable({
-        evaluate: () => childProcess.stderr!,
-        onError: (error) => toPlatformError("fromReadable(stderr)", toError(error), command)
-      }) :
+      (() => {
+        const passThrough = new PassThrough()
+        childProcess.stderr!.on("error", (error) => passThrough.destroy(error))
+        childProcess.stderr!.pipe(passThrough)
+        return NodeStream.fromReadable({
+          evaluate: () => passThrough,
+          onError: (error) => toPlatformError("fromReadable(stderr)", toError(error), command)
+        })
+      })() :
       Stream.empty
 
     if (Sink.isSink(stdoutConfig.stream)) {
@@ -340,7 +366,7 @@ const make = Effect.gen(function*() {
   ) => {
     if (globalThis.process.platform === "win32") {
       return Effect.callback<void, PlatformError.PlatformError>((resume) => {
-        NodeChildProcess.exec(`taskkill /pid ${childProcess.pid} /T /F`, (error) => {
+        taskkill(childProcess, (error) => {
           if (error) {
             resume(Effect.fail(toPlatformError("kill", toError(error), command)))
           } else {
@@ -362,9 +388,8 @@ const make = Effect.gen(function*() {
     signal: NodeJS.Signals
   ): void => {
     if (globalThis.process.platform === "win32") {
-      NodeChildProcess.exec(`taskkill /pid ${childProcess.pid} /T /F`, () => {
-        // ignore errors during best-effort cleanup
-      })
+      // ignore errors during best-effort cleanup
+      taskkill(childProcess)
       return
     }
     try {
@@ -451,20 +476,13 @@ const make = Effect.gen(function*() {
         const stderrConfig = resolveOutputOption(cmd.options, "stderr")
         const resolvedAdditionalFds = resolveAdditionalFds(cmd.options)
         let isReferenced = true
-        let cleanupOnNonZeroExit = false
 
         const cwd = yield* resolveWorkingDirectory(cmd.options)
         const env = resolveEnvironment(cmd.options)
         const stdio = buildStdioArray(stdinConfig, stdoutConfig, stderrConfig, resolvedAdditionalFds)
 
         const [childProcess, exitSignal] = yield* Effect.acquireRelease(
-          spawn(cmd, {
-            cwd,
-            env,
-            stdio,
-            detached: cmd.options.detached ?? process.platform !== "win32",
-            shell: cmd.options.shell
-          }),
+          spawn(cmd, buildSpawnOptions(cmd.options, { cwd, env, stdio }, process.platform)),
           Effect.fnUntraced(function*([childProcess, exitSignal]) {
             const exited = yield* Deferred.isDone(exitSignal)
             const killWithTimeout = withTimeout(childProcess, cmd, cmd.options)
@@ -482,12 +500,11 @@ const make = Effect.gen(function*() {
             }
             // Process is still running, kill it
             return yield* killWithTimeout((command, childProcess, signal) =>
-              Effect.catch(
-                killProcessGroup(command, childProcess, signal),
-                () => killProcess(command, childProcess, signal)
+              killProcessGroup(command, childProcess, signal).pipe(
+                Effect.catch(() => killProcess(command, childProcess, signal)),
+                Effect.andThen(Deferred.await(exitSignal))
               )
             ).pipe(
-              Effect.andThen(Deferred.await(exitSignal)),
               Effect.ignore
             )
           })
@@ -495,7 +512,7 @@ const make = Effect.gen(function*() {
 
         const pid = ProcessId(childProcess.pid!)
         childProcess.on("exit", (code) => {
-          if (cleanupOnNonZeroExit && code !== 0 && Predicate.isNotNull(code)) {
+          if (code !== 0 && Predicate.isNotNull(code)) {
             killProcessGroupOnExit(childProcess, cmd.options.killSignal ?? "SIGTERM")
           }
         })
@@ -503,14 +520,12 @@ const make = Effect.gen(function*() {
           if (!isReferenced) {
             childProcess.ref()
             isReferenced = true
-            cleanupOnNonZeroExit = false
           }
         })
         const unref = Effect.sync(() => {
           if (isReferenced) {
             childProcess.unref()
             isReferenced = false
-            cleanupOnNonZeroExit = true
           }
           return reref
         })
@@ -531,12 +546,11 @@ const make = Effect.gen(function*() {
         const kill = (options?: ChildProcess.KillOptions | undefined) => {
           const killWithTimeout = withTimeout(childProcess, cmd, options)
           return killWithTimeout((command, childProcess, signal) =>
-            Effect.catch(
-              killProcessGroup(command, childProcess, signal),
-              () => killProcess(command, childProcess, signal)
+            killProcessGroup(command, childProcess, signal).pipe(
+              Effect.catch(() => killProcess(command, childProcess, signal)),
+              Effect.andThen(Deferred.await(exitSignal))
             )
           ).pipe(
-            Effect.andThen(Deferred.await(exitSignal)),
             Effect.asVoid
           )
         }
@@ -610,6 +624,8 @@ const make = Effect.gen(function*() {
         }
 
         const handle = handles[handles.length - 1]
+        const kill = (options?: ChildProcess.KillOptions | undefined) =>
+          Effect.forEach([...handles].reverse(), (handle) => Effect.ignore(handle.kill(options)), { discard: true })
         const unref = Effect.gen(function*() {
           const rerefs: Array<Effect.Effect<void, PlatformError.PlatformError>> = []
           for (const handle of handles) {
@@ -622,7 +638,7 @@ const make = Effect.gen(function*() {
           pid: handle.pid,
           exitCode: handle.exitCode,
           isRunning: handle.isRunning,
-          kill: handle.kill,
+          kill,
           stdin: handle.stdin,
           stdout: handle.stdout,
           stderr: handle.stderr,

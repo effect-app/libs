@@ -28,6 +28,7 @@ import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type * as SocketServer from "effect/unstable/socket/SocketServer"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
+import * as BunCrypto from "./BunCrypto.ts"
 import * as BunFileSystem from "./BunFileSystem.ts"
 
 export {
@@ -61,6 +62,7 @@ export const layer = <
 >(
   options?: {
     readonly serialization?: "msgpack" | "ndjson" | undefined
+    readonly serializationMaxBufferSize?: number | "unbounded" | undefined
     readonly clientOnly?: ClientOnly | undefined
     readonly storage?: Storage | undefined
     readonly runnerHealth?: "ping" | "k8s" | undefined
@@ -109,7 +111,7 @@ export const layer = <
         ? MessageStorage.layerNoop
         : options?.storage === "byo"
         ? Layer.empty
-        : Layer.orDie(SqlMessageStorage.layer)
+        : Layer.orDie(SqlMessageStorage.layer).pipe(Layer.provide(BunCrypto.layer))
     ),
     Layer.provide(
       options?.storage === "local"
@@ -120,7 +122,9 @@ export const layer = <
     ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
-      options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
+      options?.serialization === "ndjson"
+        ? RpcSerialization.layerNdjsonWith({ maxBufferSize: options?.serializationMaxBufferSize })
+        : RpcSerialization.layerMsgPackWith({ maxBufferSize: options?.serializationMaxBufferSize })
     )
   ) as any
 }

@@ -87,12 +87,6 @@ export type ScalarConfig = {
   /**
    * Path to a favicon image.
    *
-   * **Example** (Setting a relative favicon)
-   *
-   * ```ts
-   * const favicon = "/favicon.svg"
-   * ```
-   *
    * @default undefined
    */
   favicon?: string
@@ -106,12 +100,6 @@ export type ScalarConfig = {
    *
    * Browsers can derive the origin from `window.location.origin`; server
    * rendering needs this value supplied explicitly.
-   *
-   * **Example** (Setting a local server URL)
-   *
-   * ```ts
-   * const baseServerURL = "http://localhost:3000"
-   * ```
    *
    * @default undefined
    */
@@ -151,7 +139,7 @@ type ScalarSource =
     readonly source: string
   }
 
-const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options: {
+const makeHandler = <Id extends string, Groups extends HttpApiGroup.Constraint>(options: {
   readonly api: HttpApi.HttpApi<Id, Groups>
   readonly source: ScalarSource
   readonly scalar: ScalarConfig | undefined
@@ -162,6 +150,15 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
     _integration: "html",
     ...scalar
   }
+  const scalarScript = options.source._tag === "Cdn"
+    ? `<script src="${
+      Html.escapeAttribute(
+        `https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
+          encodeURIComponent(options.source.version ?? "latest")
+        }/dist/browser/standalone.min.js`
+      )
+    }" crossorigin></script>`
+    : `<script>${options.source.source}</script>`
   const response = HttpServerResponse.html(`<!doctype html>
 <html>
   <head>
@@ -170,12 +167,12 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
     ${
     !spec.info.description
       ? ""
-      : `<meta name="description" content="${Html.escape(spec.info.description)}"/>`
+      : `<meta name="description" content="${Html.escapeAttribute(spec.info.description)}"/>`
   }
     ${
     !spec.info.description
       ? ""
-      : `<meta name="og:description" content="${Html.escape(spec.info.description)}"/>`
+      : `<meta name="og:description" content="${Html.escapeAttribute(spec.info.description)}"/>`
   }
     <meta
       name="viewport"
@@ -183,13 +180,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
   </head>
   <body>
     <div id="api-reference-container"></div>
-    ${
-    options.source._tag === "Cdn"
-      ? `<script src="${`https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
-        options.source.version ?? "latest"
-      }/dist/browser/standalone.min.js`}" crossorigin></script>`
-      : `<script>${options.source.source}</script>`
-  }
+    ${scalarScript}
     <script>
       window.Scalar.createApiReference(document.getElementById('api-reference-container'), {
         ...${Html.escapeJson(scalarConfig)},
@@ -215,7 +206,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  * @category layers
  * @since 4.0.0
  */
-export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
+export const layer = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly path?: `/${string}` | undefined
@@ -246,7 +237,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  * @category layers
  * @since 4.0.0
  */
-export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
+export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly path?: `/${string}` | undefined

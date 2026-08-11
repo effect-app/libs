@@ -101,26 +101,30 @@ export const makeTanstackQueryClient = () => new QueryClient()
 
 export const makeTanstackQueryInvalidator = (queryClient: QueryClient): QueryInvalidator => ({
   invalidateAndAwait: (keys) =>
-    Effect.gen(function*() {
-      const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
-      yield* Effect.forEach(
-        keys,
-        (queryKey) => {
-          const options = { updateMeta: { span } }
-          return Effect.promise(() => queryClient.invalidateQueries({ queryKey }, options))
-        },
-        { discard: true, concurrency: "inherit" }
-      )
-    }),
+    Effect
+      .gen(function*() {
+        const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+        yield* Effect.forEach(
+          keys,
+          (queryKey) => {
+            const options = { updateMeta: { span } }
+            return Effect.promise(() => queryClient.invalidateQueries({ queryKey }, options))
+          },
+          { discard: true, concurrency: "unbounded" }
+        )
+      })
+      .pipe(Effect.orDie),
   invalidateSoft: (keys) =>
-    Effect.gen(function*() {
-      const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
-      yield* Effect.forEach(
-        keys,
-        (queryKey) => Effect.promise(() => queryClient.invalidateQueries({ queryKey }, { updateMeta: { span } })),
-        { discard: true, concurrency: "inherit" }
-      )
-    })
+    Effect
+      .gen(function*() {
+        const span = yield* Effect.currentParentSpan.pipe(Effect.orElseSucceed(() => undefined))
+        yield* Effect.forEach(
+          keys,
+          (queryKey) => Effect.promise(() => queryClient.invalidateQueries({ queryKey }, { updateMeta: { span } })),
+          { discard: true, concurrency: "unbounded" }
+        )
+      })
+      .pipe(Effect.orDie)
 })
 
 const fullQueryKey = (

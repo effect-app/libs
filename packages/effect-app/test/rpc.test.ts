@@ -58,5 +58,5 @@ test("Void decodes and encodes as void", () => {
   expectTypeOf<typeof _statsRequestType>().toEqualTypeOf<"query">()
   expectTypeOf(statsFromMake).toEqualTypeOf<Stats>()
   expectTypeOf(statsFromMakeOption).toEqualTypeOf<Option.Option<Stats>>()
-  expectTypeOf(statsFromMakeEffect).toEqualTypeOf<Effect.Effect<Stats, S.SchemaError>>()
+  expectTypeOf(statsFromMakeEffect).toEqualTypeOf<Effect.Effect<Stats, S.SchemaIssue.Issue>>()
 })

@@ -117,14 +117,16 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
 
 /** Refresh registered query atoms without making the triggering mutation await them. */
 export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
-  Effect.gen(function*() {
-    const atoms = atomsForKeys(keys)
-    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
-    if (atoms.length === 0) return
-    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
-      discard: true
+  Effect
+    .gen(function*() {
+      const atoms = atomsForKeys(keys)
+      yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
+      if (atoms.length === 0) return
+      yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+        discard: true
+      })
     })
-  })
+    .pipe(Effect.orDie)
 
 /**
  * Invalidate the given keys and AWAIT the result. `keyAtoms` resolves all matching hierarchical
@@ -137,15 +139,17 @@ export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void
  * vue composables resolve via `injectRegistry`'s fallback.)
  */
 export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
-  Effect.gen(function*() {
-    const atoms = atomsForKeys(keys)
-    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "inherit" })
-    if (atoms.length === 0) return
-    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
-      discard: true
+  Effect
+    .gen(function*() {
+      const atoms = atomsForKeys(keys)
+      yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
+      if (atoms.length === 0) return
+      yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+        discard: true
+      })
+      yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
     })
-    yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
-  })
+    .pipe(Effect.orDie)
 
 const isPlainObject = (o: unknown): o is Record<string, unknown> => {
   if (typeof o !== "object" || o === null) return false

@@ -732,7 +732,7 @@ NodeRuntime.runMain(
             url: Flag.string("url").pipe(
               Flag.optional,
               Flag.withDescription(
-                "Git repository URL (default: https://github.com/Effect-TS/effect-smol.git)"
+                "Git repository URL (default: https://github.com/Effect-TS/effect.git)"
               )
             )
           },
@@ -743,7 +743,7 @@ NodeRuntime.runMain(
                 onSome: (m) => m.split(",").map((p) => p.trim())
               }),
               subtreePrefix: Option.getOrElse(prefix, () => "repos/effect"),
-              url: Option.getOrElse(url, () => "https://github.com/Effect-TS/effect-smol.git")
+              url: Option.getOrElse(url, () => "https://github.com/Effect-TS/effect.git")
             })
           })
         )

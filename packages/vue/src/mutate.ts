@@ -135,13 +135,13 @@ export const combineQueryInvalidators = <R>(
     Effect.forEach(
       invalidators,
       (invalidator) => invalidator.invalidateAndAwait(keys),
-      { discard: true, concurrency: "inherit" }
+      { discard: true, concurrency: "unbounded" }
     ),
   invalidateSoft: (keys) =>
     Effect.forEach(
       invalidators,
       (invalidator) => invalidator.invalidateSoft?.(keys) ?? Effect.void,
-      { discard: true, concurrency: "inherit" }
+      { discard: true, concurrency: "unbounded" }
     )
 })
 

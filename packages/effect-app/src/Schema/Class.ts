@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
 import * as S from "effect/Schema"
 import * as SchemaGetter from "effect/SchemaGetter"
 import * as SchemaIssue from "effect/SchemaIssue"
@@ -14,9 +13,11 @@ import * as SchemaParser from "./SchemaParser.ts"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
-export interface EnhancedClass<Self, SchemaS extends S.Top & { readonly fields: S.Struct.Fields }, Inherited>
-  extends S.Class<Self, SchemaS, Inherited>
-{
+export interface EnhancedClass<
+  Self,
+  SchemaS extends S.Constraint & { readonly fields: S.Struct.Fields },
+  Inherited
+> extends S.Class<Self, SchemaS, Inherited> {
   /**
    * See `copyOrigin` docs in `utils.ts` for return-type design details.
    */
@@ -39,12 +40,22 @@ export declare const ExtendedSchemaNoEncoded: unique symbol
 
 export type ExtendedSchemaNoEncoded = typeof ExtendedSchemaNoEncoded
 
-type WithEncoded<SchemaS extends S.Top, Encoded> = Omit<SchemaS, "Encoded"> & { readonly Encoded: Encoded }
+/**
+ * Override schema `Encoded` while keeping `Constraint` (intersection, not `Omit`).
+ * Free type-params for `Encoded` keep the conditional unresolved — callers that
+ * need Encoded overrides use the intersection form of the class factory return type.
+ */
+type WithEncoded<SchemaS extends S.Constraint, Encoded> = SchemaS & { readonly Encoded: Encoded }
 
-type ExtendedSchema<SchemaS extends S.Top, Encoded> = [Encoded] extends [ExtendedSchemaNoEncoded] ? SchemaS
+type ExtendedSchema<SchemaS extends S.Constraint & { readonly fields: S.Struct.Fields }, Encoded> = [
+  Encoded
+] extends [ExtendedSchemaNoEncoded] ? SchemaS
   : WithEncoded<SchemaS, Encoded>
 
-export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
+/** Struct fields schema, optionally with a caller-supplied Encoded override. */
+type ClassFieldsSchema<Fields extends S.Struct.Fields, Encoded> = ExtendedSchema<S.Struct<Fields>, Encoded>
+
+export type Class<Self, S extends S.Constraint & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
   Self,
   S,
   Inherited
@@ -73,7 +84,7 @@ function makeRelaxedDeclaration(
       if (input !== null && typeof input === "object") {
         return decodeStruct(input, options)
       }
-      return Effect.fail(new SchemaIssue.InvalidType(self, Option.some(input)))
+      return Effect.fail(new SchemaIssue.InvalidType(self, input))
     },
     ast.annotations,
     ast.checks,
@@ -114,7 +125,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}
 ) => [Self] extends [never] ? MissingSelfGeneric<"Class">
   : EnhancedClass<
     Self,
-    ExtendedSchema<S.Struct<Fields>, Encoded>,
+    ClassFieldsSchema<Fields, Encoded>,
     Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
@@ -182,7 +193,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Bran
 ) => [Self] extends [never] ? MissingSelfGeneric<"TaggedClass">
   : EnhancedClass<
     Self,
-    ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
+    ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>,
     Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
@@ -227,11 +238,11 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
 ) => [Self] extends [never] ? MissingSelfGeneric<"ErrorClass">
   : EnhancedClass<
     Self,
-    ExtendedSchema<S.Struct<Fields>, Encoded>,
+    ClassFieldsSchema<Fields, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.ErrorClass as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
+    const Base = (S.Error as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -273,11 +284,11 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
 ) => [Self] extends [never] ? MissingSelfGeneric<"TaggedErrorClass">
   : EnhancedClass<
     Self,
-    ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
+    ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
+    const Base = (S.TaggedError as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -305,9 +316,9 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
     } as any
   }
 
-export interface Opaque<Self, Encoded, SchemaS extends S.Top, Brand>
-  extends S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>
-{}
+export interface Opaque<Self, Encoded, SchemaS extends S.Top, Brand> extends S.Opaque<Self, SchemaS, Brand> {
+  readonly "Encoded": Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
+}
 
 export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
   schema: S
@@ -338,21 +349,14 @@ export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => 
  * (`~type.make.in`) and other derived members are still computed from the struct. See
  * a future `OpaqueShape`-style helper if those also need to be supplied.
  */
-export interface OpaqueType<Self, Encoded, SchemaS extends S.Top, Brand>
-  extends S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>
-{
+export interface OpaqueType<Self, Encoded, SchemaS extends S.Top, Brand> extends S.Opaque<Self, SchemaS, Brand> {
+  readonly "Encoded": Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
   new(_: never): Self
 }
 
 export const OpaqueType: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
   schema: S
 ) => OpaqueType<Self, Encoded, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
-
-// Override both the `Encoded` and make-input (`~type.make.in`) members in one go,
-// like `ExtendedSchema` does for `Encoded` alone.
-type ExtendedShape<SchemaS extends S.Top, Encoded, MakeIn> =
-  & Omit<SchemaS, "Encoded" | "~type.make.in">
-  & { readonly Encoded: Encoded; readonly "~type.make.in": MakeIn }
 
 type OpaqueFacadeConstructorArgs<MakeIn> = {} extends MakeIn ? [props?: MakeIn, options?: S.MakeOptions]
   : [props: MakeIn, options?: S.MakeOptions]
@@ -395,7 +399,7 @@ const isClassSchemaConstructor = (value: unknown): value is PrototypeFunction =>
 
 const getFacadeClassSchema = (schema: OpaqueFacadeInput<any, any>): PrototypeFunction | undefined => {
   if (isClassSchemaConstructor(schema)) return schema
-  const target = "to" in schema ? schema.to : undefined
+  const target = "to" in schema ? (schema as { readonly to?: unknown }).to : undefined
   return isClassSchemaConstructor(target) ? target : undefined
 }
 
@@ -451,8 +455,10 @@ type OpaqueFacadeStatics<SchemaS extends S.Top> = Omit<SchemaS, Exclude<keyof S.
  * {@link OpaqueType}.
  */
 export interface OpaqueShape<Self, Encoded, MakeIn, SchemaS extends S.Top, Brand>
-  extends S.Opaque<Self, ExtendedShape<SchemaS, Encoded, MakeIn>, Brand>
+  extends S.Opaque<Self, SchemaS, Brand>
 {
+  readonly "Encoded": Encoded
+  readonly "~type.make.in": MakeIn
   new(_: never): Self
 }
 

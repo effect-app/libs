@@ -36,7 +36,6 @@ import { pipe } from "effect/Function"
 import * as Function from "effect/Function"
 import * as Option from "effect/Option"
 import * as S from "effect/Schema"
-import { isDateValid } from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
@@ -136,13 +135,13 @@ const DateValidString = S.String.annotate({
   format: "date-time"
 })
 
+// Schema.Date rejects invalid Dates since beta.91+; no separate isDateValid check needed.
 const DateValidFromString = DateValidString
   .pipe(
     S.decodeTo(S.Date, SchemaTransformation.dateFromString)
   )
-  .check(isDateValid())
 
-/** Like the default Schema `DateValid` but from String, with default helpers. */
+/** Like the default Schema `Date` (valid only) but from String, with default helpers. */
 export const DateValid = extendM(DateValidFromString, (s) => ({
   /**
    * Construction-only default `new Date()`. Applied only when the field is
@@ -504,9 +503,9 @@ export type WithDefaults<Self extends S.Top> = (
 // export type UnionToIntersection3<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I
 //   : never
 
-/** Union of `DateValid` and `Date`, with default helpers. */
+/** Union of core `Schema.Date` (Date objects) and string-encoded `Date`, with default helpers. */
 export const inputDate = extendM(
-  S.Union([S.DateValid, Date]),
+  S.Union([S.Date, Date]),
   (s) => ({
     /**
      * Construction-only default `new Date()`. Applied only when the field is
@@ -597,7 +596,7 @@ export interface DropConstructorDefaultLambda extends Struct.Lambda {
 export const dropConstructorDefault: DropConstructorDefaultLambda = Struct.lambda<DropConstructorDefaultLambda>(
   (schema) => {
     const context = schema.ast.context
-    if (!context?.defaultValue) return schema
+    if (!context?.constructorDefault) return schema
     return schema.rebuild(
       SchemaASTInternal.replaceContext(
         schema.ast,
@@ -636,8 +635,8 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
         encode: (i: any) =>
           Effect.fail(
             new SchemaIssue.Forbidden(
-              Option.some(i),
-              { message: "One way schema transformation, encoding is not allowed" }
+              { message: "One way schema transformation, encoding is not allowed" },
+              i
             )
           )
       })
@@ -661,8 +660,8 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
         encode: (i: any) =>
           Effect.fail(
             new SchemaIssue.Forbidden(
-              Option.some(i),
-              { message: "One way schema transformation, encoding is not allowed" }
+              { message: "One way schema transformation, encoding is not allowed" },
+              i
             )
           )
       })

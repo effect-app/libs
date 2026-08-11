@@ -1,3 +1,4 @@
+import { NodeCrypto } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Duration, Effect, Exit, Fiber, Layer, Option, Schema } from "effect"
@@ -132,7 +133,8 @@ const clusterWorkflowLayer = () => {
           Layer.provide(Runners.layerNoop),
           Layer.provide(RunnerHealth.layerNoop),
           Layer.provide(storage),
-          Layer.provide(config)
+          Layer.provide(config),
+          Layer.provide(NodeCrypto.layer)
         )
       )
     )

@@ -81,7 +81,7 @@ export const batch: {
       Array.chunksOf(items, n),
       (_, i) =>
         Effect
-          .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "unbounded" })
+          .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: options?.concurrency })
           .pipe(Effect.flatMap((_) => forEachBatch(_, i))),
       { concurrency: options?.concurrency }
     )

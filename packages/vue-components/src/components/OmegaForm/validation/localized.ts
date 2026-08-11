@@ -33,8 +33,7 @@ const filterMetaOf = (filter: {
   return (filter.annotations?.meta ?? {})
 }
 
-const reportedInput = (issue: { readonly input?: unknown }): unknown =>
-  S.SchemaIssue.hasInput(issue) ? issue.input : undefined
+const reportedInput = (issue: S.SchemaIssue.Issue): unknown => S.SchemaIssue.hasInput(issue) ? issue.input : undefined
 
 export const makeStandardSchemaV1Hooks = (
   trans: TransFn

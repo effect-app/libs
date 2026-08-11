@@ -99,7 +99,7 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
           // if there are any collisions, fail with a combined message
           if (messages.length > 0) {
             return yield* Effect.fail(
-              new SchemaIssue.InvalidValue(Option.some(entry.files), { message: messages.join("; ") })
+              new SchemaIssue.InvalidValue({ message: messages.join("; ") }, entry.files)
             )
           }
 

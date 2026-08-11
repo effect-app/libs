@@ -4,12 +4,17 @@ import * as S from "effect-app/Schema"
  * Checks if an AST node is a S.Redacted Declaration without encoding.
  * These need to be swapped to S.RedactedFromValue for form usage
  * because S.Redacted expects Redacted objects, not plain strings.
+ *
+ * Detection uses `annotations.representation.id` (beta.107+); the older
+ * `typeConstructor._tag === "effect/Redacted"` path is kept as a fallback.
  */
-const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
-  S.AST.isDeclaration(ast)
+const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean => {
+  if (!S.AST.isDeclaration(ast) || ast.encoding) return false
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Effect Schema AST annotations are loosely typed
-  && (ast.annotations as any)?.typeConstructor?._tag === "effect/Redacted"
-  && !ast.encoding
+  const annotations = ast.annotations as any
+  return annotations?.representation?.id === "effect/schema/Redacted"
+    || annotations?.typeConstructor?._tag === "effect/Redacted"
+}
 
 /*
  * Creates a form-compatible schema by replacing S.Redacted(X) with

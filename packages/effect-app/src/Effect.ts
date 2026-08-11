@@ -156,7 +156,7 @@ export function allLower<T extends Record<string, Context.Service<any, any> | Ef
       prev[((cur as string)[0]!.toLowerCase() + (cur as string).slice(1)) as unknown as LowerFirst<typeof cur>] = svc
       return prev
     }, {} as any),
-    { concurrency: "inherit" }
+    { concurrency: "unbounded" }
   ) as any as Effect.Effect<LowerServices<T>, ValuesE<T>, ValuesR<T>>
 }
 

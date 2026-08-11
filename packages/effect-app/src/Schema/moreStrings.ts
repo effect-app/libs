@@ -177,7 +177,7 @@ const StringIdSchemaBase = pipe(
 )
 const makeStringId = (s?: string): StringId =>
   s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
-const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
+const StringIdArb = (): S.Arbitrary<StringId> => (fc) =>
   fc
     .uint8Array({ minLength: length, maxLength: length })
     .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))() as StringId)
@@ -226,7 +226,7 @@ export function prefixedStringId<Type extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): S.LazyArbitrary<Type> => (fc) =>
+    const arb = (): S.Arbitrary<Type> => (fc) =>
       StringIdArb()(fc).map(
         (x) => (pref + x.substring(0, 50 - pref.length)) as Type
       )

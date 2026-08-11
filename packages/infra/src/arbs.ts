@@ -17,6 +17,6 @@ export function generate<T>(arb: FastCheck.Arbitrary<T>) {
   return arb.generate(rnd, undefined)
 }
 
-export function generateFromArbitrary<T>(arb: S.LazyArbitrary<T>) {
+export function generateFromArbitrary<T>(arb: S.Arbitrary<T>) {
   return generate(arb(FastCheck))
 }

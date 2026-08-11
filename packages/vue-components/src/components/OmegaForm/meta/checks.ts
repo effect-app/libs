@@ -3,19 +3,41 @@ import * as S from "effect-app/Schema"
 import type * as Record from "effect/Record"
 import type { FieldMeta } from "./types"
 
+/**
+ * Normalise a filter annotation into the meta shape used by field metadata
+ * extractors (`{ _tag: "isMinLength", minLength: n }`, …).
+ *
+ * Since effect beta.91+, filters expose `annotations.representation`
+ * (`{ id: "effect/schema/isMinLength", payload: { minLength } }`) instead of
+ * the older `annotations.meta` bag.
+ */
+const metaFromFilter = (check: {
+  readonly annotations?: {
+    readonly meta?: unknown
+    readonly representation?: { readonly id?: string; readonly payload?: unknown }
+  }
+}): Array<Record<string, any>> => {
+  const rep = check.annotations?.representation
+  if (rep && typeof rep.id === "string") {
+    const tag = rep.id.replace(/^effect\/schema\//, "")
+    const payload = rep.payload !== null && typeof rep.payload === "object"
+      ? rep.payload as Record<string, any>
+      : {}
+    return [{ _tag: tag, ...payload }]
+  }
+
+  const meta = check.annotations?.meta
+  return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
+}
+
 export const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
   const checks = property.checks ?? []
 
   return checks.flatMap((check) => {
     if (check._tag === "FilterGroup") {
-      return check.checks.flatMap((inner) => {
-        const meta = inner.annotations?.meta
-        return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
-      })
+      return check.checks.flatMap((inner) => metaFromFilter(inner))
     }
-
-    const meta = check.annotations?.meta
-    return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
+    return metaFromFilter(check)
   })
 }
 

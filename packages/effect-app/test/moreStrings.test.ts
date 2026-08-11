@@ -9,7 +9,7 @@ const isNanoId = (value: string) => value.length === 21 && Array.from(value).eve
 
 test("StringId arbitrary generates nanoid-shaped values", () => {
   fc.assert(
-    fc.property(S.toArbitrary(S.StringId), (value) => {
+    fc.property(S.toArbitrary(S.StringId)(fc), (value) => {
       expect(isNanoId(value)).toBe(true)
       expect(S.is(S.StringId)(value)).toBe(true)
     })

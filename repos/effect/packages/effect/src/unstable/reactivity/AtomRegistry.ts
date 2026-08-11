@@ -96,8 +96,8 @@ export interface AtomRegistry {
 export interface Node<A> {
   readonly atom: Atom.Atom<A>
   readonly value: () => A
-  parents: Array<Node<any>>
-  children: Array<Node<any>>
+  parents: Set<Node<any>>
+  children: Set<Node<any>>
   listeners: Set<() => void>
   currentState(): "uninitialized" | "stale" | "valid" | "removed"
 }
@@ -435,7 +435,15 @@ class RegistryImpl implements AtomRegistry {
       const encoded = this.preloadedSerializable.get(key)
       this.preloadedSerializable.delete(key)
       const decoded = (atom as any as Atom.Serializable<any>)[SerializableTypeId].decode(encoded)
-      node.setValue(decoded)
+      let target = atom
+      while (target.initialValueTarget) {
+        target = target.initialValueTarget
+      }
+      if (target === atom) {
+        node.setValue(decoded)
+      } else {
+        this.ensureNode(target).setInitialValue(decoded)
+      }
     }
     return node
   }
@@ -593,11 +601,13 @@ class NodeImpl<A> {
   writeContext: WriteContextImpl<A>
   preserveInitialValueOnBuild = false
 
-  parents: Array<NodeImpl<any>> = []
-  previousParents: Array<NodeImpl<any>> | undefined
-  children: Array<NodeImpl<any>> = []
-  listeners: Set<() => void> = new Set()
+  parents = new Set<NodeImpl<any>>()
+  previousParents: Set<NodeImpl<any>> | undefined
+  children = new Set<NodeImpl<any>>()
+  listeners = new Set<() => void>()
   skipInvalidation = false
+  building = false
+  invalidatedDuringBuild = false
 
   currentState() {
     switch (this.state) {
@@ -613,14 +623,16 @@ class NodeImpl<A> {
   }
 
   get canBeRemoved(): boolean {
-    return !this.atom.keepAlive && this.listeners.size === 0 && this.children.length === 0 && this.state !== 0
+    return !this.atom.keepAlive && this.listeners.size === 0 && this.children.size === 0 && this.state !== 0
   }
 
   _value: A = undefined as any
   value(): A {
     if ((this.state & NodeFlags.waitingForValue) !== 0) {
       this.lifetime = makeLifetime(this)
+      this.building = true
       const value = this.atom.read(this.lifetime)
+      this.building = false
       if ((this.state & NodeFlags.waitingForValue) !== 0) {
         if (this.preserveInitialValueOnBuild) {
           this.preserveInitialValueOnBuild = false
@@ -633,10 +645,10 @@ class NodeImpl<A> {
       if (this.previousParents) {
         const parents = this.previousParents
         this.previousParents = undefined
-        for (let i = 0; i < parents.length; i++) {
-          parents[i].removeChild(this)
-          if (parents[i].canBeRemoved) {
-            this.registry.scheduleNodeRemoval(parents[i])
+        for (const parent of parents) {
+          parent.removeChild(this)
+          if (parent.canBeRemoved) {
+            this.registry.scheduleNodeRemoval(parent)
           }
         }
       }
@@ -685,7 +697,7 @@ class NodeImpl<A> {
     }
 
     this.state = NodeState.valid
-    if (Object.is(this._value, value)) {
+    if (this.atom.equals(this._value, value)) {
       return
     }
 
@@ -706,19 +718,16 @@ class NodeImpl<A> {
   }
 
   addParent(parent: NodeImpl<any>): void {
-    this.parents.push(parent)
+    this.parents.add(parent)
     if (this.previousParents !== undefined) {
-      const index = this.previousParents.indexOf(parent)
-      if (index !== -1) {
-        this.previousParents[index] = this.previousParents[this.previousParents.length - 1]
-        if (this.previousParents.pop() === undefined) {
-          this.previousParents = undefined
-        }
+      this.previousParents.delete(parent)
+      if (this.previousParents.size === 0) {
+        this.previousParents = undefined
       }
     }
 
-    if (parent.children.indexOf(this) === -1) {
-      parent.children.push(this)
+    if (!parent.children.has(this)) {
+      parent.children.add(this)
       if (parent.skipInvalidation) {
         parent.skipInvalidation = false
       }
@@ -726,14 +735,13 @@ class NodeImpl<A> {
   }
 
   removeChild(child: NodeImpl<any>): void {
-    const index = this.children.indexOf(child)
-    if (index !== -1) {
-      this.children[index] = this.children[this.children.length - 1]
-      this.children.pop()
-    }
+    this.children.delete(child)
   }
 
   invalidate(): void {
+    if (this.building && batchState.phase === BatchPhase.collect) {
+      this.invalidatedDuringBuild = true
+    }
     if (this.state === NodeState.valid) {
       this.state = NodeState.stale
       this.disposeLifetime()
@@ -750,14 +758,14 @@ class NodeImpl<A> {
   }
 
   invalidateChildren(): void {
-    if (this.children.length === 0) {
+    if (this.children.size === 0) {
       return
     }
 
     const children = this.children
-    this.children = []
-    for (let i = 0; i < children.length; i++) {
-      children[i].invalidate()
+    this.children = new Set()
+    for (const child of children) {
+      child.invalidate()
     }
   }
 
@@ -775,9 +783,9 @@ class NodeImpl<A> {
       this.lifetime = undefined
     }
 
-    if (this.parents.length !== 0) {
+    if (this.parents.size !== 0) {
       this.previousParents = this.parents
-      this.parents = []
+      this.parents = new Set()
     }
   }
 
@@ -797,10 +805,10 @@ class NodeImpl<A> {
 
     const parents = this.previousParents
     this.previousParents = undefined
-    for (let i = 0; i < parents.length; i++) {
-      parents[i].removeChild(this)
-      if (parents[i].canBeRemoved) {
-        this.registry.removeNode(parents[i])
+    for (const parent of parents) {
+      parent.removeChild(this)
+      if (parent.canBeRemoved) {
+        this.registry.removeNode(parent)
       }
     }
   }
@@ -811,19 +819,18 @@ class NodeImpl<A> {
   }
 }
 
-function childrenAreActive(children: Array<NodeImpl<any>>): boolean {
-  if (children.length === 0) {
+function childrenAreActive(children: Set<NodeImpl<any>>): boolean {
+  if (children.size === 0) {
     return false
   }
-  let current: Array<NodeImpl<any>> | undefined = children
-  let stack: Array<Array<NodeImpl<any>>> | undefined
+  let current: Set<NodeImpl<any>> | undefined = children
+  let stack: Array<Set<NodeImpl<any>>> | undefined
   let stackIndex = 0
   while (current !== undefined) {
-    for (let i = 0, len = current.length; i < len; i++) {
-      const child = current[i]
+    for (const child of current) {
       if (!child.atom.lazy || child.listeners.size > 0) {
         return true
-      } else if (child.children.length > 0) {
+      } else if (child.children.size > 0) {
         if (stack === undefined) {
           stack = [child.children]
         } else {
@@ -860,8 +867,9 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
       return this.node.registry.get(atom)
     }
     const parent = this.node.registry.ensureNode(atom)
+    const value = parent.value()
     this.node.addParent(parent)
-    return parent.value()
+    return value
   },
 
   result<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
@@ -1110,11 +1118,15 @@ export function batch(f: () => void): void {
 
 function batchRebuildNode(node: NodeImpl<any>) {
   if (node.state === NodeState.valid) {
-    return
+    if (!node.invalidatedDuringBuild) {
+      return
+    }
+    node.invalidatedDuringBuild = false
+    node.state = NodeState.stale
+    node.disposeLifetime()
   }
 
-  for (let i = 0; i < node.parents.length; i++) {
-    const parent = node.parents[i]
+  for (const parent of node.parents) {
     if (parent.state !== NodeState.valid) {
       batchRebuildNode(parent)
     }

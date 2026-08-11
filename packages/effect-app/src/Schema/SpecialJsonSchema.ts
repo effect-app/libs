@@ -3,8 +3,7 @@
  * post-processes the output (e.g. flattens simple allOf).
  */
 import type * as JsonSchema from "effect/JsonSchema"
-import type * as Schema from "effect/Schema"
-import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as Schema from "effect/Schema"
 
 /**
  * Converts a schema to a JSON Schema Document (draft-2020-12), with
@@ -14,8 +13,7 @@ export function specialJsonSchemaDocument(
   schema: Schema.Top,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.Document<"draft-2020-12"> {
-  const doc = SchemaRepresentation.fromAST(schema.ast)
-  const jd = SchemaRepresentation.toJsonSchemaDocument(doc, options)
+  const jd = Schema.toJsonSchemaDocument(schema, options)
   const processedDefs: JsonSchema.Definitions = {}
   for (const [key, def] of Object.entries(jd.definitions)) {
     processedDefs[key] = postProcessJsonSchema(def)

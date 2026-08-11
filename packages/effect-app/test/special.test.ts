@@ -7,7 +7,6 @@ import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
-import * as Schema from "effect/Schema"
 import * as S from "effect/Schema"
 import * as SchemaGetter from "effect/SchemaGetter"
 import { describe, expect, it } from "vitest"
@@ -492,8 +491,8 @@ describe("OpaqueFacade", () => {
         never,
         never
       >()(
-        // @ts-expect-error OpaqueErrorFacadeClass requires a class schema.
-        AppSchema.Struct({ value: S.String })
+        // Runtime guard: only class schemas are accepted (struct schemas throw).
+        AppSchema.Struct({ value: S.String }) as never
       )
 
     expect(makeStructErrorFacade).toThrow("OpaqueErrorFacadeClass requires a class schema")
@@ -642,36 +641,36 @@ describe("TaggedError", () => {
 
 describe("SpecialJsonSchema", () => {
   it("nullable to optional — from NullOr", () => {
-    const nullableDecodedUndefinedEncoded = (schema: Schema.Top) => {
+    const nullableDecodedUndefinedEncoded = (schema: S.Top) => {
       const isNullableSchema = "members" in schema
         && globalThis.Array.isArray((schema as any).members)
         && (schema as any).members.length === 2
         && (schema as any).members.some((member: any) => member.ast._tag === "Null")
 
-      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<Schema.Top> : undefined
+      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<S.Top> : undefined
       const innerSchema = nullableMembers
         ? nullableMembers.find((member: any) => member.ast._tag !== "Null")!
         : schema
 
-      const nullableSchema = isNullableSchema ? schema : Schema.NullOr(schema)
+      const nullableSchema = isNullableSchema ? schema : S.NullOr(schema)
 
       return nullableSchema.pipe(
-        Schema.encodeTo(Schema.optionalKey(innerSchema), {
+        S.encodeTo(S.optionalKey(innerSchema), {
           decode: SchemaGetter.transformOptional(Option.orElseSome(() => null)),
           encode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull))
         })
       )
     }
 
-    const fromNullOr = nullableDecodedUndefinedEncoded(Schema.NullOr(Schema.String))
-    const structFromNullOr = Schema.Struct({ status: fromNullOr })
+    const fromNullOr = nullableDecodedUndefinedEncoded(S.NullOr(S.String))
+    const structFromNullOr = S.Struct({ status: fromNullOr })
 
-    const encode = Schema.encodeUnknownSync(structFromNullOr as any)
+    const encode = S.encodeUnknownSync(structFromNullOr as any)
     const encodedNull = encode({ status: null })
     expect("status" in encodedNull).toBe(false)
     expect(encode({ status: "test" })).toStrictEqual({ status: "test" })
 
-    const decode = Schema.decodeUnknownSync(structFromNullOr as any)
+    const decode = S.decodeUnknownSync(structFromNullOr as any)
     expect(decode({})).toStrictEqual({ status: null })
     expect(decode({ status: "test" })).toStrictEqual({ status: "test" })
 
@@ -689,24 +688,24 @@ describe("SpecialJsonSchema", () => {
   })
 
   it("identifies X universally — deduplicates same-fingerprint references", () => {
-    const X = Schema.String.annotate({ title: "X", identifier: "X" })
+    const X = S.String.annotate({ title: "X", identifier: "X" })
 
-    const s = Schema.Struct({
-      a: Schema.NullOr(X).pipe(
-        Schema.encodeTo(Schema.optionalKey(X), {
+    const s = S.Struct({
+      a: S.NullOr(X).pipe(
+        S.encodeTo(S.optionalKey(X), {
           decode: SchemaGetter.transformOptional(Option.orElseSome(() => null)),
           encode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull))
         })
       ),
-      b: Schema.NullOr(X).pipe(
-        Schema.encodeTo(Schema.optionalKey(X), {
+      b: S.NullOr(X).pipe(
+        S.encodeTo(S.optionalKey(X), {
           decode: SchemaGetter.transformOptional(Option.orElseSome(() => null)),
           encode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull))
         })
       ),
-      c: Schema.NullOr(X),
+      c: S.NullOr(X),
       d: X,
-      e: X.pipe(Schema.optionalKey)
+      e: X.pipe(S.optionalKey)
     })
 
     const doc = specialJsonSchemaDocument(s)
@@ -738,16 +737,16 @@ describe("SpecialJsonSchema", () => {
   })
 
   it("shared annotated schema via helper — deduplicates", () => {
-    const X = Schema.String.annotate({ title: "X", identifier: "X" })
+    const X = S.String.annotate({ title: "X", identifier: "X" })
 
     const cache = new WeakMap()
-    const nullableDecodedUndefinedEncoded = (schema: Schema.Top) => {
+    const nullableDecodedUndefinedEncoded = (schema: S.Top) => {
       const isNullableSchema = "members" in schema
         && globalThis.Array.isArray((schema as any).members)
         && (schema as any).members.length === 2
         && (schema as any).members.some((member: any) => member.ast._tag === "Null")
 
-      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<Schema.Top> : undefined
+      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<S.Top> : undefined
       const innerSchema = nullableMembers
         ? nullableMembers.find((member: any) => member.ast._tag !== "Null")!
         : schema
@@ -755,9 +754,9 @@ describe("SpecialJsonSchema", () => {
       const cached = cache.get(innerSchema.ast)
       if (cached !== undefined) return cached
 
-      const nullableSchema = isNullableSchema ? schema : Schema.NullOr(schema)
+      const nullableSchema = isNullableSchema ? schema : S.NullOr(schema)
       const out = nullableSchema.pipe(
-        Schema.encodeTo(Schema.optionalKey(innerSchema), {
+        S.encodeTo(S.optionalKey(innerSchema), {
           decode: SchemaGetter.transformOptional(Option.orElseSome(() => null)),
           encode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull))
         })
@@ -767,12 +766,12 @@ describe("SpecialJsonSchema", () => {
       return out
     }
 
-    const structWithShared = Schema.Struct({
+    const structWithShared = S.Struct({
       a: nullableDecodedUndefinedEncoded(X),
-      b: nullableDecodedUndefinedEncoded(Schema.NullOr(X)),
-      c: Schema.NullOr(X),
+      b: nullableDecodedUndefinedEncoded(S.NullOr(X)),
+      c: S.NullOr(X),
       d: X,
-      e: X.pipe(Schema.optionalKey)
+      e: X.pipe(S.optionalKey)
     })
 
     const doc = specialJsonSchemaDocument(structWithShared)

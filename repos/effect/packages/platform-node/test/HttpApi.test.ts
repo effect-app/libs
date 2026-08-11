@@ -170,7 +170,7 @@ describe("HttpApi", () => {
       const MLive = Layer.succeed(
         M,
         (_, { endpoint }) =>
-          endpoint.name === "unauthorized"
+          endpoint.identifier === "unauthorized"
             ? Effect.fail(new HttpApiError.Unauthorized({}))
             : Effect.fail(new HttpApiError.Forbidden({}))
       )
@@ -222,7 +222,7 @@ describe("HttpApi", () => {
         const MClient = HttpApiMiddleware.layerClient(
           M,
           Effect.fnUntraced(function*({ endpoint, group, next, request }) {
-            yield* Ref.set(metadata, { group: group.identifier, endpoint: endpoint.name })
+            yield* Ref.set(metadata, { group: group.identifier, endpoint: endpoint.identifier })
             return yield* next(HttpClientRequest.setHeader(request, "x-client", "from-client"))
           })
         )
@@ -307,7 +307,7 @@ describe("HttpApi", () => {
     })
 
     it.effect("required client middleware can fail with typed clientError", () => {
-      class ClientFailure extends Schema.ErrorClass<ClientFailure>("ClientFailure")({
+      class ClientFailure extends Schema.Error<ClientFailure>("ClientFailure")({
         _tag: Schema.tag("ClientFailure")
       }) {}
 
@@ -597,14 +597,14 @@ describe("HttpApi", () => {
       const M1Live = Layer.succeed(
         M1,
         (effect, { endpoint, group }) =>
-          Effect.sync(() => calls.push(`m1:${group.identifier}.${endpoint.name}`)).pipe(
+          Effect.sync(() => calls.push(`m1:${group.identifier}.${endpoint.identifier}`)).pipe(
             Effect.flatMap(() => effect)
           )
       )
       const M2Live = Layer.succeed(
         M2,
         (effect, { endpoint, group }) =>
-          Effect.sync(() => calls.push(`m2:${group.identifier}.${endpoint.name}`)).pipe(
+          Effect.sync(() => calls.push(`m2:${group.identifier}.${endpoint.identifier}`)).pipe(
             Effect.flatMap(() => effect)
           )
       )
@@ -1421,7 +1421,7 @@ describe("HttpApi", () => {
     })
 
     it.effect("error from plain text", () => {
-      class RateLimitError extends Schema.ErrorClass<RateLimitError>("RateLimitError")({
+      class RateLimitError extends Schema.Error<RateLimitError>("RateLimitError")({
         _tag: Schema.tag("RateLimitError"),
         message: Schema.String
       }) {}
@@ -1488,17 +1488,17 @@ describe("HttpApi", () => {
   })
 })
 
-class UserError extends Schema.ErrorClass<UserError>("UserError")({
+class UserError extends Schema.Error<UserError>("UserError")({
   _tag: Schema.tag("UserError")
 }, {
   httpApiStatus: 400
 }) {}
-class GroupError extends Schema.ErrorClass<GroupError>("GroupError")({
+class GroupError extends Schema.Error<GroupError>("GroupError")({
   _tag: Schema.tag("GroupError")
 }, {
   httpApiStatus: 418
 }) {}
-class NoStatusError extends Schema.ErrorClass<NoStatusError>("NoStatusError")({
+class NoStatusError extends Schema.Error<NoStatusError>("NoStatusError")({
   _tag: Schema.tag("NoStatusError")
 }) {}
 

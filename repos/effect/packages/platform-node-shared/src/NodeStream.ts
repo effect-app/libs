@@ -235,9 +235,6 @@ export const toString = <E = Cause.UnknownError>(
       }
       resume(Effect.fail(onError(err) as E))
     })
-    stream.once("error", (err) => {
-      resume(Effect.fail(onError(err) as E))
-    })
 
     let string = ""
     let bytes = 0
@@ -338,7 +335,6 @@ const readableToPullUnsafe = <A, E>(options: {
   readonly closeOnDone?: boolean | undefined
 }) => {
   const readable = options.readable as Readable
-  if (readable.readableEnded) return Effect.succeed(Cause.done())
 
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
@@ -363,6 +359,9 @@ const readableToPullUnsafe = <A, E>(options: {
     if (item === null) {
       if (exit.current) {
         return exit.current
+      }
+      if (readable.readableEnded) {
+        return Effect.fail(Cause.Done())
       }
       latch.closeUnsafe()
       return Effect.flatMap(latch.await, loop)

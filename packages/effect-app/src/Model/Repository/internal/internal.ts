@@ -34,18 +34,53 @@ import { ValidationError, ValidationResult } from "../validation.ts"
 
 const dedupe = Array.dedupeWith(Equivalence.String)
 
-const schemaDurationBoundaries = [0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1_000]
+// ms buckets: dense under 100ms (common path), then mid-tail and multi-second stalls.
+// Rare 0.5–1s+ encodes (fat aggregates) must not collapse into a single overflow bin.
+const schemaDurationBoundaries = [
+  0.1,
+  0.5,
+  1,
+  2,
+  5,
+  10,
+  25,
+  50,
+  100,
+  150,
+  200,
+  300,
+  500,
+  750,
+  1_000,
+  1_500,
+  2_000,
+  5_000
+]
+// Event-loop-relevant stall floor: encodes/decodes above this are rare but block Node.
+const SCHEMA_SLOW_MS = 100
 const schemaDecodeDuration = Metric.histogram("app.schema.decode.duration", { boundaries: schemaDurationBoundaries })
 const schemaEncodeDuration = Metric.histogram("app.schema.encode.duration", { boundaries: schemaDurationBoundaries })
 const schemaItemCount = Metric.histogram("app.schema.item_count", {
   boundaries: [0, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1_000, 5_000]
 })
+const schemaSlow = Metric.counter("app.schema.slow", {
+  description: `Repository schema encode/decode slower than ${SCHEMA_SLOW_MS}ms`,
+  incremental: true
+})
+
+const entityStateFromItems = (items: readonly unknown[]): string | undefined => {
+  const first = items[0]
+  if (first === null || typeof first !== "object" || !("_tag" in first)) return undefined
+  const tag = (first as { readonly _tag: unknown })._tag
+  return typeof tag === "string" ? tag : undefined
+}
 
 const timeSchema = (
   operation: "decode" | "encode",
   entity: string,
   queryMode: "aggregate" | "collect" | "project" | "transform" | undefined,
-  itemCount: number
+  itemCount: number,
+  entityState?: string
 ) =>
 <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.clockWith((clock) => {
@@ -53,15 +88,19 @@ const timeSchema = (
     const attributes = {
       "app.entity": entity,
       "app.schema.operation": operation,
-      ...(queryMode !== undefined && { "app.query.mode": queryMode })
+      ...(queryMode !== undefined && { "app.query.mode": queryMode }),
+      ...(entityState !== undefined && { "app.entity.state": entityState })
     }
     return Effect.onExit(self, () => {
       const durationMs = Number(clock.currentTimeNanosUnsafe() - startedAt) / 1_000_000
+      const slow = durationMs >= SCHEMA_SLOW_MS
       return Effect.all([
         Effect.annotateCurrentSpan({
           [`app.schema.${operation}.duration_ms`]: durationMs,
           "app.schema.item_count": itemCount,
-          ...(queryMode !== undefined && { "app.query.mode": queryMode })
+          "app.schema.slow": slow,
+          ...(queryMode !== undefined && { "app.query.mode": queryMode }),
+          ...(entityState !== undefined && { "app.entity.state": entityState })
         }),
         Metric.update(
           Metric.withAttributes(
@@ -70,7 +109,10 @@ const timeSchema = (
           ),
           durationMs
         ),
-        Metric.update(Metric.withAttributes(schemaItemCount, attributes), itemCount)
+        Metric.update(Metric.withAttributes(schemaItemCount, attributes), itemCount),
+        ...(slow
+          ? [Metric.update(Metric.withAttributes(schemaSlow, attributes), 1)] as const
+          : [])
       ], { discard: true })
     })
   })
@@ -140,7 +182,7 @@ export function makeRepoInternal<
           const encodeMany = (items: readonly T[]) =>
             S.encodeEffect(S.Array(schema))(items).pipe(
               provideRctx,
-              timeSchema("encode", name, undefined, items.length)
+              timeSchema("encode", name, undefined, items.length, entityStateFromItems(items))
             )
           const decode = flow(S.decodeEffectConcurrently(schema), provideRctx)
           const decodeMany = flow(
@@ -756,7 +798,9 @@ export function makeRepoInternal<
                 save: (...xes: any[]) =>
                   Effect
                     .flatMap(
-                      encMany(xes).pipe(timeSchema("encode", name, undefined, xes.length)),
+                      encMany(xes).pipe(
+                        timeSchema("encode", name, undefined, xes.length, entityStateFromItems(xes))
+                      ),
                       (_) => saveAllE(_)
                     )
                     .pipe(

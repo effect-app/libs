@@ -414,10 +414,40 @@ describe("repository ext save/remove batching", () => {
         const allSpan = spans.find((_) => _.name === "Repository.all")
         expect(saveSpan?.attributes.get("app.schema.encode.duration_ms")).toEqual(expect.any(Number))
         expect(saveSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(saveSpan?.attributes.get("app.schema.slow")).toBe(false)
         expect(saveSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
         expect(allSpan?.attributes.get("app.schema.decode.duration_ms")).toEqual(expect.any(Number))
         expect(allSpan?.attributes.get("app.schema.item_count")).toBe(1)
+        expect(allSpan?.attributes.get("app.schema.slow")).toBe(false)
         expect(allSpan?.attributes.get("db.operation.duration_ms")).toEqual(expect.any(Number))
+      })
+      .pipe(
+        setupRequestContextFromCurrent(),
+        Effect.provide(TestStoreLive)
+      ))
+
+  it.effect("annotates entity state tag on encode when items are tagged", () =>
+    Effect
+      .gen(function*() {
+        const spans: Tracer.NativeSpan[] = []
+        const tracer = Tracer.make({
+          span(options) {
+            const span = new Tracer.NativeSpan(options)
+            spans.push(span)
+            return span
+          }
+        })
+
+        yield* Effect
+          .gen(function*() {
+            const repo = yield* makeRepo("TaggedTelemetry", union, {})
+            yield* repo.save({ _tag: "A", id: "1" })
+          })
+          .pipe(Effect.provideService(Tracer.Tracer, tracer))
+
+        const saveSpan = spans.find((_) => _.name === "Repository.saveAndPublish")
+        expect(saveSpan?.attributes.get("app.entity.state")).toBe("A")
+        expect(saveSpan?.attributes.get("app.schema.slow")).toBe(false)
       })
       .pipe(
         setupRequestContextFromCurrent(),

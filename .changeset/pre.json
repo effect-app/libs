@@ -312,6 +312,7 @@
     "rpc-stream-support",
     "salty-weeks-walk",
     "schema-concurrency-unbounded",
+    "schema-encode-slow-metrics",
     "schema-facade-identifier-structfacade",
     "schema-json-collections",
     "secret-url-tests",

@@ -35,6 +35,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import { clearQueryReadDependencies, getQueryReadDependencies, type QueryInvalidationMode, registerQueryInvalidationMode, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
 import { beginLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, registerLiveQuery } from "./liveQueryInvalidation.ts"
+import { atomsToRefetch, observeQueryAtom } from "./queryLifetime.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
 const prefixesOf = (key: ReadonlyArray<unknown>): ReadonlyArray<ReadonlyArray<unknown>> =>
@@ -53,9 +54,10 @@ const uniqueKeys = (keys: ReadonlyArray<ReadonlyArray<unknown>>): ReadonlyArray<
 }
 
 // --- awaitable invalidation -------------------------------------------------------------------
-// keyHash -> live query atoms registered under that key. A query atom is tracked while it is alive
-// in the registry (mounted OR cached within idle-ttl) and removed on GC, so invalidation reaches
-// cached-but-unmounted queries too (e.g. a list you navigated away from).
+// keyHash -> query atoms registered under that key. A query atom stays in the map while it is
+// alive in the registry (mounted OR cached within idle-ttl). Invalidation *marks* every matching
+// atom stale; it only *refetches* atoms that currently have observers (TanStack refetchType:
+// "active"). Idle cache entries refetch on the next mount.
 const keyAtoms = new Map<number, Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>>()
 
 const trackByKeys =
@@ -115,11 +117,11 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   return [...atoms]
 }
 
-/** Refresh registered query atoms without making the triggering mutation await them. */
+/** Refresh observed query atoms without making the triggering mutation await them. */
 export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
   Effect
     .gen(function*() {
-      const atoms = atomsForKeys(keys)
+      const atoms = atomsToRefetch(atomsForKeys(keys))
       yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
       if (atoms.length === 0) return
       yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
@@ -134,19 +136,21 @@ export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void
  * through `Reactivity.invalidate` invokes one atom's registered callback once per matching key,
  * repeatedly superseding the same fetch when a mutation carries many row/prefix keys.
  *
- * Resolves once the affected queries have settled, so a mutation can `yield*` this and know the
- * affected queries are fresh. (The await reads via the module-global default registry — the one the
- * vue composables resolve via `injectRegistry`'s fallback.)
+ * Resolves once every **observed** matching query has settled, so a mutation can
+ * `yield*` this and know the on-screen data is fresh. Idle (observers === 0)
+ * matches are only marked stale — they do not block the mutation. Soft
+ * invalidation (`invalidateSoft`) still fires without awaiting.
  */
 export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
   Effect
     .gen(function*() {
-      const atoms = atomsForKeys(keys)
+      const atoms = atomsToRefetch(atomsForKeys(keys))
       yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
       if (atoms.length === 0) return
       yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
         discard: true
       })
+      // Contract: observers > 0 ⇒ wait for this refresh to finish.
       yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
     })
     .pipe(Effect.orDie)
@@ -535,7 +539,8 @@ export const buildQueryFamily = <I, A, E>(
     atom = trackByKeys(reactivityKeys)(atom)
     atom = trackReadDependencies(fullKey, () => lastReads)(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
-    // idle window, letting invalidation reach a cached-but-unmounted query.
+    // idle window. Invalidation still finds the cached atom and marks it stale; it does not
+    // refetch until an observer remounts (TanStack refetchType: "active").
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
     const registered = setAtomQueryMetadata(Atom.withLabel(`query:${self.id}`)(atom))
     const writable = Atom.writable(
@@ -550,9 +555,12 @@ export const buildQueryFamily = <I, A, E>(
     const writableWithTarget = Object.assign(writable, { initialValueTarget: registered })
     const result = setAtomQueryMetadata(Atom.withLabel(`query-cache:${self.id}`)(writableWithTarget))
     // Key the fetch state by the atom `withQueryOptions` receives, so its mount hook can find it.
+    const observed = observeQueryAtom(result)
     queryFetchStates.set(result, fetchState)
+    queryFetchStates.set(observed, fetchState)
     atomQueryKeys.set(result, fullKey)
-    return result
+    atomQueryKeys.set(observed, fullKey)
+    return observed
   })
 }
 
@@ -581,7 +589,7 @@ export const buildStreamQueryFamily = <I, A, E>(
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackWritableByKeys(reactivityKeys)(atom)
     atom = Atom.setIdleTTL(atom, defaults.gcTime)
-    return setAtomQueryMetadata(Atom.withLabel(`stream-query:${self.id}`)(atom))
+    return observeQueryAtom(setAtomQueryMetadata(Atom.withLabel(`stream-query:${self.id}`)(atom)))
   })
 }
 

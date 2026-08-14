@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      publish_snapshot:
+        description: Run snapshot publish inside this reusable workflow
+        type: boolean
+        default: false
   workflow_dispatch:
 
 env:
@@ -142,95 +147,18 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+  # On main, Changesets calls this workflow and then runs `version` with
+  # `needs: [ci]`. Keep snapshot out of that reusable path so version does
+  # not wait for pkg.pr.new. Main snapshot runs as a sibling in release.yaml.
   snapshot:
     name: Publish Snapshot
     needs: [build]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'chore: update versions')) ||
+      inputs.publish_snapshot ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
       github.event_name == 'workflow_dispatch'
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-          path: packages/
-
-      - name: Publish snapshots to pkg.pr.new
-        id: publish
-        run: pnpm exec pkg-pr-new publish --pnpm ./packages/*
-
-      - name: Write snapshot usage summary
-        id: usage
-        shell: bash
-        run: |
-          PACKAGE_LOCATORS="${{ steps.publish.outputs.packages }}"
-          PACKAGE_URLS="${{ steps.publish.outputs.urls }}"
-          PUBLISHED_SHA="${{ steps.publish.outputs.sha }}"
-          if [ -z "$PACKAGE_LOCATORS" ] || [ -z "$PACKAGE_URLS" ] || [ -z "$PUBLISHED_SHA" ]; then
-            echo "pkg-pr-new did not return expected outputs (packages/urls/sha)" >&2
-            exit 1
-          fi
-
-          {
-            echo "## Snapshot publish complete"
-            echo
-            echo "- SHA: \`${PUBLISHED_SHA}\`"
-            echo
-            echo "Published via pkg.pr.new."
-            echo
-            echo "### Install package locators"
-            echo "\`\`\`bash"
-            echo "$PACKAGE_LOCATORS"
-            echo "\`\`\`"
-            echo
-            echo "### Package URLs"
-            echo "\`\`\`text"
-            echo "$PACKAGE_URLS"
-            echo "\`\`\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          {
-            echo "package_locators<<EOF"
-            echo "$PACKAGE_LOCATORS"
-            echo "EOF"
-            echo "package_urls<<EOF"
-            echo "$PACKAGE_URLS"
-            echo "EOF"
-            echo "published_sha=$PUBLISHED_SHA"
-          } >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/publish-snapshot.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit

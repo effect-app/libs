@@ -18,6 +18,18 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  snapshot:
+    name: Publish Snapshot
+    needs: [ci]
+    if: |
+      github.actor != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message, 'chore: update versions')
+    uses: ./.github/workflows/publish-snapshot.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+
   version:
     needs: [ci]
     timeout-minutes: 15

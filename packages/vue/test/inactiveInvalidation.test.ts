@@ -49,7 +49,8 @@ const makeCounted = (id: string, repo: DataDependencies.DataDependency) => {
   return { self, starts: () => starts }
 }
 
-const served = (atom: any): number | undefined => Option.getOrUndefined(AsyncResult.value(defaultRegistry.get(atom)))
+const result = (atom: any): AsyncResult.AsyncResult<number, never> => defaultRegistry.get(atom)
+const served = (atom: any): number | undefined => Option.getOrUndefined(AsyncResult.value(result(atom)))
 
 const queryAtom = (rt: any, self: any) =>
   withQueryOptions(buildQueryFamily(rt, self)(undefined), { gcTime: "infinity", revalidateOnFocus: false })

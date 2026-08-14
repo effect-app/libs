@@ -225,12 +225,12 @@ it("B1 — mutation fiber interrupted while its onExit invalidation-refetch runs
   const atom = buildQueryFamily(rt as any, g.self as any)(undefined)
   const unmount = defaultRegistry.mount(atom)
 
-  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any) // fetch #1
+  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom)) // fetch #1
   expect(g.completes()).toBe(1)
 
   g.setBlocking(true)
   const mutation = invalidateQueries({ id: "Repro.B1.Save" }, undefined, invalidator)(writeCommand(repo), { id: "x" })
-  const fiber = Effect.runFork(mutation as any)
+  const fiber = Effect.runFork(mutation)
   await ticks(2)
   expect(g.starts(), "invalidation should have started the refetch").toBe(2)
 
@@ -239,7 +239,7 @@ it("B1 — mutation fiber interrupted while its onExit invalidation-refetch runs
   const interrupting = drain(fiber)
   g.releaseAll()
   await interrupting
-  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom) as any)
+  await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
 
   expect(g.completes(), "onExit invalidation must complete the refetch despite fiber interrupt").toBe(2)
   expect(served(atom)).toBe(2)
@@ -266,7 +266,7 @@ it("B2 — query unmounts DURING a mutation-triggered refetch, then remounts: re
 
   g.setBlocking(true)
   const mutation = invalidateQueries({ id: "Repro.B2.Save" }, undefined, invalidator)(writeCommand(repo), { id: "x" })
-  const fiber = Effect.runFork(mutation as any)
+  const fiber = Effect.runFork(mutation)
   await ticks(2)
   expect(g.starts(), "mutation should have started the refetch").toBe(2)
 
@@ -301,10 +301,12 @@ it("B3 — query UNMOUNTED when the mutation invalidation lands, then remounts: 
   m1.app.unmount() // navigate away: query is unmounted (cached)
   await ticks(2)
 
-  // Command writes the repo; invalidation marks the (unmounted) query dirty.
+  // Command writes the repo; invalidation marks the (unmounted) query dirty
+  // without refetching it (TanStack refetchType: "active").
   const mutation = invalidateQueries({ id: "Repro.B3.Save" }, undefined, invalidator)(writeCommand(repo), { id: "x" })
   await Effect.runPromise(mutation as any).then(() => {}, () => {})
   await ticks(2)
+  expect(g.starts(), "unmounted invalidation must not refetch").toBe(1)
 
   const m2 = mountSuspense(atom) // remount: an invalidated query refetches on mount
   await settle(m2.getPromise())
@@ -495,7 +497,7 @@ it("SUP — invalidation supersedes a stale in-flight fetch; remaining listeners
 
   // A mutation invalidates the query while fetch #2 is still in-flight (stale) -> must supersede it.
   const mutation = invalidateQueries({ id: "Repro.SUP.Save" }, undefined, invalidator)(writeCommand(repo), { id: "x" })
-  const fiber = Effect.runFork(mutation as any)
+  const fiber = Effect.runFork(mutation)
   await ticks(2)
   const superseded = g.starts()
 

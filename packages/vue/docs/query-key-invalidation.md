@@ -95,9 +95,10 @@ The await-tracking map (`keyAtoms` in `atomQuery.ts`) keys on the same `Hash.has
 3. **O(depth) registrations per live query** (depth+1 prefixes, in both the reactivity
    handler map and `keyAtoms`). Negligible at typical depths of 2-4.
 4. **Reaches only "alive" atoms** (mounted, or cached within `idleTTL`). `setIdleTTL` is
-   applied last in the atom chain so cached-but-unmounted queries stay registered and are
-   still hit; a query GC'd past idle TTL is gone and refetches fresh on next mount anyway —
-   matching TanStack `gcTime` semantics.
+   applied last in the atom chain so cached-but-unmounted queries stay registered.
+   Invalidation **marks** those idle entries stale (TanStack `refetchType: "active"`) and
+   **awaits** the refetch of any atom that still has observers. A query GC'd past idle TTL
+   is gone and refetches fresh on next mount — matching TanStack `gcTime` semantics.
 
 ## Verdict
 

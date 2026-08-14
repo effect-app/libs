@@ -1,5 +1,14 @@
 # @effect-app/e2e
 
+## 4.0.0-beta.313
+
+### Patch Changes
+
+- Updated dependencies [eddda2e]
+  - @effect-app/vue@4.0.0-beta.313
+  - effect-app@4.0.0-beta.313
+  - @effect-app/infra@4.0.0-beta.313
+
 ## 4.0.0-beta.312
 
 ### Patch Changes

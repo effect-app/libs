@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 4.0.0-beta.313
+
+### Minor Changes
+
+- eddda2e: Invalidate only mounted queries (TanStack `refetchType: "active"`). Idle `gcTime` entries are marked stale and refetch on remount. `invalidateAndAwait` still waits for observed refetches to finish.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.313
+
 ## 4.0.0-beta.312
 
 ### Patch Changes

@@ -5,6 +5,7 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeQueryKey } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
+import * as Deferred from "effect/Deferred"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
@@ -38,6 +39,52 @@ it.live("stream mutations accumulate repeated server keys and invalidate once wh
     yield* mutation(undefined).pipe(Stream.runDrain)
 
     expect(calls).toEqual([[key]])
+  }))
+
+it.live("stream mutations flush write-deps once when they first arrive, then again on settle", () =>
+  Effect.gen(function*() {
+    const jobKey: InvalidationKey = ["$PickList", "GetActiveJob"]
+    const listKey: InvalidationKey = ["$PickList", "List"]
+    const jobRepo = DataDependencies.repo("PickJob")
+    const itemRepo = DataDependencies.repo("PickItem")
+    setQueryReadDependencies(jobKey, new Set([jobRepo]))
+    setQueryReadDependencies(listKey, new Set([itemRepo]))
+
+    const calls: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+    const firstFlush = yield* Deferred.make<void>()
+    const gate = yield* Deferred.make<void>()
+    const queryInvalidator = {
+      invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
+        Effect
+          .sync(() => {
+            calls.push(keys)
+          })
+          .pipe(
+            Effect.flatMap(() => calls.length === 1 ? Deferred.succeed(firstFlush, undefined) : Effect.void)
+          )
+    }
+    const mutation = makeStreamMutation2(queryInvalidator)({
+      id: "PickList.StartBatchPrint",
+      handler: () =>
+        Stream.make(1).pipe(
+          Stream.tap(() => DataDependencies.write(jobRepo)),
+          Stream.concat(Stream.fromEffect(Deferred.await(gate).pipe(Effect.as(2)))),
+          Stream.tap((n) => n === 2 ? DataDependencies.write(itemRepo) : Effect.void)
+        )
+    })
+
+    try {
+      const fiber = yield* Effect.forkChild(Stream.runDrain(mutation(undefined)))
+      yield* Deferred.await(firstFlush)
+      expect(calls).toEqual([[jobKey]])
+
+      yield* Deferred.succeed(gate, undefined)
+      yield* Fiber.join(fiber)
+      expect(calls).toEqual([[jobKey], [jobKey, listKey]])
+    } finally {
+      clearQueryReadDependencies(jobKey)
+      clearQueryReadDependencies(listKey)
+    }
   }))
 
 // --- shared registry + derivation logic --------------------------------------------------------

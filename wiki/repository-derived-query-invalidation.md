@@ -37,8 +37,8 @@ type DataDependency =
 Each request has a `DataDependencyRecorder` in context. Code can record:
 
 ```ts
-yield* DataDependencies.read(DataDependencies.repo("PickList"))
-yield* DataDependencies.write(DataDependencies.repo("PickList"))
+yield * DataDependencies.read(DataDependencies.repo("PickList"))
+yield * DataDependencies.write(DataDependencies.repo("PickList"))
 ```
 
 Repository operations do this automatically, so most resource handlers do not
@@ -136,8 +136,11 @@ the local `DataDependencyRecorder`. This makes dependency propagation work for
 both direct RPC clients and the Vue query/mutation helpers.
 
 Stream commands emit dependency metadata in the same metadata chunks already
-used for server-driven invalidation keys. Writes can therefore invalidate
-queries mid-stream or when the stream completes.
+used for server-driven invalidation keys. `@effect-app/vue` `makeStreamMutation2`
+flushes **write-deps once** when the first write arrives (so a created job
+refreshes `GetActiveJob` while the stream is still open) and again when the
+stream settles. Server invalidation keys stay settlement-only — flushing them
+per chunk refetched live list queries on every item.
 
 ## Vue cache integration
 

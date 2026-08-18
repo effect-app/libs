@@ -478,18 +478,28 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
     const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
       Effect.gen(function*() {
         const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-        // Stream metadata can arrive after every emitted RPC value. Accumulate its invalidation
-        // keys and flush them once from `ensuring`; invalidating from `add` would refetch live
-        // queries once per message and repeatedly cancel the preceding request.
+        // Server invalidation keys stay settlement-only: flushing them from `add` refetched
+        // live queries once per chunk (One-Pick List storms). Write-deps flush once when the
+        // first write arrives (job create → GetActiveJob) and again from `ensuring`.
         const invKeys = makeInvalidationKeysService(keysRef)
         const readsRef = yield* Ref.make(DataDependencies.empty())
         const writesRef = yield* Ref.make(DataDependencies.empty())
         const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
         const lastRef = yield* Ref.make<any>(undefined)
+        let flushedFirstWrites = false
+        const flushFirstWrites = Effect.gen(function*() {
+          if (flushedFirstWrites) return
+          const writeDependencies = yield* Ref.get(writesRef)
+          if (!DataDependencies.isNonEmpty(writeDependencies)) return
+          flushedFirstWrites = true
+          const lastValue = yield* Ref.get(lastRef)
+          yield* invCache(input, Exit.succeed(lastValue), [], writeDependencies)
+        })
         return source.pipe(
           Stream.provideService(InvalidationKeysFromServer, invKeys),
           Stream.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
           Stream.tap((v) => Ref.set(lastRef, v)),
+          Stream.tap(() => flushFirstWrites),
           Stream.ensuring(
             Effect.gen(function*() {
               const lastValue = yield* Ref.get(lastRef)

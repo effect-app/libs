@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.314
+
+### Patch Changes
+
+- 61a3931: Flush stream mutation write-deps once when the first write arrives, then again on settlement. Long-running streams can refresh queries like GetActiveJob without invalidating list queries on every subsequent item write.
+  - effect-app@4.0.0-beta.314
+
 ## 4.0.0-beta.313
 
 ### Minor Changes

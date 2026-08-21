@@ -87,17 +87,25 @@
         />
       </template>
     </v-textarea>
+    <!-- min/max are deliberately NOT passed as VNumberInput props: the component
+         silently withholds out-of-range values from the model (so schema errors
+         would never show) and clamps on blur. Validation stays schema-driven; the
+         bounds are exposed to AT via the spinbutton ARIA attrs, which fall through
+         to the native input. -->
     <v-number-input
       v-if="inputProps.type === 'number'"
       :id="inputProps.id"
       :required="inputProps.required"
-      :min="typeof inputProps.min === 'number' ? inputProps.min : undefined"
-      :max="typeof inputProps.max === 'number' ? inputProps.max : undefined"
+      role="spinbutton"
+      :aria-valuemin="typeof inputProps.min === 'number' ? inputProps.min : undefined"
+      :aria-valuemax="typeof inputProps.max === 'number' ? inputProps.max : undefined"
+      :aria-valuenow="typeof state.value === 'number' ? state.value : undefined"
       :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       :precision="inputProps.refinement === 'int' ? 0 : null"
+      control-variant="stacked"
       v-bind="$attrs"
       :model-value="state.value as any"
       @update:model-value="(v: number | null) => field.handleChange((v ?? undefined) as any)"

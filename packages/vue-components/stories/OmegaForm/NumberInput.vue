@@ -3,7 +3,9 @@
     <template #default="{ subscribedValues: { values } }">
       <pre>{{ values }}</pre>
 
-      <!-- S.Int with min/max from the schema: precision 0 is automatic (no decimal separator), stepper clamps to 1-20 -->
+      <!-- S.Int with min/max from the schema: precision 0 is automatic (no decimal
+           separator); out-of-range values (e.g. 21) show the schema validation error,
+           the bounds are exposed to assistive tech via aria-valuemin/valuemax -->
       <form.Input
         name="quantity"
         label="Quantity (1-20)"
@@ -15,12 +17,14 @@
         label="Price (optional, decimals)"
       />
 
-      <!-- extra VNumberInput props pass through attrs and win over the schema-driven defaults -->
+      <!-- extra VNumberInput props pass through attrs and win over OmegaForm's
+           defaults: OmegaForm renders stacked controls, here overridden back to
+           Vuetify's "default" split buttons, with a custom step -->
       <form.Input
         name="steps"
-        label="Steps of 5, stacked controls"
+        label="Steps of 5, default controls"
         :step="5"
-        control-variant="stacked"
+        control-variant="default"
       />
 
       <!-- decimal separator follows the Vuetify locale (this Storybook is "en", so "." elsewhere);

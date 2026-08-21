@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.316
+
+### Patch Changes
+
+- 9d015d8: OmegaForm number fields accept both "." and "," while typing: the wrong separator is translated to the active one (locale or explicit decimal-separator). Int fields no longer silently block decimals (precision null): invalid values go through and the schema error shows.
+  - effect-app@4.0.0-beta.316
+  - @effect-app/vue@4.0.0-beta.316
+
 ## 4.0.0-beta.315
 
 ### Minor Changes

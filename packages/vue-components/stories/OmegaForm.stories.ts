@@ -26,6 +26,7 @@ import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
 import NullableComponent from "./OmegaForm/Nullable.vue"
 import NullableNestedStructComponent from "./OmegaForm/NullableNestedStruct.vue"
+import NumberInputComponent from "./OmegaForm/NumberInput.vue"
 import OmitConstructorDefaultsComponent from "./OmegaForm/OmitConstructorDefaults.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
@@ -153,6 +154,13 @@ export const NullableNestedStruct: Story = {
   render: () => ({
     components: { NullableNestedStructComponent },
     template: "<NullableNestedStructComponent />"
+  })
+}
+
+export const NumberInput: Story = {
+  render: () => ({
+    components: { NumberInputComponent },
+    template: "<NumberInputComponent />"
   })
 }
 

@@ -191,6 +191,7 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
       ? (props.meta?.minimum
         ?? (typeof props.meta?.exclusiveMinimum === "number" ? props.meta.exclusiveMinimum + 1 : undefined))
       : undefined,
+    refinement: props.meta?.type === "number" ? props.meta?.refinement : undefined,
     errorMessages: errors.value,
     error: !!errors.value.length,
     type: fieldType.value,

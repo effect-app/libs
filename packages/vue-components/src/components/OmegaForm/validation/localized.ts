@@ -13,6 +13,7 @@ type FilterMeta =
   | { readonly _tag: "isGreaterThan"; readonly exclusiveMinimum: number }
   | { readonly _tag: "isLessThanOrEqualTo"; readonly maximum: number }
   | { readonly _tag: "isLessThan"; readonly exclusiveMaximum: number }
+  | { readonly _tag: "isBetween"; readonly minimum: number; readonly maximum: number }
   | { readonly _tag?: undefined }
 
 /** Map filter annotations (representation since beta.107, legacy meta before) to FilterMeta. */
@@ -85,20 +86,30 @@ export const makeStandardSchemaV1Hooks = (
         const actual = input !== undefined ? String(input) : "NaN"
         return trans("validation.integer.expected", { actualValue: actual })
       }
+      // isExclusive semantics in the message catalog: true = strict bound
+      // ("greater/less than"), false = inclusive bound ("at least/at most").
       case "isGreaterThanOrEqualTo":
         return trans(
           meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",
-          { minimum: meta.minimum, isExclusive: true }
+          { minimum: meta.minimum, isExclusive: false }
         )
       case "isGreaterThan":
         return trans(
           meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min",
-          { minimum: meta.exclusiveMinimum, isExclusive: false }
+          { minimum: meta.exclusiveMinimum, isExclusive: true }
         )
       case "isLessThanOrEqualTo":
-        return trans("validation.number.max", { maximum: meta.maximum, isExclusive: true })
+        return trans("validation.number.max", { maximum: meta.maximum, isExclusive: false })
       case "isLessThan":
-        return trans("validation.number.max", { maximum: meta.exclusiveMaximum, isExclusive: false })
+        return trans("validation.number.max", { maximum: meta.exclusiveMaximum, isExclusive: true })
+      case "isBetween": {
+        // Inclusive on both ends; report the side the value actually violated.
+        const input = reportedInput(issue)
+        const below = typeof input === "number" && input < meta.minimum
+        return below
+          ? trans("validation.number.min", { minimum: meta.minimum, isExclusive: false })
+          : trans("validation.number.max", { maximum: meta.maximum, isExclusive: false })
+      }
       default:
         // Fall back to the default check hook so custom S.makeFilter messages
         // (which surface as InvalidValue.annotations.message on issue.issue)

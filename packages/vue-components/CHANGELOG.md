@@ -1,5 +1,17 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.315
+
+### Minor Changes
+
+- 07b9661: OmegaForm number fields now render Vuetify 4's `v-number-input` instead of `v-text-field type="number"` (`range` keeps its `v-slider`). Precision is schema-driven (`S.Int` → 0, plain numbers → free decimals), controls default to the stacked variant, and any `VNumberInput` prop (`precision`, `step`, `control-variant`, `decimal-separator`, ...) can be overridden per field via attrs. Schema `min`/`max` are exposed to assistive tech as spinbutton ARIA bounds but are deliberately not passed as component props, so out-of-range values keep reaching schema validation and show its localized error instead of being silently clamped.
+
+### Patch Changes
+
+- 07b9661: Localize `S.isBetween` validation failures: the violated side now maps to the `validation.number.min` / `validation.number.max` messages instead of falling back to the English default formatter. Also fixes the inverted `isExclusive` flag on the min/max messages for `isGreaterThan[OrEqualTo]` / `isLessThan[OrEqualTo]` (inclusive checks now say "at least/at most", strict ones "greater/less than").
+  - effect-app@4.0.0-beta.315
+  - @effect-app/vue@4.0.0-beta.315
+
 ## 4.0.0-beta.314
 
 ### Patch Changes

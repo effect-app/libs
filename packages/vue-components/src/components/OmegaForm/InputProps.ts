@@ -36,6 +36,7 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
     maxLength?: number | false
     max?: number | false
     min?: number | false
+    refinement?: "int"
     errorMessages: string[]
     error: boolean
     label: string

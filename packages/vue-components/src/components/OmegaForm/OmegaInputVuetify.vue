@@ -87,20 +87,43 @@
         />
       </template>
     </v-textarea>
-    <component
-      :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
-      v-if="inputProps.type === 'number' || inputProps.type === 'range'"
+    <v-number-input
+      v-if="inputProps.type === 'number'"
       :id="inputProps.id"
       :required="inputProps.required"
-      :min="inputProps.min"
-      :max="inputProps.max"
-      :type="inputProps.type"
+      :min="typeof inputProps.min === 'number' ? inputProps.min : undefined"
+      :max="typeof inputProps.max === 'number' ? inputProps.max : undefined"
+      :name="field.name"
+      :label="inputProps.label"
+      :error-messages="inputProps.errorMessages"
+      :error="inputProps.error"
+      :precision="inputProps.refinement === 'int' ? 0 : null"
+      v-bind="$attrs"
+      :model-value="state.value as any"
+      @update:model-value="(v: number | null) => field.handleChange((v ?? undefined) as any)"
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-number-input>
+    <v-slider
+      v-if="inputProps.type === 'range'"
+      :id="inputProps.id"
+      :required="inputProps.required"
+      :min="typeof inputProps.min === 'number' ? inputProps.min : undefined"
+      :max="typeof inputProps.max === 'number' ? inputProps.max : undefined"
       :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="state.value"
+      :model-value="state.value as any"
       @update:model-value="(e: any) => {
         if (e || e === 0) {
           field.handleChange(Number(e) as any)
@@ -118,7 +141,7 @@
           v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
         />
       </template>
-    </component>
+    </v-slider>
     <template v-if="inputProps.type === 'radio'">
       <v-radio-group
         :id="inputProps.id"

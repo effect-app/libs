@@ -3,9 +3,10 @@
     <template #default="{ subscribedValues: { values } }">
       <pre>{{ values }}</pre>
 
-      <!-- S.Int with min/max from the schema: precision 0 is automatic (no decimal
-           separator); out-of-range values (e.g. 21) show the schema validation error,
-           the bounds are exposed to assistive tech via aria-valuemin/valuemax -->
+      <!-- S.Int with min/max from the schema: nothing is silently blocked, typing a
+           decimal (e.g. 1.5) or an out-of-range value (e.g. 21) shows the schema
+           validation error; the bounds are exposed to assistive tech via
+           aria-valuemin/valuemax -->
       <form.Input
         name="quantity"
         label="Quantity (1-20)"
@@ -28,7 +29,8 @@
       />
 
       <!-- decimal separator follows the Vuetify locale (this Storybook is "en", so "." elsewhere);
-           it can be forced per field, here comma: typing "." is rejected, "," starts the decimals -->
+           it can be forced per field, here comma. Typing either "." or "," works: the wrong
+           one is translated to the active separator instead of being rejected -->
       <form.Input
         name="commaPrice"
         label="Comma price (decimal-separator ,)"

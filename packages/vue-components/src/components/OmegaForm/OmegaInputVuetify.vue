@@ -91,7 +91,9 @@
          silently withholds out-of-range values from the model (so schema errors
          would never show) and clamps on blur. Validation stays schema-driven; the
          bounds are exposed to AT via the spinbutton ARIA attrs, which fall through
-         to the native input. -->
+         to the native input. Same reasoning for precision: Vuetify's default (0)
+         would silently block decimals, so it's forced to null and typing 1.5 into
+         an int field shows the schema error instead. -->
     <v-number-input
       v-if="inputProps.type === 'number'"
       :id="inputProps.id"
@@ -104,10 +106,11 @@
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
-      :precision="inputProps.refinement === 'int' ? 0 : null"
+      :precision="null"
       control-variant="stacked"
       v-bind="$attrs"
       :model-value="state.value as any"
+      @beforeinput.capture="onNumberBeforeinput"
       @update:model-value="(v: number | null) => field.handleChange((v ?? undefined) as any)"
     >
       <template
@@ -270,7 +273,9 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { computed, watchEffect } from "vue"
+import { computed, useAttrs, watchEffect } from "vue"
+import { useLocale } from "vuetify"
+import { handleDecimalSeparatorBeforeinput } from "./decimalSeparatorInput"
 import type { VuetifyInputProps } from "./InputProps"
 import { getInputType } from "./inputs"
 import { typeOverrides } from "./types"
@@ -285,6 +290,26 @@ defineEmits<{
 defineOptions({
   inheritAttrs: false
 })
+
+const attrs = useAttrs()
+// useLocale throws outside a Vuetify app (e.g. tests mounting with stubbed
+// vuetify components); numbers then fall back to the "." separator.
+const localeDecimalSeparator = (() => {
+  try {
+    return useLocale().decimalSeparator
+  } catch {
+    return undefined
+  }
+})()
+
+// Mirrors VNumberInput's own resolution: an explicit decimal-separator attr
+// wins, otherwise the locale decides.
+const decimalSeparator = computed(() => {
+  const explicit = (attrs["decimal-separator"] ?? attrs["decimalSeparator"]) as string | undefined
+  return explicit?.[0] || localeDecimalSeparator?.value || "."
+})
+
+const onNumberBeforeinput = (e: Event) => handleDecimalSeparatorBeforeinput(e as InputEvent, decimalSeparator.value)
 
 // True when no dedicated branch handles `inputProps.type` (it's outside the
 // built-in `typeOverrides`): the fallback text input renders and we warn.

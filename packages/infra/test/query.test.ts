@@ -1350,6 +1350,27 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(good2).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
+
+      type Native = {
+        readonly id: string
+        readonly dates: Date[]
+        readonly dateSet: ReadonlySet<Date>
+        readonly tags: ReadonlySet<string>
+      }
+      const native = make<Native>()
+      const d = new Date("2020-01-01T00:00:00.000Z")
+      const n1 = native.pipe(where("dates", "includes", d))
+      const n2 = native.pipe(where("dateSet", "includes", d))
+      const n3 = native.pipe(where("tags", "includes", "a"))
+      const n4 = native.pipe(where("dates", "includes-any", [d]))
+      const n5 = native.pipe(where("dateSet", "includes-any", new Set([d])))
+      const n6 = native.pipe(where("id", "in", new Set(["x"])))
+      expectTypeOf(n1).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n2).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n3).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n4).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n5).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n6).toEqualTypeOf<QueryWhere<Native, Native>>()
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
@@ -2067,6 +2088,31 @@ it("codeFilter: array includes / includes-any / includes-all", () => {
     "3"
   ])
   expect(runCF(make<CFRow>().pipe(where("tags", "includes-all", ["red", "blue"])))).toEqual(["3"])
+})
+
+it("codeFilter: Date array / Set includes and in", () => {
+  const d0 = new Date("2020-01-01T00:00:00.000Z")
+  const d1 = new Date("2021-01-01T00:00:00.000Z")
+  type DateRow = {
+    readonly id: string
+    readonly dates: Date[]
+    readonly dateSet: ReadonlySet<Date>
+    readonly tag: string
+  }
+  const rows: DateRow[] = [
+    { id: "1", dates: [d0], dateSet: new Set([d0]), tag: "a" },
+    { id: "2", dates: [d1, d0], dateSet: new Set([d1]), tag: "b" }
+  ]
+  const run = (q: any) => (memFilter(toFilter(q))(rows) as DateRow[]).map((_) => _.id)
+  expect(run(make<DateRow>().pipe(where("dates", "includes", d0))).sort()).toEqual(["1", "2"])
+  expect(run(make<DateRow>().pipe(where("dates", "includes", d1)))).toEqual(["2"])
+  expect(run(make<DateRow>().pipe(where("dateSet", "includes", d0)))).toEqual(["1"])
+  expect(run(make<DateRow>().pipe(where("dates", "includes-any", [d1])))).toEqual(["2"])
+  expect(run(make<DateRow>().pipe(where("dateSet", "includes-any", new Set([d0, d1])))).sort()).toEqual([
+    "1",
+    "2"
+  ])
+  expect(run(make<DateRow>().pipe(where("tag", "in", new Set(["a"]))))).toEqual(["1"])
 })
 
 it("codeFilter: in / notIn", () => {

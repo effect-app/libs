@@ -37,6 +37,39 @@ describe("cosmos query filter: native Encoded values", () => {
       expect.arrayContaining([{ name: "@v0", value: [["k", "v"]] }])
     )
   })
+
+  it("binds includes Date as ISO string", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "dates", op: "includes", value: new Date("2024-01-01T00:00:00.000Z") }],
+      "Orders",
+      {}
+    )
+    expect(result.query).toContain("ARRAY_CONTAINS")
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }])
+    )
+  })
+
+  it("binds includes-any Date Set as ISO parameters", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{
+        t: "where",
+        path: "dates",
+        op: "includes-any",
+        value: new Set([new Date("2024-01-01T00:00:00.000Z")])
+      }],
+      "Orders",
+      {}
+    )
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([
+        { name: "@v0", value: ["2024-01-01T00:00:00.000Z"] },
+        { name: "@v0__0", value: "2024-01-01T00:00:00.000Z" }
+      ])
+    )
+  })
 })
 
 describe("cosmos query projection: array length", () => {

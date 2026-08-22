@@ -35,7 +35,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("2024-01-01T00:00:00.000Z")
   })
 
-  it("where includes Set binds array values", () => {
+  it("where in Set binds array values", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
@@ -44,6 +44,35 @@ describe("SQL query builder (SQLite dialect)", () => {
       {}
     )
     expect(result.params).toEqual(expect.arrayContaining(["a", "b"]))
+  })
+
+  it("where includes Date binds ISO string", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "dates", op: "includes", value: new Date("2024-01-01T00:00:00.000Z") }],
+      "users",
+      {}
+    )
+    expect(result.params).toContain("2024-01-01T00:00:00.000Z")
+  })
+
+  it("where includes-any Date[] binds ISO strings", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{
+        t: "where",
+        path: "dates",
+        op: "includes-any",
+        value: [new Date("2024-01-01T00:00:00.000Z"), new Date("2024-06-01T00:00:00.000Z")]
+      }],
+      "users",
+      {}
+    )
+    expect(result.params).toEqual(
+      expect.arrayContaining(["2024-01-01T00:00:00.000Z", "2024-06-01T00:00:00.000Z"])
+    )
   })
 
   it("where eq number", () => {

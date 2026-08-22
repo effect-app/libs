@@ -38,6 +38,42 @@ describe("cosmos query filter: native Encoded values", () => {
     )
   })
 
+  it("emits EXISTS over Map JSON tuples for hasKey / hasValue / hasKeyValue", () => {
+    const byKey = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey", value: "n" }],
+      "Orders",
+      {}
+    )
+    expect(byKey.query).toContain("EXISTS(SELECT VALUE p FROM p IN f[\"meta\"] WHERE p[0] = @v0)")
+    expect(byKey.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "n" }]))
+
+    const byValue = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasValue", value: 1 }],
+      "Orders",
+      {}
+    )
+    expect(byValue.query).toContain("p[1] = @v0")
+
+    const byPair = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKeyValue", value: ["n", 1] }],
+      "Orders",
+      {}
+    )
+    expect(byPair.query).toContain("ARRAY_CONTAINS")
+    expect(byPair.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: ["n", 1] }]))
+
+    const anyKey = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey-any", value: ["n", "x"] }],
+      "Orders",
+      {}
+    )
+    expect(anyKey.query).toContain("ARRAY_CONTAINS(@v0, p[0])")
+  })
+
   it("binds includes Date as ISO string", () => {
     const result = buildWhereCosmosQuery3(
       "id",

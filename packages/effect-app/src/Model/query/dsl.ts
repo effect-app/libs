@@ -1161,6 +1161,10 @@ type GetArV<T> = T extends ReadonlySet<infer R> ? R
   : T extends readonly (infer R)[] ? R
   : never
 
+type GetMapK<T> = T extends ReadonlyMap<infer K, infer _V> ? K : never
+type GetMapV<T> = T extends ReadonlyMap<infer _K, infer V> ? V : never
+type GetMapEntry<T> = T extends ReadonlyMap<infer K, infer V> ? readonly [K, V] : never
+
 type InValues<T> = readonly T[] | ReadonlySet<T>
 
 export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
@@ -1253,6 +1257,96 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
       | "includes-all"
       | "notIncludes-all",
     value: InValues<GetArV<V>>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasKey" | "notHasKey",
+    value: GetMapK<V>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasValue" | "notHasValue",
+    value: GetMapV<V>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasKeyValue" | "notHasKeyValue",
+    value: GetMapEntry<V>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasKey-any" | "notHasKey-any" | "hasKey-all" | "notHasKey-all",
+    value: InValues<GetMapK<V>>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasValue-any" | "notHasValue-any" | "hasValue-all" | "notHasValue-all",
+    value: InValues<GetMapV<V>>
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
+    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    V extends FieldPathValue<TFieldValues, TFieldName>,
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "hasKeyValue-any" | "notHasKeyValue-any" | "hasKeyValue-all" | "notHasKeyValue-all",
+    value: InValues<GetMapEntry<V>>
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
@@ -1361,6 +1455,90 @@ export type FilterContinuationsWithSubpath = {
       | "includes-all"
       | "notIncludes-all",
     value: InValues<GetArV<V>>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasKey" | "notHasKey",
+    value: GetMapK<V>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasValue" | "notHasValue",
+    value: GetMapV<V>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasKeyValue" | "notHasKeyValue",
+    value: GetMapEntry<V>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasKey-any" | "notHasKey-any" | "hasKey-all" | "notHasKey-all",
+    value: InValues<GetMapK<V>>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasValue-any" | "notHasValue-any" | "hasValue-all" | "notHasValue-all",
+    value: InValues<GetMapV<V>>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "hasKeyValue-any" | "notHasKeyValue-any" | "hasKeyValue-all" | "notHasKeyValue-all",
+    value: InValues<GetMapEntry<V>>
   ): (
     current: Query<TFieldValues>
   ) => QueryWhere<TFieldValues>

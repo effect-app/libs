@@ -265,7 +265,6 @@ test("TaggedUnion match dispatches on _tag", () => {
     S.TaggedStruct("A", { a: S.String }),
     S.TaggedStruct("B", { b: S.Finite })
   ])
-  type T = S.Schema.Type<typeof schema>
 
   const matcher = schema.match({
     A: (v) => `got A: ${v.a}`,
@@ -319,7 +318,6 @@ test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
   expect(decoded2).toEqual({ _tag: "B", lastName: 42 })
 
   // encode back to snake_case
-  type T = S.Schema.Type<typeof schema>
   const encoded = S.encodeSync(schema)({ _tag: "A", firstName: "Alice" })
   expect(encoded).toEqual({ _tag: "A", first_name: "Alice" })
 

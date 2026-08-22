@@ -11,7 +11,7 @@ import type { FieldPath } from "./Model/filter/types/path/index.ts"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.ts"
 import type * as Option from "./Option.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
-import { NonEmptyString255 } from "./Schema.ts"
+import { NonEmptyString255, type Top as SchemaTop } from "./Schema.ts"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
@@ -46,6 +46,11 @@ export interface StoreConfig<E> {
    * Unique indexes, mainly for CosmosDB
    */
   uniqueKeys?: UniqueKey[]
+  /**
+   * Domain schema whose Encoded shape is stored. JSON adapters use
+   * `Schema.toCodecJson(Schema.toEncoded(schema))` so Date/Map/Set round-trip.
+   */
+  schema?: SchemaTop
 }
 
 export type SupportedValues = string | boolean | number | null

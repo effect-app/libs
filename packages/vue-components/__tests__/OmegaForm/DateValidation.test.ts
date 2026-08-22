@@ -41,7 +41,7 @@ describe("Date field validation", () => {
       setup() {
         const form = useOmegaForm(
           S.Struct({
-            date: S.Date
+            date: S.DateFromString
           }),
           {
             onSubmit: async ({ value }) => {

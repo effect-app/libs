@@ -93,7 +93,10 @@ export const getFieldMetadataFromAst = (property: S.AST.AST) => {
     base.type = "boolean"
   } else if (
     S.AST.isDeclaration(property)
-    && (property.annotations as any)?.typeConstructor?._tag === "Date"
+    && (
+      (property.annotations as any)?.typeConstructor?._tag === "Date"
+      || (property.annotations as any)?.representation?.id === "effect/schema/Date"
+    )
   ) {
     base.type = "date"
   } else {

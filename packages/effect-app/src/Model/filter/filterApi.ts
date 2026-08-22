@@ -44,7 +44,7 @@ export type FilterR = {
   op: Ops
 
   path: string
-  value: string // ToDO: Value[]
+  value: unknown
 }
 
 export type FilterResult =

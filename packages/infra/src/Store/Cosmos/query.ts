@@ -9,6 +9,7 @@ import type { SupportedValues } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
+import { jsonifyFilter, toJsonQueryValue } from "../utils.ts"
 
 export function logQuery(q: {
   query: string
@@ -62,6 +63,8 @@ export function buildWhereCosmosQuery3(
   skip?: number,
   limit?: number
 ) {
+  filter = jsonifyFilter(filter)
+  defaultValues = toJsonQueryValue(defaultValues) as Record<string, unknown>
   const statement = (x: FilterR, i: number) => {
     if (x.path === idKey) {
       x = { ...x, path: "id" }
@@ -89,21 +92,17 @@ export function buildWhereCosmosQuery3(
         return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
 
       case "includes-any":
-        return `ARRAY_CONTAINS_ANY(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
-        })`
+        return `ARRAY_CONTAINS_ANY(${k}, ${(x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-any":
         return `(NOT ARRAY_CONTAINS_ANY(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+          (x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
         }))`
 
       case "includes-all":
-        return `ARRAY_CONTAINS_ALL(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
-        })`
+        return `ARRAY_CONTAINS_ALL(${k}, ${(x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-all":
         return `(NOT ARRAY_CONTAINS_ALL(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+          (x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
         }))`
 
       case "contains":

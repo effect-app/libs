@@ -6,6 +6,7 @@ import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedPro
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
+import { jsonifyFilter, toJsonQueryValue } from "../utils.ts"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string
@@ -177,6 +178,8 @@ export function buildWhereSQLQuery(
   limit?: number,
   namespace?: string
 ) {
+  filter = jsonifyFilter(filter)
+  defaultValues = toJsonQueryValue(defaultValues) as Record<string, unknown>
   const params: unknown[] = []
   let paramIndex = 1
 
@@ -214,7 +217,7 @@ export function buildWhereSQLQuery(
 
     switch (x.op) {
       case "in": {
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const hasNull = vals.some((v) => v == null)
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
@@ -226,7 +229,7 @@ export function buildWhereSQLQuery(
         return parts.length > 1 ? `(${parts.join(" OR ")})` : parts[0] ?? "1=0"
       }
       case "notIn": {
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const hasNull = vals.some((v) => v == null)
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
@@ -251,26 +254,26 @@ export function buildWhereSQLQuery(
 
       case "includes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAny(arrPath, placeholders)
       }
       case "notIncludes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAny(arrPath, placeholders)
       }
 
       case "includes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAll(arrPath, placeholders)
       }
       case "notIncludes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAll(arrPath, placeholders)
       }

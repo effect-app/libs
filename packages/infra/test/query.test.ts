@@ -11,10 +11,15 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import { flow, pipe } from "effect/Function"
+import * as Redacted from "effect/Redacted"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
+import { DiskStoreLayer } from "../src/Store/Disk.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
 
@@ -41,7 +46,7 @@ const q = make<Something.Encoded>()
     where("displayName", "Verona"),
     or(
       where("displayName", "Riley"),
-      and("n", "gt", "2021-01-01T00:00:00Z") // TODO: work with To type translation, so Date?
+      and("n", "gt", new Date("2021-01-01T00:00:00Z"))
     ),
     order("displayName"),
     page({ take: 10 }),
@@ -141,7 +146,7 @@ it("works with repo", () =>
           where("displayName", "Verona"),
           or(
             where("displayName", "Riley"),
-            and("n", "gt", "2021-01-01T00:00:00Z") // TODO: work with To type translation, so Date?
+            and("n", "gt", new Date("2021-01-01T00:00:00Z"))
           ),
           order("displayName"),
           page({ take: 10 }),
@@ -168,6 +173,11 @@ it("works with repo", () =>
 
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
+
+      const byDate = yield* somethingRepo.query(
+        where("n", new Date("2020-01-01T00:00:00.000Z"))
+      )
+      expect(byDate.map((_) => _.displayName)).toEqual(["Verona", "Riley"])
     })
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
@@ -175,6 +185,86 @@ it("works with repo", () =>
       Effect.scoped,
       Effect.runPromise
     ))
+
+it("memory store round-trips Date/Set/Map via JSON codecs", () =>
+  Effect
+    .gen(function*() {
+      class Doc extends S.Class<Doc>("JsonCodecDoc")({
+        id: S.String,
+        at: S.Date,
+        tags: S.ReadonlySet(S.String),
+        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+      }) {}
+      const at = new Date("2024-06-01T00:00:00.000Z")
+      const saved = new Doc({
+        id: "d1",
+        at,
+        tags: new Set(["a", "b"]),
+        meta: new Map([["n", 1]])
+      })
+      const repo = yield* makeRepo("JsonCodecDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+      const found = yield* repo.find("d1")
+      expect(Option.isSome(found)).toBe(true)
+      if (Option.isSome(found)) {
+        expect(found.value.at.toISOString()).toBe(at.toISOString())
+        expect(found.value.tags).toEqual(new Set(["a", "b"]))
+        expect(found.value.meta).toEqual(new Map([["n", 1]]))
+      }
+      const byDate = yield* repo.query(where("at", at))
+      expect(byDate.map((_) => _.id)).toEqual(["d1"])
+      const byTag = yield* repo.query(where("tags", "includes", "b"))
+      expect(byTag.map((_) => _.id)).toEqual(["d1"])
+    })
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+
+it("disk store round-trips Date/Set/Map via JSON codecs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "effect-app-disk-json-"))
+  const diskLive = Layer.merge(
+    DiskStoreLayer({ url: Redacted.make(`disk://${dir}`), prefix: "", dbName: "test" }, dir),
+    RepositoryRegistryLive
+  )
+  return Effect
+    .gen(function*() {
+      class Doc extends S.Class<Doc>("JsonCodecDiskDoc")({
+        id: S.String,
+        at: S.Date,
+        tags: S.ReadonlySet(S.String),
+        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+      }) {}
+      const at = new Date("2024-06-01T00:00:00.000Z")
+      const saved = new Doc({
+        id: "d1",
+        at,
+        tags: new Set(["a", "b"]),
+        meta: new Map([["n", 1]])
+      })
+      const repo = yield* makeRepo("JsonCodecDiskDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+      const found = yield* repo.find("d1")
+      expect(Option.isSome(found)).toBe(true)
+      if (Option.isSome(found)) {
+        expect(found.value.at.toISOString()).toBe(at.toISOString())
+        expect(found.value.tags).toEqual(new Set(["a", "b"]))
+        expect(found.value.meta).toEqual(new Map([["n", 1]]))
+      }
+      const jsonFile = fs.readdirSync(dir).find((f) => f.endsWith(".json"))
+      expect(jsonFile).toBeDefined()
+      const raw = JSON.parse(fs.readFileSync(path.join(dir, jsonFile!), "utf8")) as Array<{
+        at: unknown
+        tags: unknown
+        meta: unknown
+      }>
+      expect(raw[0]?.at).toBe(at.toISOString())
+      expect(raw[0]?.tags).toEqual(["a", "b"])
+      expect(raw[0]?.meta).toEqual([["n", 1]])
+    })
+    .pipe(
+      Effect.provide(diskLive),
+      setupRequestContextFromCurrent(),
+      Effect.scoped,
+      Effect.runPromise
+    )
+    .finally(() => fs.rmSync(dir, { recursive: true, force: true }))
+})
 
 it("collect", () =>
   Effect
@@ -196,8 +286,8 @@ it("collect", () =>
                 })),
                 S.toType(S.Option(S.String)),
                 (_) =>
-                  _.displayName === "Riley" && _.n === "2020-01-01T00:00:00.000Z"
-                    ? Option.some(`${_.displayName}-${_.n}`)
+                  _.displayName === "Riley" && _.n.toISOString() === "2020-01-01T00:00:00.000Z"
+                    ? Option.some(`${_.displayName}-${_.n.toISOString()}`)
                     : Option.none()
               ),
               "collect"
@@ -215,7 +305,7 @@ it("collect", () =>
         QueryEnd<{
           readonly id: string
           readonly displayName: string
-          readonly n: string
+          readonly n: Date
           readonly union: {
             readonly _tag: "string"
             readonly value: string
@@ -530,7 +620,7 @@ it(
         const schema = S.Struct({
           id: S.String,
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withDecodingDefault(Effect.sync(() => new Date())),
             S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
@@ -543,7 +633,7 @@ it(
         const outputSchema = S.Struct({
           id: S.Literal("123"),
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withDecodingDefault(Effect.sync(() => new Date())),
             S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
@@ -824,7 +914,7 @@ it("ProjectableFromDomain distributes over tagged union Encoded", () => {
   type GoodCheck = ProjectableFromDomain<Good, DomainEnc, "n">
   type BadCheck = ProjectableFromDomain<Bad, DomainEnc>
 
-  const _good: GoodCheck = undefined as unknown
+  const _good: GoodCheck = undefined
   // @ts-expect-error cancelled branch requires activeRequest not present on domain cancelled
   const _bad: BadCheck = undefined as unknown
   void _good
@@ -852,7 +942,7 @@ it("ProjectableFromDomain allows dual same-tag domain variants", () => {
   type GoodCheck = ProjectableFromDomain<Good, DomainEnc>
   type BadFlatCheck = ProjectableFromDomain<BadFlat, DomainEnc>
 
-  const _good: GoodCheck = undefined as unknown
+  const _good: GoodCheck = undefined
   // @ts-expect-error packages is not on domain initial; multi-tag flat intersection rejects it
   const _badFlat: BadFlatCheck = undefined as unknown
   void _good
@@ -1345,6 +1435,27 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(good2).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
+
+      type Native = {
+        readonly id: string
+        readonly dates: Date[]
+        readonly dateSet: ReadonlySet<Date>
+        readonly tags: ReadonlySet<string>
+      }
+      const native = make<Native>()
+      const d = new Date("2020-01-01T00:00:00.000Z")
+      const n1 = native.pipe(where("dates", "includes", d))
+      const n2 = native.pipe(where("dateSet", "includes", d))
+      const n3 = native.pipe(where("tags", "includes", "a"))
+      const n4 = native.pipe(where("dates", "includes-any", [d]))
+      const n5 = native.pipe(where("dateSet", "includes-any", new Set([d])))
+      const n6 = native.pipe(where("id", "in", new Set(["x"])))
+      expectTypeOf(n1).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n2).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n3).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n4).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n5).toEqualTypeOf<QueryWhere<Native, Native>>()
+      expectTypeOf(n6).toEqualTypeOf<QueryWhere<Native, Native>>()
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
@@ -2064,6 +2175,31 @@ it("codeFilter: array includes / includes-any / includes-all", () => {
   expect(runCF(make<CFRow>().pipe(where("tags", "includes-all", ["red", "blue"])))).toEqual(["3"])
 })
 
+it("codeFilter: Date array / Set includes and in", () => {
+  const d0 = new Date("2020-01-01T00:00:00.000Z")
+  const d1 = new Date("2021-01-01T00:00:00.000Z")
+  type DateRow = {
+    readonly id: string
+    readonly dates: Date[]
+    readonly dateSet: ReadonlySet<Date>
+    readonly tag: string
+  }
+  const rows: DateRow[] = [
+    { id: "1", dates: [d0], dateSet: new Set([d0]), tag: "a" },
+    { id: "2", dates: [d1, d0], dateSet: new Set([d1]), tag: "b" }
+  ]
+  const run = (q: any) => (memFilter(toFilter(q))(rows) as DateRow[]).map((_) => _.id)
+  expect(run(make<DateRow>().pipe(where("dates", "includes", d0))).sort()).toEqual(["1", "2"])
+  expect(run(make<DateRow>().pipe(where("dates", "includes", d1)))).toEqual(["2"])
+  expect(run(make<DateRow>().pipe(where("dateSet", "includes", d0)))).toEqual(["1"])
+  expect(run(make<DateRow>().pipe(where("dates", "includes-any", [d1])))).toEqual(["2"])
+  expect(run(make<DateRow>().pipe(where("dateSet", "includes-any", new Set([d0, d1])))).sort()).toEqual([
+    "1",
+    "2"
+  ])
+  expect(run(make<DateRow>().pipe(where("tag", "in", new Set(["a"]))))).toEqual(["1"])
+})
+
 it("codeFilter: in / notIn", () => {
   expect(runCF(make<CFRow>().pipe(where("tag", "in", ["x", "z"]))).sort()).toEqual(["1", "3"])
   expect(runCF(make<CFRow>().pipe(where("tag", "notIn", ["x", "z"]))).sort()).toEqual(["2", "4"])
@@ -2129,7 +2265,7 @@ it("memFilter: agg-count-when groups rows and counts conditionally", () => {
       },
       { key: "total", aggregate: { _tag: "agg-count" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   const nyc = result.find((r: any) => r.city === "NYC")!
@@ -2155,7 +2291,7 @@ it("memFilter: agg-sum / agg-min / agg-max aggregate numerics", () => {
       { key: "min", aggregate: { _tag: "agg-min", field: "salary" } },
       { key: "max", aggregate: { _tag: "agg-max", field: "salary" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   const eng = result.find((r: any) => r.dept === "eng")!
@@ -2179,7 +2315,7 @@ it("memFilter: aggregate with nested path grouping", () => {
       { key: "city", path: "address.city" },
       { key: "count", aggregate: { _tag: "agg-count" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   expect(result.find((r: any) => r.city === "NYC")!.count).toBe(2)

@@ -581,7 +581,7 @@ export function makeRepoInternal<
                 .pipe(
                   Effect.andThen(
                     (items) =>
-                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema))(items).pipe(
+                      S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema ?? schema)))(items).pipe(
                         provideRctx,
                         timeSchema("decode", name, "aggregate", items.length)
                       )
@@ -593,7 +593,7 @@ export function makeRepoInternal<
                 .pipe(
                   Effect.andThen(
                     (items) =>
-                      S.decodeEffectConcurrently(S.Array(a.schema ?? schema))(items).pipe(
+                      S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema ?? schema)))(items).pipe(
                         provideRctx,
                         timeSchema("decode", name, "project", items.length)
                       )
@@ -604,7 +604,7 @@ export function makeRepoInternal<
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
                   Effect.flatMap((items) =>
-                    S.decodeEffectConcurrently(S.Array(a.schema))(items).pipe(
+                    S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema)))(items).pipe(
                       Effect.map(Array.getSomes),
                       provideRctx,
                       timeSchema("decode", name, "collect", items.length)
@@ -737,7 +737,7 @@ export function makeRepoInternal<
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
               return store.queryRaw(q).pipe(
                 Effect.flatMap((items) =>
-                  S.decodeEffectConcurrently(S.Array(schema))(items).pipe(
+                  S.decodeEffectConcurrently(S.Array(S.toCodecJson(schema)))(items as readonly S.Json[]).pipe(
                     timeSchema("decode", name, undefined, items.length)
                   )
                 ),
@@ -887,6 +887,7 @@ export function makeStore<Encoded extends FieldValues>() {
             : undefined,
           {
             ...config,
+            schema,
             partitionValue: config?.partitionValue
               ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
           }

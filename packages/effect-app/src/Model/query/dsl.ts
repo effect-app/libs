@@ -1157,7 +1157,11 @@ export const aggregate: {
   return new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
 }
 
-type GetArV<T> = T extends readonly (infer R)[] ? R : never
+type GetArV<T> = T extends ReadonlySet<infer R> ? R
+  : T extends readonly (infer R)[] ? R
+  : never
+
+type InValues<T> = readonly T[] | ReadonlySet<T>
 
 export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
   <
@@ -1207,13 +1211,12 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
-    const V extends readonly FieldPathValue<TFieldValues, TFieldName>[],
     TFieldValuesRefined extends TFieldValues = TFieldValues,
     E extends boolean = false
   >(
     path: TFieldName,
     op: "in" | "notIn",
-    value: V
+    value: InValues<FieldPathValue<TFieldValues, TFieldName>>
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
@@ -1249,7 +1252,7 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
       | "notIncludes-any"
       | "includes-all"
       | "notIncludes-all",
-    value: readonly GetArV<V>[]
+    value: InValues<GetArV<V>>
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
@@ -1318,12 +1321,12 @@ export type FilterContinuationsWithSubpath = {
     TFieldName extends FieldPath<TFieldValues>,
     TFieldValuesSub extends TFieldValues[TFieldName][number],
     TFieldNameSub extends FieldPath<TFieldValuesSub>,
-    const V extends readonly FieldPathValue<TFieldValuesSub, TFieldNameSub>[]
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
   >(
     subPath: TFieldName,
     restPath: TFieldNameSub,
     op: "in" | "notIn",
-    value: V
+    value: InValues<V>
   ): (
     current: Query<TFieldValues>
   ) => QueryWhere<TFieldValues>
@@ -1357,7 +1360,7 @@ export type FilterContinuationsWithSubpath = {
       | "notIncludes-any"
       | "includes-all"
       | "notIncludes-all",
-    value: readonly GetArV<V>[]
+    value: InValues<GetArV<V>>
   ): (
     current: Query<TFieldValues>
   ) => QueryWhere<TFieldValues>

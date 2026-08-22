@@ -15,6 +15,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb, type DbSystem } from "../otel.ts"
+import { makeJsonDocumentCodec } from "./jsonDocument.ts"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
 import { makeETag } from "./utils.ts"
 
@@ -46,10 +47,13 @@ export class WithNsTransaction
 export const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: string },
   idKey: PropertyKey,
-  defaultValues: Partial<Encoded>
+  defaultValues: Partial<Encoded>,
+  decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
-  return { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  return decode(
+    { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  )
 }
 
 const parseSelectRow = (
@@ -87,6 +91,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
         type PM = PersistenceModelType<Encoded>
         const tableName = `${prefix}${name}`
         const defaultValues = config?.defaultValues ?? {}
+        const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
@@ -112,11 +117,11 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           )
 
         const toRow = (e: PM) => {
-          const newE = makeETag(e)
+          const newE = makeETag(codec.encode(e))
           const id = newE[idKey] as string
           const { _etag, [idKey]: _id, ...rest } = newE as any
           const data = JSON.stringify(rest)
-          return { id, _etag: newE._etag!, data, item: newE }
+          return { id, _etag: newE._etag!, data, item: codec.decode(newE) }
         }
 
         const exec = (query: string, params?: readonly unknown[]) =>
@@ -209,7 +214,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`
               return exec(sqlText, [ns])
                 .pipe(
-                  Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
+                  Effect.map((rows) =>
+                    (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+                  ),
                   annotateDb({
                     operation: "all",
                     system,
@@ -231,7 +238,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                     Effect.map((rows) => {
                       const row = (rows as any[])[0]
                       return row
-                        ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
+                        ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
                         : Option.none()
                     }),
                     annotateDb({
@@ -303,7 +310,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                                 } as M
                               })
                             }
-                            return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                            return (rows as any[]).map((r) =>
+                              parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                            )
                           })
                         )
                       ),
@@ -419,6 +428,7 @@ function makeSQLiteStorePerNs(
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
       const defaultValues = config?.defaultValues ?? {}
+      const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -430,11 +440,11 @@ function makeSQLiteStorePerNs(
         }))
 
       const toRow = (e: PM) => {
-        const newE = makeETag(e)
+        const newE = makeETag(codec.encode(e))
         const id = newE[idKey] as string
         const { _etag, [idKey]: _id, ...rest } = newE as any
         const data = JSON.stringify(rest)
-        return { id, _etag: newE._etag!, data, item: newE }
+        return { id, _etag: newE._etag!, data, item: codec.decode(newE) }
       }
 
       const exec = (ns: string, query: string, params?: readonly unknown[]) =>
@@ -549,7 +559,9 @@ function makeSQLiteStorePerNs(
           const sqlText = `SELECT id, _etag, data FROM "${tableName}"`
           return exec(ns, sqlText)
             .pipe(
-              Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
+              Effect.map((rows) =>
+                (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+              ),
               annotateDb({
                 operation: "all",
                 system: "sqlite",
@@ -570,7 +582,7 @@ function makeSQLiteStorePerNs(
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
                     return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
                       : Option.none()
                   }),
                   annotateDb({
@@ -641,7 +653,9 @@ function makeSQLiteStorePerNs(
                               } as M
                             })
                           }
-                          return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                          return (rows as any[]).map((r) =>
+                            parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                          )
                         })
                       )
                     ),

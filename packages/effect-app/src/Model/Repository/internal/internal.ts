@@ -34,9 +34,6 @@ import { ValidationError, ValidationResult } from "../validation.ts"
 
 const dedupe = Array.dedupeWith(Equivalence.String)
 
-/** JSON persistence codec: Encoded Date/Map/Set become JSON while the store stays typed as Encoded. */
-const persistJson = <T, E, R>(schema: S.Codec<T, E, R>) => S.toCodecJson(schema) as unknown as S.Codec<T, E, R>
-
 // ms buckets: dense under 100ms (common path), then mid-tail and multi-second stalls.
 // Rare 0.5–1s+ encodes (fat aggregates) must not collapse into a single overflow bin.
 const schemaDurationBoundaries = [
@@ -182,17 +179,14 @@ export function makeRepoInternal<
         .gen(function*() {
           const rctx: Context.Context<RCtx> = args.schemaContext ?? Context.empty() as any
           const provideRctx = Effect.provide(rctx)
-          // Persist via JSON codec so Date/Map/Set Encoded values round-trip through
-          // document stores. Query filters keep native Encoded; adapters lower to JSON.
-          const persistCodec = persistJson(schema)
           const encodeMany = (items: readonly T[]) =>
-            S.encodeEffect(S.Array(persistCodec))(items).pipe(
+            S.encodeEffect(S.Array(schema))(items).pipe(
               provideRctx,
               timeSchema("encode", name, undefined, items.length, entityStateFromItems(items))
             )
-          const decode = flow(S.decodeEffectConcurrently(persistCodec), provideRctx)
+          const decode = flow(S.decodeEffectConcurrently(schema), provideRctx)
           const decodeMany = flow(
-            S.decodeEffectConcurrently(S.Array(persistCodec)),
+            S.decodeEffectConcurrently(S.Array(schema)),
             provideRctx
           )
 
@@ -528,7 +522,7 @@ export function makeRepoInternal<
           const getDecodeMany = (s: S.Codec<any, Encoded, any>) => {
             let dec = decodeManyCache.get(s)
             if (!dec) {
-              dec = S.decodeEffectConcurrently(S.Array(persistJson(s)))
+              dec = S.decodeEffectConcurrently(S.Array(s))
               decodeManyCache.set(s, dec)
             }
             return dec
@@ -587,7 +581,7 @@ export function makeRepoInternal<
                 .pipe(
                   Effect.andThen(
                     (items) =>
-                      S.decodeEffectConcurrently(S.Array(persistJson(a.schema ?? schema)))(items).pipe(
+                      S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema ?? schema)))(items).pipe(
                         provideRctx,
                         timeSchema("decode", name, "aggregate", items.length)
                       )
@@ -599,7 +593,7 @@ export function makeRepoInternal<
                 .pipe(
                   Effect.andThen(
                     (items) =>
-                      S.decodeEffectConcurrently(S.Array(persistJson(a.schema ?? schema)))(items).pipe(
+                      S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema ?? schema)))(items).pipe(
                         provideRctx,
                         timeSchema("decode", name, "project", items.length)
                       )
@@ -610,7 +604,7 @@ export function makeRepoInternal<
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
                   Effect.flatMap((items) =>
-                    S.decodeEffectConcurrently(S.Array(persistJson(a.schema)))(items).pipe(
+                    S.decodeEffectConcurrently(S.Array(S.toCodecJson(a.schema)))(items).pipe(
                       Effect.map(Array.getSomes),
                       provideRctx,
                       timeSchema("decode", name, "collect", items.length)
@@ -703,7 +697,7 @@ export function makeRepoInternal<
                 const rawData = rawResult.value as Encoded
                 const jitMResult = mapFrom(rawData) // apply jitM
 
-                const decodeResult = yield* S.decodeEffectConcurrently(persistCodec)(jitMResult).pipe(
+                const decodeResult = yield* S.decodeEffectConcurrently(schema)(jitMResult).pipe(
                   Effect.result,
                   provideRctx
                 )
@@ -743,7 +737,7 @@ export function makeRepoInternal<
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
               return store.queryRaw(q).pipe(
                 Effect.flatMap((items) =>
-                  S.decodeEffectConcurrently(S.Array(persistJson(schema)))(items).pipe(
+                  S.decodeEffectConcurrently(S.Array(S.toCodecJson(schema)))(items as readonly S.Json[]).pipe(
                     timeSchema("decode", name, undefined, items.length)
                   )
                 ),
@@ -762,10 +756,9 @@ export function makeRepoInternal<
              * @internal
              */
             mapped: <A, R>(schema: S.Codec<A, any, R>) => {
-              const persistMapped = persistJson(schema)
-              const dec = S.decodeEffectConcurrently(persistMapped)
-              const encMany = S.encodeEffect(S.Array(persistMapped))
-              const decMany = S.decodeEffectConcurrently(S.Array(persistMapped))
+              const dec = S.decodeEffectConcurrently(schema)
+              const encMany = S.encodeEffect(S.Array(schema))
+              const decMany = S.decodeEffectConcurrently(S.Array(schema))
               const spanAttrs = { kind: "client" as const, attributes: { "app.entity": name } }
               return {
                 all: allE.pipe(
@@ -863,9 +856,8 @@ export function makeStore<Encoded extends FieldValues>() {
     ) {
       function encodeToEncoded() {
         const getEtag = () => undefined
-        const persistCodec = persistJson(schema)
         return (t: T) =>
-          S.encodeEffect(persistCodec)(t).pipe(
+          S.encodeEffect(schema)(t).pipe(
             Effect.orDie,
             Effect.map((_) => mapToPersistenceModel(_, getEtag))
           )
@@ -895,6 +887,7 @@ export function makeStore<Encoded extends FieldValues>() {
             : undefined,
           {
             ...config,
+            schema,
             partitionValue: config?.partitionValue
               ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
           }

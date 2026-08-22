@@ -11,10 +11,15 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import { flow, pipe } from "effect/Function"
+import * as Redacted from "effect/Redacted"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
+import { DiskStoreLayer } from "../src/Store/Disk.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
 
@@ -180,6 +185,86 @@ it("works with repo", () =>
       Effect.scoped,
       Effect.runPromise
     ))
+
+it("memory store round-trips Date/Set/Map via JSON codecs", () =>
+  Effect
+    .gen(function*() {
+      class Doc extends S.Class<Doc>("JsonCodecDoc")({
+        id: S.String,
+        at: S.Date,
+        tags: S.ReadonlySet(S.String),
+        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+      }) {}
+      const at = new Date("2024-06-01T00:00:00.000Z")
+      const saved = new Doc({
+        id: "d1",
+        at,
+        tags: new Set(["a", "b"]),
+        meta: new Map([["n", 1]])
+      })
+      const repo = yield* makeRepo("JsonCodecDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+      const found = yield* repo.find("d1")
+      expect(Option.isSome(found)).toBe(true)
+      if (Option.isSome(found)) {
+        expect(found.value.at.toISOString()).toBe(at.toISOString())
+        expect(found.value.tags).toEqual(new Set(["a", "b"]))
+        expect(found.value.meta).toEqual(new Map([["n", 1]]))
+      }
+      const byDate = yield* repo.query(where("at", at))
+      expect(byDate.map((_) => _.id)).toEqual(["d1"])
+      const byTag = yield* repo.query(where("tags", "includes", "b"))
+      expect(byTag.map((_) => _.id)).toEqual(["d1"])
+    })
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+
+it("disk store round-trips Date/Set/Map via JSON codecs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "effect-app-disk-json-"))
+  const diskLive = Layer.merge(
+    DiskStoreLayer({ url: Redacted.make(`disk://${dir}`), prefix: "", dbName: "test" }, dir),
+    RepositoryRegistryLive
+  )
+  return Effect
+    .gen(function*() {
+      class Doc extends S.Class<Doc>("JsonCodecDiskDoc")({
+        id: S.String,
+        at: S.Date,
+        tags: S.ReadonlySet(S.String),
+        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+      }) {}
+      const at = new Date("2024-06-01T00:00:00.000Z")
+      const saved = new Doc({
+        id: "d1",
+        at,
+        tags: new Set(["a", "b"]),
+        meta: new Map([["n", 1]])
+      })
+      const repo = yield* makeRepo("JsonCodecDiskDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+      const found = yield* repo.find("d1")
+      expect(Option.isSome(found)).toBe(true)
+      if (Option.isSome(found)) {
+        expect(found.value.at.toISOString()).toBe(at.toISOString())
+        expect(found.value.tags).toEqual(new Set(["a", "b"]))
+        expect(found.value.meta).toEqual(new Map([["n", 1]]))
+      }
+      const jsonFile = fs.readdirSync(dir).find((f) => f.endsWith(".json"))
+      expect(jsonFile).toBeDefined()
+      const raw = JSON.parse(fs.readFileSync(path.join(dir, jsonFile!), "utf8")) as Array<{
+        at: unknown
+        tags: unknown
+        meta: unknown
+      }>
+      expect(raw[0]?.at).toBe(at.toISOString())
+      expect(raw[0]?.tags).toEqual(["a", "b"])
+      expect(raw[0]?.meta).toEqual([["n", 1]])
+    })
+    .pipe(
+      Effect.provide(diskLive),
+      setupRequestContextFromCurrent(),
+      Effect.scoped,
+      Effect.runPromise
+    )
+    .finally(() => fs.rmSync(dir, { recursive: true, force: true }))
+})
 
 it("collect", () =>
   Effect

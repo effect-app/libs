@@ -271,8 +271,8 @@ test("TaggedUnion match dispatches on _tag", () => {
     A: (v) => `got A: ${v.a}`,
     B: (v) => `got B: ${v.b}`
   })
-  expect(matcher({ _tag: "A", a: "hello" } as T)).toBe("got A: hello")
-  expect(matcher({ _tag: "B", b: 42 } as T)).toBe("got B: 42")
+  expect(matcher({ _tag: "A", a: "hello" })).toBe("got A: hello")
+  expect(matcher({ _tag: "B", b: 42 })).toBe("got B: 42")
 })
 
 test("TaggedUnion with single member", () => {
@@ -320,7 +320,7 @@ test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
 
   // encode back to snake_case
   type T = S.Schema.Type<typeof schema>
-  const encoded = S.encodeSync(schema)({ _tag: "A", firstName: "Alice" } as T)
+  const encoded = S.encodeSync(schema)({ _tag: "A", firstName: "Alice" })
   expect(encoded).toEqual({ _tag: "A", first_name: "Alice" })
 
   // guards work on decoded values
@@ -387,7 +387,7 @@ describe("ReadonlySetFromArray", () => {
 
 describe("ReadonlyMapFromArray", () => {
   test("decodes an array of tuples to a Map", () => {
-    const schema = S.ReadonlyMap({ key: S.String, value: S.Finite })
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
     const decoded = S.decodeUnknownSync(schema)([["a", 1], ["b", 2]])
     expect(decoded).toEqual(new Map([["a", 1], ["b", 2]]))
   })
@@ -445,10 +445,17 @@ describe("ReadonlySet (with withConstructorDefault)", () => {
     expect(made.items).toEqual(new Set())
   })
 
-  test("decodes array with NumberFromString values", () => {
+  test("decodes a Set with NumberFromString values", () => {
     const schema = S.ReadonlySet(S.NumberFromString)
-    const decoded = S.decodeUnknownSync(schema)(["1", "2"])
+    const decoded = S.decodeUnknownSync(schema)(new Set(["1", "2"]))
     expect(decoded).toEqual(new Set([1, 2]))
+  })
+
+  test("Encoded is a Set, not an array", () => {
+    const schema = S.ReadonlySet(S.String)
+    const encoded = S.encodeSync(schema)(new Set(["a"]))
+    expect(encoded).toEqual(new Set(["a"]))
+    expectTypeOf(encoded).toEqualTypeOf<ReadonlySet<string>>()
   })
 })
 
@@ -460,10 +467,17 @@ describe("ReadonlyMap (with withConstructorDefault)", () => {
     expect(made.items).toEqual(new Map())
   })
 
-  test("decodes array of tuples with NumberFromString keys", () => {
+  test("decodes a Map with NumberFromString keys", () => {
     const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
-    const decoded = S.decodeUnknownSync(schema)([["1", "one"]])
+    const decoded = S.decodeUnknownSync(schema)(new Map([["1", "one"]]))
     expect(decoded).toEqual(new Map([[1, "one"]]))
+  })
+
+  test("Encoded is a Map, not an array of tuples", () => {
+    const schema = S.ReadonlyMap({ key: S.String, value: S.Finite })
+    const encoded = S.encodeSync(schema)(new Map([["a", 1]]))
+    expect(encoded).toEqual(new Map([["a", 1]]))
+    expectTypeOf(encoded).toEqualTypeOf<ReadonlyMap<string, number>>()
   })
 })
 
@@ -506,8 +520,18 @@ describe("JSON Schema", () => {
     })
   })
 
-  test("Date has identifier DateOrInvalid and ISO 8601 description", () => {
+  test("Date Encoded is Date; JSON codec encodes ISO strings", () => {
+    const d = new Date("2024-01-01T00:00:00.000Z")
+    expect(S.decodeUnknownSync(S.Date)(d)).toBe(d)
+    expect(S.encodeSync(S.Date)(d)).toBe(d)
+    expect(S.encodeSync(S.toCodecJson(S.Date))(d)).toBe("2024-01-01T00:00:00.000Z")
     const doc = S.toJsonSchemaDocument(S.Date)
+    expect(doc.dialect).toBe("draft-2020-12")
+    expect(doc.schema).toEqual({ type: "string" })
+  })
+
+  test("DateFromString keeps string Encoded", () => {
+    const doc = S.toJsonSchemaDocument(S.DateFromString)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
       schema: { "$ref": "#/$defs/DateOrInvalid" },
@@ -515,21 +539,6 @@ describe("JSON Schema", () => {
         DateOrInvalid: {
           type: "string",
           description: "an ISO 8601 date string that will be decoded as a Date (may be invalid)",
-          format: "date-time"
-        }
-      }
-    })
-  })
-
-  test("DateValid has identifier Date and ISO 8601 description", () => {
-    const doc = S.toJsonSchemaDocument(S.DateValid)
-    expect(doc).toStrictEqual({
-      dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/Date" },
-      definitions: {
-        Date: {
-          type: "string",
-          description: "a valid ISO 8601 date string that will be decoded as a Date",
           format: "date-time"
         }
       }

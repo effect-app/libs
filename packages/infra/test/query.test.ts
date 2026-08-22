@@ -41,7 +41,7 @@ const q = make<Something.Encoded>()
     where("displayName", "Verona"),
     or(
       where("displayName", "Riley"),
-      and("n", "gt", "2021-01-01T00:00:00Z") // TODO: work with To type translation, so Date?
+      and("n", "gt", new Date("2021-01-01T00:00:00Z"))
     ),
     order("displayName"),
     page({ take: 10 }),
@@ -141,7 +141,7 @@ it("works with repo", () =>
           where("displayName", "Verona"),
           or(
             where("displayName", "Riley"),
-            and("n", "gt", "2021-01-01T00:00:00Z") // TODO: work with To type translation, so Date?
+            and("n", "gt", new Date("2021-01-01T00:00:00Z"))
           ),
           order("displayName"),
           page({ take: 10 }),
@@ -168,6 +168,11 @@ it("works with repo", () =>
 
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
+
+      const byDate = yield* somethingRepo.query(
+        where("n", new Date("2020-01-01T00:00:00.000Z"))
+      )
+      expect(byDate.map((_) => _.displayName)).toEqual(["Verona", "Riley"])
     })
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
@@ -196,8 +201,8 @@ it("collect", () =>
                 })),
                 S.toType(S.Option(S.String)),
                 (_) =>
-                  _.displayName === "Riley" && _.n === "2020-01-01T00:00:00.000Z"
-                    ? Option.some(`${_.displayName}-${_.n}`)
+                  _.displayName === "Riley" && _.n.toISOString() === "2020-01-01T00:00:00.000Z"
+                    ? Option.some(`${_.displayName}-${_.n.toISOString()}`)
                     : Option.none()
               ),
               "collect"
@@ -215,7 +220,7 @@ it("collect", () =>
         QueryEnd<{
           readonly id: string
           readonly displayName: string
-          readonly n: string
+          readonly n: Date
           readonly union: {
             readonly _tag: "string"
             readonly value: string
@@ -530,7 +535,7 @@ it(
         const schema = S.Struct({
           id: S.String,
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withDecodingDefault(Effect.sync(() => new Date())),
             S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
@@ -543,7 +548,7 @@ it(
         const outputSchema = S.Struct({
           id: S.Literal("123"),
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withDecodingDefault(Effect.sync(() => new Date())),
             S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
@@ -824,7 +829,7 @@ it("ProjectableFromDomain distributes over tagged union Encoded", () => {
   type GoodCheck = ProjectableFromDomain<Good, DomainEnc, "n">
   type BadCheck = ProjectableFromDomain<Bad, DomainEnc>
 
-  const _good: GoodCheck = undefined as unknown
+  const _good: GoodCheck = undefined
   // @ts-expect-error cancelled branch requires activeRequest not present on domain cancelled
   const _bad: BadCheck = undefined as unknown
   void _good
@@ -852,7 +857,7 @@ it("ProjectableFromDomain allows dual same-tag domain variants", () => {
   type GoodCheck = ProjectableFromDomain<Good, DomainEnc>
   type BadFlatCheck = ProjectableFromDomain<BadFlat, DomainEnc>
 
-  const _good: GoodCheck = undefined as unknown
+  const _good: GoodCheck = undefined
   // @ts-expect-error packages is not on domain initial; multi-tag flat intersection rejects it
   const _badFlat: BadFlatCheck = undefined as unknown
   void _good
@@ -2129,7 +2134,7 @@ it("memFilter: agg-count-when groups rows and counts conditionally", () => {
       },
       { key: "total", aggregate: { _tag: "agg-count" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   const nyc = result.find((r: any) => r.city === "NYC")!
@@ -2155,7 +2160,7 @@ it("memFilter: agg-sum / agg-min / agg-max aggregate numerics", () => {
       { key: "min", aggregate: { _tag: "agg-min", field: "salary" } },
       { key: "max", aggregate: { _tag: "agg-max", field: "salary" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   const eng = result.find((r: any) => r.dept === "eng")!
@@ -2179,7 +2184,7 @@ it("memFilter: aggregate with nested path grouping", () => {
       { key: "city", path: "address.city" },
       { key: "count", aggregate: { _tag: "agg-count" } }
     ] as any
-  })(rows as any) as any[]
+  })(rows) as any[]
 
   expect(result.length).toBe(2)
   expect(result.find((r: any) => r.city === "NYC")!.count).toBe(2)

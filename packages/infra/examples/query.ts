@@ -76,7 +76,7 @@ const program = Effect.gen(function*() {
     and("_tag", "Something"),
     or(
       where("displayName", "Riley"),
-      and("n", "gt", "2021-01-01T00:00:00Z"), // TODO: work with To type translation, so Date?
+      and("n", "gt", new Date("2021-01-01T00:00:00Z")),
       and("_tag", "Something")
     ),
     order("displayName"),
@@ -90,7 +90,7 @@ const program = Effect.gen(function*() {
     and("_tag", "Something"),
     or(
       where("displayName", "Riley"),
-      and("n", "gt", "2021-01-01T00:00:00Z"), // TODO: work with To type translation, so Date?
+      and("n", "gt", new Date("2021-01-01T00:00:00Z")),
       and("_tag", "Something")
     ),
     order("displayName"),
@@ -112,7 +112,7 @@ expectTypeOf(test1).toEqualTypeOf<
     readonly _tag: "Something"
     readonly id: string
     readonly displayName: string
-    readonly n: string
+    readonly n: Date
     readonly union: {
       readonly _tag: "string"
       readonly value: string
@@ -129,7 +129,7 @@ expectTypeOf(testneq1).toEqualTypeOf<
     readonly _tag: "Something"
     readonly id: string
     readonly displayName: string
-    readonly n: string
+    readonly n: Date
     readonly union: {
       readonly _tag: "number"
       readonly value: number

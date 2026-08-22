@@ -24,11 +24,33 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("John")
   })
 
+  it("where eq Date binds ISO string", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "n", op: "eq", value: new Date("2024-01-01T00:00:00.000Z") }],
+      "users",
+      {}
+    )
+    expect(result.params).toContain("2024-01-01T00:00:00.000Z")
+  })
+
+  it("where includes Set binds array values", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "tags", op: "in", value: new Set(["a", "b"]) }],
+      "users",
+      {}
+    )
+    expect(result.params).toEqual(expect.arrayContaining(["a", "b"]))
+  })
+
   it("where eq number", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "age", op: "eq", value: 25 as any }],
+      [{ t: "where", path: "age", op: "eq", value: 25 }],
       "users",
       {}
     )
@@ -40,7 +62,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "age", op: "gt", value: 18 as any }],
+      [{ t: "where", path: "age", op: "gt", value: 18 }],
       "users",
       {}
     )
@@ -70,7 +92,7 @@ describe("SQL query builder (SQLite dialect)", () => {
       "id",
       [
         { t: "where", path: "name", op: "eq", value: "Alice" },
-        { t: "and", path: "age", op: "gt", value: 18 as any }
+        { t: "and", path: "age", op: "gt", value: 18 }
       ],
       "users",
       {}
@@ -83,7 +105,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "id", op: "in", value: ["a", "b", "c"] as any }],
+      [{ t: "where", path: "id", op: "in", value: ["a", "b", "c"] }],
       "users",
       {}
     )
@@ -167,7 +189,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "tags", op: "includes-any", value: ["admin", "user"] as any }],
+      [{ t: "where", path: "tags", op: "includes-any", value: ["admin", "user"] }],
       "users",
       {}
     )
@@ -495,7 +517,7 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
-      [{ t: "where", path: "status", op: "in", value: ["active", "pending"] as any }],
+      [{ t: "where", path: "status", op: "in", value: ["active", "pending"] }],
       "users",
       {}
     )
@@ -787,7 +809,7 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r1 = query(db, q1.sql, q1.params)
       expect(r1.length).toBe(1)
-      expect((r1[0] as any).id).toBe("1")
+      expect(r1[0].id).toBe("1")
 
       const q2 = buildWhereSQLQuery(
         sqliteDialect,
@@ -798,13 +820,13 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r2 = query(db, q2.sql, q2.params)
       expect(r2.length).toBe(1)
-      expect((r2[0] as any).id).toBe("2")
+      expect(r2[0].id).toBe("2")
 
       // Both queryable by id column
       const q3 = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "id", op: "in", value: ["1", "2"] as any }],
+        [{ t: "where", path: "id", op: "in", value: ["1", "2"] }],
         "test_compat",
         {}
       )
@@ -830,7 +852,7 @@ describe("SQL Store (SQLite integration)", () => {
       const q1 = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "age", op: "gt", value: 28 as any }],
+        [{ t: "where", path: "age", op: "gt", value: 28 }],
         "test_noid",
         {}
       )
@@ -846,8 +868,8 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r2 = query(db, q2.sql, q2.params)
       expect(r2.length).toBe(1)
-      expect((r2[0] as any).id).toBe("2")
-      expect((JSON.parse((r2[0] as any).data) as any).name).toBe("Bob")
+      expect(r2[0].id).toBe("2")
+      expect((JSON.parse(r2[0].data) as any).name).toBe("Bob")
 
       // Order + limit still works
       const q3 = buildWhereSQLQuery(
@@ -863,7 +885,7 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r3 = query(db, q3.sql, q3.params)
       expect(r3.length).toBe(2)
-      expect((JSON.parse((r3[0] as any).data) as any).name).toBe("Bob") // youngest first
+      expect((JSON.parse(r3[0].data) as any).name).toBe("Bob") // youngest first
     }))
 
   it("query builder generates valid SQL for SQLite", () =>
@@ -896,13 +918,13 @@ describe("SQL Store (SQLite integration)", () => {
         {}
       )
       expect(query(db, q1.sql, q1.params).length).toBe(1)
-      expect((JSON.parse((query(db, q1.sql, q1.params)[0] as any).data) as any).name).toBe("Alice")
+      expect((JSON.parse(query(db, q1.sql, q1.params)[0].data) as any).name).toBe("Alice")
 
       // Test gt
       const q2 = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "age", op: "gt", value: 28 as any }],
+        [{ t: "where", path: "age", op: "gt", value: 28 }],
         "test_people",
         {}
       )
@@ -927,20 +949,20 @@ describe("SQL Store (SQLite integration)", () => {
         "id",
         [
           { t: "where", path: "name", op: "eq", value: "Alice" },
-          { t: "and", path: "age", op: "gt", value: 25 as any }
+          { t: "and", path: "age", op: "gt", value: 25 }
         ],
         "test_people",
         {}
       )
       const r4 = query(db, q4.sql, q4.params)
       expect(r4.length).toBe(1)
-      expect((JSON.parse((r4[0] as any).data) as any).name).toBe("Alice")
+      expect((JSON.parse(r4[0].data) as any).name).toBe("Alice")
 
       // Test IN
       const q5 = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "id", op: "in", value: ["1", "3"] as any }],
+        [{ t: "where", path: "id", op: "in", value: ["1", "3"] }],
         "test_people",
         {}
       )
@@ -966,7 +988,7 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r7 = query(db, q7.sql, q7.params)
       expect(r7.length).toBe(1)
-      expect((JSON.parse((r7[0] as any).data) as any).name).toBe("Alice")
+      expect((JSON.parse(r7[0].data) as any).name).toBe("Alice")
 
       // Test includes (array)
       const q8 = buildWhereSQLQuery(
@@ -987,7 +1009,7 @@ describe("SQL Store (SQLite integration)", () => {
           {
             t: "or-scope",
             result: [
-              { t: "where", path: "age", op: "gt", value: 30 as any },
+              { t: "where", path: "age", op: "gt", value: 30 },
               { t: "and", path: "name", op: "contains", value: "ar" }
             ],
             relation: "some"
@@ -1012,7 +1034,7 @@ describe("SQL Store (SQLite integration)", () => {
       )
       const r10 = query(db, q10.sql, q10.params)
       expect(r10.length).toBe(2)
-      expect((JSON.parse((r10[0] as any).data) as any).name).toBe("Charlie") // oldest first
+      expect((JSON.parse(r10[0].data) as any).name).toBe("Charlie") // oldest first
     }))
 
   it("computed relation-every / distinct-count / sum / collect run on SQLite", () =>
@@ -1154,7 +1176,7 @@ describe("SQL Store (SQLite integration)", () => {
       const results = query(db, nsSql, params)
       // Should only get Alice and Bob (primary namespace), not Charlie (other namespace)
       expect(results.length).toBe(2)
-      const names = results.map((r) => (JSON.parse((r as any).data) as any).name).sort()
+      const names = results.map((r) => (JSON.parse(r.data) as any).name).sort()
       expect(names).toEqual(["Alice", "Bob"])
     }))
 
@@ -1285,7 +1307,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "flag", op: "eq", value: true as any }],
+      [{ t: "where", path: "flag", op: "eq", value: true }],
       "t",
       {}
     )
@@ -1297,7 +1319,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "flag", op: "eq", value: false as any }],
+      [{ t: "where", path: "flag", op: "eq", value: false }],
       "t",
       {}
     )
@@ -1308,7 +1330,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const r1 = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "flag", op: "neq", value: true as any }],
+      [{ t: "where", path: "flag", op: "neq", value: true }],
       "t",
       {}
     )
@@ -1317,7 +1339,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const r2 = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{ t: "where", path: "flag", op: "in", value: [true, false] as any }],
+      [{ t: "where", path: "flag", op: "in", value: [true, false] }],
       "t",
       {}
     )
@@ -1328,7 +1350,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
-      [{ t: "where", path: "flag", op: "eq", value: true as any }],
+      [{ t: "where", path: "flag", op: "eq", value: true }],
       "t",
       {}
     )
@@ -1340,7 +1362,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
-      [{ t: "where", path: "flag", op: "eq", value: false as any }],
+      [{ t: "where", path: "flag", op: "eq", value: false }],
       "t",
       {}
     )
@@ -1351,7 +1373,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
-      [{ t: "where", path: "flag", op: "in", value: [true, false] as any }],
+      [{ t: "where", path: "flag", op: "in", value: [true, false] }],
       "t",
       {}
     )
@@ -1373,7 +1395,7 @@ describe("boolean WHERE clauses — query builder", () => {
     const result = buildWhereSQLQuery(
       pgDialect,
       "id",
-      [{ t: "where", path: "age", op: "gt", value: 18 as any }],
+      [{ t: "where", path: "age", op: "gt", value: 18 }],
       "t",
       {}
     )
@@ -1404,13 +1426,13 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
       const q = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "flag", op: "eq", value: true as any }],
+        [{ t: "where", path: "flag", op: "eq", value: true }],
         "t",
         {}
       )
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
-      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Alice")
+      expect((JSON.parse(rows[0].data) as any).name).toBe("Alice")
     }))
 
   it("where flag = false matches only false rows", () =>
@@ -1426,13 +1448,13 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
       const q = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "flag", op: "eq", value: false as any }],
+        [{ t: "where", path: "flag", op: "eq", value: false }],
         "t",
         {}
       )
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
-      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Bob")
+      expect((JSON.parse(rows[0].data) as any).name).toBe("Bob")
     }))
 
   it("where nested boolean path works", () =>
@@ -1448,13 +1470,13 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
       const q = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "meta.active", op: "eq", value: true as any }],
+        [{ t: "where", path: "meta.active", op: "eq", value: true }],
         "t",
         {}
       )
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
-      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Alice")
+      expect((JSON.parse(rows[0].data) as any).name).toBe("Alice")
     }))
 
   it("where neq boolean works", () =>
@@ -1470,13 +1492,13 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
       const q = buildWhereSQLQuery(
         sqliteDialect,
         "id",
-        [{ t: "where", path: "flag", op: "neq", value: true as any }],
+        [{ t: "where", path: "flag", op: "neq", value: true }],
         "t",
         {}
       )
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
-      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Bob")
+      expect((JSON.parse(rows[0].data) as any).name).toBe("Bob")
     }))
 })
 
@@ -1573,7 +1595,7 @@ describe("toRow strips _etag and id from data", () => {
   const toRow = <IdKey extends PropertyKey>(e: any, idKey: IdKey) => {
     const newE = makeETag(e)
     const id = newE[idKey] as string
-    const { _etag, [idKey]: _id, ...rest } = newE as any
+    const { _etag, [idKey]: _id, ...rest } = newE
     const data = JSON.stringify(rest)
     return { id, _etag: newE._etag!, data, item: newE }
   }

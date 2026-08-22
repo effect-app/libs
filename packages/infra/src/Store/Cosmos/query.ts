@@ -105,6 +105,43 @@ export function buildWhereCosmosQuery3(
           (x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
         }))`
 
+      case "hasKey":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = ${v})`
+      case "notHasKey":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = ${v}))`
+      case "hasValue":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = ${v})`
+      case "notHasValue":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = ${v}))`
+      case "hasKeyValue":
+        return `ARRAY_CONTAINS(${k}, ${v})`
+      case "notHasKeyValue":
+        return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
+      case "hasKey-any":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[0]))`
+      case "notHasKey-any":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[0])))`
+      case "hasKey-all":
+        return `(NOT EXISTS(SELECT VALUE key FROM key IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = key)))`
+      case "notHasKey-all":
+        return `EXISTS(SELECT VALUE key FROM key IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = key))`
+      case "hasValue-any":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[1]))`
+      case "notHasValue-any":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[1])))`
+      case "hasValue-all":
+        return `(NOT EXISTS(SELECT VALUE val FROM val IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = val)))`
+      case "notHasValue-all":
+        return `EXISTS(SELECT VALUE val FROM val IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = val))`
+      case "hasKeyValue-any":
+        return `EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE ARRAY_CONTAINS(${k}, pair))`
+      case "notHasKeyValue-any":
+        return `(NOT EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE ARRAY_CONTAINS(${k}, pair)))`
+      case "hasKeyValue-all":
+        return `(NOT EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE NOT ARRAY_CONTAINS(${k}, pair)))`
+      case "notHasKeyValue-all":
+        return `EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE NOT ARRAY_CONTAINS(${k}, pair))`
+
       case "contains":
         return `CONTAINS(${k}, ${v}, true)`
 
@@ -165,6 +202,24 @@ export function buildWhereCosmosQuery3(
     "notIncludes-any": "includes-any",
     "includes-all": "notIncludes-all",
     "notIncludes-all": "includes-all",
+    hasKey: "notHasKey",
+    notHasKey: "hasKey",
+    hasValue: "notHasValue",
+    notHasValue: "hasValue",
+    hasKeyValue: "notHasKeyValue",
+    notHasKeyValue: "hasKeyValue",
+    "hasKey-any": "notHasKey-any",
+    "notHasKey-any": "hasKey-any",
+    "hasKey-all": "notHasKey-all",
+    "notHasKey-all": "hasKey-all",
+    "hasValue-any": "notHasValue-any",
+    "notHasValue-any": "hasValue-any",
+    "hasValue-all": "notHasValue-all",
+    "notHasValue-all": "hasValue-all",
+    "hasKeyValue-any": "notHasKeyValue-any",
+    "notHasKeyValue-any": "hasKeyValue-any",
+    "hasKeyValue-all": "notHasKeyValue-all",
+    "notHasKeyValue-all": "hasKeyValue-all",
     in: "notIn",
     notIn: "in"
   } satisfies Record<Ops, Ops>

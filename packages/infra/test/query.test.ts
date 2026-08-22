@@ -214,6 +214,10 @@ it("memory store round-trips Date/Set/Map via JSON codecs", () =>
       expect(byDate.map((_) => _.id)).toEqual(["d1"])
       const byTag = yield* repo.query(where("tags", "includes", "b"))
       expect(byTag.map((_) => _.id)).toEqual(["d1"])
+      const byKey = yield* repo.query(where("meta", "hasKey", "n"))
+      expect(byKey.map((_) => _.id)).toEqual(["d1"])
+      const byPair = yield* repo.query(where("meta", "hasKeyValue", ["n", 1]))
+      expect(byPair.map((_) => _.id)).toEqual(["d1"])
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
@@ -1456,6 +1460,28 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(n4).toEqualTypeOf<QueryWhere<Native, Native>>()
       expectTypeOf(n5).toEqualTypeOf<QueryWhere<Native, Native>>()
       expectTypeOf(n6).toEqualTypeOf<QueryWhere<Native, Native>>()
+
+      type WithMap = {
+        readonly id: string
+        readonly meta: ReadonlyMap<string, number>
+      }
+      const mapped = make<WithMap>()
+      const m1 = mapped.pipe(where("meta", "hasKey", "n"))
+      const m2 = mapped.pipe(where("meta", "hasValue", 1))
+      const m3 = mapped.pipe(where("meta", "hasKeyValue", ["n", 1] as const))
+      const m4 = mapped.pipe(where("meta", "hasKey-any", ["n", "x"]))
+      const m5 = mapped.pipe(where("meta", "hasValue-all", new Set([1, 2])))
+      const m6 = mapped.pipe(where("meta", "hasKeyValue-any", [["n", 1] as const, ["x", 2] as const]))
+      expectTypeOf(m1).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      expectTypeOf(m2).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      expectTypeOf(m3).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      expectTypeOf(m4).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      expectTypeOf(m5).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      expectTypeOf(m6).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+      // @ts-expect-error cannot hasKey on a string field
+      mapped.pipe(where("id", "hasKey", "n"))
+      // @ts-expect-error hasKey value must be the map key type
+      mapped.pipe(where("meta", "hasKey", 1))
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
@@ -2198,6 +2224,32 @@ it("codeFilter: Date array / Set includes and in", () => {
     "2"
   ])
   expect(run(make<DateRow>().pipe(where("tag", "in", new Set(["a"]))))).toEqual(["1"])
+})
+
+it("codeFilter: Map hasKey / hasValue / hasKeyValue", () => {
+  type MapRow = {
+    readonly id: string
+    readonly meta: ReadonlyMap<string, number>
+  }
+  const rows: MapRow[] = [
+    { id: "1", meta: new Map([["n", 1], ["x", 2]]) },
+    { id: "2", meta: new Map([["n", 9]]) },
+    { id: "3", meta: new Map([["z", 2]]) }
+  ]
+  const run = (q: any) => (memFilter(toFilter(q))(rows) as MapRow[]).map((_) => _.id)
+  expect(run(make<MapRow>().pipe(where("meta", "hasKey", "n"))).sort()).toEqual(["1", "2"])
+  expect(run(make<MapRow>().pipe(where("meta", "notHasKey", "n")))).toEqual(["3"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasValue", 2))).sort()).toEqual(["1", "3"])
+  expect(run(make<MapRow>().pipe(where("meta", "notHasValue", 2)))).toEqual(["2"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasKeyValue", ["n", 1])))).toEqual(["1"])
+  expect(run(make<MapRow>().pipe(where("meta", "notHasKeyValue", ["n", 1]))).sort()).toEqual(["2", "3"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasKey-any", ["z", "missing"])))).toEqual(["3"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasKey-all", ["n", "x"])))).toEqual(["1"])
+  expect(run(make<MapRow>().pipe(where("meta", "notHasKey-all", ["n", "x"]))).sort()).toEqual(["2", "3"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasValue-any", [9, 99])))).toEqual(["2"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasValue-all", [1, 2])))).toEqual(["1"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasKeyValue-any", [["n", 9], ["missing", 0]])))).toEqual(["2"])
+  expect(run(make<MapRow>().pipe(where("meta", "hasKeyValue-all", [["n", 1], ["x", 2]])))).toEqual(["1"])
 })
 
 it("codeFilter: in / notIn", () => {

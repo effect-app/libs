@@ -10,6 +10,17 @@ import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanEx
 
 const vAsArr = (v: unknown) => toJsonQueryValue(v) as any[]
 
+const mapEntries = (value: unknown): readonly [unknown, unknown][] => {
+  const json = toJsonQueryValue(value)
+  if (!Array.isArray(json)) return []
+  return json.filter((entry): entry is [unknown, unknown] => Array.isArray(entry) && entry.length >= 2)
+}
+
+const pairEq = (entry: readonly [unknown, unknown], pair: unknown) => {
+  const json = toJsonQueryValue(pair)
+  return Array.isArray(json) && json.length >= 2 && compare(entry[0], json[0]) && compare(entry[1], json[1])
+}
+
 const filterStatement = (x: any, p: FilterR) => {
   const k = toJsonQueryValue(get(x, p.path))
   const v = toJsonQueryValue(p.value)
@@ -38,6 +49,42 @@ const filterStatement = (x: any, p: FilterR) => {
       return (vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
     case "notIncludes-all":
       return !(vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
+    case "hasKey":
+      return mapEntries(k).some(([key]) => compare(key, v))
+    case "notHasKey":
+      return !mapEntries(k).some(([key]) => compare(key, v))
+    case "hasValue":
+      return mapEntries(k).some(([, val]) => compare(val, v))
+    case "notHasValue":
+      return !mapEntries(k).some(([, val]) => compare(val, v))
+    case "hasKeyValue":
+      return mapEntries(k).some((entry) => pairEq(entry, v))
+    case "notHasKeyValue":
+      return !mapEntries(k).some((entry) => pairEq(entry, v))
+    case "hasKey-any":
+      return vAsArr(p.value).some((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "notHasKey-any":
+      return !vAsArr(p.value).some((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "hasKey-all":
+      return vAsArr(p.value).every((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "notHasKey-all":
+      return !vAsArr(p.value).every((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "hasValue-any":
+      return vAsArr(p.value).some((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "notHasValue-any":
+      return !vAsArr(p.value).some((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "hasValue-all":
+      return vAsArr(p.value).every((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "notHasValue-all":
+      return !vAsArr(p.value).every((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "hasKeyValue-any":
+      return vAsArr(p.value).some((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "notHasKeyValue-any":
+      return !vAsArr(p.value).some((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "hasKeyValue-all":
+      return vAsArr(p.value).every((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "notHasKeyValue-all":
+      return !vAsArr(p.value).every((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
     case "contains":
       return (k as string).toLowerCase().includes((v as string).toLowerCase())
     case "endsWith":

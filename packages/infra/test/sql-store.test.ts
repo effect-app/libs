@@ -57,6 +57,72 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("2024-01-01T00:00:00.000Z")
   })
 
+  it("where hasKey / hasValue / hasKeyValue on Map JSON tuples", () => {
+    const key = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey", value: "n" }],
+      "users",
+      {}
+    )
+    expect(key.sql).toContain("json_extract(value, '$[0]')")
+    expect(key.params).toContain("n")
+
+    const value = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasValue", value: 1 }],
+      "users",
+      {}
+    )
+    expect(value.sql).toContain("json_extract(value, '$[1]')")
+    expect(value.params).toContain(1)
+
+    const pair = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasKeyValue", value: ["n", 1] }],
+      "users",
+      {}
+    )
+    expect(pair.sql).toContain("json_each")
+    expect(pair.params).toContain(JSON.stringify(["n", 1]))
+
+    const anyKeys = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey-any", value: ["n", "x"] }],
+      "users",
+      {}
+    )
+    expect(anyKeys.sql).toContain(" OR ")
+    expect(anyKeys.params).toEqual(expect.arrayContaining(["n", "x"]))
+  })
+
+  it("pg where hasKey / hasKeyValue uses jsonb tuple elements", () => {
+    const key = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey", value: "n" }],
+      "users",
+      {}
+    )
+    expect(key.sql).toContain("jsonb_array_elements")
+    expect(key.sql).toContain("e->0")
+    expect(key.params).toContain(JSON.stringify("n"))
+
+    const pair = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "meta", op: "hasKeyValue", value: ["n", 1] }],
+      "users",
+      {}
+    )
+    expect(pair.sql).toContain("@>")
+    expect(pair.sql).toContain("jsonb_build_array")
+    expect(pair.params).toContain(JSON.stringify(["n", 1]))
+  })
+
   it("where includes-any Date[] binds ISO strings", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
@@ -1506,6 +1572,44 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
       expect((JSON.parse(rows[0].data) as any).name).toBe("Alice")
+    }))
+
+  it("where hasKey / hasValue / hasKeyValue match Map tuple JSON", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "e", JSON.stringify({ meta: [["n", 1], ["x", 2]] }))
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("2", "e", JSON.stringify({ meta: [["n", 9]] }))
+
+      const byKey = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "meta", op: "hasKey", value: "x" }],
+        "t",
+        {}
+      )
+      expect(query(db, byKey.sql, byKey.params).map((r) => r.id)).toEqual(["1"])
+
+      const byValue = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "meta", op: "hasValue", value: 9 }],
+        "t",
+        {}
+      )
+      expect(query(db, byValue.sql, byValue.params).map((r) => r.id)).toEqual(["2"])
+
+      const byPair = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "meta", op: "hasKeyValue", value: ["n", 1] }],
+        "t",
+        {}
+      )
+      expect(query(db, byPair.sql, byPair.params).map((r) => r.id)).toEqual(["1"])
     }))
 
   it("where neq boolean works", () =>

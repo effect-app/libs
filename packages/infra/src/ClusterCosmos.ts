@@ -1,4 +1,4 @@
-import type { OperationInput, PatchRequestBody } from "@azure/cosmos"
+import type { JSONObject, JSONValue, OperationInput, OperationResponse, PatchRequestBody } from "@azure/cosmos"
 import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -27,6 +27,7 @@ export interface ClusterCosmosConfig {
 type MessageKind = "Request" | "AckChunk" | "Interrupt"
 type CosmosQueryValue = string | number | boolean | null | Array<string | number | boolean | null>
 type CosmosParameter = { readonly name: string; readonly value: CosmosQueryValue }
+type JsonNonEmptyArray = readonly [JSONValue, ...Array<JSONValue>]
 
 interface MessageDoc {
   readonly id: string
@@ -54,8 +55,9 @@ interface MessageDoc {
 }
 
 type ReplyDoc = WithExitReplyDoc | ChunkReplyDoc
+type ReplyItemDoc = ReplyDoc | ReplyIndexDoc
 
-interface ReplyDocBase {
+interface ReplyDocBase extends JSONObject {
   readonly id: string
   readonly _partitionKey: string
   readonly type: "reply"
@@ -66,14 +68,24 @@ interface ReplyDocBase {
 
 interface WithExitReplyDoc extends ReplyDocBase {
   readonly kind: "WithExit"
-  readonly payload: Reply.WithExitEncoded["exit"]
+  readonly payload: Reply.WithExitEncoded["exit"] & JSONValue
   readonly sequence: null
 }
 
 interface ChunkReplyDoc extends ReplyDocBase {
   readonly kind: "Chunk"
-  readonly payload: Reply.ChunkEncoded["values"]
+  readonly payload: JsonNonEmptyArray
   readonly sequence: number
+}
+
+interface ReplyIndexDoc extends JSONObject {
+  readonly id: string
+  readonly _partitionKey: string
+  readonly type: "reply-index"
+  readonly requestId: string
+  readonly replyId: string
+  readonly kind: "WithExit" | "ChunkSequence"
+  readonly sequence: number | null
 }
 
 interface RunnerDoc {
@@ -114,12 +126,29 @@ const messagePartition = (shardId: string) => `message::${shardId}`
 const messageDocId = (envelope: Envelope.Encoded, primaryKey: string | null) =>
   cosmosId(primaryKey === null ? envelopeId(envelope) : `primary::${primaryKey}`)
 const replyPartition = (requestId: string) => `reply::${requestId}`
+const terminalReplyIndexDocId = (requestId: string) => cosmosId(`reply::${requestId}::exit`)
+const chunkReplyIndexDocId = (requestId: string, sequence: number) =>
+  cosmosId(`reply::${requestId}::chunk::${sequence}`)
 const runnerDocId = (address: string) => cosmosId(`runner::${address}`)
 const lockDocId = (shardId: string) => cosmosId(`lock::${shardId}`)
 const tenMinutes = Duration.toMillis(Duration.minutes(10))
 const maxCosmosBatchOperations = 100
 const isSuccessfulStatus = (statusCode: number | undefined): boolean =>
   statusCode !== undefined && statusCode >= 200 && statusCode < 300
+
+class CosmosBatchOperationError extends Error {
+  readonly _tag = "CosmosBatchOperationError"
+  constructor(readonly statusCode: number | undefined) {
+    super(`Cosmos batch operation failed with status ${statusCode ?? "unknown"}`)
+  }
+}
+
+const ensureBatchSucceeded = (results: ReadonlyArray<OperationResponse> | undefined) => {
+  const failed = results?.find((result) => !isSuccessfulStatus(result.statusCode))
+  return failed === undefined && results !== undefined
+    ? Effect.void
+    : Effect.fail(new CosmosBatchOperationError(failed?.statusCode))
+}
 
 const isCosmosStatus = (u: unknown, code: number): boolean =>
   Cause.isUnknownError(u)
@@ -129,6 +158,31 @@ const isCosmosStatus = (u: unknown, code: number): boolean =>
 const isConflict = (u: unknown) => isCosmosStatus(u, 409)
 const isNotFound = (u: unknown) => isCosmosStatus(u, 404)
 const isPreconditionFailed = (u: unknown) => isCosmosStatus(u, 412)
+
+const isJsonRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null && !Array.isArray(value) && !(value instanceof Date)
+
+const isJsonValue = (value: unknown): value is JSONValue =>
+  value === null
+  || typeof value === "string"
+  || typeof value === "boolean"
+  || value instanceof Date
+  || (typeof value === "number" && Number.isFinite(value))
+  || (Array.isArray(value) && value.every(isJsonValue))
+  || (isJsonRecord(value) && Object.values(value).every(isJsonValue))
+
+const jsonValue = (value: unknown, label: string) =>
+  isJsonValue(value) ? Effect.succeed(value) : Effect.fail(new TypeError(`${label} is not JSON-encodable`))
+
+const jsonReplyExit = (value: Reply.WithExitEncoded["exit"]) =>
+  isJsonValue(value) ? Effect.succeed(value) : Effect.fail(new TypeError("reply exit is not JSON-encodable"))
+
+const jsonNonEmptyArray = Effect.fnUntraced(function*(values: Reply.ChunkEncoded["values"], label: string) {
+  const head = yield* jsonValue(values[0], label)
+  const tail = yield* Effect.forEach(values.slice(1), (value) => jsonValue(value, label))
+  const result: JsonNonEmptyArray = [head, ...tail]
+  return result
+})
 
 const respBytes = (
   resp: { diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } } }
@@ -298,29 +352,51 @@ const envelopeFromDoc = (
   }
 }
 
-const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
-  reply._tag === "WithExit"
-    ? {
+const replyToDoc = Effect.fnUntraced(function*(reply: Reply.Encoded) {
+  return reply._tag === "WithExit"
+    ? ({
       id: cosmosId(reply.id),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
       kind: "WithExit",
       requestId: reply.requestId,
-      payload: reply.exit,
+      payload: yield* jsonReplyExit(reply.exit),
       sequence: null,
       acked: false
-    }
-    : {
+    } satisfies WithExitReplyDoc)
+    : ({
       id: cosmosId(reply.id),
       _partitionKey: replyPartition(reply.requestId),
       type: "reply",
       rowid: reply.id,
       kind: "Chunk",
       requestId: reply.requestId,
-      payload: reply.values,
+      payload: yield* jsonNonEmptyArray(reply.values, "reply chunk"),
       sequence: reply.sequence,
       acked: false
+    } satisfies ChunkReplyDoc)
+})
+
+const replyToIndexDoc = (reply: Reply.Encoded): ReplyIndexDoc =>
+  reply._tag === "WithExit"
+    ? {
+      id: terminalReplyIndexDocId(reply.requestId),
+      _partitionKey: replyPartition(reply.requestId),
+      type: "reply-index",
+      requestId: reply.requestId,
+      replyId: reply.id,
+      kind: "WithExit",
+      sequence: null
+    }
+    : {
+      id: chunkReplyIndexDocId(reply.requestId, reply.sequence),
+      _partitionKey: replyPartition(reply.requestId),
+      type: "reply-index",
+      requestId: reply.requestId,
+      replyId: reply.id,
+      kind: "ChunkSequence",
+      sequence: reply.sequence
     }
 
 const replyFromDoc = (doc: ReplyDoc): Reply.Encoded =>
@@ -391,6 +467,14 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
         Effect.map((resp) => resp.resources)
       )
 
+  const queryReplyItems = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
+    Effect
+      .tryPromise(() => container.items.query<ReplyItemDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
+      .pipe(
+        Effect.tap(annotateFeed),
+        Effect.map((resp) => resp.resources)
+      )
+
   const lastReply = (replyId: string | null) =>
     replyId === null
       ? Effect.succeed(Option.none<Reply.Encoded>())
@@ -443,10 +527,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
               .tryPromise(() => container.items.batch(operations, partitionKey))
               .pipe(
                 Effect.tap(annotateItem),
-                Effect.flatMap((resp) => {
-                  const failed = resp.result?.find((result) => !isSuccessfulStatus(result.statusCode))
-                  return failed === undefined ? Effect.void : Effect.fail(failed.statusCode)
-                }),
+                Effect.flatMap((resp) => ensureBatchSucceeded(resp.result)),
                 Effect.catchIf(() => true, () => Effect.forEach(chunk, fallback, { discard: true }))
               )
           },
@@ -500,6 +581,27 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
       deleteDoc
     )
 
+  const createReply = Effect.fnUntraced(function*(reply: Reply.Encoded) {
+    const doc = yield* replyToDoc(reply)
+    const indexDoc = replyToIndexDoc(reply)
+    const operations: Array<OperationInput> = [
+      {
+        operationType: "Create" as const,
+        resourceBody: doc
+      },
+      {
+        operationType: "Create" as const,
+        resourceBody: indexDoc
+      }
+    ]
+    return yield* Effect
+      .tryPromise(() => container.items.batch(operations, doc._partitionKey))
+      .pipe(
+        Effect.tap(annotateItem),
+        Effect.flatMap((resp) => ensureBatchSucceeded(resp.result))
+      )
+  })
+
   return yield* MessageStorage.makeEncoded({
     saveEnvelope: ({ deliverAt, envelope, primaryKey }) =>
       Effect
@@ -540,11 +642,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
     saveReply: (reply) =>
       Effect
         .gen(function*() {
-          const doc = replyToDoc(reply)
-          yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
-            Effect.tap(annotateItem),
-            Effect.catchIf(isConflict, () => Effect.void)
-          )
+          yield* createReply(reply)
           const messages = yield* queryMessages(
             "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
             [{ name: "@requestId", value: reply.requestId }]
@@ -566,8 +664,8 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
       Effect
         .gen(function*() {
           const id = String(requestId)
-          const replies = yield* queryReplies(
-            "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'WithExit'",
+          const replies = yield* queryReplyItems(
+            "SELECT * FROM c WHERE c.requestId = @requestId AND ((c.type = 'reply' AND c.kind = 'WithExit') OR (c.type = 'reply-index' AND c.kind = 'WithExit'))",
             [
               { name: "@requestId", value: id }
             ]
@@ -683,8 +781,8 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           Effect.flatMap((messages) => {
             if (!Arr.isArrayNonEmpty(messages)) return Effect.void
             const requestIds = Array.from(new Set(messages.map((message) => message.requestId)))
-            return queryReplies(
-              "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+            return queryReplyItems(
+              "SELECT * FROM c WHERE ARRAY_CONTAINS(@requestIds, c.requestId) AND (c.type = 'reply' OR c.type = 'reply-index')",
               [{ name: "@requestIds", value: requestIds }]
             )
               .pipe(

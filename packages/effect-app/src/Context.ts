@@ -48,10 +48,10 @@ export function assignTag<Identifier extends object, Shape extends object = Iden
     }
     const t = Object.assign(cls, Object.getPrototypeOf(tag), fields)
     if (!creationError) {
-      const limit = Reflect.get(Error, "stackTraceLimit")
-      Reflect.set(Error, "stackTraceLimit", 2)
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 2
       creationError = new Error()
-      if (limit !== undefined) Reflect.set(Error, "stackTraceLimit", limit)
+      Error.stackTraceLimit = limit
     }
     // the stack is used to get the location of the tag definition, if a service is not found in the registry
     Object.defineProperty(t, "stack", {

@@ -17,7 +17,7 @@ import { InfraLogger } from "../logger.ts"
 import { annotateDb, type DbSystem } from "../otel.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
-import { makeETag } from "./utils.ts"
+import { makeETag, toJsonQueryValue } from "./utils.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
 const sqlIsTransient = (e: unknown) =>
@@ -51,8 +51,9 @@ export const parseRow = <Encoded extends FieldValues>(
   decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
+  const jsonDefaults = toJsonQueryValue(defaultValues) as Partial<Encoded>
   return decode(
-    { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+    { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
   )
 }
 
@@ -90,7 +91,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
       ) {
         type PM = PersistenceModelType<Encoded>
         const tableName = `${prefix}${name}`
-        const defaultValues = config?.defaultValues ?? {}
+        const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
         const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
         const resolveNamespace = !config?.allowNamespace
@@ -427,7 +428,7 @@ function makeSQLiteStorePerNs(
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const defaultValues = config?.defaultValues ?? {}
+      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace

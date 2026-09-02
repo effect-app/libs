@@ -20,6 +20,7 @@ import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { toJsonQueryValue } from "./utils.ts"
 
 const makeMapId =
   <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) => ({ [idKey]: id, ...e }: Encoded) => ({
@@ -98,7 +99,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
-      const fromStored = (raw: Encoded) => codec.decode({ ...config?.defaultValues, ...mapReverseId(raw as any) })
+      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
+      const fromStored = (raw: Encoded) => codec.decode({ ...defaultValues, ...mapReverseId(raw as any) })
       type PM = PersistenceModelType<Encoded>
       type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
       const containerId = `${prefix}${name}`
@@ -131,7 +133,6 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           return namespace
         }))
 
-      const defaultValues = config?.defaultValues ?? {}
       const container = db.container(containerId)
       const bulk = container.items.bulk.bind(container.items)
       const execBatch = container.items.batch.bind(container.items)

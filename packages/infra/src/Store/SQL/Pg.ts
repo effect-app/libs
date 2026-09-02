@@ -13,7 +13,7 @@ import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
 import { makeJsonDocumentCodec } from "../jsonDocument.ts"
-import { makeETag } from "../utils.ts"
+import { makeETag, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
@@ -41,8 +41,9 @@ const parseRow = <Encoded extends FieldValues>(
   decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
+  const jsonDefaults = toJsonQueryValue(defaultValues) as Partial<Encoded>
   return decode(
-    { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+    { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
   )
 }
 
@@ -74,7 +75,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const defaultValues = config?.defaultValues ?? {}
+      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace

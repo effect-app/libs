@@ -1863,4 +1863,14 @@ describe("parseRow reconstructs full object from row", () => {
     expect(reconstructed.tags).toEqual(["admin"])
     expect(reconstructed._etag).toBe(newE._etag)
   })
+
+  it("lowers Date defaultValues to ISO before merge", () => {
+    const result: any = parseRow(
+      { id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) },
+      "id",
+      { at: new Date("2024-06-01T00:00:00.000Z") }
+    )
+    expect(result.at).toBe("2024-06-01T00:00:00.000Z")
+    expect(result.name).toBe("Alice")
+  })
 })

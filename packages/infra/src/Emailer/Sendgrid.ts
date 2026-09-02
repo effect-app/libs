@@ -53,8 +53,8 @@ const makeSendgrid = (
 
           const ret = yield* Effect
             .callback<
-              [sgMail.ClientResponse, Record<string, unknown>],
-              Error | sgMail.ResponseError
+              Awaited<ReturnType<typeof sgMail.send>>,
+              Error
             >(
               (resume) =>
                 void sgMail.send(

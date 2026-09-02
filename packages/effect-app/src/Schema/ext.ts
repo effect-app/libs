@@ -119,7 +119,7 @@ const dateHelpers = (s: S.Date) => ({
    * omitted from `.make(...)` input. NOT applied during decode — cannot be
    * used to JIT-migrate database fields. See file-level note.
    */
-  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
   /**
    * Decode-time default `new Date()`. **Discouraged for persisted data:** a
    * missing field may be data corruption, not an old-shape document; silently
@@ -127,7 +127,7 @@ const dateHelpers = (s: S.Date) => ({
    * preferably versioned migration over a decode-time fallback. See
    * file-level note.
    */
-  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
+  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
 })
 
 /** Like the default Schema `Date` (Encoded is `Date`) with default helpers. */

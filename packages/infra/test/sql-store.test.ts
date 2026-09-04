@@ -37,7 +37,10 @@ describe("SQL query builder (SQLite dialect)", () => {
 
   it("where eq app native Encoded binds via jsonValues", () => {
     class Day {
-      constructor(readonly ymd: string) {}
+      readonly ymd: string
+      constructor(ymd: string) {
+        this.ymd = ymd
+      }
     }
     const day = new Day("2024-06-01")
     const json = {

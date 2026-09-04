@@ -224,7 +224,10 @@ it("memory store round-trips Date/Set/Map via JSON codecs", () =>
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 class Day {
-  constructor(readonly ymd: string) {}
+  readonly ymd: string
+  constructor(ymd: string) {
+    this.ymd = ymd
+  }
 }
 
 const DayFromSelf = S.declare((u): u is Day => u instanceof Day, {

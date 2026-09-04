@@ -342,6 +342,9 @@ importers:
       "@sendgrid/mail":
         specifier: ^8.1.6
         version: 8.1.6(patch_hash=3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a)(debug@4.4.3(supports-color@8.1.1))
+      "@sentry/node":
+        specifier: 10.55.0
+        version: 10.55.0(supports-color@8.1.1)
       effect:
         specifier: ^4.0.0-beta.107
         version: 4.0.0-beta.107
@@ -373,9 +376,6 @@ importers:
       "@effect/sql-sqlite-node":
         specifier: 4.0.0-beta.107
         version: 4.0.0-beta.107(effect@4.0.0-beta.107)
-      "@sentry/node":
-        specifier: 10.55.0
-        version: 10.55.0(supports-color@8.1.1)
       "@sentry/opentelemetry":
         specifier: 10.55.0
         version: 10.55.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.40.0)

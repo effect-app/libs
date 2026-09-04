@@ -17,7 +17,7 @@ import { InfraLogger } from "../logger.ts"
 import { annotateDb, type DbSystem } from "../otel.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
-import { makeETag, toJsonQueryValue } from "./utils.ts"
+import { makeETag, makeJsonLower, toJsonQueryValue } from "./utils.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
 const sqlIsTransient = (e: unknown) =>
@@ -91,7 +91,8 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
       ) {
         type PM = PersistenceModelType<Encoded>
         const tableName = `${prefix}${name}`
-        const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
+        const json = yield* makeJsonLower(config)
+        const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
         const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
         const resolveNamespace = !config?.allowNamespace
@@ -289,7 +290,8 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                           .skip,
                         f
                           .limit,
-                        ns
+                        ns,
+                        json
                       )
                     })
                     .pipe(
@@ -428,7 +430,8 @@ function makeSQLiteStorePerNs(
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
+      const json = yield* makeJsonLower(config)
+      const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace
@@ -632,7 +635,9 @@ function makeSQLiteStorePerNs(
                       f
                         .skip,
                       f
-                        .limit
+                        .limit,
+                      undefined,
+                      json
                     )
                   )
                   .pipe(

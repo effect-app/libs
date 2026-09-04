@@ -13,7 +13,7 @@ import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
 import { makeJsonDocumentCodec } from "../jsonDocument.ts"
-import { makeETag, toJsonQueryValue } from "../utils.ts"
+import { makeETag, makeJsonLower, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
@@ -75,7 +75,8 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
+      const json = yield* makeJsonLower(config)
+      const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace
@@ -264,7 +265,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     | undefined,
                   f.order,
                   f.skip,
-                  f.limit
+                  f.limit,
+                  ns,
+                  json
                 )
                 const nsPlaceholder = pgDialect.placeholder(q.params.length + 1)
                 const hasWhere = q.sql.includes("WHERE")

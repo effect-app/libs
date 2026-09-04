@@ -5,51 +5,87 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import type { PersistenceModelType, SupportedValues2 } from "effect-app/Store"
 import { OptimisticConcurrencyException } from "../errors.ts"
+import { jsonHandlersFromSchemas, type JsonValueHandler, jsonValueHandlers, JsonValues } from "./jsonValues.ts"
 
 const dateJson = S.toCodecJson(S.Date)
 
+const applyHandlers = (value: unknown, extra: readonly JsonValueHandler[]): unknown => {
+  for (const h of extra) {
+    if (h.is(value)) return toJsonQueryValue(h.toJson(value), extra)
+  }
+  for (const h of jsonValueHandlers()) {
+    if (h.is(value)) return toJsonQueryValue(h.toJson(value), extra)
+  }
+  return undefined
+}
+
 /**
- * Lower Date / Map / Set query and document values to JSON, matching
- * `Schema.toCodecJson` of those declarations so document-DB adapters can bind
- * native Encoded values as JSON parameters.
+ * Lower Date / Map / Set (and app-registered native Encoded values) to JSON,
+ * matching `Schema.toCodecJson` so document-DB adapters can bind them as
+ * JSON parameters. App schemas register via `registerJsonSchema` /
+ * `JsonValues` / `StoreConfig.jsonValues` instead of being special-cased here.
  */
-export function toJsonQueryValue(value: unknown): unknown {
+export function toJsonQueryValue(value: unknown, extra: readonly JsonValueHandler[] = []): unknown {
+  const handled = applyHandlers(value, extra)
+  if (handled !== undefined) return handled
   if (value instanceof Date) {
     return S.encodeSync(dateJson)(value)
   }
   if (value instanceof Map) {
-    return [...value.entries()].map(([k, v]) => [toJsonQueryValue(k), toJsonQueryValue(v)])
+    return [...value.entries()].map(([k, v]) => [toJsonQueryValue(k, extra), toJsonQueryValue(v, extra)])
   }
   if (value instanceof Set) {
-    return [...value].map(toJsonQueryValue)
+    return [...value].map((v) => toJsonQueryValue(v, extra))
   }
   if (Array.isArray(value)) {
-    return value.map(toJsonQueryValue)
+    return value.map((v) => toJsonQueryValue(v, extra))
   }
   if (value !== null && typeof value === "object") {
     const proto = Object.getPrototypeOf(value)
     if (proto === Object.prototype || proto === null) {
       const out: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(value)) {
-        out[k] = toJsonQueryValue(v)
+        out[k] = toJsonQueryValue(v, extra)
       }
       return out
     }
     const toJSON = (value as { toJSON?: () => unknown }).toJSON
     if (typeof toJSON === "function") {
-      return toJsonQueryValue(toJSON.call(value))
+      return toJsonQueryValue(toJSON.call(value), extra)
     }
   }
   return value
 }
 
-export function jsonifyFilter(filter: readonly FilterResult[]): FilterResult[] {
+export function jsonifyFilter(
+  filter: readonly FilterResult[],
+  extra: readonly JsonValueHandler[] = []
+): FilterResult[] {
   return filter.map((r) =>
     r.t === "and-scope" || r.t === "or-scope" || r.t === "where-scope"
-      ? { ...r, result: jsonifyFilter(r.result) }
-      : { ...r, value: toJsonQueryValue(r.value) }
+      ? { ...r, result: jsonifyFilter(r.result, extra) }
+      : { ...r, value: toJsonQueryValue(r.value, extra) }
   )
 }
+
+export type JsonLower = {
+  readonly toJson: (value: unknown) => unknown
+  readonly jsonifyFilter: (filter: readonly FilterResult[]) => FilterResult[]
+}
+
+export const makeJsonLower = Effect.fnUntraced(function*(config?: {
+  readonly jsonValues?: readonly S.Top[]
+}) {
+  const provided = yield* Effect.serviceOption(JsonValues)
+  const extra = jsonHandlersFromSchemas([
+    ...(Option.isSome(provided) ? provided.value.schemas : []),
+    ...(config?.jsonValues ?? [])
+  ])
+  return {
+    toJson: (value: unknown) => toJsonQueryValue(value, extra),
+    jsonifyFilter: (filter: readonly FilterResult[]) => jsonifyFilter(filter, extra)
+  } satisfies JsonLower
+})
 
 /** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
 export function get(obj: any, path: string): any {

@@ -19,7 +19,7 @@ import { InfraLogger } from "../logger.ts"
 import { annotateDb } from "../otel.ts"
 import { codeFilter, codeFilter3_ } from "./codeFilter.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
-import { get, jsonifyFilter, makeUpdateETag, toJsonQueryValue } from "./utils.ts"
+import { get, jsonifyFilter, type JsonLower, makeJsonLower, makeUpdateETag, toJsonQueryValue } from "./utils.ts"
 
 export { get } from "./utils.ts"
 
@@ -334,7 +334,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
   namespace: string,
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
   _defaultValues?: Partial<Encoded>,
-  schema?: StoreConfig<Encoded>["schema"]
+  schema?: StoreConfig<Encoded>["schema"],
+  json?: JsonLower
 ) {
   type PM = PersistenceModelType<Encoded>
   return Effect.gen(function*() {
@@ -343,7 +344,9 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const encodeDoc = (e: Encoded | PM): PM => codec.encode({ _etag: undefined, ...e })
     const decodeDoc = (e: PM): PM => codec.decode(e)
     const items_ = yield* seed ?? Effect.sync(() => [])
-    const encodedDefaults = toJsonQueryValue(_defaultValues ?? {}) as Partial<Encoded>
+    const toJson = json?.toJson ?? toJsonQueryValue
+    const lowerFilter = json?.jsonifyFilter ?? jsonifyFilter
+    const encodedDefaults = toJson(_defaultValues ?? {}) as Partial<Encoded>
 
     const items = new Map(
       [...items_].map((_) => {
@@ -439,7 +442,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         allStored
           .pipe(
             Effect.tap(() => logQuery(f, encodedDefaults)),
-            Effect.map(memFilter({ ...f, filter: f.filter ? jsonifyFilter(f.filter) : f.filter })),
+            Effect.map(memFilter({ ...f, filter: f.filter ? lowerFilter(f.filter) : f.filter })),
             Effect.map((rows): (U extends undefined ? Encoded : Pick<Encoded, U>)[] =>
               f.select
                 ? rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
@@ -535,13 +538,15 @@ export const makeMemoryStore = () => ({
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
   ) {
+    const json = yield* makeJsonLower(config)
     const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
       modelName,
       idKey,
       "primary",
       seed,
       config?.defaultValues,
-      config?.schema
+      config?.schema,
+      json
     )
     const ctx = yield* Effect.context<R>()
     const stores = new Map([["primary", primary]])
@@ -561,7 +566,7 @@ export const makeMemoryStore = () => ({
         if (config?.allowNamespace && !config.allowNamespace(namespace)) {
           throw new Error(`Namespace ${namespace} not allowed!`)
         }
-        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues, config?.schema)
+        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues, config?.schema, json)
           .pipe(
             Effect.orDie,
             Effect.provide(ctx),

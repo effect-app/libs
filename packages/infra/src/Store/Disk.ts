@@ -12,6 +12,7 @@ import * as Semaphore from "effect/Semaphore"
 import { annotateDb } from "../otel.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
 import { makeMemoryStoreInt } from "./Memory.ts"
+import { type JsonLower, makeJsonLower } from "./utils.ts"
 
 function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
   prefix: string,
@@ -21,7 +22,8 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   name: string,
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
   defaultValues?: Partial<Encoded>,
-  schema?: StoreConfig<Encoded>["schema"]
+  schema?: StoreConfig<Encoded>["schema"],
+  json?: JsonLower
 ) {
   type PM = PersistenceModelType<Encoded>
   const codec = makeJsonDocumentCodec<Encoded>(schema)
@@ -121,7 +123,8 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
             ? seed
             : fsStore.get,
           defaultValues,
-          schema
+          schema,
+          json
         )
         if (shouldSeed) {
           yield* store.all.pipe(Effect.flatMap(fsStore.setRaw))
@@ -179,6 +182,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
+        const json = yield* makeJsonLower(config)
         const primary = yield* makeDiskStoreInt(
           prefix,
           idKey,
@@ -187,7 +191,8 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
           name,
           seed,
           config?.defaultValues,
-          config?.schema
+          config?.schema,
+          json
         )
           .pipe(
             Effect.orDie
@@ -219,7 +224,8 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
                 name,
                 seed,
                 config?.defaultValues,
-                config?.schema
+                config?.schema,
+                json
               )
                 .pipe(
                   Effect.orDie,

@@ -6,7 +6,7 @@ import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedPro
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
-import { jsonifyFilter, toJsonQueryValue } from "../utils.ts"
+import { jsonifyFilter, type JsonLower, toJsonQueryValue } from "../utils.ts"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string
@@ -213,10 +213,12 @@ export function buildWhereSQLQuery(
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number,
-  namespace?: string
+  namespace?: string,
+  json?: JsonLower
 ) {
-  filter = jsonifyFilter(filter)
-  defaultValues = toJsonQueryValue(defaultValues) as Record<string, unknown>
+  const toJson = json?.toJson ?? toJsonQueryValue
+  filter = (json?.jsonifyFilter ?? jsonifyFilter)(filter)
+  defaultValues = toJson(defaultValues) as Record<string, unknown>
   const params: unknown[] = []
   let paramIndex = 1
 

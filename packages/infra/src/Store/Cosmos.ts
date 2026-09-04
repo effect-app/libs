@@ -20,7 +20,7 @@ import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
 import { makeJsonDocumentCodec } from "./jsonDocument.ts"
-import { toJsonQueryValue } from "./utils.ts"
+import { makeJsonLower } from "./utils.ts"
 
 const makeMapId =
   <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) => ({ [idKey]: id, ...e }: Encoded) => ({
@@ -99,7 +99,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
-      const defaultValues = toJsonQueryValue(config?.defaultValues ?? {}) as Partial<Encoded>
+      const json = yield* makeJsonLower(config)
+      const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const fromStored = (raw: Encoded) => codec.decode({ ...defaultValues, ...mapReverseId(raw as any) })
       type PM = PersistenceModelType<Encoded>
       type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
@@ -496,7 +497,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     | undefined,
                   f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
                   skip,
-                  limit
+                  limit,
+                  json
                 )
               ),
               ns: resolveNamespace

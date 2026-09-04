@@ -35,6 +35,32 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("2024-01-01T00:00:00.000Z")
   })
 
+  it("where eq app native Encoded binds via jsonValues", () => {
+    class Day {
+      constructor(readonly ymd: string) {}
+    }
+    const day = new Day("2024-06-01")
+    const json = {
+      toJson: (v: unknown) => v instanceof Day ? v.ymd : v,
+      jsonifyFilter: (filter: readonly { t: string; path?: string; op?: string; value?: unknown }[]) =>
+        filter.map((r) => r.t === "where" ? { ...r, value: r.value instanceof Day ? r.value.ymd : r.value } : r)
+    }
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "day", op: "eq", value: day }],
+      "users",
+      {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      json as never
+    )
+    expect(result.params).toContain("2024-06-01")
+  })
+
   it("where in Set binds array values", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,

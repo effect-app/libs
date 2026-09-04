@@ -51,6 +51,14 @@ export interface StoreConfig<E> {
    * `Schema.toCodecJson(Schema.toEncoded(schema))` so Date/Map/Set round-trip.
    */
   schema?: SchemaTop
+  /**
+   * Extra schemas whose Encoded form is a native (non-JSON) value — app types
+   * such as DateOnly. Adapters lower query params and schemaless documents
+   * through `toCodecJson(toEncoded(schema))`. Date/Map/Set are built in.
+   * Prefer providing these app-wide via `JsonValues` instead of repeating
+   * them on every store.
+   */
+  jsonValues?: readonly SchemaTop[]
 }
 
 export type SupportedValues = string | boolean | number | null

@@ -13,6 +13,101 @@ type OrderEnc = S.Codec.Encoded<typeof Order>
 
 // Length projection via `relation(...).length()` should emit a scalar
 // ARRAY_LENGTH expression rather than pulling (or reshaping) the array.
+describe("cosmos query filter: native Encoded values", () => {
+  it("binds Date as ISO string parameters", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "n", op: "eq", value: new Date("2024-01-01T00:00:00.000Z") }],
+      "Orders",
+      {}
+    )
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }])
+    )
+  })
+
+  it("binds Map as array of tuples", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "eq", value: new Map([["k", "v"]]) }],
+      "Orders",
+      {}
+    )
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([{ name: "@v0", value: [["k", "v"]] }])
+    )
+  })
+
+  it("emits EXISTS over Map JSON tuples for hasKey / hasValue / hasKeyValue", () => {
+    const byKey = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey", value: "n" }],
+      "Orders",
+      {}
+    )
+    expect(byKey.query).toContain("EXISTS(SELECT VALUE p FROM p IN f[\"meta\"] WHERE p[0] = @v0)")
+    expect(byKey.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "n" }]))
+
+    const byValue = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasValue", value: 1 }],
+      "Orders",
+      {}
+    )
+    expect(byValue.query).toContain("p[1] = @v0")
+
+    const byPair = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKeyValue", value: ["n", 1] }],
+      "Orders",
+      {}
+    )
+    expect(byPair.query).toContain("ARRAY_CONTAINS")
+    expect(byPair.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: ["n", 1] }]))
+
+    const anyKey = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "meta", op: "hasKey-any", value: ["n", "x"] }],
+      "Orders",
+      {}
+    )
+    expect(anyKey.query).toContain("ARRAY_CONTAINS(@v0, p[0])")
+  })
+
+  it("binds includes Date as ISO string", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "dates", op: "includes", value: new Date("2024-01-01T00:00:00.000Z") }],
+      "Orders",
+      {}
+    )
+    expect(result.query).toContain("ARRAY_CONTAINS")
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }])
+    )
+  })
+
+  it("binds includes-any Date Set as ISO parameters", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{
+        t: "where",
+        path: "dates",
+        op: "includes-any",
+        value: new Set([new Date("2024-01-01T00:00:00.000Z")])
+      }],
+      "Orders",
+      {}
+    )
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([
+        { name: "@v0", value: ["2024-01-01T00:00:00.000Z"] },
+        { name: "@v0__0", value: "2024-01-01T00:00:00.000Z" }
+      ])
+    )
+  })
+})
+
 describe("cosmos query projection: array length", () => {
   it("projects packages length via ARRAY_LENGTH", () => {
     const q = make<OrderEnc>().pipe(
@@ -29,13 +124,13 @@ describe("cosmos query projection: array length", () => {
       ir.filter ?? [],
       "Orders",
       {},
-      ir.select as any
+      ir.select
     )
 
     expect(result.query).toMatch(/ARRAY_LENGTH\(f(?:\.packages|\["packages"\])\)/)
     expect(result.query).toContain("AS packageCount")
     // Must not pull the full array nor reshape via subquery
-    expect(result.query).not.toMatch(/ARRAY\s*\(\s*SELECT[^)]*FROM\s+t\s+in\s+f[\.\["]/i)
+    expect(result.query).not.toMatch(/ARRAY\s*\(\s*SELECT[^)]*FROM\s+t\s+in\s+f[.["]/i)
     expect(result.query).not.toMatch(/SELECT VALUE COUNT/)
   })
 })
@@ -83,7 +178,7 @@ describe("cosmos query projection: union array fields", () => {
     const packageSelects = select.filter((item) =>
       typeof item === "object" && item !== null && "key" in item && item.key === "packages"
     )
-    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select as any)
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select)
 
     expect(packageSelects).toHaveLength(1)
     expect(result.query.match(/\bAS\s+packages\b/g) ?? []).toHaveLength(1)
@@ -102,7 +197,7 @@ describe("cosmos query projection: union array fields", () => {
     const packageSelects = select.filter((item) =>
       typeof item === "object" && item !== null && "key" in item && item.key === "packages"
     )
-    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select as any)
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select)
 
     expect(packageSelects).toHaveLength(1)
     expect(result.query.match(/\bAS\s+packages\b/g) ?? []).toHaveLength(1)
@@ -146,7 +241,7 @@ describe("cosmos query projection: relation-every parameter binding", () => {
     )
 
     const ir = toFilter(q as any, DN as any)
-    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "DN", {}, ir.select as any)
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "DN", {}, ir.select)
 
     // Each filter element binds exactly one parameter: 2 every filters + 2 main filter = 4.
     expect(result.parameters).toHaveLength(4)

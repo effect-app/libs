@@ -12,7 +12,8 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
-import { makeETag } from "../utils.ts"
+import { makeJsonDocumentCodec } from "../jsonDocument.ts"
+import { makeETag, makeJsonLower, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
 const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
@@ -36,10 +37,14 @@ const preserveStoreError = (e: unknown): DatabaseError | OptimisticConcurrencyEx
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown },
   idKey: PropertyKey,
-  defaultValues: Partial<Encoded>
+  defaultValues: Partial<Encoded>,
+  decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
-  return { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  const jsonDefaults = toJsonQueryValue(defaultValues) as Partial<Encoded>
+  return decode(
+    { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  )
 }
 
 const parseSelectRow = (
@@ -70,7 +75,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const defaultValues = config?.defaultValues ?? {}
+      const json = makeJsonLower(config)
+      const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
+      const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -96,11 +103,11 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         )
 
       const toRow = (e: PM) => {
-        const newE = makeETag(e)
+        const newE = makeETag(codec.encode(e))
         const id = newE[idKey] as string
         const { _etag, [idKey]: _id, ...rest } = newE as any
         const data = JSON.stringify(rest)
-        return { id, _etag: newE._etag!, data, item: newE }
+        return { id, _etag: newE._etag!, data, item: codec.decode(newE) }
       }
 
       const exec = (query: string, params?: readonly unknown[]) =>
@@ -193,7 +200,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
             return exec(sqlText, [ns])
               .pipe(
-                Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
+                Effect.map((rows) =>
+                  (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+                ),
                 annotateDb({
                   operation: "all",
                   system: "postgresql",
@@ -215,7 +224,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
                     return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
                       : Option.none()
                   }),
                   annotateDb({
@@ -256,7 +265,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     | undefined,
                   f.order,
                   f.skip,
-                  f.limit
+                  f.limit,
+                  ns,
+                  json
                 )
                 const nsPlaceholder = pgDialect.placeholder(q.params.length + 1)
                 const hasWhere = q.sql.includes("WHERE")
@@ -286,7 +297,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           } as M
                         })
                       }
-                      return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                      return (rows as any[]).map((r) =>
+                        parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                      )
                     })
                   )
                 ),

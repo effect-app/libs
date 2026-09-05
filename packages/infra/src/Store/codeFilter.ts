@@ -6,54 +6,102 @@ import type { FieldValues } from "effect-app/Model/filter/types"
 import * as Option from "effect-app/Option"
 import type { Filter } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
-import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.ts"
+import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive, toJsonQueryValue } from "./utils.ts"
 
-const vAsArr = (v: string) => v as unknown as any[]
+const vAsArr = (v: unknown) => toJsonQueryValue(v) as any[]
+
+const mapEntries = (value: unknown): readonly [unknown, unknown][] => {
+  const json = toJsonQueryValue(value)
+  if (!Array.isArray(json)) return []
+  return json.filter((entry): entry is [unknown, unknown] => Array.isArray(entry) && entry.length >= 2)
+}
+
+const pairEq = (entry: readonly [unknown, unknown], pair: unknown) => {
+  const json = toJsonQueryValue(pair)
+  return Array.isArray(json) && json.length >= 2 && compare(entry[0], json[0]) && compare(entry[1], json[1])
+}
 
 const filterStatement = (x: any, p: FilterR) => {
-  const k = get(x, p.path)
+  const k = toJsonQueryValue(get(x, p.path))
+  const v = toJsonQueryValue(p.value)
   switch (p.op) {
     case "in":
-      return p.value.includes(k)
+      return (v as unknown[]).includes(k)
     case "notIn":
-      return !p.value.includes(k)
+      return !(v as unknown[]).includes(k)
     case "lt":
-      return lowerThan(k, p.value)
+      return lowerThan(k as any, v as any)
     case "lte":
-      return lowerThanExclusive(k, p.value)
+      return lowerThanExclusive(k as any, v as any)
     case "gt":
-      return greaterThan(k, p.value)
+      return greaterThan(k as any, v as any)
     case "gte":
-      return greaterThanExclusive(k, p.value)
+      return greaterThanExclusive(k as any, v as any)
     case "includes":
-      return (k as Array<string>).includes(p.value)
+      return (k as Array<unknown>).includes(v)
     case "notIncludes":
-      return !(k as Array<string>).includes(p.value)
+      return !(k as Array<unknown>).includes(v)
     case "includes-any":
-      return (vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return (vAsArr(p.value)).some((_) => (k as Array<unknown>)?.includes(_))
     case "notIncludes-any":
-      return !(vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return !(vAsArr(p.value)).some((_) => (k as Array<unknown>)?.includes(_))
     case "includes-all":
-      return (vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return (vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
     case "notIncludes-all":
-      return !(vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return !(vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
+    case "hasKey":
+      return mapEntries(k).some(([key]) => compare(key, v))
+    case "notHasKey":
+      return !mapEntries(k).some(([key]) => compare(key, v))
+    case "hasValue":
+      return mapEntries(k).some(([, val]) => compare(val, v))
+    case "notHasValue":
+      return !mapEntries(k).some(([, val]) => compare(val, v))
+    case "hasKeyValue":
+      return mapEntries(k).some((entry) => pairEq(entry, v))
+    case "notHasKeyValue":
+      return !mapEntries(k).some((entry) => pairEq(entry, v))
+    case "hasKey-any":
+      return vAsArr(p.value).some((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "notHasKey-any":
+      return !vAsArr(p.value).some((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "hasKey-all":
+      return vAsArr(p.value).every((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "notHasKey-all":
+      return !vAsArr(p.value).every((key) => mapEntries(k).some(([k0]) => compare(k0, key)))
+    case "hasValue-any":
+      return vAsArr(p.value).some((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "notHasValue-any":
+      return !vAsArr(p.value).some((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "hasValue-all":
+      return vAsArr(p.value).every((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "notHasValue-all":
+      return !vAsArr(p.value).every((val) => mapEntries(k).some(([, v0]) => compare(v0, val)))
+    case "hasKeyValue-any":
+      return vAsArr(p.value).some((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "notHasKeyValue-any":
+      return !vAsArr(p.value).some((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "hasKeyValue-all":
+      return vAsArr(p.value).every((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
+    case "notHasKeyValue-all":
+      return !vAsArr(p.value).every((pair) => mapEntries(k).some((entry) => pairEq(entry, pair)))
     case "contains":
-      return (k as string).toLowerCase().includes(p.value.toLowerCase())
+      return (k as string).toLowerCase().includes((v as string).toLowerCase())
     case "endsWith":
-      return (k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return (k as string).toLowerCase().endsWith((v as string).toLowerCase())
     case "startsWith":
-      return (k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return (k as string).toLowerCase().startsWith((v as string).toLowerCase())
     case "notContains":
-      return !(k as string).toLowerCase().includes(p.value.toLowerCase())
+      return !(k as string).toLowerCase().includes((v as string).toLowerCase())
     case "notEndsWith":
-      return !(k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return !(k as string).toLowerCase().endsWith((v as string).toLowerCase())
     case "notStartsWith":
-      return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return !(k as string).toLowerCase().startsWith((v as string).toLowerCase())
     case "neq":
-      return !compare(k, p.value)
+      return !compare(k, v)
     case "eq":
     case undefined:
-      return compare(k, p.value)
+      return compare(k, v)
     default: {
       return assertUnreachable(p.op)
     }

@@ -10,7 +10,9 @@ import * as Console from "effect/Console"
 import { flow } from "effect/Function"
 import * as Semaphore from "effect/Semaphore"
 import { annotateDb } from "../otel.ts"
+import { makeJsonDocumentCodec } from "./jsonDocument.ts"
 import { makeMemoryStoreInt } from "./Memory.ts"
+import { type JsonLower, makeJsonLower } from "./utils.ts"
 
 function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
   prefix: string,
@@ -19,9 +21,12 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   dir: string,
   name: string,
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-  defaultValues?: Partial<Encoded>
+  defaultValues?: Partial<Encoded>,
+  schema?: StoreConfig<Encoded>["schema"],
+  json?: JsonLower
 ) {
   type PM = PersistenceModelType<Encoded>
+  const codec = makeJsonDocumentCodec<Encoded>(schema)
   return Effect.gen(function*() {
     if (namespace !== "primary") {
       dir = dir + "/" + namespace
@@ -44,7 +49,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
             extra: fileExtra
           }),
           Effect.flatMap((x) =>
-            Effect.sync(() => JSON.parse(x) as PM[]).pipe(
+            Effect.sync(() => (JSON.parse(x) as PM[]).map((row) => codec.decode(row))).pipe(
               annotateDb({
                 operation: "read.parse",
                 system: "disk",
@@ -67,7 +72,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
         ),
       setRaw: (v: Iterable<PM>) =>
         Effect
-          .sync(() => JSON.stringify([...v], undefined, 2))
+          .sync(() => JSON.stringify([...v].map((row) => codec.encode(row)), undefined, 2))
           .pipe(
             annotateDb({
               operation: "stringify",
@@ -117,7 +122,9 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
           shouldSeed
             ? seed
             : fsStore.get,
-          defaultValues
+          defaultValues,
+          schema,
+          json
         )
         if (shouldSeed) {
           yield* store.all.pipe(Effect.flatMap(fsStore.setRaw))
@@ -175,9 +182,21 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
-        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues).pipe(
-          Effect.orDie
+        const json = makeJsonLower(config)
+        const primary = yield* makeDiskStoreInt(
+          prefix,
+          idKey,
+          "primary",
+          dir,
+          name,
+          seed,
+          config?.defaultValues,
+          config?.schema,
+          json
         )
+          .pipe(
+            Effect.orDie
+          )
         const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
         const ctx = yield* Effect.context<R>()
         const semaphores = new Map<string, Semaphore.Semaphore>()
@@ -204,7 +223,9 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
                 dir,
                 name,
                 seed,
-                config?.defaultValues
+                config?.defaultValues,
+                config?.schema,
+                json
               )
                 .pipe(
                   Effect.orDie,

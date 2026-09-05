@@ -17,6 +17,24 @@ export type OtherOps =
   | "notIncludes-any"
   | "includes-all"
   | "notIncludes-all"
+  | "hasKey"
+  | "notHasKey"
+  | "hasValue"
+  | "notHasValue"
+  | "hasKeyValue"
+  | "notHasKeyValue"
+  | "hasKey-any"
+  | "notHasKey-any"
+  | "hasKey-all"
+  | "notHasKey-all"
+  | "hasValue-any"
+  | "notHasValue-any"
+  | "hasValue-all"
+  | "notHasValue-all"
+  | "hasKeyValue-any"
+  | "notHasKeyValue-any"
+  | "hasKeyValue-all"
+  | "notHasKeyValue-all"
   | "eq"
   | "neq"
   | "gt"
@@ -44,7 +62,7 @@ export type FilterR = {
   op: Ops
 
   path: string
-  value: string // ToDO: Value[]
+  value: unknown
 }
 
 export type FilterResult =

@@ -6,6 +6,7 @@ import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedPro
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
+import { jsonifyFilter, type JsonLower, toJsonQueryValue } from "../utils.ts"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string
@@ -17,6 +18,9 @@ export interface SQLDialect {
   readonly jsonArrayNotContainsAny: (arrPath: string, valPlaceholders: readonly string[]) => string
   readonly jsonArrayContainsAll: (arrPath: string, valPlaceholders: readonly string[]) => string
   readonly jsonArrayNotContainsAll: (arrPath: string, valPlaceholders: readonly string[]) => string
+  readonly jsonMapHasKey: (arrPath: string, valPlaceholder: string) => string
+  readonly jsonMapHasValue: (arrPath: string, valPlaceholder: string) => string
+  readonly jsonMapHasPair: (arrPath: string, valPlaceholder: string) => string
   readonly caseInsensitiveLike: (expr: string, valPlaceholder: string) => string
   readonly caseInsensitiveNotLike: (expr: string, valPlaceholder: string) => string
   readonly jsonColumnType: "JSON" | "JSONB"
@@ -45,6 +49,11 @@ export const sqliteDialect: SQLDialect = {
     `NOT (${
       vals.map((v) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${v})`).join(" AND ")
     })`,
+  jsonMapHasKey: (arrPath, val) =>
+    `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE json_extract(value, '$[0]') = ${val})`,
+  jsonMapHasValue: (arrPath, val) =>
+    `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE json_extract(value, '$[1]') = ${val})`,
+  jsonMapHasPair: (arrPath, val) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${val})`,
   caseInsensitiveLike: (expr, val) => `LOWER(${expr}) LIKE LOWER(${val})`,
   caseInsensitiveNotLike: (expr, val) => `LOWER(${expr}) NOT LIKE LOWER(${val})`,
   jsonColumnType: "JSON",
@@ -112,6 +121,27 @@ export const pgDialect: SQLDialect = {
       : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `NOT (${vals.map((v) => `${jsonPath} @> ${v}::jsonb`).join(" AND ")})`
   },
+  jsonMapHasKey: (arrPath, val) => {
+    const parts = arrPath.split(".")
+    const jsonPath = parts.length === 1
+      ? `data->'${parts[0]}'`
+      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    return `EXISTS(SELECT 1 FROM jsonb_array_elements(${jsonPath}) e WHERE e->0 = ${val}::jsonb)`
+  },
+  jsonMapHasValue: (arrPath, val) => {
+    const parts = arrPath.split(".")
+    const jsonPath = parts.length === 1
+      ? `data->'${parts[0]}'`
+      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    return `EXISTS(SELECT 1 FROM jsonb_array_elements(${jsonPath}) e WHERE e->1 = ${val}::jsonb)`
+  },
+  jsonMapHasPair: (arrPath, val) => {
+    const parts = arrPath.split(".")
+    const jsonPath = parts.length === 1
+      ? `data->'${parts[0]}'`
+      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    return `${jsonPath} @> jsonb_build_array(${val}::jsonb)`
+  },
   caseInsensitiveLike: (expr, val) => `${expr} ILIKE ${val}`,
   caseInsensitiveNotLike: (expr, val) => `${expr} NOT ILIKE ${val}`,
   jsonColumnType: "JSONB",
@@ -149,6 +179,14 @@ const dottedToJsonPath = (path: string) =>
     .filter((p) => p !== "-1")
     .join(".")
 
+const mapItemParam = (dialect: SQLDialect, value: unknown) =>
+  dialect.jsonColumnType === "JSONB" ? dialect.serializeJsonValue(value) : value
+
+const mapPairParam = (dialect: SQLDialect, value: unknown) => {
+  const encoded = dialect.serializeJsonValue(value)
+  return typeof encoded === "string" ? encoded : JSON.stringify(value)
+}
+
 const sqlStringLiteral = (value: string) => `'${value.replaceAll("'", "''")}'`
 
 export function buildWhereSQLQuery(
@@ -175,8 +213,12 @@ export function buildWhereSQLQuery(
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number,
-  namespace?: string
+  namespace?: string,
+  json?: JsonLower
 ) {
+  const toJson = json?.toJson ?? toJsonQueryValue
+  filter = (json?.jsonifyFilter ?? jsonifyFilter)(filter)
+  defaultValues = toJson(defaultValues) as Record<string, unknown>
   const params: unknown[] = []
   let paramIndex = 1
 
@@ -214,7 +256,7 @@ export function buildWhereSQLQuery(
 
     switch (x.op) {
       case "in": {
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const hasNull = vals.some((v) => v == null)
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
@@ -226,7 +268,7 @@ export function buildWhereSQLQuery(
         return parts.length > 1 ? `(${parts.join(" OR ")})` : parts[0] ?? "1=0"
       }
       case "notIn": {
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const hasNull = vals.some((v) => v == null)
         const nonNullVals = vals.filter((v) => v != null)
         const parts: string[] = []
@@ -251,28 +293,131 @@ export function buildWhereSQLQuery(
 
       case "includes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAny(arrPath, placeholders)
       }
       case "notIncludes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAny(arrPath, placeholders)
       }
 
       case "includes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAll(arrPath, placeholders)
       }
       case "notIncludes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
-        const vals = x.value as unknown as readonly unknown[]
+        const vals = x.value as readonly unknown[]
         const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAll(arrPath, placeholders)
+      }
+
+      case "hasKey": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapItemParam(dialect, x.value))
+        return dialect.jsonMapHasKey(arrPath, v)
+      }
+      case "notHasKey": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapItemParam(dialect, x.value))
+        return `NOT (${dialect.jsonMapHasKey(arrPath, v)})`
+      }
+      case "hasValue": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapItemParam(dialect, x.value))
+        return dialect.jsonMapHasValue(arrPath, v)
+      }
+      case "notHasValue": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapItemParam(dialect, x.value))
+        return `NOT (${dialect.jsonMapHasValue(arrPath, v)})`
+      }
+      case "hasKeyValue": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapPairParam(dialect, x.value))
+        return dialect.jsonMapHasPair(arrPath, v)
+      }
+      case "notHasKeyValue": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const v = addParam(mapPairParam(dialect, x.value))
+        return `NOT (${dialect.jsonMapHasPair(arrPath, v)})`
+      }
+      case "hasKey-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val))))
+        return `(${parts.join(" OR ")})`
+      }
+      case "notHasKey-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val))))
+        return `NOT (${parts.join(" OR ")})`
+      }
+      case "hasKey-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return vals.map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
+      }
+      case "notHasKey-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return `NOT (${
+          vals.map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
+        })`
+      }
+      case "hasValue-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val))))
+        return `(${parts.join(" OR ")})`
+      }
+      case "notHasValue-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val))))
+        return `NOT (${parts.join(" OR ")})`
+      }
+      case "hasValue-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return vals.map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
+      }
+      case "notHasValue-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return `NOT (${
+          vals.map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
+        })`
+      }
+      case "hasKeyValue-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val))))
+        return `(${parts.join(" OR ")})`
+      }
+      case "notHasKeyValue-any": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        const parts = vals.map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val))))
+        return `NOT (${parts.join(" OR ")})`
+      }
+      case "hasKeyValue-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return vals.map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val)))).join(" AND ")
+      }
+      case "notHasKeyValue-all": {
+        const arrPath = dottedToJsonPath(resolvedPath)
+        const vals = x.value as readonly unknown[]
+        return `NOT (${
+          vals.map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val)))).join(" AND ")
+        })`
       }
 
       case "contains": {

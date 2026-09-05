@@ -9,6 +9,7 @@ import type { SupportedValues } from "effect-app/Store"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
+import { jsonifyFilter, type JsonLower, toJsonQueryValue } from "../utils.ts"
 
 export function logQuery(q: {
   query: string
@@ -60,8 +61,12 @@ export function buildWhereCosmosQuery3(
   >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
-  limit?: number
+  limit?: number,
+  json?: JsonLower
 ) {
+  const toJson = json?.toJson ?? toJsonQueryValue
+  filter = (json?.jsonifyFilter ?? jsonifyFilter)(filter)
+  defaultValues = toJson(defaultValues) as Record<string, unknown>
   const statement = (x: FilterR, i: number) => {
     if (x.path === idKey) {
       x = { ...x, path: "id" }
@@ -89,22 +94,55 @@ export function buildWhereCosmosQuery3(
         return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
 
       case "includes-any":
-        return `ARRAY_CONTAINS_ANY(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
-        })`
+        return `ARRAY_CONTAINS_ANY(${k}, ${(x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-any":
         return `(NOT ARRAY_CONTAINS_ANY(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+          (x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
         }))`
 
       case "includes-all":
-        return `ARRAY_CONTAINS_ALL(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
-        })`
+        return `ARRAY_CONTAINS_ALL(${k}, ${(x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-all":
         return `(NOT ARRAY_CONTAINS_ALL(${k}, ${
-          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+          (x.value as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
         }))`
+
+      case "hasKey":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = ${v})`
+      case "notHasKey":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = ${v}))`
+      case "hasValue":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = ${v})`
+      case "notHasValue":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = ${v}))`
+      case "hasKeyValue":
+        return `ARRAY_CONTAINS(${k}, ${v})`
+      case "notHasKeyValue":
+        return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
+      case "hasKey-any":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[0]))`
+      case "notHasKey-any":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[0])))`
+      case "hasKey-all":
+        return `(NOT EXISTS(SELECT VALUE key FROM key IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = key)))`
+      case "notHasKey-all":
+        return `EXISTS(SELECT VALUE key FROM key IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[0] = key))`
+      case "hasValue-any":
+        return `EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[1]))`
+      case "notHasValue-any":
+        return `(NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE ARRAY_CONTAINS(${v}, p[1])))`
+      case "hasValue-all":
+        return `(NOT EXISTS(SELECT VALUE val FROM val IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = val)))`
+      case "notHasValue-all":
+        return `EXISTS(SELECT VALUE val FROM val IN ${v} WHERE NOT EXISTS(SELECT VALUE p FROM p IN ${k} WHERE p[1] = val))`
+      case "hasKeyValue-any":
+        return `EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE ARRAY_CONTAINS(${k}, pair))`
+      case "notHasKeyValue-any":
+        return `(NOT EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE ARRAY_CONTAINS(${k}, pair)))`
+      case "hasKeyValue-all":
+        return `(NOT EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE NOT ARRAY_CONTAINS(${k}, pair)))`
+      case "notHasKeyValue-all":
+        return `EXISTS(SELECT VALUE pair FROM pair IN ${v} WHERE NOT ARRAY_CONTAINS(${k}, pair))`
 
       case "contains":
         return `CONTAINS(${k}, ${v}, true)`
@@ -166,6 +204,24 @@ export function buildWhereCosmosQuery3(
     "notIncludes-any": "includes-any",
     "includes-all": "notIncludes-all",
     "notIncludes-all": "includes-all",
+    hasKey: "notHasKey",
+    notHasKey: "hasKey",
+    hasValue: "notHasValue",
+    notHasValue: "hasValue",
+    hasKeyValue: "notHasKeyValue",
+    notHasKeyValue: "hasKeyValue",
+    "hasKey-any": "notHasKey-any",
+    "notHasKey-any": "hasKey-any",
+    "hasKey-all": "notHasKey-all",
+    "notHasKey-all": "hasKey-all",
+    "hasValue-any": "notHasValue-any",
+    "notHasValue-any": "hasValue-any",
+    "hasValue-all": "notHasValue-all",
+    "notHasValue-all": "hasValue-all",
+    "hasKeyValue-any": "notHasKeyValue-any",
+    "notHasKeyValue-any": "hasKeyValue-any",
+    "hasKeyValue-all": "notHasKeyValue-all",
+    "notHasKeyValue-all": "hasKeyValue-all",
     in: "notIn",
     notIn: "in"
   } satisfies Record<Ops, Ops>

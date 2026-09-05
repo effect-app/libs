@@ -97,23 +97,34 @@ const asArray = (value: unknown): readonly unknown[] =>
 const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => {
   if (ast === undefined) return toJsonQueryValue(value)
   const current = unwrapAst(ast)
-  if (isPlainObject(value)) {
+  const schema = S.make(current)
+  if (S.is(schema)(value)) {
+    return Effect.runSync(
+      S.encodeUnknownEffect(S.toCodecJson(schema))(value) as Effect.Effect<S.Json>
+    )
+  }
+  const unmatched: unknown = value
+  if (isPlainObject(unmatched)) {
     const out: Record<string, unknown> = {}
-    for (const [key, child] of Object.entries(value)) {
+    for (const [key, child] of Object.entries(unmatched)) {
       out[key] = encodeJson(astAtPath(current, [key]), child)
     }
     return out
   }
-  if (Array.isArray(value) && SchemaAST.isArrays(current)) {
-    const element = current.rest[0] ?? current.elements[0]
-    return value.map((item) => encodeJson(element, item))
+  if (Array.isArray(unmatched)) {
+    const element = SchemaAST.isArrays(current) ? current.rest[0] ?? current.elements[0] : current
+    return unmatched.map((item) => encodeJson(element, item))
   }
-  if (SchemaAST.isArrays(current) && !Array.isArray(value)) {
-    return encodeJson(current.rest[0] ?? current.elements[0], value)
+  if (unmatched instanceof Set) {
+    return [...unmatched].map((item) => encodeJson(elementAst(current), item))
   }
-  return Effect.runSync(
-    S.encodeUnknownEffect(S.toCodecJson(S.make(current)))(value) as Effect.Effect<S.Json>
-  )
+  if (unmatched instanceof Map) {
+    return [...unmatched.entries()].map(([k, v]) => [
+      encodeJson(mapKeyAst(current), k),
+      encodeJson(mapValueAst(current), v)
+    ])
+  }
+  return toJsonQueryValue(unmatched)
 }
 
 const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: unknown): unknown => {

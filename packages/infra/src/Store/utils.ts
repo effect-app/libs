@@ -24,6 +24,16 @@ const unionAst = (hits: readonly SchemaAST.AST[]): SchemaAST.AST | undefined => 
   return S.Union(hits.map((hit) => S.make(hit)) as [S.Top, S.Top, ...Array<S.Top>]).ast
 }
 
+const encodedObjects = (ast: SchemaAST.AST): SchemaAST.Objects | undefined => {
+  const current = unwrapAst(ast)
+  if (SchemaAST.isObjects(current)) return current
+  if (SchemaAST.isDeclaration(current)) {
+    const encoded = unwrapAst(SchemaAST.toEncoded(current))
+    if (SchemaAST.isObjects(encoded)) return encoded
+  }
+  return undefined
+}
+
 const astAtPath = (ast: SchemaAST.AST | undefined, path: readonly string[]): SchemaAST.AST | undefined => {
   if (ast === undefined) return undefined
   if (path.length === 0) return unwrapAst(ast)
@@ -48,17 +58,10 @@ const astAtPath = (ast: SchemaAST.AST | undefined, path: readonly string[]): Sch
     }
     return undefined
   }
-  if (SchemaAST.isObjects(current)) {
-    const property = current.propertySignatures.find((p) => p.name === head)
+  const objects = encodedObjects(current)
+  if (objects !== undefined) {
+    const property = objects.propertySignatures.find((p) => p.name === head)
     return property === undefined ? undefined : astAtPath(property.type, tail)
-  }
-  if (SchemaAST.isDeclaration(current)) {
-    const encoded = S.toEncoded(S.make(current))
-    const fields = "fields" in encoded ? encoded.fields : undefined
-    if (fields !== null && typeof fields === "object") {
-      const field = (fields as Record<string, S.Top | undefined>)[head]
-      if (field !== undefined) return astAtPath(field.ast, tail)
-    }
   }
   return undefined
 }
@@ -66,6 +69,14 @@ const astAtPath = (ast: SchemaAST.AST | undefined, path: readonly string[]): Sch
 const elementAst = (ast: SchemaAST.AST | undefined): SchemaAST.AST | undefined => {
   if (ast === undefined) return undefined
   const current = unwrapAst(ast)
+  if (SchemaAST.isUnion(current)) {
+    return unionAst(
+      current.types.flatMap((member) => {
+        const hit = elementAst(member)
+        return hit === undefined ? [] : [hit]
+      })
+    )
+  }
   if (SchemaAST.isArrays(current)) return unwrapAst(current.rest[0] ?? current.elements[0] ?? current)
   if (SchemaAST.isDeclaration(current) && current.typeParameters.length === 1) {
     return unwrapAst(current.typeParameters[0]!)
@@ -76,6 +87,14 @@ const elementAst = (ast: SchemaAST.AST | undefined): SchemaAST.AST | undefined =
 const mapKeyAst = (ast: SchemaAST.AST | undefined): SchemaAST.AST | undefined => {
   if (ast === undefined) return undefined
   const current = unwrapAst(ast)
+  if (SchemaAST.isUnion(current)) {
+    return unionAst(
+      current.types.flatMap((member) => {
+        const hit = mapKeyAst(member)
+        return hit === undefined ? [] : [hit]
+      })
+    )
+  }
   if (SchemaAST.isDeclaration(current) && current.typeParameters.length >= 2) {
     return unwrapAst(current.typeParameters[0]!)
   }
@@ -85,6 +104,14 @@ const mapKeyAst = (ast: SchemaAST.AST | undefined): SchemaAST.AST | undefined =>
 const mapValueAst = (ast: SchemaAST.AST | undefined): SchemaAST.AST | undefined => {
   if (ast === undefined) return undefined
   const current = unwrapAst(ast)
+  if (SchemaAST.isUnion(current)) {
+    return unionAst(
+      current.types.flatMap((member) => {
+        const hit = mapValueAst(member)
+        return hit === undefined ? [] : [hit]
+      })
+    )
+  }
   if (SchemaAST.isDeclaration(current) && current.typeParameters.length >= 2) {
     return unwrapAst(current.typeParameters[1]!)
   }
@@ -97,34 +124,31 @@ const asArray = (value: unknown): readonly unknown[] =>
 const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => {
   if (ast === undefined) return toJsonQueryValue(value)
   const current = unwrapAst(ast)
-  const schema = S.make(current)
-  if (S.is(schema)(value)) {
-    return Effect.runSync(
-      S.encodeUnknownEffect(S.toCodecJson(schema))(value) as Effect.Effect<S.Json>
-    )
-  }
-  const unmatched: unknown = value
-  if (isPlainObject(unmatched)) {
+  if (isPlainObject(value)) {
     const out: Record<string, unknown> = {}
-    for (const [key, child] of Object.entries(unmatched)) {
+    for (const [key, child] of Object.entries(value)) {
       out[key] = encodeJson(astAtPath(current, [key]), child)
     }
     return out
   }
-  if (Array.isArray(unmatched)) {
-    const element = SchemaAST.isArrays(current) ? current.rest[0] ?? current.elements[0] : current
-    return unmatched.map((item) => encodeJson(element, item))
+  if (Array.isArray(value)) {
+    const element = SchemaAST.isArrays(current) || SchemaAST.isUnion(current)
+      ? elementAst(current)
+      : current
+    return value.map((item) => encodeJson(element, item))
   }
-  if (unmatched instanceof Set) {
-    return [...unmatched].map((item) => encodeJson(elementAst(current), item))
+  if (value instanceof Set) {
+    return [...value].map((item) => encodeJson(elementAst(current), item))
   }
-  if (unmatched instanceof Map) {
-    return [...unmatched.entries()].map(([k, v]) => [
+  if (value instanceof Map) {
+    return [...value.entries()].map(([k, v]) => [
       encodeJson(mapKeyAst(current), k),
       encodeJson(mapValueAst(current), v)
     ])
   }
-  return toJsonQueryValue(unmatched)
+  return Effect.runSync(
+    S.encodeUnknownEffect(S.toCodecJson(S.make(current)))(value) as Effect.Effect<S.Json>
+  )
 }
 
 const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: unknown): unknown => {

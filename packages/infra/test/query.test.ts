@@ -264,6 +264,24 @@ it("memory store round-trips app native Encoded values via the document schema",
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
+it("memory store queries encodeKeys-renamed native Encoded fields", () =>
+  Effect
+    .gen(function*() {
+      class Doc extends S.Class<Doc>("JsonCodecEncodeKeysDayDoc")({
+        id: S.String,
+        day: DayFromSelf
+      }) {}
+      const schema = Doc.pipe(S.encodeKeys({ day: "the_day" }))
+      const day = new Day("2024-06-01")
+      const saved = new Doc({ id: "d1", day })
+      const repo = yield* makeRepo("JsonCodecEncodeKeysDayDoc", schema, { makeInitial: Effect.succeed([saved]) })
+      const byDay = yield* repo.query(where("the_day", day))
+      expect(byDay.map((_) => _.id)).toEqual(["d1"])
+      const byId = yield* repo.query(where("id", "in", ["d1"]))
+      expect(byId.map((_) => _.id)).toEqual(["d1"])
+    })
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+
 it("disk store round-trips Date/Set/Map via JSON codecs", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "effect-app-disk-json-"))
   const diskLive = Layer.merge(

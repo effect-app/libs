@@ -12,8 +12,6 @@ import { MemoryStoreLive } from "./Memory.ts"
 import { SQLiteStoreLayer } from "./SQL.ts"
 import { PgStoreLayer } from "./SQL/Pg.ts"
 
-export { JsonValues, JsonValuesLayer, registerJsonSchema, registerJsonValue } from "./jsonValues.ts"
-
 export function StoreMakerLayer(
   cfg: StorageConfig,
   options?: { makeSqlClientLayer?: (namespace: string) => Layer.Layer<SqlClient.SqlClient> }

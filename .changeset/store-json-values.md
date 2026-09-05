@@ -3,6 +3,6 @@
 "@effect-app/infra": minor
 ---
 
-App schemas can plug native Encoded values into JSON stores without baking them into effect-app.
+JSON stores lower native Encoded values (Date, Map, Set, and app types such as DateOnly) through the store's document schema.
 
-`StoreConfig.jsonValues` and `JsonValues` (a Context service) take schemas whose Encoded form is a native value (DateOnly, branded money, …). Query params and schemaless documents lower through `Schema.toCodecJson(toEncoded(schema))`. Date/Map/Set stay built in. Use `registerJsonSchema` for process-wide registration.
+`makeRepo` already passes that schema. Adapters encode documents, query parameters, and defaults with `Schema.toCodecJson(toEncoded(schema))` at the field path. No type registry. Schemaless stores still lower Date/Map/Set structurally.

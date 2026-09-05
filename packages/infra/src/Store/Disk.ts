@@ -182,7 +182,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
-        const json = yield* makeJsonLower(config)
+        const json = makeJsonLower(config)
         const primary = yield* makeDiskStoreInt(
           prefix,
           idKey,

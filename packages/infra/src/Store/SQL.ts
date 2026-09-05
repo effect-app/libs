@@ -91,7 +91,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
       ) {
         type PM = PersistenceModelType<Encoded>
         const tableName = `${prefix}${name}`
-        const json = yield* makeJsonLower(config)
+        const json = makeJsonLower(config)
         const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
         const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 
@@ -430,7 +430,7 @@ function makeSQLiteStorePerNs(
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const json = yield* makeJsonLower(config)
+      const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 

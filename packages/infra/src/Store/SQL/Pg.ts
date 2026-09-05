@@ -75,7 +75,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     ) {
       type PM = PersistenceModelType<Encoded>
       const tableName = `${prefix}${name}`
-      const json = yield* makeJsonLower(config)
+      const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
 

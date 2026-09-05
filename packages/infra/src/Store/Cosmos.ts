@@ -99,7 +99,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
-      const json = yield* makeJsonLower(config)
+      const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const fromStored = (raw: Encoded) => codec.decode({ ...defaultValues, ...mapReverseId(raw as any) })
       type PM = PersistenceModelType<Encoded>

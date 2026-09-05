@@ -48,17 +48,11 @@ export interface StoreConfig<E> {
   uniqueKeys?: UniqueKey[]
   /**
    * Domain schema whose Encoded shape is stored. JSON adapters use
-   * `Schema.toCodecJson(Schema.toEncoded(schema))` so Date/Map/Set round-trip.
+   * `Schema.toCodecJson(Schema.toEncoded(schema))` for documents, query
+   * values, and defaults. Date/Map/Set (and app types such as DateOnly)
+   * stay native on Encoded and lower only on this JSON boundary.
    */
   schema?: SchemaTop
-  /**
-   * Extra schemas whose Encoded form is a native (non-JSON) value — app types
-   * such as DateOnly. Adapters lower query params and schemaless documents
-   * through `toCodecJson(toEncoded(schema))`. Date/Map/Set are built in.
-   * Prefer providing these app-wide via `JsonValues` instead of repeating
-   * them on every store.
-   */
-  jsonValues?: readonly SchemaTop[]
 }
 
 export type SupportedValues = string | boolean | number | null

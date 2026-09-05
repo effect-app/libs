@@ -538,7 +538,7 @@ export const makeMemoryStore = () => ({
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
   ) {
-    const json = yield* makeJsonLower(config)
+    const json = makeJsonLower(config)
     const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
       modelName,
       idKey,

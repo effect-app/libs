@@ -35,7 +35,7 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.params).toContain("2024-01-01T00:00:00.000Z")
   })
 
-  it("where eq app native Encoded binds via jsonValues", () => {
+  it("where eq app native Encoded binds via JsonLower", () => {
     class Day {
       readonly ymd: string
       constructor(ymd: string) {

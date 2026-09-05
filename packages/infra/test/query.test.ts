@@ -21,7 +21,6 @@ import * as path from "path"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { DiskStoreLayer } from "../src/Store/Disk.js"
-import { JsonValuesLayer } from "../src/Store/jsonValues.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
 
@@ -242,7 +241,7 @@ const DayFromSelf = S.declare((u): u is Day => u instanceof Day, {
     )
 })
 
-it("memory store round-trips app native Encoded values via JsonValues", () =>
+it("memory store round-trips app native Encoded values via the document schema", () =>
   Effect
     .gen(function*() {
       class Doc extends S.Class<Doc>("JsonCodecDayDoc")({
@@ -262,29 +261,6 @@ it("memory store round-trips app native Encoded values via JsonValues", () =>
       expect(S.encodeSync(S.toCodecJson(DayFromSelf))(day)).toBe("2024-06-01")
       const byDay = yield* repo.query(where("day", day))
       expect(byDay.map((_) => _.id)).toEqual(["d1"])
-    })
-    .pipe(
-      Effect.provide(Layer.mergeAll(TestStoreLive, JsonValuesLayer([DayFromSelf]))),
-      setupRequestContextFromCurrent(),
-      Effect.scoped,
-      Effect.runPromise
-    ))
-
-it("memory store round-trips app native Encoded values via StoreConfig.jsonValues", () =>
-  Effect
-    .gen(function*() {
-      class Doc extends S.Class<Doc>("JsonCodecDayDocConfig")({
-        id: S.String,
-        day: DayFromSelf
-      }) {}
-      const day = new Day("2024-07-04")
-      const saved = new Doc({ id: "d2", day })
-      const repo = yield* makeRepo("JsonCodecDayDocConfig", Doc, {
-        makeInitial: Effect.succeed([saved]),
-        config: { jsonValues: [DayFromSelf] }
-      })
-      const byDay = yield* repo.query(where("day", day))
-      expect(byDay.map((_) => _.id)).toEqual(["d2"])
     })
     .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 

@@ -52,6 +52,14 @@ const astAtPath = (ast: SchemaAST.AST | undefined, path: readonly string[]): Sch
     const property = current.propertySignatures.find((p) => p.name === head)
     return property === undefined ? undefined : astAtPath(property.type, tail)
   }
+  if (SchemaAST.isDeclaration(current)) {
+    const encoded = S.toEncoded(S.make(current))
+    const fields = "fields" in encoded ? encoded.fields : undefined
+    if (fields !== null && typeof fields === "object") {
+      const field = (fields as Record<string, S.Top | undefined>)[head]
+      if (field !== undefined) return astAtPath(field.ast, tail)
+    }
+  }
   return undefined
 }
 
@@ -99,6 +107,9 @@ const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => 
   if (Array.isArray(value) && SchemaAST.isArrays(current)) {
     const element = current.rest[0] ?? current.elements[0]
     return value.map((item) => encodeJson(element, item))
+  }
+  if (SchemaAST.isArrays(current) && !Array.isArray(value)) {
+    return encodeJson(current.rest[0] ?? current.elements[0], value)
   }
   return Effect.runSync(
     S.encodeUnknownEffect(S.toCodecJson(S.make(current)))(value) as Effect.Effect<S.Json>

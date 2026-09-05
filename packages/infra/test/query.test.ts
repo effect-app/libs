@@ -258,6 +258,8 @@ it("memory store round-trips app native Encoded values via JsonValues", () =>
         expect(found.value.day).toBeInstanceOf(Day)
         expect(found.value.day.ymd).toBe("2024-06-01")
       }
+      expect(S.encodeSync(DayFromSelf)(day)).toBe(day)
+      expect(S.encodeSync(S.toCodecJson(DayFromSelf))(day)).toBe("2024-06-01")
       const byDay = yield* repo.query(where("day", day))
       expect(byDay.map((_) => _.id)).toEqual(["d1"])
     })

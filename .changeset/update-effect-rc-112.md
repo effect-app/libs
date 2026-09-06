@@ -14,3 +14,4 @@ API adaptations for rc.112:
 - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
 - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
 - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+- JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)

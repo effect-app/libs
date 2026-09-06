@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
+    "@sentry/node": "10.55.0",
     "effect-app": "workspace:*",
     "fast-check": "^4.9.0",
     "jose": "^6.2.3",
@@ -21,7 +22,6 @@
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
     "@effect/sql-sqlite-node": "4.0.0-beta.107",
-    "@sentry/node": "10.55.0",
     "@sentry/opentelemetry": "10.55.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "25.9.1",

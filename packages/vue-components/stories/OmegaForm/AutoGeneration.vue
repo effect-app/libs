@@ -63,7 +63,7 @@ const schema = S.Struct({
   boolean: S.Boolean,
   email: S.Email,
   url: S.Url,
-  date: S.Date
+  date: S.DateFromString
 })
 type Meta = OmegaAutoGenMeta<
   typeof schema.Encoded,

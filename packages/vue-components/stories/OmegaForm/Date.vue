@@ -26,7 +26,7 @@ import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  date: S.NullOr(S.Date)
+  date: S.NullOr(S.DateFromString)
 })
 
 const form = useOmegaForm(schema, {

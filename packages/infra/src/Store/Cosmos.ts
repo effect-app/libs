@@ -19,6 +19,8 @@ import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
+import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { makeJsonLower } from "./utils.ts"
 
 const makeMapId =
   <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) => ({ [idKey]: id, ...e }: Encoded) => ({
@@ -96,6 +98,10 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     ) {
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
+      const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
+      const json = makeJsonLower(config)
+      const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
+      const fromStored = (raw: Encoded) => codec.decode({ ...defaultValues, ...mapReverseId(raw as any) })
       type PM = PersistenceModelType<Encoded>
       type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
       const containerId = `${prefix}${name}`
@@ -128,7 +134,6 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           return namespace
         }))
 
-      const defaultValues = config?.defaultValues ?? {}
       const container = db.container(containerId)
       const bulk = container.items.bulk.bind(container.items)
       const execBatch = container.items.batch.bind(container.items)
@@ -205,7 +210,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                         dropUndefinedT({
                           operationType: "Create" as const,
                           resourceBody: {
-                            ...Struct.omit(x, ["_etag", idKey]),
+                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: nsPartitionValue(ns, x)
                           }
@@ -217,7 +222,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           operationType: "Replace" as const,
                           id: x[idKey],
                           resourceBody: {
-                            ...Struct.omit(x, ["_etag", idKey]),
+                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: nsPartitionValue(ns, x)
                           },
@@ -314,7 +319,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                         onNone: () => ({
                           operationType: "Create" as const,
                           resourceBody: {
-                            ...Struct.omit(x, ["_etag", idKey]),
+                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: nsPartitionValue(ns, x)
                           }
@@ -325,7 +330,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                           operationType: "Replace" as const,
                           id: x[idKey],
                           resourceBody: {
-                            ...Struct.omit(x, ["_etag", idKey]),
+                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: nsPartitionValue(ns, x)
                           },
@@ -447,7 +452,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                   )
                   yield* annotateFeed(response)
-                  return response.resources.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
+                  return response.resources.map((_) => fromStored(_ as unknown as Encoded))
                 })
                 .pipe(
                   annotateDb({
@@ -492,7 +497,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     | undefined,
                   f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
                   skip,
-                  limit
+                  limit,
+                  json
                 )
               ),
               ns: resolveNamespace
@@ -520,7 +526,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                         container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                       )
                       yield* annotateFeed(response)
-                      return response.resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
+                      return response.resources.map(({ f }) => fromStored(f as Encoded) as any)
                     })
                     .pipe(
                       annotateDb({
@@ -546,7 +552,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 )
                 yield* annotateItem(response)
                 return Option.fromNullishOr(response.resource).pipe(
-                  Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
+                  Option.map((_) => fromStored(_))
                 )
               })
               .pipe(annotateDb({
@@ -573,12 +579,12 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   {
                     onNone: () =>
                       container.items.create({
-                        ...mapId(e),
+                        ...mapId(codec.encode(e)),
                         _partitionKey: nsPartitionValue(ns, e)
                       }),
                     onSome: (eTag) =>
                       container.item(e[idKey], nsPartitionValue(ns, e)).replace(
-                        { ...mapId(e), _partitionKey: nsPartitionValue(ns, e) },
+                        { ...mapId(codec.encode(e)), _partitionKey: nsPartitionValue(ns, e) },
                         {
                           accessCondition: {
                             type: "IfMatch",

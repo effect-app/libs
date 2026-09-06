@@ -18,7 +18,8 @@ import * as Struct from "effect/Struct"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb } from "../otel.ts"
 import { codeFilter, codeFilter3_ } from "./codeFilter.ts"
-import { get, makeUpdateETag } from "./utils.ts"
+import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { get, jsonifyFilter, type JsonLower, makeJsonLower, makeUpdateETag, toJsonQueryValue } from "./utils.ts"
 
 export { get } from "./utils.ts"
 
@@ -332,25 +333,38 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
   idKey: IdKey,
   namespace: string,
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-  _defaultValues?: Partial<Encoded>
+  _defaultValues?: Partial<Encoded>,
+  schema?: StoreConfig<Encoded>["schema"],
+  json?: JsonLower
 ) {
   type PM = PersistenceModelType<Encoded>
   return Effect.gen(function*() {
     const updateETag = makeUpdateETag(modelName)
+    const codec = makeJsonDocumentCodec<Encoded>(schema)
+    const encodeDoc = (e: Encoded | PM): PM => codec.encode({ _etag: undefined, ...e })
+    const decodeDoc = (e: PM): PM => codec.decode(e)
     const items_ = yield* seed ?? Effect.sync(() => [])
-    const defaultValues = _defaultValues ?? {}
+    const toJson = json?.toJson ?? toJsonQueryValue
+    const lowerFilter = json?.jsonifyFilter ?? jsonifyFilter
+    const encodedDefaults = toJson(_defaultValues ?? {}) as Partial<Encoded>
 
-    const items = new Map([...items_].map((_) => [_[idKey], { _etag: undefined, ...defaultValues, ..._ }] as const))
+    const items = new Map(
+      [...items_].map((_) => {
+        const encoded = encodeDoc({ ...encodedDefaults, ..._ })
+        return [encoded[idKey], encoded] as const
+      })
+    )
     const store = Ref.makeUnsafe<ReadonlyMap<Encoded[IdKey], PM>>(items)
     const sem = Semaphore.makeUnsafe(1)
     const withPermit = sem.withPermits(1)
     const values = Effect.map(Ref.get(store), (s) => s.values())
 
-    const all = Effect.map(values, Array.fromIterable)
+    const allStored = Effect.map(values, Array.fromIterable)
+    const all = Effect.map(allStored, (rows) => rows.map(decodeDoc))
 
     const batchSet = (items: NonEmptyReadonlyArray<PM>) =>
       Effect
-        .forEach(items, (i) => Effect.flatMap(s.find(i[idKey]), (current) => updateETag(i, idKey, current)))
+        .forEach(items, (i) => Effect.flatMap(s.find(i[idKey]), (current) => updateETag(encodeDoc(i), idKey, current)))
         .pipe(
           Effect
             .tap((items) =>
@@ -368,7 +382,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 )
             ),
           Effect
-            .map((_) => _),
+            .map((items) => items.map(decodeDoc) as unknown as NonEmptyReadonlyArray<PM>),
           withPermit
         )
 
@@ -414,7 +428,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         Ref
           .get(store)
           .pipe(
-            Effect.map((_) => Option.fromNullishOr(_.get(id))),
+            Effect.map((_) => Option.fromNullishOr(_.get(id)).pipe(Option.map(decodeDoc))),
             annotateDb({
               operation: "find",
               system: "memory",
@@ -424,11 +438,16 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               extra: { "app.entity.id": id }
             })
           ),
-      filter: (f) =>
-        all
+      filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) =>
+        allStored
           .pipe(
-            Effect.tap(() => logQuery(f, defaultValues)),
-            Effect.map(memFilter(f)),
+            Effect.tap(() => logQuery(f, encodedDefaults)),
+            Effect.map(memFilter({ ...f, filter: f.filter ? lowerFilter(f.filter) : f.filter })),
+            Effect.map((rows): (U extends undefined ? Encoded : Pick<Encoded, U>)[] =>
+              f.select
+                ? rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
+                : rows.map(decodeDoc) as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
+            ),
             annotateDb({
               operation: "filter",
               system: "memory",
@@ -441,14 +460,15 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         s
           .find(e[idKey])
           .pipe(
-            Effect.flatMap((current) => updateETag(e, idKey, current)),
+            Effect.flatMap((current) => updateETag(encodeDoc(e), idKey, current.pipe(Option.map(encodeDoc)))),
             Effect
-              .tap((e) =>
+              .tap((stored) =>
                 Ref.get(store).pipe(
-                  Effect.map((_) => new Map([..._, [e[idKey], e]])),
+                  Effect.map((_) => new Map([..._, [stored[idKey], stored]])),
                   Effect.flatMap((_) => Ref.set(store, _))
                 )
               ),
+            Effect.map(decodeDoc),
             withPermit,
             annotateDb({
               operation: "set",
@@ -518,12 +538,15 @@ export const makeMemoryStore = () => ({
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
   ) {
+    const json = makeJsonLower(config)
     const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
       modelName,
       idKey,
       "primary",
       seed,
-      config?.defaultValues
+      config?.defaultValues,
+      config?.schema,
+      json
     )
     const ctx = yield* Effect.context<R>()
     const stores = new Map([["primary", primary]])
@@ -543,7 +566,7 @@ export const makeMemoryStore = () => ({
         if (config?.allowNamespace && !config.allowNamespace(namespace)) {
           throw new Error(`Namespace ${namespace} not allowed!`)
         }
-        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
+        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues, config?.schema, json)
           .pipe(
             Effect.orDie,
             Effect.provide(ctx),

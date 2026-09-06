@@ -82,8 +82,6 @@ export const withDefaultParseOptions = <Decode extends DecodeLike>(
     return (input: any, options?: SchemaAST.ParseOptions) => run(input, { ...defaultParseOptions, ...options })
   }) as Decode
 
-// TODO: v4 migration - Date is no longer by default encoded to string.
-
 const DateString = S.String.annotate({
   identifier: "DateOrInvalid",
   description: "an ISO 8601 date string that will be decoded as a Date (may be invalid)",
@@ -107,18 +105,21 @@ export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
  * Encoding:
  * - A `Date` is encoded as a `string`.
  *
+ * Use this when the Encoded form must be JSON (`string`). Domain models should
+ * prefer {@link Date}, whose Encoded form is `Date`; JSON stores convert via
+ * `Schema.toCodecJson`.
+ *
  * @since 4.0.0
  */
 export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, SchemaTransformation.dateFromString))
 
-/** Like the default Schema `Date` but from String, with default helpers. */
-export const Date = extendM(DateFromString, (s) => ({
+const dateHelpers = (s: S.Date) => ({
   /**
    * Construction-only default `new Date()`. Applied only when the field is
    * omitted from `.make(...)` input. NOT applied during decode — cannot be
    * used to JIT-migrate database fields. See file-level note.
    */
-  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
   /**
    * Decode-time default `new Date()`. **Discouraged for persisted data:** a
    * missing field may be data corruption, not an old-shape document; silently
@@ -126,38 +127,18 @@ export const Date = extendM(DateFromString, (s) => ({
    * preferably versioned migration over a decode-time fallback. See
    * file-level note.
    */
-  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
-}))
-
-const DateValidString = S.String.annotate({
-  identifier: "Date",
-  description: "a valid ISO 8601 date string that will be decoded as a Date",
-  format: "date-time"
+  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
 })
 
-// Schema.Date rejects invalid Dates since beta.91+; no separate isDateValid check needed.
-const DateValidFromString = DateValidString
-  .pipe(
-    S.decodeTo(S.Date, SchemaTransformation.dateFromString)
-  )
+/** Like the default Schema `Date` (Encoded is `Date`) with default helpers. */
+export const Date = extendM(S.Date, dateHelpers)
 
-/** Like the default Schema `Date` (valid only) but from String, with default helpers. */
-export const DateValid = extendM(DateValidFromString, (s) => ({
-  /**
-   * Construction-only default `new Date()`. Applied only when the field is
-   * omitted from `.make(...)` input. NOT applied during decode — cannot be
-   * used to JIT-migrate database fields. See file-level note.
-   */
-  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
-  /**
-   * Decode-time default `new Date()`. **Discouraged for persisted data:** a
-   * missing field may be data corruption, not an old-shape document; silently
-   * substituting `new Date()` hides the problem. Prefer an explicit,
-   * preferably versioned migration over a decode-time fallback. See
-   * file-level note.
-   */
-  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
-}))
+/**
+ * Alias of {@link Date}. Core `Schema.Date` already rejects invalid Dates.
+ *
+ * @deprecated Use {@link Date}.
+ */
+export const DateValid = Date
 
 /** Like the default Schema `Boolean` but with default helpers. */
 export const Boolean = Object.assign(S.Boolean, {
@@ -337,10 +318,10 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
   return schema
 }
 
-/** Like the default Schema `ReadonlySet` but from Array, with default helpers. */
+/** Like the default Schema `ReadonlySet` (Encoded is `Set`) with default helpers. */
 export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
   pipe(
-    ReadonlySetFromArray(value),
+    S.ReadonlySet(value),
     (s) =>
       Object.assign(s, {
         /**
@@ -365,13 +346,13 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
       })
   )
 
-/** Like the default Schema `ReadonlyMap` but from Array, with default helpers. */
+/** Like the default Schema `ReadonlyMap` (Encoded is `Map`) with default helpers. */
 export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
 }) =>
   pipe(
-    ReadonlyMapFromArray(pair),
+    S.ReadonlyMap(pair.key, pair.value),
     (s) =>
       Object.assign(s, {
         /**
@@ -503,9 +484,9 @@ export type WithDefaults<Self extends S.Top> = (
 // export type UnionToIntersection3<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I
 //   : never
 
-/** Union of core `Schema.Date` (Date objects) and string-encoded `Date`, with default helpers. */
+/** Union of core `Schema.Date` (Date objects) and string-encoded `DateFromString`, with default helpers. */
 export const inputDate = extendM(
-  S.Union([S.Date, Date]),
+  S.Union([S.Date, DateFromString]),
   (s) => ({
     /**
      * Construction-only default `new Date()`. Applied only when the field is

@@ -1,5 +1,29 @@
 # @effect-app/infra
 
+## 4.0.0-beta.317
+
+### Minor Changes
+
+- 186de3a: Stop forcing Date/Map/Set Encoded shapes to JSON.
+
+  `Schema.Date` / `ReadonlySet` / `ReadonlyMap` now keep native Encoded types (`Date`, `Set`, `Map`). Use `DateFromString`, `ReadonlySetFromArray`, and `ReadonlyMapFromArray` when the Encoded form must be JSON. The query DSL accepts those native values, including array ops (`includes` / `in` / `includes-any`) on `Date[]` and `ReadonlySet` fields. Memory, Disk, SQL, and Cosmos convert Encoded Date/Map/Set through `Schema.toCodecJson` on write/read; query parameters and defaults lower the same way from the store schema. App types such as DateOnly stay native Encoded and JSON-lower via that schema — not a type registry.
+
+- 186de3a: Query maps as JSON arrays of `[key, value]` tuples.
+
+  `where("meta", "hasKey" | "hasValue" | "hasKeyValue", ...)` (and `not*` / `*-any` / `*-all` variants) filter `ReadonlyMap` fields. Memory, Disk, SQLite, Postgres, and Cosmos compile those ops against the encoded tuple array.
+
+- 186de3a: JSON stores lower native Encoded values (Date, Map, Set, and app types such as DateOnly) through the store's document schema.
+
+  `makeRepo` already passes that schema. Adapters encode documents, query parameters, and defaults with `Schema.toCodecJson(toEncoded(schema))` at the field path. No type registry. Schemaless stores still lower Date/Map/Set structurally.
+
+### Patch Changes
+
+- 186de3a: Declare `@sentry/node` as a runtime dependency of `@effect-app/infra`. `errorReporter.ts` imports it statically, so `pnpm install --prod` of linked source (Docker) must install it next to the package, not only as a peer of the app.
+- Updated dependencies [186de3a]
+- Updated dependencies [186de3a]
+- Updated dependencies [186de3a]
+  - effect-app@4.0.0-beta.317
+
 ## 4.0.0-beta.316
 
 ### Patch Changes

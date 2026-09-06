@@ -491,10 +491,8 @@ describe("JSON Schema", () => {
           title: "Email",
           description: "an email according to RFC 5322",
           format: "email",
-          allOf: [
-            { minLength: 3 },
-            { maxLength: 998 }
-          ]
+          minLength: 3,
+          maxLength: 998
         }
       }
     })

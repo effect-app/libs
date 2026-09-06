@@ -45,14 +45,14 @@ importers:
         specifier: 0.86.2
         version: 0.86.2
       "@effect/platform-node":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(ioredis@5.9.3(supports-color@8.1.1))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/tsgo":
         specifier: ^0.31.0
         version: 0.31.0
       "@effect/vitest":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tsconfig/strictest":
         specifier: ^2.0.8
         version: 2.0.8
@@ -72,8 +72,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -117,11 +117,11 @@ importers:
   packages/cli:
     dependencies:
       "@effect/platform-node":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(ioredis@5.9.3(supports-color@8.1.1))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
       effect:
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112
       js-yaml:
         specifier: 4.2.0
         version: 4.2.0
@@ -153,14 +153,14 @@ importers:
         version: link:../effect-app
     devDependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-node":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(ioredis@5.9.3(supports-color@8.1.1))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tanstack/vue-query":
         specifier: 5.96.2
         version: 5.96.2(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
@@ -171,8 +171,8 @@ importers:
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112
       typescript:
         specifier: ~6.0.3
         version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
@@ -192,8 +192,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       effect:
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -331,8 +331,8 @@ importers:
   packages/infra:
     dependencies:
       "@effect/vitest":
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@faker-js/faker":
         specifier: ^8.4.1
         version: 8.4.1
@@ -346,8 +346,8 @@ importers:
         specifier: 10.55.0
         version: 10.55.0(supports-color@8.1.1)
       effect:
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -374,8 +374,8 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5(supports-color@8.1.1)
       "@effect/sql-sqlite-node":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       "@sentry/opentelemetry":
         specifier: 10.55.0
         version: 10.55.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.40.0)
@@ -420,11 +420,11 @@ importers:
   packages/vue:
     dependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-browser":
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       "@formatjs/intl":
         specifier: ^4.1.12
         version: 4.1.12
@@ -441,8 +441,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -454,8 +454,8 @@ importers:
         version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       "@effect/vitest":
-        specifier: 4.0.0-beta.107
-        version: 4.0.0-beta.107(effect@4.0.0-beta.107)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@formatjs/icu-messageformat-parser":
         specifier: ^3.5.10
         version: 3.5.10
@@ -494,8 +494,8 @@ importers:
         specifier: ^1.32.0
         version: 1.32.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-beta.107
-        version: 4.0.0-beta.107
+        specifier: ^4.0.0-rc.112
+        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -1188,12 +1188,12 @@ packages:
     }
     hasBin: true
 
-  "@effect/atom-vue@4.0.0-beta.107":
+  "@effect/atom-vue@4.0.0-rc.112":
     resolution: {
-      integrity: sha512-RQh5iZapR3rTgO6KHBLUTj4bJh8LkYPWomwIXHzMu8JkRh7JD7+IctVfyKAz/YD1hNur6XvCoQmcS/CI0EQAqw==,
+      integrity: sha512-2sOESDblJGtJMxObqAw9UHHVrqhLHr2ha7JqvXdt2yhf4h57rK+rY3eEjclSgNsshABdcClP/Z0jNvgUD+A42g==,
     }
     peerDependencies:
-      effect: ^4.0.0-beta.107
+      effect: ^4.0.0-rc.112
       vue: ^3.5.35
 
   "@effect/language-service@0.86.2":
@@ -1202,20 +1202,12 @@ packages:
     }
     hasBin: true
 
-  "@effect/platform-browser@4.0.0-beta.107":
+  "@effect/platform-browser@4.0.0-rc.112":
     resolution: {
-      integrity: sha512-PGNHndbY0tRyqWfZZJWQMdQdh8Q1D9qfOnlI2EV2claAmNG7iGs+qWSUTBoCQo7MBgfJOYIC8M/AKq1ZfFWJuw==,
+      integrity: sha512-GSlqNDnjILz2EqOFPhVdMEHxlPq6SGb8+KOpNnLfRvVJjXRTMawEO+v1PCuwt2CHAqESbJAa2Nk+qcQvTrv4MQ==,
     }
     peerDependencies:
-      effect: ^4.0.0-beta.107
-
-  "@effect/platform-node-shared@4.0.0-beta.107":
-    resolution: {
-      integrity: sha512-y6BqcRi86BfTJv+tvDrob4ozYVHxxlHYcn/zIQqZjXI9CvKnkgD6ng+38G1o45c4f2ucU+6HRI9POCmFdMoVGA==,
-    }
-    engines: { node: ">=18.0.0" }
-    peerDependencies:
-      effect: ^4.0.0-beta.107
+      effect: ^4.0.0-rc.112
 
   "@effect/platform-node-shared@4.0.0-beta.86":
     resolution: {
@@ -1225,14 +1217,13 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  "@effect/platform-node@4.0.0-beta.107":
+  "@effect/platform-node-shared@4.0.0-rc.112":
     resolution: {
-      integrity: sha512-k+6YNbV4Ck0L6YXtlgkvEnuP5tlxWD8EeWOrpn46PDqbGEwt4ONpRltTwm3tn2cyBXD0i+2P11cUH/6sdFagTA==,
+      integrity: sha512-ttjz0xKamFN7vL8pNDYVwddJLjZvqKePc05djlz2VcdaKbLsnYbtMnL1rbOfHgEnIUSHGh7FkjaN4DM1Ov81sQ==,
     }
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.0-beta.107
-      ioredis: ">=5.7.0 <6.0.0"
+      effect: ^4.0.0-rc.112
 
   "@effect/platform-node@4.0.0-beta.86":
     resolution: {
@@ -1243,12 +1234,21 @@ packages:
       effect: ^4.0.0-beta.86
       ioredis: ^5.7.0
 
-  "@effect/sql-sqlite-node@4.0.0-beta.107":
+  "@effect/platform-node@4.0.0-rc.112":
     resolution: {
-      integrity: sha512-hfYptkItEs/AdEIPEDkziC1TbnC7FyGISowKIvaZtscoWyxPaUtWsxM8EYgfOJ61aZwGgKQxZlXIgJ0fw25Lng==,
+      integrity: sha512-/BMAcdNGQQskLmI0Zoa95KfTZkr9HV9N4NSxaSrusG6GeW6Ulp9KvZ+Rlaiw8lnOt43CXjFLdfll5/k5rxL4hQ==,
+    }
+    engines: { node: ">=18.0.0" }
+    peerDependencies:
+      effect: ^4.0.0-rc.112
+      redis: ">=5.0.0 <7.0.0"
+
+  "@effect/sql-sqlite-node@4.0.0-rc.112":
+    resolution: {
+      integrity: sha512-jGRtbJsn5z7DqsMEPSbXq2Q9mYEvMy1v9DTeziTtDEnDzlxhxfrXkSeupZbYqAP5pukIM1JBa10zfAn6KnHG2Q==,
     }
     peerDependencies:
-      effect: ^4.0.0-beta.107
+      effect: ^4.0.0-rc.112
 
   "@effect/tsgo-darwin-arm64@0.31.0":
     resolution: {
@@ -1305,12 +1305,12 @@ packages:
     }
     hasBin: true
 
-  "@effect/vitest@4.0.0-beta.107":
+  "@effect/vitest@4.0.0-rc.112":
     resolution: {
-      integrity: sha512-n4/qsx4DnT4dEI/wNgMivxyUeJoeiU1TCSz0WnoHWk/dny40Oxjip2P9IXGQDgPb9fsYVnerF0QRA6nPUuExQA==,
+      integrity: sha512-mEKh/FI64mt8JK1/v9mpOrJYdnp+UFZdRUBMEdZMiKz7klg6NPqVgg/oeAGH6wOOQc2iAPcfc2H9BbAv1KyzMQ==,
     }
     peerDependencies:
-      effect: ^4.0.0-beta.107
+      effect: ^4.0.0-rc.112
       vitest: ">=4.1.0 <5.0.0"
 
   "@emnapi/core@1.10.0":
@@ -2160,25 +2160,11 @@ packages:
       integrity: sha512-p7X/ytJDIdwUfFL/CLOhKgdfJe1Fa8uw9seJYvdOmnP9JBWGWHW69HkOixXS6Wy9yvGf1MbhcS6lVmrhy4jm2g==,
     }
 
-  "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
-    resolution: {
-      integrity: sha512-QZHtlVgbAdy2zAqNA9Gu1UpIuI8Xvsd1v8ic6B2pZmeFnFcMWiPLfWXh7TVw4eGEZ/C9TH281KwhVoeQUKbyjw==,
-    }
-    cpu: [arm64]
-    os: [darwin]
-
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4":
     resolution: {
       integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==,
     }
     cpu: [arm64]
-    os: [darwin]
-
-  "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3":
-    resolution: {
-      integrity: sha512-mdzd3AVzYKuUmiWOQ8GNhl64/IoFGol569zNRdkLReh6LRLHOXxU4U8eq0JwaD8iFHdVGqSy4IjFL4reoWCDFw==,
-    }
-    cpu: [x64]
     os: [darwin]
 
   "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4":
@@ -2188,25 +2174,11 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3":
-    resolution: {
-      integrity: sha512-YxQL+ax0XqBJDZiKimS2XQaf+2wDGVa1enVRGzEvLLVFeqa5kx2bWbtcSXgsxjQB7nRqqIGFIcLteF/sHeVtQg==,
-    }
-    cpu: [arm64]
-    os: [linux]
-
   "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4":
     resolution: {
       integrity: sha512-dgX0P/9wGPJeHFBG+ZmhgE6bmtMt7NP5CRBGyyktpopdk/mW4POnrpQsSLtKI1dwpc+pPLuXHDh6vvskyQE/sw==,
     }
     cpu: [arm64]
-    os: [linux]
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3":
-    resolution: {
-      integrity: sha512-fg0uy/dG/nZEXfYilKoRe7yALaNmHoYeIoJuJ7KJ+YyU2bvY8vPv27f7UKhGRpY6euFYqEVhxCFZgAUNQBM3nw==,
-    }
-    cpu: [arm]
     os: [linux]
 
   "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4":
@@ -2216,26 +2188,12 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3":
-    resolution: {
-      integrity: sha512-cvwNfbP07pKUfq1uH+S6KJ7dT9K8WOE4ZiAcsrSes+UY55E/0jLYc+vq+DO7jlmqRb5zAggExKm0H7O/CBaesg==,
-    }
-    cpu: [x64]
-    os: [linux]
-
   "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4":
     resolution: {
       integrity: sha512-8TNXMEjJc3QEy7R/x1INhgiU+XakDAFUzBhaz7+Rbrs8NH5UQeHQxxmzsSBJGyV6I1jW79undiQm8tOI+D+8FQ==,
     }
     cpu: [x64]
     os: [linux]
-
-  "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3":
-    resolution: {
-      integrity: sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==,
-    }
-    cpu: [x64]
-    os: [win32]
 
   "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4":
     resolution: {
@@ -3366,6 +3324,52 @@ packages:
       integrity: sha512-eteOhTdAOXEYE9qW1AOrBBgDxQ2szHJxSkEK1XVdV2TKxGM5FQf03Ovms0VDyZTc16XBIgvwYjXJQS0BPbhPaA==,
     }
     engines: { node: ">=12.11.0" }
+
+  "@redis/bloom@6.2.1":
+    resolution: {
+      integrity: sha512-huQgNLaCIZfQ9SeLn4q9124uOUd8HbZDYHwwUzNcRgHqCHiHKl2dDxMqJCeWh8cMqZAoWuHR8XnWbDMIf+o7ag==,
+    }
+    engines: { node: ">= 20.0.0" }
+    peerDependencies:
+      "@redis/client": ^6.2.1
+
+  "@redis/client@6.2.1":
+    resolution: {
+      integrity: sha512-LzxBY7SIBvvJiyCgcaJZZakE3fJrZZ++i24+EDW9fKpCl68D35uJcKFpZZwCfOoG9WZTbyZlMzMeM0gtOAMU9Q==,
+    }
+    engines: { node: ">= 20.0.0" }
+    peerDependencies:
+      "@node-rs/xxhash": ^1.1.0
+      "@opentelemetry/api": ">=1 <2"
+    peerDependenciesMeta:
+      "@node-rs/xxhash":
+        optional: true
+      "@opentelemetry/api":
+        optional: true
+
+  "@redis/json@6.2.1":
+    resolution: {
+      integrity: sha512-AFIUJ8Gj0DaaSBHYuSt8+O0oYWM+50OK1c0OmodB7XERIA8+BbyV3O4v76f9iccWasd1/7qjfZTpuzexUaZtrQ==,
+    }
+    engines: { node: ">= 20.0.0" }
+    peerDependencies:
+      "@redis/client": ^6.2.1
+
+  "@redis/search@6.2.1":
+    resolution: {
+      integrity: sha512-2vfOAOyYFE7UUw3sBBlkqqruBtOUS4HRY5MtW4hp83llrwvtrTE4r22CEqXddlV+54zkLxBE4nmsIJ/dpezQrQ==,
+    }
+    engines: { node: ">= 20.0.0" }
+    peerDependencies:
+      "@redis/client": ^6.2.1
+
+  "@redis/time-series@6.2.1":
+    resolution: {
+      integrity: sha512-kiYniph04dJOole+L359B6C9E+jYS2uDP7hca6Onj0xF38ZIpyxARO0Iq0W4ZRn1e8Q6vqW00QFZVSMRA/2Ijw==,
+    }
+    engines: { node: ">= 20.0.0" }
+    peerDependencies:
+      "@redis/client": ^6.2.1
 
   "@rolldown/binding-android-arm64@1.0.3":
     resolution: {
@@ -5730,14 +5734,14 @@ packages:
     engines: { node: ">=14" }
     hasBin: true
 
-  effect@4.0.0-beta.107:
-    resolution: {
-      integrity: sha512-OoBAv8eF+yanc+C6xhgEUnWeXUSHA6ynnscYqpkAY9GSnzZWystsIjBowVqCkLpHGlnRtdIqYT3wHwpOY6JDnQ==,
-    }
-
   effect@4.0.0-beta.86:
     resolution: {
       integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==,
+    }
+
+  effect@4.0.0-rc.112:
+    resolution: {
+      integrity: sha512-wXxwuh1Ywnv4cPRM3Wfa0vDwuOHnZ1TsTgHJkG9XgzND6inhBH9n1vBxhg3iIXOia/OrpmvVmd3lrD4vq6bF3A==,
     }
 
   electron-to-chromium@1.5.267:
@@ -7480,12 +7484,6 @@ packages:
       integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==,
     }
 
-  msgpackr-extract@3.0.3:
-    resolution: {
-      integrity: sha512-P0efT1C9jIdVRefqjzOQ9Xml57zpOXnIuS+csaB4MdZbTdmGDLo8XhzBG1N7aO11gKDDkJvBLULeFTo46wwreA==,
-    }
-    hasBin: true
-
   msgpackr-extract@3.0.4:
     resolution: {
       integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==,
@@ -8237,6 +8235,12 @@ packages:
       integrity: sha512-grn5KoZLr/qrRQVwoSkmzdbw6pwF+/rwODtrOr6vuBRiR/f3rjSTGupbF90Zpqm2oenix8Do6RV7pYEkGwlKkw==,
     }
     engines: { node: ">=10" }
+
+  redis@6.2.1:
+    resolution: {
+      integrity: sha512-Z9VHtgYs48PiQC77X9O2Er8Hj4T+5BtFjT91/vi5Is1D04N72cA946ZslM1ImJw8ZctFBZWAVjM7S5wJNeHMpg==,
+    }
+    engines: { node: ">= 20.0.0" }
 
   redlock@4.2.0:
     resolution: {
@@ -9204,12 +9208,6 @@ packages:
   uuid@14.0.0:
     resolution: {
       integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==,
-    }
-    hasBin: true
-
-  uuid@14.0.1:
-    resolution: {
-      integrity: sha512-6ZxzVpzDXDa3bJWaHilVayA+BH/1zmxCJoVgvmqJnid/gPoKHxUrS/aC/T6LGQtNHT+XHG9fXPJB4d+IrU30Ew==,
     }
     hasBin: true
 
@@ -10326,42 +10324,31 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  "@effect/atom-vue@4.0.0-beta.107(effect@4.0.0-beta.107)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
+  "@effect/atom-vue@4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
     dependencies:
-      effect: 4.0.0-beta.107
+      effect: 4.0.0-rc.112
       vue: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   "@effect/language-service@0.86.2": {}
 
-  "@effect/platform-browser@4.0.0-beta.107(effect@4.0.0-beta.107)":
+  "@effect/platform-browser@4.0.0-rc.112(effect@4.0.0-rc.112)":
     dependencies:
-      effect: 4.0.0-beta.107
-
-  "@effect/platform-node-shared@4.0.0-beta.107(effect@4.0.0-beta.107)":
-    dependencies:
-      "@types/ws": 8.18.1
-      effect: 4.0.0-beta.107
-      ws: 8.21.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
+      effect: 4.0.0-rc.112
 
   "@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.86)":
     dependencies:
       "@types/ws": 8.18.1
       effect: 4.0.0-beta.86
-      ws: 8.20.0
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-beta.107(effect@4.0.0-beta.107)(ioredis@5.9.3(supports-color@8.1.1))":
+  "@effect/platform-node-shared@4.0.0-rc.112(effect@4.0.0-rc.112)":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-beta.107(effect@4.0.0-beta.107)
-      effect: 4.0.0-beta.107
-      ioredis: 5.9.3(supports-color@8.1.1)
-      mime: 4.1.0
-      undici: 8.10.0
+      "@types/ws": 8.18.1
+      effect: 4.0.0-rc.112
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -10377,9 +10364,20 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/sql-sqlite-node@4.0.0-beta.107(effect@4.0.0-beta.107)":
+  "@effect/platform-node@4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))":
     dependencies:
-      effect: 4.0.0-beta.107
+      "@effect/platform-node-shared": 4.0.0-rc.112(effect@4.0.0-rc.112)
+      effect: 4.0.0-rc.112
+      mime: 4.1.0
+      redis: 6.2.1(@opentelemetry/api@1.9.1)
+      undici: 8.10.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  "@effect/sql-sqlite-node@4.0.0-rc.112(effect@4.0.0-rc.112)":
+    dependencies:
+      effect: 4.0.0-rc.112
 
   "@effect/tsgo-darwin-arm64@0.31.0":
     optional: true
@@ -10412,9 +10410,9 @@ snapshots:
       "@effect/tsgo-win32-arm64": 0.31.0
       "@effect/tsgo-win32-x64": 0.31.0
 
-  "@effect/vitest@4.0.0-beta.107(effect@4.0.0-beta.107)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
+  "@effect/vitest@4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
     dependencies:
-      effect: 4.0.0-beta.107
+      effect: 4.0.0-rc.112
       vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@emnapi/core@1.10.0":
@@ -10826,37 +10824,19 @@ snapshots:
     dependencies:
       sparse-bitfield: 3.0.3
 
-  "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
-    optional: true
-
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3":
     optional: true
 
   "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4":
     optional: true
 
-  "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3":
-    optional: true
-
   "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3":
     optional: true
 
   "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4":
     optional: true
 
-  "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3":
-    optional: true
-
   "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3":
     optional: true
 
   "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4":
@@ -11354,6 +11334,28 @@ snapshots:
       "@primevue/core": 4.5.5(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
     transitivePeerDependencies:
       - vue
+
+  "@redis/bloom@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))":
+    dependencies:
+      "@redis/client": 6.2.1(@opentelemetry/api@1.9.1)
+
+  "@redis/client@6.2.1(@opentelemetry/api@1.9.1)":
+    dependencies:
+      cluster-key-slot: 1.1.2
+    optionalDependencies:
+      "@opentelemetry/api": 1.9.1
+
+  "@redis/json@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))":
+    dependencies:
+      "@redis/client": 6.2.1(@opentelemetry/api@1.9.1)
+
+  "@redis/search@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))":
+    dependencies:
+      "@redis/client": 6.2.1(@opentelemetry/api@1.9.1)
+
+  "@redis/time-series@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))":
+    dependencies:
+      "@redis/client": 6.2.1(@opentelemetry/api@1.9.1)
 
   "@rolldown/binding-android-arm64@1.0.3":
     optional: true
@@ -13043,14 +13045,6 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.107:
-    dependencies:
-      "@standard-schema/spec": 1.1.0
-      fast-check: 4.9.0
-      kubernetes-types: 1.30.0
-      msgpackr: 2.0.5
-      uuid: 14.0.1
-
   effect@4.0.0-beta.86:
     dependencies:
       "@standard-schema/spec": 1.1.0
@@ -13063,6 +13057,11 @@ snapshots:
       toml: 4.1.1
       uuid: 14.0.0
       yaml: 2.9.0
+
+  effect@4.0.0-rc.112:
+    dependencies:
+      fast-check: 4.9.0
+      msgpackr: 2.0.5
 
   electron-to-chromium@1.5.267:
     optional: true
@@ -14372,18 +14371,6 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msgpackr-extract@3.0.3:
-    dependencies:
-      node-gyp-build-optional-packages: 5.2.2
-    optionalDependencies:
-      "@msgpackr-extract/msgpackr-extract-darwin-arm64": 3.0.3
-      "@msgpackr-extract/msgpackr-extract-darwin-x64": 3.0.3
-      "@msgpackr-extract/msgpackr-extract-linux-arm": 3.0.3
-      "@msgpackr-extract/msgpackr-extract-linux-arm64": 3.0.3
-      "@msgpackr-extract/msgpackr-extract-linux-x64": 3.0.3
-      "@msgpackr-extract/msgpackr-extract-win32-x64": 3.0.3
-    optional: true
-
   msgpackr-extract@3.0.4:
     dependencies:
       node-gyp-build-optional-packages: 5.2.2
@@ -14398,7 +14385,7 @@ snapshots:
 
   msgpackr@2.0.1:
     optionalDependencies:
-      msgpackr-extract: 3.0.3
+      msgpackr-extract: 3.0.4
 
   msgpackr@2.0.5:
     optionalDependencies:
@@ -15033,6 +15020,17 @@ snapshots:
       redis-commands: 1.7.0
       redis-errors: 1.2.0
       redis-parser: 3.0.0
+
+  redis@6.2.1(@opentelemetry/api@1.9.1):
+    dependencies:
+      "@redis/bloom": 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))
+      "@redis/client": 6.2.1(@opentelemetry/api@1.9.1)
+      "@redis/json": 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))
+      "@redis/search": 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))
+      "@redis/time-series": 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.1))
+    transitivePeerDependencies:
+      - "@node-rs/xxhash"
+      - "@opentelemetry/api"
 
   redlock@4.2.0:
     dependencies:
@@ -15776,8 +15774,6 @@ snapshots:
       which-typed-array: 1.1.20
 
   uuid@14.0.0: {}
-
-  uuid@14.0.1: {}
 
   validator@13.15.35: {}
 

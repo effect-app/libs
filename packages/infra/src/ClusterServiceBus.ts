@@ -3,6 +3,7 @@ import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Data from "effect/Data"
+import * as Schema from "effect/Schema"
 import * as Scope from "effect/Scope"
 import * as ClusterError from "effect/unstable/cluster/ClusterError"
 import { Persisted } from "effect/unstable/cluster/ClusterSchema"
@@ -121,6 +122,7 @@ export const makeRunners: (
       )
 
   return yield* Runners.make({
+    codecFor: Schema.toCodecJson,
     ping: (address) => Effect.fail(new ClusterError.RunnerUnavailable({ address })),
     send: ({ address, message }) => {
       const persisted = Context.get(message.rpc.annotations, Persisted)

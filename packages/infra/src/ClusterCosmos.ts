@@ -624,21 +624,34 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           withTracerDisabled
         ),
 
-    unprocessedMessages: (shardIds, now) =>
-      queryMessages(
-        "SELECT * FROM c WHERE c.type = 'message' AND ARRAY_CONTAINS(@shardIds, c.shardId) AND c.processed = false AND (NOT IS_DEFINED(c.lastRead) OR IS_NULL(c.lastRead) OR c.lastRead < @lastReadBefore) AND (NOT IS_DEFINED(c.deliverAt) OR IS_NULL(c.deliverAt) OR c.deliverAt <= @now) ORDER BY c.rowid",
-        [
-          { name: "@shardIds", value: Array.from(shardIds) },
-          { name: "@lastReadBefore", value: now - tenMinutes },
-          { name: "@now", value: now }
-        ]
-      )
+    unprocessedMessages: (shardIds, now, options) => {
+      if (options?.addresses !== undefined && options.addresses.length === 0) {
+        return Effect.succeed([])
+      }
+      const parameters: Array<CosmosParameter> = [
+        { name: "@shardIds", value: Array.from(shardIds) },
+        { name: "@lastReadBefore", value: now - tenMinutes },
+        { name: "@now", value: now }
+      ]
+      let query =
+        "SELECT * FROM c WHERE c.type = 'message' AND ARRAY_CONTAINS(@shardIds, c.shardId) AND c.processed = false AND (NOT IS_DEFINED(c.lastRead) OR IS_NULL(c.lastRead) OR c.lastRead < @lastReadBefore) AND (NOT IS_DEFINED(c.deliverAt) OR IS_NULL(c.deliverAt) OR c.deliverAt <= @now)"
+      if (options?.addresses !== undefined) {
+        const match = addressClauses(options.addresses, "a")
+        query += ` AND (${match.sql})`
+        parameters.push(...match.parameters)
+      }
+      query += " ORDER BY c.rowid"
+      if (options?.limit !== undefined) {
+        query += ` OFFSET 0 LIMIT ${Math.floor(options.limit)}`
+      }
+      return queryMessages(query, parameters)
         .pipe(
           Effect.flatMap((docs) => collectUnprocessed(docs, now, claimMessageRead, queryReplies)),
           annotate("unprocessedMessages"),
           refailPersistence,
           withTracerDisabled
-        ),
+        )
+    },
 
     unprocessedMessagesById: (messageIds, now) =>
       queryMessages(
@@ -655,21 +668,20 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
           withTracerDisabled
         ),
 
-    resetAddress: (address) =>
-      queryMessages(
-        "SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND c.shardId = @shardId AND c.entityType = @entityType AND c.entityId = @entityId",
-        [
-          { name: "@shardId", value: ShardId.toString(address.shardId) },
-          { name: "@entityType", value: address.entityType },
-          { name: "@entityId", value: address.entityId }
-        ]
+    resetAddresses: (addresses) => {
+      if (addresses.length === 0) return Effect.void
+      const match = addressClauses(addresses, "r")
+      return queryMessages(
+        `SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND (${match.sql})`,
+        match.parameters
       )
         .pipe(
           Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
-          annotate("resetAddress"),
+          annotate("resetAddresses"),
           refailPersistence,
           withTracerDisabled
-        ),
+        )
+    },
 
     clearAddress: (address) =>
       queryMessages(
@@ -712,6 +724,30 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
     withTransaction: (effect) => effect
   })
 })
+
+const addressClauses = (
+  addresses: ReadonlyArray<{
+    readonly shardId: Parameters<typeof ShardId.toString>[0]
+    readonly entityType: string
+    readonly entityId: string
+  }>,
+  prefix: string
+): { readonly sql: string; readonly parameters: Array<CosmosParameter> } => {
+  const parameters: Array<CosmosParameter> = []
+  const clauses: Array<string> = []
+  for (const [i, address] of addresses.entries()) {
+    const shard = `@${prefix}s${i}`
+    const entityType = `@${prefix}t${i}`
+    const entityId = `@${prefix}e${i}`
+    clauses.push(`(c.shardId = ${shard} AND c.entityType = ${entityType} AND c.entityId = ${entityId})`)
+    parameters.push(
+      { name: shard, value: ShardId.toString(address.shardId) },
+      { name: entityType, value: address.entityType },
+      { name: entityId, value: address.entityId }
+    )
+  }
+  return { sql: clauses.join(" OR "), parameters }
+}
 
 const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,

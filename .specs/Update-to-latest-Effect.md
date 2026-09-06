@@ -20,4 +20,4 @@ If new errors occur, first describe the problem, propose solutions and wait for 
 ## Notes
 
 - subtree url: `https://github.com/Effect-TS/effect.git`, prefix `repos/effect`, tag `effect@<version>`.
-- v4 betas live under the npm `beta` dist-tag (npm `latest` is still v3). Find target with `npm view effect dist-tags`.
+- v4 currently lives under the npm `rc` dist-tag (`beta` is frozen at `4.0.0-beta.107`; npm `latest` is still v3). Find target with `npm view effect dist-tags` — prefer `rc` if present, else `beta`.

@@ -27,6 +27,7 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
+import * as Migrator from "../sql/Migrator.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
 import * as Redis from "./Redis.ts"
@@ -170,19 +171,13 @@ export const makeFactory = Effect.gen(function*() {
             }
           ),
         take: (f, opts) =>
-          Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-            const scope = yield* Scope.make()
+          Effect.scopedWith(Effect.fnUntraced(function*(scope) {
             const item = yield* store.take({
               name: options.name,
               maxAttempts: opts?.maxAttempts ?? 10
-            }).pipe(
-              Scope.provide(scope),
-              restore
-            )
+            }).pipe(Scope.provide(scope))
             const decoded = yield* decodeUnknown(item.element)
-            const exit = yield* Effect.exit(restore(f(decoded, { id: item.id, attempts: item.attempts })))
-            yield* Scope.close(scope, exit)
-            return yield* exit
+            return yield* f(decoded, { id: item.id, attempts: item.attempts })
           }))
       })
     }
@@ -223,7 +218,7 @@ export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueEr
  * @category errors
  * @since 4.0.0
  */
-export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
+export class PersistedQueueError extends Schema.Error<PersistedQueueError>(
   "effect/persistence/PersistedQueue/PersistedQueueError"
 )({
   _tag: Schema.tag("PersistedQueueError"),
@@ -251,7 +246,7 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
  * The store persists offered elements and returns taken elements in a scope so
  * the finalizer can complete or retry them based on the processing exit.
  *
- * @category store
+ * @category services
  * @since 4.0.0
  */
 export class PersistedQueueStore extends Context.Service<
@@ -289,7 +284,7 @@ export class PersistedQueueStore extends Context.Service<
  * The store is process-local and volatile; failed takes are requeued until the
  * configured maximum attempts is reached.
  *
- * @category store
+ * @category layers
  * @since 4.0.0
  */
 export const layerStoreMemory: Layer.Layer<
@@ -300,9 +295,9 @@ export const layerStoreMemory: Layer.Layer<
     attempts: number
     readonly element: unknown
   }
-  const ids = new Set<string>()
   const queues = new Map<string, {
     latch: Latch.Latch
+    ids: Set<string>
     items: Set<Entry>
   }>()
   const getOrCreateQueue = (name: string) => {
@@ -310,6 +305,7 @@ export const layerStoreMemory: Layer.Layer<
     if (!queue) {
       queue = {
         latch: Latch.makeUnsafe(false),
+        ids: new Set(),
         items: new Set()
       }
       queues.set(name, queue)
@@ -320,9 +316,9 @@ export const layerStoreMemory: Layer.Layer<
   return PersistedQueueStore.of({
     offer: (options) =>
       Effect.sync(() => {
-        if (ids.has(options.id)) return
-        ids.add(options.id)
         const queue = getOrCreateQueue(options.name)
+        if (queue.ids.has(options.id)) return
+        queue.ids.add(options.id)
         queue.items.add({ id: options.id, attempts: 0, element: options.element })
         queue.latch.openUnsafe()
       }),
@@ -363,7 +359,7 @@ export const layerStoreMemory: Layer.Layer<
  * refreshes locks while items are being processed, and moves exhausted items
  * to a failed queue.
  *
- * @category store
+ * @category constructors
  * @since 4.0.0
  */
 export const makeStoreRedis = Effect.fnUntraced(function*(
@@ -613,7 +609,9 @@ local key_pending = KEYS[2]
 local prefix = ARGV[1]
 
 local entries = redis.call("HGETALL", key_pending)
-for id, payload in pairs(entries) do
+for i = 1, #entries, 2 do
+  local id = entries[i]
+  local payload = entries[i + 1]
   local lock_key = prefix .. id .. ":lock"
   local exists = redis.call("EXISTS", lock_key)
   if exists == 0 then
@@ -673,7 +671,7 @@ redis.call("DEL", key_lock)
 redis.call("HDEL", key_pending, id)
 redis.call("RPUSH", key_failed, payload)
 `,
-    numberOfKeys: 2
+    numberOfKeys: 3
   }
 )
 
@@ -724,7 +722,7 @@ end
 /**
  * Provides a Redis-backed `PersistedQueueStore` using `makeStoreRedis`.
  *
- * @category store
+ * @category layers
  * @since 4.0.0
  */
 export const layerStoreRedis: (
@@ -749,7 +747,7 @@ export const layerStoreRedis: (
  * per-worker locks, refreshes active locks while scoped takes are running, and
  * retries or completes rows according to the processing exit.
  *
- * @category store
+ * @category constructors
  * @since 4.0.0
  */
 export const makeStoreSql: (
@@ -782,6 +780,13 @@ export const makeStoreSql: (
   const lockExpirationSql = sql.literal(Math.ceil(Duration.toSeconds(lockExpiration)).toString())
   const workerId = crypto.randomUUID()
 
+  yield* Effect.orDie(
+    Migrator.make({})({
+      loader: sqlMigrations(tableName),
+      table: `${tableName}_migrations`
+    })
+  )
+
   const sqlNow = sql.onDialectOrElse({
     mssql: () => sql.literal("GETDATE()"),
     mysql: () => sql.literal("NOW()"),
@@ -797,108 +802,12 @@ export const makeStoreSql: (
     orElse: () => sql`datetime(${sqlNow}, '-${lockExpirationSql} seconds')`
   })
 
-  yield* sql.onDialectOrElse({
-    mysql: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
-        sequence BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        id VARCHAR(36) NOT NULL,
-        queue_name VARCHAR(100) NOT NULL,
-        element TEXT NOT NULL,
-        completed BOOLEAN NOT NULL,
-        attempts INT NOT NULL DEFAULT 0,
-        last_failure TEXT NULL,
-        acquired_at DATETIME NULL,
-        acquired_by VARCHAR(36) NULL,
-        created_at DATETIME NOT NULL,
-        updated_at DATETIME NOT NULL
-      )`,
-    pg: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
-        sequence SERIAL PRIMARY KEY,
-        id VARCHAR(36) NOT NULL,
-        queue_name VARCHAR(100) NOT NULL,
-        element TEXT NOT NULL,
-        completed BOOLEAN NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        last_failure TEXT NULL,
-        acquired_at TIMESTAMP NULL,
-        acquired_by UUID NULL,
-        created_at TIMESTAMP NOT NULL,
-        updated_at TIMESTAMP NOT NULL
-      )`,
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${tableNameSql} AND xtype='U')
-      CREATE TABLE ${tableNameSql} (
-        sequence INT IDENTITY(1,1) PRIMARY KEY,
-        id NVARCHAR(36) NOT NULL,
-        queue_name NVARCHAR(100) NOT NULL,
-        element NVARCHAR(MAX) NOT NULL,
-        completed BIT NOT NULL,
-        attempts INT NOT NULL DEFAULT 0,
-        last_failure NVARCHAR(MAX) NULL,
-        acquired_at DATETIME2 NULL,
-        acquired_by UNIQUEIDENTIFIER NULL,
-        created_at DATETIME2 NOT NULL,
-        updated_at DATETIME2 NOT NULL
-      )`,
-    // sqlite
-    orElse: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
-        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-        id TEXT NOT NULL,
-        queue_name TEXT NOT NULL,
-        element TEXT NOT NULL,
-        completed BOOLEAN NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        last_failure TEXT NULL,
-        acquired_at DATETIME NULL,
-        acquired_by TEXT NULL,
-        created_at DATETIME NOT NULL,
-        updated_at DATETIME NOT NULL
-      )`
-  })
-
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_id')
-        CREATE UNIQUE INDEX idx_${tableNameSql}_id ON ${tableNameSql} (id)`,
-    mysql: () => sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`.pipe(Effect.ignore),
-    orElse: () => sql`CREATE UNIQUE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`
-  })
-
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_take')
-        CREATE INDEX idx_${tableNameSql}_take ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`,
-    mysql: () =>
-      sql`CREATE INDEX ${
-        sql(`idx_${tableName}_take`)
-      } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
-        .pipe(Effect.ignore),
-    orElse: () =>
-      sql`CREATE INDEX IF NOT EXISTS ${
-        sql(`idx_${tableName}_take`)
-      } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
-  })
-
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_update')
-        CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`,
-    mysql: () =>
-      sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.pipe(
-        Effect.ignore
-      ),
-    orElse: () =>
-      sql`CREATE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`
-  })
-
   const offer = sql.onDialectOrElse({
     pg: () => (id: string, name: string, element: string) =>
       sql`
         INSERT INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
         VALUES (${id}, ${name}, ${element}, FALSE, 0, ${sqlNow}, ${sqlNow})
-        ON CONFLICT (id) DO NOTHING
+        ON CONFLICT (id, queue_name) DO NOTHING
       `,
     mysql: () => (id: string, name: string, element: string) =>
       sql`
@@ -907,7 +816,7 @@ export const makeStoreSql: (
       `,
     mssql: () => (id: string, name: string, element: string) =>
       sql`
-        IF NOT EXISTS (SELECT 1 FROM ${tableNameSql} WHERE id = ${id})
+        IF NOT EXISTS (SELECT 1 FROM ${tableNameSql} WHERE id = ${id} AND queue_name = ${name})
         BEGIN
           INSERT INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
           VALUES (${id}, ${name}, ${element}, 0, 0, ${sqlNow}, ${sqlNow})
@@ -936,10 +845,12 @@ export const makeStoreSql: (
   const elementIds = new Set<number>()
   const refreshLocks: Effect.Effect<void, SqlError> = Effect.suspend((): Effect.Effect<void, SqlError> => {
     if (elementIds.size === 0) return Effect.void
+    const ids = Array.from(elementIds)
     return sql`
       UPDATE ${tableNameSql}
       SET acquired_at = ${sqlNow}
-      WHERE acquired_by = ${workerIdSql}
+      WHERE sequence IN (${sql.literal(ids.join(","))})
+      AND acquired_by = ${workerIdSql}
     `
   })
   const complete = (sequence: number, attempts: number) => {
@@ -1088,13 +999,16 @@ export const makeStoreSql: (
           sql<Element>`
             UPDATE ${tableNameSql}
             SET acquired_at = ${sqlNow}, acquired_by = ${workerIdSql}
-            WHERE queue_name = ${name}
-            AND completed = FALSE
-            AND attempts < ${maxAttempts}
-            AND (acquired_at IS NULL OR acquired_at < ${expiresAt})
+            WHERE sequence IN (
+              SELECT sequence FROM ${tableNameSql}
+              WHERE queue_name = ${name}
+              AND completed = FALSE
+              AND attempts < ${maxAttempts}
+              AND (acquired_at IS NULL OR acquired_at < ${expiresAt})
+              ORDER BY updated_at ASC, sequence ASC
+              LIMIT ${sql.literal(size.toString())}
+            )
             RETURNING sequence, id, queue_name, element, attempts
-            ORDER BY updated_at ASC, sequence ASC
-            LIMIT ${sql.literal(size.toString())}
           `
       })
 
@@ -1110,13 +1024,14 @@ export const makeStoreSql: (
           takenLatch.closeUnsafe()
           for (let i = 0; i < results.length; i++) {
             const element = results[i]
-            element.element = JSON.parse(element.element)
+            elementIds.add(element.sequence)
           }
           yield* Queue.offerAll(queue, results)
           yield* takenLatch.await
           yield* Effect.yieldNow
         }
       }).pipe(
+        Effect.tapCause(Effect.logWarning),
         Effect.sandbox,
         Effect.retry(Schedule.spaced(500)),
         Effect.forkScoped
@@ -1165,11 +1080,123 @@ export const makeStoreSql: (
                   : retry(element.sequence, element.attempts + 1, cause),
               onSuccess: () => complete(element.sequence, element.attempts + 1)
             }))
-          )
+          ),
+          Effect.map((element) => ({
+            ...element,
+            element: JSON.parse(element.element)
+          }))
         )
       )
   })
 })
+
+const sqlMigrations = (tableName: string) =>
+  Migrator.fromRecord({
+    "0001_create_table": Effect.gen(function*() {
+      const sql = (yield* SqlClient.SqlClient).withoutTransforms()
+      const tableNameSql = sql(tableName)
+
+      yield* sql.onDialectOrElse({
+        mysql: () =>
+          sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+            sequence BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            id VARCHAR(36) NOT NULL,
+            queue_name VARCHAR(100) NOT NULL,
+            element TEXT NOT NULL,
+            completed BOOLEAN NOT NULL,
+            attempts INT NOT NULL DEFAULT 0,
+            last_failure TEXT NULL,
+            acquired_at DATETIME NULL,
+            acquired_by VARCHAR(36) NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL
+          )`,
+        pg: () =>
+          sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+            sequence SERIAL PRIMARY KEY,
+            id VARCHAR(36) NOT NULL,
+            queue_name VARCHAR(100) NOT NULL,
+            element TEXT NOT NULL,
+            completed BOOLEAN NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_failure TEXT NULL,
+            acquired_at TIMESTAMP NULL,
+            acquired_by UUID NULL,
+            created_at TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP NOT NULL
+          )`,
+        mssql: () =>
+          sql`IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${tableNameSql} AND xtype='U')
+          CREATE TABLE ${tableNameSql} (
+            sequence INT IDENTITY(1,1) PRIMARY KEY,
+            id NVARCHAR(36) NOT NULL,
+            queue_name NVARCHAR(100) NOT NULL,
+            element NVARCHAR(MAX) NOT NULL,
+            completed BIT NOT NULL,
+            attempts INT NOT NULL DEFAULT 0,
+            last_failure NVARCHAR(MAX) NULL,
+            acquired_at DATETIME2 NULL,
+            acquired_by UNIQUEIDENTIFIER NULL,
+            created_at DATETIME2 NOT NULL,
+            updated_at DATETIME2 NOT NULL
+          )`,
+        // sqlite
+        orElse: () =>
+          sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT NOT NULL,
+            queue_name TEXT NOT NULL,
+            element TEXT NOT NULL,
+            completed BOOLEAN NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_failure TEXT NULL,
+            acquired_at DATETIME NULL,
+            acquired_by TEXT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL
+          )`
+      })
+
+      yield* sql.onDialectOrElse({
+        mssql: () =>
+          sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_id')
+            CREATE UNIQUE INDEX idx_${tableNameSql}_id ON ${tableNameSql} (id, queue_name)`,
+        mysql: () =>
+          sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id, queue_name)`.pipe(
+            Effect.ignore
+          ),
+        orElse: () =>
+          sql`CREATE UNIQUE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id, queue_name)`
+      })
+
+      yield* sql.onDialectOrElse({
+        mssql: () =>
+          sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_take')
+            CREATE INDEX idx_${tableNameSql}_take ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`,
+        mysql: () =>
+          sql`CREATE INDEX ${
+            sql(`idx_${tableName}_take`)
+          } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
+            .pipe(Effect.ignore),
+        orElse: () =>
+          sql`CREATE INDEX IF NOT EXISTS ${
+            sql(`idx_${tableName}_take`)
+          } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
+      })
+
+      yield* sql.onDialectOrElse({
+        mssql: () =>
+          sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_update')
+            CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`,
+        mysql: () =>
+          sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.pipe(
+            Effect.ignore
+          ),
+        orElse: () =>
+          sql`CREATE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`
+      })
+    })
+  })
 
 class QueueKey extends Data.Class<{
   readonly name: string
@@ -1179,7 +1206,7 @@ class QueueKey extends Data.Class<{
 /**
  * Provides a SQL-backed `PersistedQueueStore` using `makeStoreSql`.
  *
- * @category store
+ * @category layers
  * @since 4.0.0
  */
 export const layerStoreSql: (

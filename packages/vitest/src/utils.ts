@@ -39,7 +39,7 @@ export function fail(message: string) {
  * @since 4.0.0
  */
 export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.deepStrictEqual(actual, expected, message)
+  assert.deepStrictEqual(actual, expected, message as string)
 }
 
 /**
@@ -49,7 +49,7 @@ export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ...
  * @since 4.0.0
  */
 export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.notDeepStrictEqual(actual, expected, message)
+  assert.notDeepStrictEqual(actual, expected, message as string)
 }
 
 /**
@@ -59,7 +59,11 @@ export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, 
  * @since 4.0.0
  */
 export function strictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
-  assert.strictEqual(actual, expected, message)
+  if (message !== undefined) {
+    assert.strictEqual(actual, expected, message)
+  } else {
+    assert.strictEqual(actual, expected)
+  }
 }
 
 /**
@@ -159,7 +163,6 @@ export function assertMatch(actual: string, regExp: RegExp, ..._: Array<never>) 
 export function throws(thunk: () => void, error?: Error | ((u: unknown) => undefined), ..._: Array<never>) {
   try {
     thunk()
-    fail("Expected to throw an error")
   } catch (e) {
     if (error !== undefined) {
       if (Predicate.isFunction(error)) {
@@ -170,7 +173,9 @@ export function throws(thunk: () => void, error?: Error | ((u: unknown) => undef
         throw e
       }
     }
+    return
   }
+  fail("Expected to throw an error")
 }
 
 /**
@@ -186,7 +191,6 @@ export async function throwsAsync(
 ) {
   try {
     await thunk()
-    fail("Expected to throw an error")
   } catch (e) {
     if (error !== undefined) {
       if (Predicate.isFunction(error)) {
@@ -195,7 +199,9 @@ export async function throwsAsync(
         deepStrictEqual(e, error)
       }
     }
+    return
   }
+  fail("Expected to throw an error")
 }
 
 // ----------------------------

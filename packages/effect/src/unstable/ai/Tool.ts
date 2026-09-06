@@ -171,7 +171,7 @@ export type NeedsApproval<Params extends Schema.Constraint> =
  *
  * **Example** (Defining a weather lookup tool)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -188,6 +188,7 @@ export type NeedsApproval<Params extends Schema.Constraint> =
  *     humidity: Schema.Number
  *   })
  * })
+ * const result = [GetWeather.name, GetWeather.failureMode] // => ["GetWeather", "error"]
  * ```
  *
  * @category models
@@ -274,6 +275,13 @@ export interface Tool<
   readonly needsApproval?: boolean | NeedsApprovalFunction<any> | undefined
 
   /**
+   * Set whether user approval is required before executing this tool.
+   */
+  setNeedsApproval(
+    needsApproval: NeedsApproval<Config["parameters"]>
+  ): Tool<Name, Config, Requirements>
+
+  /**
    * Adds a _request-level_ dependency which must be provided before the tool
    * call handler can be executed.
    *
@@ -358,7 +366,7 @@ export interface Tool<
  *
  * **Example** (Defining a provider-defined web search tool)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -377,7 +385,8 @@ export interface Tool<
  *       snippet: Schema.String
  *     }))
  *   })
- * })
+ * })({ query: "Effect" })
+ * const result = [WebSearch.name, WebSearch.providerName] // => ["OpenAiWebSearch", "web_search"]
  * ```
  *
  * @category models
@@ -450,7 +459,7 @@ export interface ProviderDefined<
  *
  * **Example** (Defining dynamic tools)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -473,6 +482,8 @@ export interface ProviderDefined<
  *     required: ["query"]
  *   }
  * })
+ *
+ * const result = [Calculator.name, McpTool.name] // => ["Calculator", "McpTool"]
  * ```
  *
  * @category models
@@ -517,7 +528,7 @@ export interface Dynamic<
  *
  * **Example** (Checking for user-defined tools)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -547,8 +558,7 @@ export interface Dynamic<
  *   })
  * })
  *
- * console.log(Tool.isUserDefined(UserDefinedTool)) // true
- * console.log(Tool.isUserDefined(ProviderDefinedTool)) // false
+ * const result = [Tool.isUserDefined(UserDefinedTool), Tool.isUserDefined(ProviderDefinedTool)] // => [true, false]
  * ```
  *
  * @category guards
@@ -562,7 +572,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  *
  * **Example** (Checking for provider-defined tools)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -592,8 +602,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  *   })
  * })
  *
- * console.log(Tool.isProviderDefined(UserDefinedTool)) // false
- * console.log(Tool.isProviderDefined(ProviderDefinedTool)) // true
+ * const result = [Tool.isProviderDefined(UserDefinedTool), Tool.isProviderDefined(ProviderDefinedTool)] // => [false, false]
  * ```
  *
  * @category guards
@@ -608,7 +617,7 @@ export const isProviderDefined = (
  *
  * **Example** (Checking for dynamic tools)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -621,8 +630,7 @@ export const isProviderDefined = (
  *   success: Schema.Number
  * })
  *
- * console.log(Tool.isDynamic(DynamicTool)) // true
- * console.log(Tool.isDynamic(UserDefinedTool)) // false
+ * const result = [Tool.isDynamic(DynamicTool), Tool.isDynamic(UserDefinedTool)] // => [true, false]
  * ```
  *
  * @category guards
@@ -1028,37 +1036,37 @@ export type RequiresHandler<Tool extends Any> = Tool extends ProviderDefined<
 // Constructors
 // =============================================================================
 
+// Clones a tool while preserving its prototype (and thus its kind, e.g.
+// user-defined vs. provider-defined vs. dynamic) and its own properties such
+// as `id`. Optional `overrides` replace individual fields on the clone.
+const clone = (self: Any, overrides?: Record<string, unknown>): any =>
+  Object.assign(Object.create(Object.getPrototypeOf(self)), self, overrides)
+
 const Proto = {
   [TypeId]: { _Requirements: identity },
   pipe() {
     return pipeArguments(this, arguments)
   },
   addDependency(this: Any) {
-    return userDefinedProto({ ...this })
+    return clone(this)
   },
   setParameters(this: Any, parametersSchema: Schema.Constraint) {
-    return userDefinedProto({
-      ...this,
-      parametersSchema
-    })
+    return clone(this, { parametersSchema })
   },
   setSuccess(this: Any, successSchema: Schema.Constraint) {
-    return userDefinedProto({ ...this, successSchema })
+    return clone(this, { successSchema })
   },
   setFailure(this: Any, failureSchema: Schema.Constraint) {
-    return userDefinedProto({ ...this, failureSchema })
+    return clone(this, { failureSchema })
+  },
+  setNeedsApproval(this: Any, needsApproval: NeedsApproval<any>) {
+    return clone(this, { needsApproval })
   },
   annotate<I, S>(this: Any, tag: Context.Key<I, S>, value: S) {
-    return userDefinedProto({
-      ...this,
-      annotations: Context.add(this.annotations, tag, value)
-    })
+    return clone(this, { annotations: Context.add(this.annotations, tag, value) })
   },
   annotateMerge<I>(this: Any, context: Context.Context<I>) {
-    return userDefinedProto({
-      ...this,
-      annotations: Context.merge(this.annotations, context)
-    })
+    return clone(this, { annotations: Context.merge(this.annotations, context) })
   }
 }
 
@@ -1132,7 +1140,7 @@ const providerDefinedProto = <
     readonly failureMode: Mode
   },
   RequiresHandler
-> => Object.assign(Object.create(ProviderDefinedProto), { ...options })
+> => Object.assign(Object.create(ProviderDefinedProto), { annotations: Context.empty(), ...options })
 
 const dynamicProto = <
   const Name extends string,
@@ -1178,7 +1186,7 @@ const dynamicProto = <
  *
  * **Example** (Creating a tool without parameters)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1187,6 +1195,7 @@ const dynamicProto = <
  *   description: "Returns the current timestamp",
  *   success: Schema.Number
  * })
+ * GetCurrentTime.name // => "GetCurrentTime"
  * ```
  *
  * @category constructors
@@ -1284,7 +1293,7 @@ export const make = <
  *
  * **Example** (Creating a dynamic tool)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1307,6 +1316,8 @@ export const make = <
  *     required: ["query"]
  *   }
  * })
+ *
+ * const result = [Calculator.name, McpTool.name] // => ["Calculator", "McpTool"]
  * ```
  *
  * @category constructors
@@ -1382,7 +1393,7 @@ export const dynamic: {
  *
  * **Example** (Creating a provider-defined tool)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1401,7 +1412,8 @@ export const dynamic: {
  *       content: Schema.String
  *     }))
  *   })
- * })
+ * })({ query: "Effect" })
+ * const result = [WebSearch.name, WebSearch.providerName] // => ["OpenAiWebSearch", "web_search"]
  * ```
  *
  * @category constructors
@@ -1579,7 +1591,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  *
  * **Example** (Reading a tool description)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Tool } from "effect/unstable/ai"
  *
  * const myTool = Tool.make("example", {
@@ -1587,7 +1599,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * })
  *
  * const description = Tool.getDescription(myTool)
- * console.log(description) // "This is an example tool"
+ * description // => "This is an example tool"
  * ```
  *
  * @category getters
@@ -1618,7 +1630,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  *
  * **Example** (Generating a tool JSON schema)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1630,15 +1642,10 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * })
  *
  * const jsonSchema = Tool.getJsonSchema(weatherTool)
- * console.log(jsonSchema)
- * // {
- * //   type: "object",
- * //   properties: {
- * //     location: { type: "string" },
- * //     units: { type: "string", enum: ["celsius", "fahrenheit"] }
- * //   },
- * //   required: ["location", "units"]
- * // }
+ * jsonSchema.type // => "object"
+ * if (typeof jsonSchema.properties === "object" && jsonSchema.properties !== null) {
+ *   Object.keys(jsonSchema.properties) // => ["location", "units"]
+ * }
  * ```
  *
  * @category getters
@@ -1669,10 +1676,18 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
 export const getJsonSchemaFromSchema = <S extends Schema.Constraint>(schema: S, options?: {
   readonly transformer?: CodecTransformer
 }): JsonSchema.JsonSchema => {
+  return getJsonSchemaFromSchemaWith(schema, Schema.toJsonSchemaDocument, options)
+}
+
+const getJsonSchemaFromSchemaWith = <S extends Schema.Constraint>(
+  schema: S,
+  toJsonSchemaDocument: (schema: Schema.Constraint) => JsonSchema.Document<"draft-2020-12">,
+  options?: { readonly transformer?: CodecTransformer }
+): JsonSchema.JsonSchema => {
   if (Predicate.isNotUndefined(options?.transformer)) {
     return options.transformer(schema).jsonSchema
   }
-  const document = Schema.toJsonSchemaDocument(schema)
+  const document = toJsonSchemaDocument(schema)
   if (Object.keys(document.definitions).length > 0) {
     document.schema.$defs = document.definitions
   }
@@ -1688,14 +1703,16 @@ export const getJsonSchemaFromSchema = <S extends Schema.Constraint>(schema: S, 
  *
  * **Example** (Annotating a tool title)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const myTool = Tool.make("calculate_tip")
  *   .annotate(Tool.Title, "Tip Calculator")
+ * Context.getUnsafe(myTool.annotations, Tool.Title) // => "Tip Calculator"
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export class Title extends Context.Service<Title, string>()("effect/ai/Tool/Title") {}
@@ -1705,14 +1722,16 @@ export class Title extends Context.Service<Title, string>()("effect/ai/Tool/Titl
  *
  * **Example** (Annotating MCP metadata)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const myCalculatorUi = Tool.make("calculator_ui", {})
  *   .annotate(Tool.Meta, { ui: { resourceUri: "ui://example/calculator-ui" } })
+ * "ui" in Context.getUnsafe(myCalculatorUi.annotations, Tool.Meta) // => true
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effect/ai/Tool/Meta") {}
@@ -1727,14 +1746,16 @@ export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effe
  *
  * **Example** (Marking a tool as read-only)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const readOnlyTool = Tool.make("get_user_info")
  *   .annotate(Tool.Readonly, true)
+ * Context.get(readOnlyTool.annotations, Tool.Readonly) // => true
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
@@ -1751,14 +1772,16 @@ export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
  *
  * **Example** (Marking a tool as non-destructive)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const safeTool = Tool.make("search_database")
  *   .annotate(Tool.Destructive, false)
+ * Context.get(safeTool.annotations, Tool.Destructive) // => false
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructive", {
@@ -1776,14 +1799,16 @@ export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructiv
  *
  * **Example** (Marking a tool as idempotent)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const idempotentTool = Tool.make("get_current_time")
  *   .annotate(Tool.Idempotent, true)
+ * Context.get(idempotentTool.annotations, Tool.Idempotent) // => true
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent", {
@@ -1801,14 +1826,16 @@ export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent"
  *
  * **Example** (Disabling open-world access)
  *
- * ```ts
+ * ```ts import.meta.vitest
+ * import { Context } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * const restrictedTool = Tool.make("internal_operation")
  *   .annotate(Tool.OpenWorld, false)
+ * Context.get(restrictedTool.annotations, Tool.OpenWorld) // => false
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", {
@@ -1830,14 +1857,15 @@ export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", 
  *
  * **Example** (Disabling strict JSON schema mode)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Tool } from "effect/unstable/ai"
  *
  * const flexibleTool = Tool.make("search")
  *   .annotate(Tool.Strict, false)
+ * Tool.getStrictMode(flexibleTool) // => false
  * ```
  *
- * @category annotations
+ * @category services
  * @since 4.0.0
  */
 export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Strict", {
@@ -1918,13 +1946,13 @@ function filter(obj: any) {
     next = []
 
     for (const node of nodes) {
-      if (Object.prototype.hasOwnProperty.call(node, "__proto__")) {
+      if (Object.hasOwn(node, "__proto__")) {
         throw new SyntaxError("Object contains forbidden prototype property")
       }
 
       if (
-        Object.prototype.hasOwnProperty.call(node, "constructor") &&
-        Object.prototype.hasOwnProperty.call(node.constructor, "prototype")
+        Object.hasOwn(node, "constructor") &&
+        Object.hasOwn(node.constructor, "prototype")
       ) {
         throw new SyntaxError("Object contains forbidden prototype property")
       }

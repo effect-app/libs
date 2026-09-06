@@ -25,7 +25,8 @@ const output = Flag.path("output").pipe(
 
 const watch = Flag.boolean("watch").pipe(
   Flag.withAlias("w"),
-  Flag.withDescription("Watch for file changes and regenerate documentation")
+  Flag.withDescription("Watch for file changes and regenerate documentation"),
+  Flag.withDefault(false)
 )
 
 Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
@@ -60,7 +61,9 @@ Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
 )
 
 const directoryToMarkdown = Effect.fn("directoryToMarkdown")(
-  function*(directory): Effect.fn.Return<string, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
+  function*(
+    directory: string
+  ): Effect.fn.Return<string, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
     const pathService = yield* Path.Path
     const fs = yield* FileSystem.FileSystem
 

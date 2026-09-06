@@ -15,9 +15,9 @@ import * as Config from "../../Config.ts"
 import type * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
+import * as Encoding from "../../Encoding.ts"
 import type * as Exit from "../../Exit.ts"
 import { flow } from "../../Function.ts"
-import { renderPrettyError } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type * as Scope from "../../Scope.ts"
@@ -60,7 +60,7 @@ export const make: (
 ) => Effect.Effect<
   Tracer.Tracer,
   never,
-  OtlpSerialization | HttpClient.HttpClient | Scope.Scope
+  Exporter.Flusher | OtlpSerialization | HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
   const otelResource = yield* OtlpResource.fromConfig(options.resource)
   const serialization = yield* OtlpSerialization
@@ -84,7 +84,7 @@ export const make: (
           }]
         }]
       }
-      return serialization.traces(data)
+      return [serialization.traces(data), Effect.void]
     },
     shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
   })
@@ -135,7 +135,11 @@ export const layer: (options: {
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
-}) => Layer.Layer<never, never, OtlpSerialization | HttpClient.HttpClient> = flow(make, Layer.effect(Tracer.Tracer))
+}) => Layer.Layer<Exporter.Flusher, never, OtlpSerialization | HttpClient.HttpClient> = flow(
+  make,
+  Layer.effect(Tracer.Tracer),
+  Layer.provideMerge(Exporter.layerFlusher)
+)
 
 /**
  * Creates an OTLP traces layer from OpenTelemetry configuration.
@@ -151,7 +155,7 @@ export const layerFromConfig = (options?: {
   } | undefined
   readonly headers?: Headers.Input | undefined
   readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> =>
+}): Layer.Layer<Exporter.Flusher, never, HttpClient.HttpClient | OtlpSerialization> =>
   Effect.gen(function*() {
     const { disabled, endpoint, exporters } = yield* Config.all({
       disabled: Config.boolean("OTEL_SDK_DISABLED").pipe(Config.withDefault(false)),
@@ -160,7 +164,7 @@ export const layerFromConfig = (options?: {
     })
 
     if (disabled || !endpoint || !exporters.includes("otlp")) {
-      return Layer.empty
+      return Exporter.layerFlusher
     }
 
     const { baseTimeout, tracesTimeout, exportTimeout, scheduleDelay, maxBatchSize } = yield* Config.all({
@@ -241,20 +245,11 @@ const makeSpan = (options: {
   if (Option.isSome(self.parent)) {
     self.traceId = self.parent.value.traceId
   } else {
-    self.traceId = generateId(32)
+    self.traceId = Encoding.randomHex(32)
   }
-  self.spanId = generateId(16)
+  self.spanId = Encoding.randomHex(16)
   self.events = []
   return self
-}
-
-const generateId = (len: number): string => {
-  const chars = "0123456789abcdef"
-  let result = ""
-  for (let i = 0; i < len; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return result
 }
 
 const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
@@ -285,7 +280,9 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
       value: { boolValue: true }
     })
   } else {
-    const errors = Cause.prettyErrors(status.exit.cause)
+    const errors = Cause.prettyErrors(status.exit.cause, {
+      includeCauseInStack: true
+    })
     otelStatus = {
       code: StatusCode.Error
     }
@@ -312,7 +309,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
             {
               "key": "exception.stacktrace",
               "value": {
-                "stringValue": renderPrettyError(error) ?? "No stack trace available"
+                "stringValue": error.stack ?? "No stack trace available"
               }
             }
           ]

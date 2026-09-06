@@ -1,5 +1,6 @@
 import { afterAll, assert, describe, expect, it, layer } from "@effect/vitest"
-import { Clock, Context, Duration, Effect, Fiber, Layer } from "effect"
+import * as testAssert from "@effect/vitest/utils"
+import { Clock, Context, Duration, Effect, Fiber, Layer, Schema } from "effect"
 import { FastCheck, TestClock } from "effect/testing"
 
 it.effect(
@@ -10,6 +11,14 @@ it.live(
   "live",
   () => Effect.acquireRelease(Effect.sync(() => expect(1).toEqual(1)), () => Effect.void)
 )
+
+it("throws fails when the thunk does not throw", () => {
+  expect(() => testAssert.throws(() => {})).toThrow()
+})
+
+it("throwsAsync fails when the promise resolves", async () => {
+  await expect(testAssert.throwsAsync(() => Promise.resolve())).rejects.toThrow()
+})
 
 // each
 
@@ -43,6 +52,17 @@ it.effect.skipIf(false)("effect skipIf (false)", () => Effect.sync(() => expect(
 it.effect.runIf(true)("effect runIf (true)", () => Effect.sync(() => expect(1).toEqual(1)))
 it.effect.runIf(false)("effect runIf (false)", () => Effect.die("not run anyway"))
 
+// chained helpers
+
+it.describe.each(["foo", "bar"] as const)("describe.each %s", (text) => {
+  it.effect("runs an Effect test", () =>
+    Effect.sync(() => {
+      assert.include(["foo", "bar"], text)
+    }))
+})
+
+it.skip.each([1])("skip.each %s", () => assert.fail("skipped anyway"))
+
 // The following test is expected to fail because it simulates a test timeout.
 // Be aware that eventual "failure" of the test is only logged out.
 it.live.fails("interrupts on timeout", (ctx) =>
@@ -64,11 +84,11 @@ it.live.fails("interrupts on timeout", (ctx) =>
   }), 1)
 
 class Foo extends Context.Service<Foo, "foo">()("Foo") {
-  static Live = Layer.succeed(Foo)("foo")
+  static layer = Layer.succeed(Foo)("foo")
 }
 
 class Bar extends Context.Service<Bar, "bar">()("Bar") {
-  static Live = Layer.effect(Bar)(Effect.map(Foo, () => "bar" as const))
+  static layer = Layer.effect(Bar)(Effect.map(Foo, () => "bar" as const))
 }
 
 class Sleeper extends Context.Service<Sleeper, {
@@ -86,14 +106,14 @@ class Sleeper extends Context.Service<Sleeper, {
 }
 
 describe("layer", () => {
-  layer(Foo.Live)((it) => {
+  layer(Foo.layer)((it) => {
     it.effect("adds context", () =>
       Effect.gen(function*() {
         const foo = yield* Foo
         expect(foo).toEqual("foo")
       }))
 
-    it.layer(Bar.Live)("nested", (it) => {
+    it.layer(Bar.layer)("nested", (it) => {
       it.effect("adds context", () =>
         Effect.gen(function*() {
           const foo = yield* Foo
@@ -103,7 +123,7 @@ describe("layer", () => {
         }))
     })
 
-    it.layer(Bar.Live)((it) => {
+    it.layer(Bar.layer)((it) => {
       it.effect("without name", () =>
         Effect.gen(function*() {
           const foo = yield* Foo
@@ -120,7 +140,7 @@ describe("layer", () => {
       })
 
       class Scoped extends Context.Service<Scoped, "scoped">()("Scoped") {
-        static Live = Layer.effect(Scoped)(
+        static layer = Layer.effect(Scoped)(
           Effect.acquireRelease(
             Effect.succeed("scoped" as const),
             () => Effect.sync(() => released = true)
@@ -128,7 +148,7 @@ describe("layer", () => {
         )
       }
 
-      it.layer(Scoped.Live)((it) => {
+      it.layer(Scoped.layer)((it) => {
         it.effect("adds context", () =>
           Effect.gen(function*() {
             const foo = yield* Foo
@@ -163,7 +183,7 @@ describe("layer", () => {
       }))
   })
 
-  layer(Foo.Live)("with a name", (it) => {
+  layer(Foo.layer)("with a name", (it) => {
     describe("with a nested describe", () => {
       it.effect("adds context", () =>
         Effect.gen(function*() {
@@ -197,6 +217,12 @@ it.prop(
   "symmetry with object",
   { a: realNumber, b: FastCheck.integer() },
   ({ a, b }) => a + b === b + a
+)
+
+it.live.prop(
+  "schema with object",
+  { value: Schema.Int },
+  ({ value }) => Effect.sync(() => assert.isTrue(Number.isInteger(value)))
 )
 
 it.effect.prop("symmetry", [realNumber, FastCheck.integer()], ([a, b]) =>

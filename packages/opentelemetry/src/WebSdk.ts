@@ -19,10 +19,10 @@ import * as Effect from "effect/Effect"
 import { constant, type LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
 import { isNonEmpty } from "./internal/utilities.ts"
-import * as Logger from "./Logger.ts"
-import * as Metrics from "./Metrics.ts"
+import * as Logger from "./OtelLogger.ts"
+import * as Metrics from "./OtelMetrics.ts"
+import * as Tracer from "./OtelTracer.ts"
 import * as Resource from "./Resource.ts"
-import * as Tracer from "./Tracer.ts"
 
 /**
  * Configuration for the Web OpenTelemetry layer, including resource metadata and optional tracing, metrics, and logging settings.
@@ -69,8 +69,9 @@ export const layerTracerProvider = (
           return provider
         }),
         (provider) =>
-          Effect.ignore(
-            Effect.promise(() => provider.forceFlush().then(() => provider.shutdown()))
+          Effect.promise(() => provider.forceFlush()).pipe(
+            Effect.ensuring(Effect.promise(() => provider.shutdown())),
+            Effect.ignore
           )
       )
     })
@@ -111,30 +112,30 @@ export const layer: {
         ? evaluate as Effect.Effect<Configuration>
         : Effect.sync(evaluate)
 
-      const ResourceLive = Resource.layer(config.resource)
+      const ResourceLayer = Resource.layer(config.resource)
 
-      const TracerLive = isNonEmpty(config.spanProcessor)
+      const TracerLayer = isNonEmpty(config.spanProcessor)
         ? Layer.provide(
           Tracer.layer,
           layerTracerProvider(config.spanProcessor, config.tracerConfig)
         )
         : Layer.empty
 
-      const LoggerLive = isNonEmpty(config.logRecordProcessor)
+      const LoggerLayer = isNonEmpty(config.logRecordProcessor)
         ? Layer.provide(
           Logger.layer({ mergeWithExisting: config.loggerMergeWithExisting }),
           Logger.layerLoggerProvider(config.logRecordProcessor, config.loggerProviderConfig)
         )
         : Layer.empty
 
-      const MetricsLive = isNonEmpty(config.metricReader)
+      const MetricsLayer = isNonEmpty(config.metricReader)
         ? Metrics.layer(constant(config.metricReader), {
           temporality: config.metricTemporality
         })
         : Layer.empty
 
-      return Layer.mergeAll(TracerLive, MetricsLive, LoggerLive).pipe(
-        Layer.provideMerge(ResourceLive)
+      return Layer.mergeAll(TracerLayer, MetricsLayer, LoggerLayer).pipe(
+        Layer.provideMerge(ResourceLayer)
       )
     })
   )

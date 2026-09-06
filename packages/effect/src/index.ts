@@ -297,6 +297,11 @@ export * as Layer from "./Layer.ts"
 export * as LayerMap from "./LayerMap.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as LayerRef from "./LayerRef.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Logger from "./Logger.ts"
@@ -547,11 +552,6 @@ export * as SchemaRepresentation from "./SchemaRepresentation.ts"
 export * as SchemaTransformation from "./SchemaTransformation.ts"
 
 /**
- * @since 4.0.0
- */
-export * as SchemaUtils from "./SchemaUtils.ts"
-
-/**
  * @since 2.0.0
  */
 export * as Scope from "./Scope.ts"
@@ -575,6 +575,11 @@ export * as Semaphore from "./Semaphore.ts"
  * @since 2.0.0
  */
 export * as Sink from "./Sink.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as StandardSchema from "./StandardSchema.ts"
 
 /**
  * @since 4.0.0

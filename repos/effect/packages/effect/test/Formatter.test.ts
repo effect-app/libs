@@ -71,6 +71,35 @@ describe("Formatter", () => {
       strictEqual(format({ toString: () => "custom" }), `custom`)
     })
 
+    it("handles throwing property getters", () => {
+      const value = Object.defineProperty({ safe: 1 }, "unsafe", {
+        enumerable: true,
+        get() {
+          throw new Error("getter defect")
+        }
+      })
+
+      strictEqual(format(value), `{"safe":1,"unsafe":"[property access threw]"}`)
+    })
+
+    it("handles hostile Proxies", () => {
+      const { proxy, revoke } = Proxy.revocable({}, {})
+      revoke()
+
+      strictEqual(format(proxy), `[inspection threw]`)
+    })
+
+    it("does not expose a value when redaction throws", () => {
+      const value = {
+        toString: () => "secret",
+        [Redactable.symbolRedactable]() {
+          throw new Error("redaction defect")
+        }
+      }
+
+      strictEqual(format(value), `[inspection threw]`)
+    })
+
     it("array", () => {
       strictEqual(format([1, 2, 3n]), `[1,2,3n]`)
     })
@@ -134,6 +163,13 @@ describe("Formatter", () => {
     it("Error", () => {
       strictEqual(format(new Error("a")), `Error: a`)
       strictEqual(format(new Error("a", { cause: "b" })), `Error: a (cause: "b")`)
+      strictEqual(format(new Error("a", { cause: 0 })), `Error: a (cause: 0)`)
+      strictEqual(format(new Error("a", { cause: false })), `Error: a (cause: false)`)
+      strictEqual(format(new Error("a", { cause: "" })), `Error: a (cause: "")`)
+      strictEqual(format(new Error("a", { cause: null })), `Error: a (cause: null)`)
+      strictEqual(format(new Error("a", { cause: 0n })), `Error: a (cause: 0n)`)
+      strictEqual(format(new Error("a", { cause: Number.NaN })), `Error: a (cause: NaN)`)
+      strictEqual(format(new Error("a", { cause: undefined })), `Error: a`)
     })
 
     it("Date", () => {

@@ -30,7 +30,6 @@ import * as SchemaGetter from "./SchemaGetter.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
 import type * as SchemaParser from "./SchemaParser.ts"
 import * as SchemaTransformation from "./SchemaTransformation.ts"
-import type * as FastCheck from "./testing/FastCheck.ts"
 
 /**
  * Discriminated union of all AST node types.
@@ -41,14 +40,13 @@ import type * as FastCheck from "./testing/FastCheck.ts"
  * ({@link isString}, {@link isObjects}, etc.) to narrow to a specific variant,
  * then access variant-specific fields.
  *
- * - All variants share the {@link Base} fields: `annotations`, `checks`,
- *   `encoding`, `context`.
+ * - All variants share the `annotations`, `checks`, `encoding`, and `context`
+ *   fields.
  * - Discriminate on the `_tag` field (e.g. `"String"`, `"Objects"`, `"Union"`).
  *
- * @see {@link Base}
  * @see {@link isAST}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
 export type AST =
   | Declaration
@@ -398,7 +396,25 @@ export const isSuspend = makeGuard("Suspend")
  * @category models
  * @since 4.0.0
  */
-export class Link {
+export interface Link {
+  readonly to: AST
+  readonly transformation:
+    | SchemaTransformation.Transformation<any, any, any, any>
+    | SchemaTransformation.Middleware<any, any, any, any, any, any>
+}
+
+/**
+ * Constructs a {@link Link}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Link: new(
+  to: AST,
+  transformation:
+    | SchemaTransformation.Transformation<any, any, any, any>
+    | SchemaTransformation.Middleware<any, any, any, any, any, any>
+) => Link = class {
   readonly to: AST
   readonly transformation:
     | SchemaTransformation.Transformation<any, any, any, any>
@@ -421,7 +437,7 @@ export class Link {
  *
  * **Details**
  *
- * Stored on {@link Base.encoding}. When `undefined`, the node has no
+ * Stored on an AST node's `encoding` field. When `undefined`, the node has no
  * encoding transformation (type and encoded forms are identical).
  *
  * @see {@link Link}
@@ -553,7 +569,7 @@ export interface ParseOptions {
 export const defaultParseOptions: ParseOptions = {}
 
 /**
- * Represents per-property metadata attached to AST nodes via {@link Base.context}.
+ * Represents per-property metadata attached to an AST node's `context` field.
  *
  * **Details**
  *
@@ -568,12 +584,31 @@ export const defaultParseOptions: ParseOptions = {}
  * - `annotations` — key-level annotations (e.g. description of the key
  *   itself).
  *
- * @see {@link optionalKey}
+ * @see `Schema.optionalKey`
  * @see {@link isOptional}
  * @category models
  * @since 4.0.0
  */
-export class Context {
+export interface Context {
+  readonly isOptional: boolean
+  readonly isMutable: boolean
+  /** Used for constructor default values (e.g. `withConstructorDefault` API) */
+  readonly constructorDefault: Link | undefined
+  readonly annotations: Schema.Annotations.Key<unknown> | undefined
+}
+
+/**
+ * Constructs a {@link Context}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Context: new(
+  isOptional: boolean,
+  isMutable: boolean, /** Used for constructor default values (e.g. `withConstructorDefault` API) */
+  constructorDefault?: Link | undefined,
+  annotations?: Schema.Annotations.Key<unknown> | undefined
+) => Context = class {
   readonly isOptional: boolean
   readonly isMutable: boolean
   /** Used for constructor default values (e.g. `withConstructorDefault` API) */
@@ -595,8 +630,8 @@ export class Context {
 }
 
 /**
- * Non-empty array of validation {@link Check} values attached to an AST node
- * via {@link Base.checks}.
+ * Non-empty array of validation {@link Check} values attached to an AST node's
+ * `checks` field.
  *
  * **Details**
  *
@@ -612,28 +647,17 @@ export class Context {
 export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 
 const TypeId = "~effect/Schema"
+interface ASTNode {
+  readonly [TypeId]: typeof TypeId
+  readonly _tag: string
+  readonly annotations: Schema.Annotations.Annotations | undefined
+  readonly checks: Checks | undefined
+  readonly encoding: Encoding | undefined
+  readonly context: Context | undefined
+  toString(): string
+}
 
-/**
- * Represents the abstract base class for all {@link AST} node variants.
- *
- * **Details**
- *
- * Every AST node extends `Base` and inherits these fields:
- *
- * - `annotations` — user-supplied metadata (identifier, title, description,
- *   arbitrary keys).
- * - `checks` — optional {@link Checks} for post-type-match validation.
- * - `encoding` — optional {@link Encoding} chain for type ↔ wire
- *   transformations.
- * - `context` — optional {@link Context} for per-property metadata.
- *
- * Subclasses add a `_tag` discriminant and variant-specific data.
- *
- * @see {@link AST}
- * @category models
- * @since 4.0.0
- */
-export abstract class Base {
+abstract class ASTNodeImpl implements ASTNode {
   readonly [TypeId] = TypeId
   abstract readonly _tag: string
   readonly annotations: Schema.Annotations.Annotations | undefined
@@ -657,15 +681,9 @@ export abstract class Base {
   }
 }
 
-/**
- * Parser factory carried by a {@link Declaration}.
- *
- * @category models
- * @since 4.0.0
- */
-export type DeclarationRun = (
+type DeclarationRun = (
   typeParameters: ReadonlyArray<AST>
-) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, SchemaIssue.Issue, any>
+) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, SchemaIssue.Issue>
 
 /**
  * AST node for user-defined opaque types with custom parsing logic.
@@ -680,20 +698,60 @@ export type DeclarationRun = (
  * - `typeParameters` — inner schemas this declaration is parameterized over
  *   (e.g. the element type for a custom collection).
  * - `run` — factory that receives `typeParameters` and returns a parser that
- *   validates or transforms raw input.
+ *   validates or transforms raw input. The `Effect` returned by the parser must
+ *   complete synchronously.
  *
  * @see {@link isDeclaration}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class Declaration extends Base {
+export interface Declaration extends ASTNode {
+  readonly _tag: "Declaration"
+  readonly typeParameters: ReadonlyArray<AST>
+  readonly run: DeclarationRun
+  readonly encodingChecks: Checks | undefined
+  /**
+   * Parser factory {@link flip} swaps in, so a declaration can behave
+   * differently when encoding. `undefined` reuses `run`.
+   */
+  readonly encodingRun: DeclarationRun | undefined
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  recur(recur: (ast: AST) => AST): Declaration
+  /** @internal */
+
+  flip(recur: (ast: AST) => AST): Declaration
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Declaration}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Declaration: new(
+  typeParameters: ReadonlyArray<AST>,
+  run: DeclarationRun,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context,
+  encodingChecks?: Checks,
+  encodingRun?: DeclarationRun
+) => Declaration = class extends ASTNodeImpl {
   readonly _tag = "Declaration"
   readonly typeParameters: ReadonlyArray<AST>
   readonly run: DeclarationRun
   readonly encodingChecks: Checks | undefined
   /**
    * Parser factory {@link flip} swaps in, so a declaration can behave
-   * differently when encoding. `undefined` reuses {@link run}.
+   * differently when encoding. `undefined` reuses `run`.
    */
   readonly encodingRun: DeclarationRun | undefined
 
@@ -762,7 +820,28 @@ export class Declaration extends Base {
  * @category models
  * @since 4.0.0
  */
-export class Null extends Base {
+export interface Null extends ASTNode {
+  readonly _tag: "Null"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Null}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Null: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Null = class extends ASTNodeImpl {
   readonly _tag = "Null"
   /** @internal */
   getParser() {
@@ -802,7 +881,31 @@ export {
  * @category models
  * @since 4.0.0
  */
-export class Undefined extends Base {
+export interface Undefined extends ASTNode {
+  readonly _tag: "Undefined"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  toCodecJson(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Undefined}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Undefined: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Undefined = class extends ASTNodeImpl {
   readonly _tag = "Undefined"
   /** @internal */
   getParser() {
@@ -862,7 +965,33 @@ export {
  * @category models
  * @since 4.0.0
  */
-export class Void extends Base {
+export interface Void extends ASTNode {
+  readonly _tag: "Void"
+  /** @internal */
+
+  getParser(): (
+    input: unknown
+  ) => InternalParser.Success<undefined, never> | InternalParser.Success<typeof InternalParser.missing, never>
+  /** @internal */
+
+  toCodecJson(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Void}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Void: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Void = class extends ASTNodeImpl {
   readonly _tag = "Void"
   /** @internal */
   getParser() {
@@ -917,7 +1046,28 @@ export {
  * @category models
  * @since 4.0.0
  */
-export class Never extends Base {
+export interface Never extends ASTNode {
+  readonly _tag: "Never"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Never}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Never: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Never = class extends ASTNodeImpl {
   readonly _tag = "Never"
   /** @internal */
   getParser() {
@@ -954,7 +1104,28 @@ export const never = new Never()
  * @category models
  * @since 4.0.0
  */
-export class Any extends Base {
+export interface Any extends ASTNode {
+  readonly _tag: "Any"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Any}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Any: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Any = class extends ASTNodeImpl {
   readonly _tag = "Any"
   /** @internal */
   getParser() {
@@ -994,7 +1165,28 @@ export const any = new Any()
  * @category models
  * @since 4.0.0
  */
-export class Unknown extends Base {
+export interface Unknown extends ASTNode {
+  readonly _tag: "Unknown"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Unknown}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Unknown: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Unknown = class extends ASTNodeImpl {
   readonly _tag = "Unknown"
   /** @internal */
   getParser() {
@@ -1029,9 +1221,30 @@ export const unknown = new Unknown()
  * @see {@link isObjectKeyword}
  *
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class ObjectKeyword extends Base {
+export interface ObjectKeyword extends ASTNode {
+  readonly _tag: "ObjectKeyword"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link ObjectKeyword}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const ObjectKeyword: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => ObjectKeyword = class extends ASTNodeImpl {
   readonly _tag = "ObjectKeyword"
   /** @internal */
   getParser() {
@@ -1071,7 +1284,43 @@ export const objectKeyword = new ObjectKeyword()
  * @category models
  * @since 4.0.0
  */
-export class Enum extends Base {
+export interface Enum extends ASTNode {
+  readonly _tag: "Enum"
+  readonly enums: ReadonlyArray<
+    readonly [
+      string,
+      string | number
+    ]
+  >
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Enum}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Enum: new(
+  enums: ReadonlyArray<
+    readonly [
+      string,
+      string | number
+    ]
+  >,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context
+) => Enum = class extends ASTNodeImpl {
   readonly _tag = "Enum"
   readonly enums: ReadonlyArray<readonly [string, string | number]>
 
@@ -1123,20 +1372,34 @@ type TemplateLiteralPart =
   | TemplateLiteral
   | Union<TemplateLiteralPart>
 
-function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
+function isTemplateLiteralPart(ast: AST, path: string, validated: WeakSet<AST>): ast is TemplateLiteralPart {
+  if (validated.has(ast)) return true
+  if (ast.encoding) {
+    throw new Error(`TemplateLiteral parts cannot have an encoding at ${path}`)
+  }
+  let valid: boolean
   switch (ast._tag) {
     case "String":
     case "Number":
     case "BigInt":
-      return true
+      valid = true
+      break
     case "Literal":
+      valid = !ast.checks
+      break
     case "TemplateLiteral":
-      return !ast.checks
+      valid = !ast.checks &&
+        ast.parts.every((part, index) => isTemplateLiteralPart(part, `${path}.parts[${index}]`, validated))
+      break
     case "Union":
-      return !ast.checks && ast.types.every(isTemplateLiteralPart)
+      valid = !ast.checks &&
+        ast.types.every((part, index) => isTemplateLiteralPart(part, `${path}.types[${index}]`, validated))
+      break
     default:
       return false
   }
+  if (valid) validated.add(ast)
+  return valid
 }
 
 /**
@@ -1150,9 +1413,46 @@ function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
  *
  * @see {@link isTemplateLiteral}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class TemplateLiteral extends Base {
+export interface TemplateLiteral extends ASTNode {
+  readonly _tag: "TemplateLiteral"
+  readonly parts: ReadonlyArray<AST>
+  /** @internal */
+  readonly encodedParts: ReadonlyArray<TemplateLiteralPart>
+  /** @internal */
+  readonly literals: ReadonlyArray<string | undefined>
+  /** @internal */
+  readonly suffixLengths: ReadonlyArray<number>
+  /** @internal */
+
+  getParser(compile: SchemaParser.Compiler): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+  /** @internal */
+
+  matchPart(s: string, options: ParseOptions): string | undefined
+}
+
+/**
+ * Constructs a {@link TemplateLiteral}.
+ *
+ * **Gotchas**
+ *
+ * Throws if a part contains an encoding, including inside unions or nested
+ * template literals. Parts must describe their values without transformations.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const TemplateLiteral: new(
+  parts: ReadonlyArray<AST>,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context
+) => TemplateLiteral = class extends ASTNodeImpl {
   readonly _tag = "TemplateLiteral"
   readonly parts: ReadonlyArray<AST>
   /** @internal */
@@ -1172,14 +1472,14 @@ export class TemplateLiteral extends Base {
     super(annotations, checks, encoding, context)
     const encodedParts: Array<TemplateLiteralPart> = []
     const literals: Array<string | undefined> = []
-    for (const part of parts) {
-      const encoded = toEncoded(part)
-      if (isTemplateLiteralPart(encoded)) {
-        encodedParts.push(encoded)
-        literals.push(encoded._tag === "Literal" ? globalThis.String(encoded.literal) : undefined)
-      } else {
-        throw new Error(`Invalid TemplateLiteral part ${encoded._tag}`)
+    const validated = new WeakSet<AST>()
+    for (let index = 0; index < parts.length; index++) {
+      const part = parts[index]
+      if (!isTemplateLiteralPart(part, `parts[${index}]`, validated)) {
+        throw new Error(`Invalid TemplateLiteral part ${part._tag}`)
       }
+      encodedParts.push(part)
+      literals.push(part._tag === "Literal" ? globalThis.String(part.literal) : undefined)
     }
     const suffixLengths = new Array<number>(encodedParts.length + 1)
     suffixLengths[encodedParts.length] = 0
@@ -1193,7 +1493,8 @@ export class TemplateLiteral extends Base {
   }
   /** @internal */
   getParser(compile: SchemaParser.Compiler): SchemaParser.Parser {
-    const parser = compile(this.asTemplateLiteralParser())
+    const tuple = new Arrays(false, this.parts.map(partFromString), [])
+    const parser = compile(decodeTo(string, tuple, templateLiteralTransformation(this)))
     return (input, options) => {
       if (input === InternalParser.missing) return InternalParser.missingExit
       const result = parser(input, options)
@@ -1214,28 +1515,39 @@ export class TemplateLiteral extends Base {
   matchPart(s: string, options: ParseOptions): string | undefined {
     return segmentTemplateLiteralParts(this, s, options) === undefined ? undefined : s
   }
-  /** @internal */
-  asTemplateLiteralParser(): Arrays {
-    const tuple = new Arrays(false, this.parts.map(partFromString), [])
-    return decodeTo(
-      string,
-      tuple,
-      new SchemaTransformation.Transformation(
-        SchemaGetter.transformOrFail((s: string, options) => {
-          const segments = segmentTemplateLiteralParts(this, s, options)
-          if (segments) return Effect.succeed(segments)
-          return Effect.fail(
-            new SchemaIssue.InvalidValue(
-              { expected: "a string matching template literal parts" },
-              s,
-              options
-            )
-          )
-        }),
-        SchemaGetter.transform((parts) => parts.join(""))
+}
+
+/** @internal */
+export function templateLiteralParser(parts: ReadonlyArray<AST>): Arrays {
+  // Encoded members can overlap even when decoding selects exactly one member.
+  // Match their spellings here; the original tuple enforces the union's mode.
+  const normalize = memoize((encoded: AST): AST => {
+    if (encoded._tag !== "Union") return encoded
+    const types = mapOrSame(encoded.types, normalize)
+    return encoded.mode === "anyOf" && types === encoded.types
+      ? encoded
+      : new Union(types, "anyOf", encoded.annotations, encoded.checks, undefined, encoded.context)
+  })
+  const template = new TemplateLiteral(parts.map((part) => normalize(toEncoded(part))))
+  const tuple = new Arrays(false, parts.map(partFromString), [])
+  return decodeTo(template, tuple, templateLiteralTransformation(template))
+}
+
+function templateLiteralTransformation(template: TemplateLiteral) {
+  return new SchemaTransformation.Transformation(
+    SchemaGetter.transformOrFail((s: string, options) => {
+      const segments = segmentTemplateLiteralParts(template, s, options)
+      if (segments) return Effect.succeed(segments)
+      return Effect.fail(
+        new SchemaIssue.InvalidValue(
+          { expected: "a string matching template literal parts" },
+          s,
+          options
+        )
       )
-    )
-  }
+    }),
+    SchemaGetter.transform((parts: ReadonlyArray<string>) => parts.join(""))
+  )
 }
 
 /**
@@ -1248,9 +1560,35 @@ export class TemplateLiteral extends Base {
  *
  * @see {@link isUniqueSymbol}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class UniqueSymbol extends Base {
+export interface UniqueSymbol extends ASTNode {
+  readonly _tag: "UniqueSymbol"
+  readonly symbol: symbol
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link UniqueSymbol}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const UniqueSymbol: new(
+  symbol: symbol,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context
+) => UniqueSymbol = class extends ASTNodeImpl {
   readonly _tag = "UniqueSymbol"
   readonly symbol: symbol
 
@@ -1310,9 +1648,41 @@ export type LiteralValue = string | number | boolean | bigint
  * @see {@link LiteralValue}
  * @see {@link isLiteral}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class Literal extends Base {
+export interface Literal extends ASTNode {
+  readonly _tag: "Literal"
+  readonly literal: LiteralValue
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  matchPart(s: string, _options: ParseOptions): LiteralValue | undefined
+  /** @internal */
+
+  toCodecJson(): AST
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Literal}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Literal: new(
+  literal: LiteralValue,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context
+) => Literal = class extends ASTNodeImpl {
   readonly _tag = "Literal"
   readonly literal: LiteralValue
 
@@ -1373,7 +1743,31 @@ function literalToString(ast: Literal): Literal {
  * @category models
  * @since 4.0.0
  */
-export class String extends Base {
+export interface String extends ASTNode {
+  readonly _tag: "String"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  matchPart(s: string, options: ParseOptions): string | undefined
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link String}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const String: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => String = class extends ASTNodeImpl {
   readonly _tag = "String"
   /** @internal */
   getParser() {
@@ -1424,7 +1818,40 @@ export const string = new String()
  * @category models
  * @since 4.0.0
  */
-export class Number extends Base {
+export interface Number extends ASTNode {
+  readonly _tag: "Number"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  matchKey(s: string, options: ParseOptions): number | undefined
+  /** @internal */
+
+  matchPart(s: string, options: ParseOptions): number | undefined
+  /** @internal */
+
+  toCodecJson(): AST
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Number}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Number: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Number = class extends ASTNodeImpl {
   readonly _tag = "Number"
   /** @internal */
   getParser() {
@@ -1499,7 +1926,28 @@ export const number = new Number()
  * @category models
  * @since 4.0.0
  */
-export class Boolean extends Base {
+export interface Boolean extends ASTNode {
+  readonly _tag: "Boolean"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Boolean}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Boolean: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Boolean = class extends ASTNodeImpl {
   readonly _tag = "Boolean"
   /** @internal */
   getParser() {
@@ -1545,7 +1993,34 @@ export const boolean = new Boolean()
  * @category models
  * @since 4.0.0
  */
-export class Symbol extends Base {
+export interface Symbol extends ASTNode {
+  readonly _tag: "Symbol"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  matchKey(s: symbol, options: ParseOptions): symbol | undefined
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Symbol}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Symbol: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => Symbol = class extends ASTNodeImpl {
   readonly _tag = "Symbol"
   /** @internal */
   getParser() {
@@ -1599,7 +2074,34 @@ export const symbol = new Symbol()
  * @category models
  * @since 4.0.0
  */
-export class BigInt extends Base {
+export interface BigInt extends ASTNode {
+  readonly _tag: "BigInt"
+  /** @internal */
+
+  getParser(): SchemaParser.Parser
+  /** @internal */
+
+  matchPart(s: string, options: ParseOptions): bigint | undefined
+  /** @internal */
+
+  toCodecStringTree(): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link BigInt}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const BigInt: new(
+  annotations?: Schema.Annotations.Annotations | undefined,
+  checks?: Checks | undefined,
+  encoding?: Encoding | undefined,
+  context?: Context | undefined
+) => BigInt = class extends ASTNodeImpl {
   readonly _tag = "BigInt"
   /** @internal */
   getParser() {
@@ -1649,7 +2151,7 @@ export const bigInt = new BigInt()
  * **Details**
  *
  * - `elements` — positional element types (tuple elements). An element is
- *   optional if its {@link Context.isOptional} is `true`.
+ *   optional if its context's `isOptional` field is `true`.
  * - `rest` — the rest/variadic element types. When non-empty, the first
  *   entry is the "spread" type (e.g. `...Array<string>`), and subsequent
  *   entries are trailing positional elements after the spread.
@@ -1680,7 +2182,42 @@ export const bigInt = new BigInt()
  * @category models
  * @since 4.0.0
  */
-export class Arrays extends Base {
+export interface Arrays extends ASTNode {
+  readonly _tag: "Arrays"
+  readonly isMutable: boolean
+  readonly elements: ReadonlyArray<AST>
+  readonly rest: ReadonlyArray<AST>
+  readonly encodingChecks: Checks | undefined
+  /** @internal */
+
+  getParser(compile: SchemaParser.Compiler, compileConstructorDefault?: SchemaParser.Compiler): SchemaParser.Parser
+  /** @internal */
+
+  recur(recur: (ast: AST) => AST): Arrays
+  /** @internal */
+
+  flip(recur: (ast: AST) => AST): Arrays
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Arrays}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Arrays: new(
+  isMutable: boolean,
+  elements: ReadonlyArray<AST>,
+  rest: ReadonlyArray<AST>,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context,
+  encodingChecks?: Checks
+) => Arrays = class extends ASTNodeImpl {
   readonly _tag = "Arrays"
   readonly isMutable: boolean
   readonly elements: ReadonlyArray<AST>
@@ -1969,9 +2506,20 @@ export function getIndexSignatureKeys(
  *
  * @see {@link Objects}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class PropertySignature {
+export interface PropertySignature {
+  readonly name: PropertyKey
+  readonly type: AST
+}
+
+/**
+ * Constructs a {@link PropertySignature}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const PropertySignature: new(name: PropertyKey, type: AST) => PropertySignature = class {
   readonly name: PropertyKey
   readonly type: AST
 
@@ -2031,9 +2579,20 @@ function isIndexSignatureParameter(ast: AST): ast is IndexSignatureParameter {
  * @see {@link Objects}
  * @see {@link PropertySignature}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class IndexSignature {
+export interface IndexSignature {
+  readonly parameter: IndexSignatureParameter
+  readonly type: AST
+}
+
+/**
+ * Constructs a {@link IndexSignature}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const IndexSignature: new(parameter: AST, type: AST) => IndexSignature = class {
   readonly parameter: IndexSignatureParameter
   readonly type: AST
 
@@ -2094,7 +2653,40 @@ export class IndexSignature {
  * @category models
  * @since 4.0.0
  */
-export class Objects extends Base {
+export interface Objects extends ASTNode {
+  readonly _tag: "Objects"
+  readonly propertySignatures: ReadonlyArray<PropertySignature>
+  readonly indexSignatures: ReadonlyArray<IndexSignature>
+  readonly encodingChecks: Checks | undefined
+  /** @internal */
+
+  getParser(compile: SchemaParser.Compiler, compileConstructorDefault?: SchemaParser.Compiler): SchemaParser.Parser
+  /** @internal */
+
+  flip(recur: (ast: AST) => AST): AST
+  /** @internal */
+
+  recur(recur: (ast: AST) => AST, recurParameter?: (ast: AST) => AST): AST
+  /** @internal */
+
+  getExpected(): string
+}
+
+/**
+ * Constructs a {@link Objects}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Objects: new(
+  propertySignatures: ReadonlyArray<PropertySignature>,
+  indexSignatures: ReadonlyArray<IndexSignature>,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context,
+  encodingChecks?: Checks
+) => Objects = class extends ASTNodeImpl {
   readonly _tag = "Objects"
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
@@ -2578,6 +3170,23 @@ export function tupleWithRest(ast: Arrays, rest: ReadonlyArray<AST>): Arrays {
   return new Arrays(ast.isMutable, ast.elements, rest, undefined, ast.checks)
 }
 
+/** @internal */
+export function mutable(ast: Arrays): Arrays {
+  if (ast.encoding) {
+    throw new Error("mutable does not support encodings")
+  }
+  return new Arrays(
+    true,
+    ast.elements,
+    ast.rest,
+    ast.annotations,
+    ast.checks,
+    undefined,
+    ast.context,
+    ast.encodingChecks
+  )
+}
+
 type Type =
   | "null"
   | "array"
@@ -2908,9 +3517,45 @@ export function getCandidates(
  *
  * @see {@link isUnion}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class Union<A extends AST = AST> extends Base {
+export interface Union<A extends AST = AST> extends ASTNode {
+  readonly _tag: "Union"
+  readonly types: ReadonlyArray<A>
+  readonly mode: "anyOf" | "oneOf"
+  readonly encodingChecks: Checks | undefined
+  /** @internal */
+
+  getParser(compile: SchemaParser.Compiler, compileConstructorDefault?: SchemaParser.Compiler): SchemaParser.Parser
+  /** @internal */
+
+  recur(recur: (ast: AST) => AST): Union<AST>
+  /** @internal */
+
+  flip(recur: (ast: AST) => AST): Union<AST>
+  /** @internal */
+
+  matchPart(s: string, options: ParseOptions): LiteralValue | undefined
+  /** @internal */
+
+  getExpected(getExpected: (ast: AST) => string): string
+}
+
+/**
+ * Constructs a {@link Union}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Union: new<A extends AST = AST>(
+  types: ReadonlyArray<A>,
+  mode: "anyOf" | "oneOf",
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context,
+  encodingChecks?: Checks
+) => Union<A> = class<A extends AST = AST> extends ASTNodeImpl {
   readonly _tag = "Union"
   readonly types: ReadonlyArray<A>
   readonly mode: "anyOf" | "oneOf"
@@ -2974,18 +3619,22 @@ export class Union<A extends AST = AST> extends Base {
       })
     }
   }
-  private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
+  private _rebuild(
+    recur: (ast: AST) => AST,
+    checks: Checks | undefined,
+    encodingChecks: Checks | undefined
+  ): Union<AST> {
     const types = mapOrSame(this.types, recur)
     return types === this.types && checks === this.checks && encodingChecks === this.encodingChecks ?
       this :
       new Union(types, this.mode, this.annotations, checks, undefined, this.context, encodingChecks)
   }
   /** @internal */
-  recur(recur: (ast: AST) => AST) {
+  recur(recur: (ast: AST) => AST): Union<AST> {
     return this._rebuild(recur, this.checks, this.encodingChecks)
   }
   /** @internal */
-  flip(recur: (ast: AST) => AST) {
+  flip(recur: (ast: AST) => AST): Union<AST> {
     return this._rebuild(recur, this.encodingChecks, this.checks)
   }
   /** @internal */
@@ -3139,9 +3788,35 @@ export function memoizeThunk<A>(f: () => A): () => A {
  *
  * @see {@link isSuspend}
  * @category models
- * @since 3.10.0
+ * @since 4.0.0
  */
-export class Suspend extends Base {
+export interface Suspend extends ASTNode {
+  readonly _tag: "Suspend"
+  readonly thunk: () => AST
+  /** @internal */
+
+  getParser(compile: SchemaParser.Compiler): SchemaParser.Parser
+  /** @internal */
+
+  recur(recur: (ast: AST) => AST): Suspend
+  /** @internal */
+
+  getExpected(getExpected: (ast: AST) => string): string
+}
+
+/**
+ * Constructs a {@link Suspend}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Suspend: new(
+  thunk: () => AST,
+  annotations?: Schema.Annotations.Annotations,
+  checks?: Checks,
+  encoding?: Encoding,
+  context?: Context
+) => Suspend = class extends ASTNodeImpl {
   readonly _tag = "Suspend"
   readonly thunk: () => AST
 
@@ -3204,7 +3879,32 @@ export class Suspend extends Base {
  * @category models
  * @since 4.0.0
  */
-export class Filter<in E> extends Pipeable.Class {
+export interface Filter<in E> extends Pipeable.Pipeable {
+  readonly _tag: "Filter"
+  readonly run: (input: E, self: AST, options: ParseOptions) => SchemaIssue.Issue | undefined
+  readonly annotations: Schema.Annotations.Filter | undefined
+  /**
+   * Whether the parsing process should be aborted after this check has failed.
+   */
+  readonly aborted: boolean
+  annotate(annotations: Schema.Annotations.Filter): Filter<E>
+  abort(): Filter<E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
+}
+
+/**
+ * Constructs a {@link Filter}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Filter: new<E>(
+  run: (input: E, self: AST, options: ParseOptions) => SchemaIssue.Issue | undefined,
+  annotations?: Schema.Annotations.Filter | undefined, /**
+   * Whether the parsing process should be aborted after this check has failed.
+   */
+  aborted?: boolean
+) => Filter<E> = class<in E> extends Pipeable.Class {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST, options: ParseOptions) => SchemaIssue.Issue | undefined
   readonly annotations: Schema.Annotations.Filter | undefined
@@ -3252,7 +3952,30 @@ export class Filter<in E> extends Pipeable.Class {
  * @category models
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends Pipeable.Class {
+export interface FilterGroup<in E> extends Pipeable.Pipeable {
+  readonly _tag: "FilterGroup"
+  readonly checks: readonly [
+    Check<E>,
+    ...Array<Check<E>>
+  ]
+  readonly annotations: Schema.Annotations.Filter | undefined
+  annotate(annotations: Schema.Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
+}
+
+/**
+ * Constructs a {@link FilterGroup}.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const FilterGroup: new<E>(
+  checks: readonly [
+    Check<E>,
+    ...Array<Check<E>>
+  ],
+  annotations?: Schema.Annotations.Filter | undefined
+) => FilterGroup<E> = class<in E> extends Pipeable.Class {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, ...Array<Check<E>>]
   readonly annotations: Schema.Annotations.Filter | undefined
@@ -3280,7 +4003,7 @@ export class FilterGroup<in E> extends Pipeable.Class {
  *
  * **Details**
  *
- * Stored in the {@link Checks} array on {@link Base.checks}.
+ * Stored in an AST node's {@link Checks} array.
  *
  * @see {@link Filter}
  * @see {@link FilterGroup}
@@ -3326,11 +4049,8 @@ export function isFinite(annotations?: Schema.Annotations.Filter) {
       },
       toJsonSchema: () => ({ type: "number" }),
       toCode: () => ({ runtime: "Schema.isFinite()" }),
-      arbitrary: {
-        constraint: {
-          noInfinity: true,
-          noNaN: true
-        }
+      arbitraryConstraint: {
+        number: "finite"
       },
       ...annotations
     }
@@ -3367,8 +4087,9 @@ const numberToJson = new Link(
  *
  * **Gotchas**
  *
- * When deriving an arbitrary, only `regExp.source` is used. Regular expression
- * flags are ignored because fast-check does not support them.
+ * Arbitrary metadata preserves both `regExp.source` and `regExp.flags`.
+ * Implementations that cannot consume all flags may still use the source as a
+ * generation hint because the Schema filter validates every generated value.
  *
  * **Example** (Validating an email pattern)
  *
@@ -3399,10 +4120,8 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annota
         payload: { source, flags: regExp.flags }
       },
       toJsonSchema: () => ({ pattern: source }),
-      arbitrary: {
-        constraint: {
-          patterns: [regExp.source]
-        }
+      arbitraryConstraint: {
+        patterns: [{ source: regExp.source, flags: regExp.flags }]
       },
       ...annotations
     }
@@ -3723,7 +4442,7 @@ export function record(key: AST, value: AST): Objects {
  * Checks `ast.context?.isOptional`. Defaults to `false` when no
  * {@link Context} is set.
  *
- * @see {@link optionalKey}
+ * @see `Schema.optionalKey`
  * @see {@link Context}
  * @category predicates
  * @since 4.0.0
@@ -3959,14 +4678,6 @@ function segmentTemplateLiteralParts(
   return go(0, 0) ? out : undefined
 }
 
-/** @internal */
-export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
-  return new Union(
-    ast.enums.map((e) => new Literal(e[1], { title: e[0] })),
-    "anyOf"
-  )
-})
-
 const parameterFromPropertyKey = applyToSelfOrLastLinkEncodingIdempotent((ast) => {
   switch (ast._tag) {
     default:
@@ -4187,7 +4898,7 @@ export function getConstructorDescriptor(ast: AST): ConstructorDescriptor | unde
  *
  * If the node has {@link Checks}, returns annotations from the last check
  * (which is where user-supplied annotations end up after `.pipe(Schema.annotations(...))`).
- * Otherwise returns `Base.annotations` directly.
+ * Otherwise returns the node's `annotations` directly.
  *
  * **Example** (Reading annotations)
  *
@@ -4362,8 +5073,7 @@ export const Json = new Declaration(
     },
     expected: "JSON value",
     toCodecJson: () => undefined,
-    toCodecStringTree: () => unknownToStringTree,
-    toArbitrary: () => (fc: typeof FastCheck) => fc.jsonValue()
+    toCodecStringTree: () => unknownToStringTree
   }
 )
 

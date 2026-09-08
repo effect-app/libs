@@ -1,6 +1,6 @@
 "effect/SchemaAST#Annotated":
-  replacement: "SchemaAST.Base"
-  note: "All v4 AST nodes extend Base, which owns annotations, checks, encoding, and context."
+  replacement: "SchemaAST.AST"
+  note: "The public base type was removed. Use the AST union; every variant still exposes annotations, checks, encoding, and context."
 "effect/SchemaAST#annotations":
   replacement: "SchemaAST.annotate"
   note: "Use the v4 annotation helper and string-keyed Schema.Annotations."
@@ -12,7 +12,7 @@
   note: "The v4 SchemaAST redesign renamed this primitive, collection, or guard while preserving its role."
 "effect/SchemaAST#ArbitraryAnnotationId":
   replacement: "Schema.Annotations.ToArbitrary"
-  note: "Symbol annotation IDs were removed; use the toArbitrary annotation key and its Schema.Annotations types."
+  note: "Symbol annotation IDs were removed. Declarations use the toCodecArbitrary annotation; filters use arbitraryConstraint."
 "effect/SchemaAST#AST":
   replacement: "SchemaAST.AST"
   note: "The name remains, but its constructor and fields changed in the v4 Base/check/context/encoding model."
@@ -43,6 +43,9 @@
 "effect/SchemaAST#Compiler":
   replacement: "none"
   note: "The generic AST compiler abstraction was removed; traverse the discriminated SchemaAST.AST union directly or use a higher-level Schema derivation API."
+"effect/SchemaAST#pick":
+  replacement: "none"
+  note: "The low-level AST picker was removed. Keep field selection at the Schema.Struct level with mapFields and Struct.pick, or discriminate and rebuild custom AST nodes explicitly."
 "effect/SchemaAST#composeTransformation":
   replacement: "SchemaAST.Encoding"
   note: "V4 transformations are SchemaAST.Link values in an encoding chain; compose by adding links with SchemaAST.decodeTo."
@@ -378,7 +381,7 @@
   note: "The v4 SchemaAST redesign renamed this primitive, collection, or guard while preserving its role."
 "effect/SchemaAST#TemplateLiteral":
   replacement: "SchemaAST.TemplateLiteral"
-  note: "The name remains, but its constructor and fields changed in the v4 Base/check/context/encoding model."
+  note: "The name remains, but its constructor and fields changed in the v4 Base/check/context/encoding model. Parts must not contain encodings, including inside unions or nested templates; use Schema.TemplateLiteralParser for transformed parts."
 "effect/SchemaAST#TemplateLiteralSpan":
   replacement: "SchemaAST.TemplateLiteral"
   note: "Template literal parts are represented directly as AST values in v4."

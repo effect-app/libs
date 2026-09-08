@@ -20,6 +20,7 @@ import * as Fiber from "./Fiber.ts"
 import type * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity as identity_ } from "./Function.ts"
+import * as Count from "./internal/count.ts"
 import { ClockRef, endSpan, scopeFinalizerCountUnsafe } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
@@ -708,6 +709,11 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
 /**
  * Creates a `Channel` from an iterator that emits arrays of elements.
  *
+ * **Details**
+ *
+ * Finite fractional `chunkSize` values are rounded down. `NaN` and non-positive
+ * values are treated as `1` so every successful pull emits a non-empty array.
+ *
  * **Example** (Batching iterator output)
  *
  * ```ts import.meta.vitest
@@ -754,15 +760,16 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
 export const fromIteratorArray = <A, L>(
   iterator: LazyArg<Iterator<A, L>>,
   chunkSize = DefaultChunkSize
-): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> =>
-  fromPull(
+): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => {
+  const size = Count.normalizeNonEmpty(chunkSize)
+  return fromPull(
     Effect.sync(() => {
       const iter = iterator()
       let done = Option.none<L>()
       return Effect.suspend(() => {
         if (done._tag === "Some") return Cause.done(done.value)
         const buffer: Array<A> = []
-        while (buffer.length < chunkSize) {
+        while (buffer.length < size) {
           const state = iter.next()
           if (state.done) {
             if (buffer.length === 0) {
@@ -777,6 +784,7 @@ export const fromIteratorArray = <A, L>(
       })
     })
   )
+}
 
 /**
  * Creates a `Channel` that emits all elements from an iterable.
@@ -799,6 +807,11 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
 
 /**
  * Creates a `Channel` that emits arrays of elements from an iterable.
+ *
+ * **Details**
+ *
+ * Finite fractional `chunkSize` values are rounded down. `NaN` and non-positive
+ * values are treated as `1`.
  *
  * **Example** (Batching iterable output)
  *
@@ -4131,6 +4144,97 @@ export const catchCause: {
   }))
 
 /**
+ * Recovers from defects using the provided function.
+ *
+ * **Details**
+ *
+ * Typed failures and interruptions are not caught.
+ *
+ * **Example** (Recovering from a defect)
+ *
+ * ```ts import.meta.vitest
+ * import { Channel, Effect } from "effect"
+ *
+ * const channel = Channel.fromEffect(Effect.die("boom")).pipe(
+ *   Channel.catchDefect((defect) => Channel.succeed(`recovered: ${defect}`))
+ * )
+ *
+ * Effect.runSync(Channel.runCollect(channel)) // => ["recovered: boom"]
+ * ```
+ *
+ * @category error handling
+ * @since 4.0.0
+ */
+export const catchDefect: {
+  <OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    f: (defect: unknown) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (defect: unknown) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (defect: unknown) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> => catchCauseFilter(self, Cause.findDefect, f))
+
+/**
  * Runs an effect with the full failure `Cause` when the channel fails, then
  * fails the returned channel with the original cause.
  *
@@ -6502,9 +6606,8 @@ export const splitLines = <Err, Done>(): Channel<
       // Accumulates text that has not yet been terminated by a line break.
       // Content is carried across chunks until a terminator is found.
       let stringBuilder = ""
-      // Set when a chunk ends with \r so the next chunk can check whether
-      // the following character is \n (completing a \r\n pair) or not
-      // (standalone \r, which is itself a line terminator).
+      // A trailing \r completes the line immediately. Remember it only to
+      // suppress a leading \n in the next nonempty string.
       let midCRLF = false
       // Remembers the upstream Done value after the first time the upstream
       // signals completion, so subsequent pulls return Done immediately
@@ -6531,11 +6634,8 @@ export const splitLines = <Err, Done>(): Channel<
             let indexOfLF = str.indexOf("\n")
             if (midCRLF) {
               if (indexOfLF === 0) {
-                pushLine("")
                 from = 1
                 indexOfLF = str.indexOf("\n", from)
-              } else {
-                pushLine("")
               }
               midCRLF = false
             }
@@ -6545,18 +6645,19 @@ export const splitLines = <Err, Done>(): Channel<
                 from = indexOfLF + 1
                 indexOfLF = str.indexOf("\n", from)
               } else {
+                pushLine(str.substring(from, indexOfCR))
                 if (str.length === indexOfCR + 1) {
                   midCRLF = true
+                  from = str.length
                   indexOfCR = -1
                 } else {
-                  pushLine(str.substring(from, indexOfCR))
                   from = indexOfCR + (indexOfLF === indexOfCR + 1 ? 2 : 1)
                   indexOfCR = str.indexOf("\r", from)
                   indexOfLF = str.indexOf("\n", from)
                 }
               }
             }
-            stringBuilder = stringBuilder + str.substring(from, str.length - (midCRLF ? 1 : 0))
+            stringBuilder = stringBuilder + str.substring(from)
           }
         }
         return Arr.isReadonlyArrayNonEmpty(chunkBuilder) ? chunkBuilder : null
@@ -6571,7 +6672,7 @@ export const splitLines = <Err, Done>(): Channel<
           onFailure: Effect.failCause,
           onDone: (leftover) => {
             done = Option.some(leftover)
-            if (stringBuilder.length > 0 || midCRLF) {
+            if (stringBuilder.length > 0) {
               const last = stringBuilder
               stringBuilder = ""
               midCRLF = false
@@ -7968,6 +8069,11 @@ export const runForEachWhile: {
 /**
  * Concatenates a channel's `Uint8Array` chunks into a single `Uint8Array`.
  *
+ * **Gotchas**
+ *
+ * This materializes the full content in memory. The source channel must not
+ * reuse or mutate emitted buffers, which are retained until collection completes.
+ *
  * **Example** (Joining channel byte chunks)
  *
  * ```ts import.meta.vitest
@@ -7981,11 +8087,6 @@ export const runForEachWhile: {
  * const bytes = Effect.runSync(Channel.mkUint8Array(channel))
  * Array.from(bytes) // => [1, 2, 3, 4]
  * ```
- *
- * **Gotchas**
- *
- * This materializes the full content in memory. The source channel must not
- * reuse or mutate emitted buffers, which are retained until collection completes.
  *
  * @category running
  * @since 4.0.0
@@ -8054,16 +8155,6 @@ export const runCollect = <OutElem, OutErr, OutDone, Env>(
     acc.push(o)
     return acc
   })
-
-/**
- * Runs a channel and outputs the done value.
- *
- * @category running
- * @since 4.0.0
- */
-export const runDone = <OutElem, OutErr, OutDone, Env>(
-  self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-): Effect.Effect<OutDone, OutErr, Env> => runWith(self, identity_, Effect.succeed)
 
 /**
  * Runs a channel until the first output element is available, returning it in

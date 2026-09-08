@@ -1,11 +1,11 @@
 import * as Arr from "../../Array.ts"
 import * as Equal from "../../Equal.ts"
-import { escapeToken, unescapeToken } from "../../JsonPointer.ts"
+import { decodeUriFragment, formatUriFragmentToken, unescapeToken } from "../../JsonPointer.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
 import { rewriteRefs } from "../../JsonSchema.ts"
 import * as RegEx from "../../RegExp.ts"
 import type * as Schema from "../../Schema.ts"
-import * as SchemaAST from "../../SchemaAST.ts"
+import * as InternalAST from "../../SchemaAST.ts"
 import type * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import { errorWithPath } from "../errors.ts"
 import * as InternalRecord from "../record.ts"
@@ -15,6 +15,10 @@ type Path = ReadonlyArray<string | number>
 type CheckRepresentationAnnotation = SchemaRepresentation.CheckRepresentationAnnotation<
   SchemaRepresentation.Representation
 >
+
+function formatDefinitionReference(key: string): string {
+  return `#/$defs/${formatUriFragmentToken(key)}`
+}
 
 const jsonSchemaAnnotationExcludedKeys = new Set([
   ...InternalAnnotations.annotationExcludedKeys,
@@ -37,9 +41,9 @@ function collectJsonSchemaAnnotations(
   else if (options?.generateDescriptions === true && typeof expected === "string") out.description = expected
 
   const defaultValue = annotations.default
-  if (SchemaAST.isJson(defaultValue)) out.default = defaultValue
+  if (InternalAST.isJson(defaultValue)) out.default = defaultValue
   const examples = annotations.examples
-  if (Array.isArray(examples) && SchemaAST.isJson(examples)) out.examples = examples
+  if (Array.isArray(examples) && InternalAST.isJson(examples)) out.examples = examples
   const readOnly = annotations.readOnly
   if (typeof readOnly === "boolean") out.readOnly = readOnly
   const writeOnly = annotations.writeOnly
@@ -51,7 +55,7 @@ function collectJsonSchemaAnnotations(
   const contentMediaType = annotations.contentMediaType
   if (typeof contentMediaType === "string") out.contentMediaType = contentMediaType
   const contentSchema = annotations.contentSchema
-  if (SchemaAST.isJson(contentSchema)) out.contentSchema = contentSchema
+  if (InternalAST.isJson(contentSchema)) out.contentSchema = contentSchema
 
   if (options?.includeAnnotationKey !== undefined) {
     for (const [key, value] of Object.entries(annotations)) {
@@ -61,7 +65,7 @@ function collectJsonSchemaAnnotations(
       ) {
         continue
       }
-      if (SchemaAST.isJson(value)) InternalRecord.assignProperty(out, key, value)
+      if (InternalAST.isJson(value)) InternalRecord.assignProperty(out, key, value)
     }
   }
 
@@ -172,7 +176,6 @@ function compileJsonSchema(
   const definitionStates = new Map<string, JsonSchema.JsonSchema | string | null>()
   const compiledRepresentations = new WeakMap<SchemaRepresentation.Representation, JsonSchema.JsonSchema>()
   const fallbackDefinitions = new Map<string, Array<string>>()
-  let hasAliases = false
   const referenceKeys = Object.keys(references)
   for (const key of referenceKeys) {
     compileDefinition(key, ["references", key])
@@ -209,7 +212,6 @@ function compileJsonSchema(
         if (candidates === undefined) fallbackDefinitions.set(fallback, [key])
         else candidates.push(key)
       } else {
-        hasAliases = true
         definitionStates.set(key, match)
         return match
       }
@@ -219,12 +221,24 @@ function compileJsonSchema(
   }
 
   function finalizeJsonSchema(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-    if (!hasAliases) return schema
-    return rewriteRefs(schema, ($ref) =>
-      $ref.replace(/^#\/\$defs\/([^/]*)/, (match, token) => {
-        const canonical = definitionStates.get(unescapeToken(token))
-        return typeof canonical === "string" ? `#/$defs/${escapeToken(canonical)}` : match
-      }))
+    return rewriteRefs(schema, ($ref) => {
+      const pointer = decodeUriFragment($ref)
+      if (pointer === undefined) {
+        if (/^#(?:\/|%2f)/i.test($ref)) {
+          throw new Error(`Invalid JSON Pointer URI fragment ${JSON.stringify($ref)}`)
+        }
+        return $ref
+      }
+      if (!pointer.startsWith("/$defs/")) return $ref
+      const separator = pointer.indexOf("/", 7)
+      const canonical = definitionStates.get(unescapeToken(pointer.slice(7, separator < 0 ? undefined : separator)))
+      if (typeof canonical !== "string") return $ref
+      // URI-encoded slashes separate pointer tokens; only ~1 represents a slash within a token.
+      return $ref.replace(
+        /^#(?:\/|%2f).*?(?:\/|%2f).*?(?=\/|%2f|$)/i,
+        formatDefinitionReference(canonical)
+      )
+    })
   }
 
   function getIdentifierFallback(
@@ -283,7 +297,7 @@ function compileJsonSchema(
   ): JsonSchema.JsonSchema {
     if (representation._tag === "Reference") {
       const canonical = compileDefinition(representation.$ref, path)
-      return { $ref: `#/$defs/${escapeToken(canonical)}` }
+      return { $ref: formatDefinitionReference(canonical) }
     }
     const cached = compiledRepresentations.get(representation)
     if (cached !== undefined) return cached
@@ -554,9 +568,9 @@ function getPartPattern(part: SchemaRepresentation.Representation): string {
     case "Literal":
       return RegEx.escape(globalThis.String(part.literal))
     case "String":
-      return SchemaAST.STRING_PATTERN
+      return InternalAST.STRING_PATTERN
     case "Number":
-      return SchemaAST.FINITE_PATTERN
+      return InternalAST.FINITE_PATTERN
     case "TemplateLiteral":
       return part.parts.map(getPartPattern).join("")
     case "Union":

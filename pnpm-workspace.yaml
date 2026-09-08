@@ -1,5 +1,7 @@
 packages:
   - packages/*
+# pkg.pr.new Effect tarballs nest URL deps; required to consume unpublished RC main.
+blockExoticSubdeps: false
 allowBuilds:
   "@parcel/watcher": false
   better-sqlite3: true

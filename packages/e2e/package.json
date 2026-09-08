@@ -10,13 +10,13 @@
     "effect-app": "workspace:*"
   },
   "devDependencies": {
-    "@effect/atom-vue": "^4.0.0-rc.112",
-    "@effect/platform-node": "4.0.0-rc.112",
-    "@effect/vitest": "4.0.0-rc.112",
+    "@effect/atom-vue": "https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
+    "@effect/platform-node": "https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
+    "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "@tanstack/vue-query": "5.96.2",
     "@types/node": "25.9.1",
     "@vitejs/plugin-vue": "^6.0.7",
-    "effect": "^4.0.0-rc.112",
+    "effect": "https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "typescript": "~6.0.3",
     "vitest": "^4.1.7",
     "vue": "^3.5.35"

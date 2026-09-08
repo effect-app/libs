@@ -36,6 +36,7 @@
     "vuetify": "^4.0.8"
   },
   "devDependencies": {
+    "effect": "https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "@effect-app/eslint-shared-config": "workspace:*",
     "@storybook/vue3": "^10.4.1",
     "@storybook/vue3-vite": "^10.4.1",

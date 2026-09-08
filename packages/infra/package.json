@@ -21,7 +21,7 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/sql-sqlite-node": "4.0.0-rc.112",
+    "@effect/sql-sqlite-node": "https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "@sentry/opentelemetry": "10.55.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "25.9.1",
@@ -33,6 +33,8 @@
     "mongodb": "7.2.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
+    "effect": "https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
+    "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "typescript": "~6.0.3",
     "vitest": "^4.1.7"
   },

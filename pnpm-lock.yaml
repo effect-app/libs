@@ -45,14 +45,14 @@ importers:
         specifier: 0.86.2
         version: 0.86.2
       "@effect/platform-node":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/tsgo":
         specifier: ^0.31.0
         version: 0.31.0
       "@effect/vitest":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tsconfig/strictest":
         specifier: ^2.0.8
         version: 2.0.8
@@ -72,8 +72,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -117,11 +117,11 @@ importers:
   packages/cli:
     dependencies:
       "@effect/platform-node":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(redis@6.2.1(@opentelemetry/api@1.9.1))
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       js-yaml:
         specifier: 4.2.0
         version: 4.2.0
@@ -153,14 +153,14 @@ importers:
         version: link:../effect-app
     devDependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-node":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tanstack/vue-query":
         specifier: 5.96.2
         version: 5.96.2(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
@@ -171,8 +171,8 @@ importers:
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       typescript:
         specifier: ~6.0.3
         version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
@@ -191,9 +191,6 @@ importers:
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
-      effect:
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -219,6 +216,9 @@ importers:
       "@types/validator":
         specifier: ^13.15.10
         version: 13.15.10
+      effect:
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       fast-check:
         specifier: ^4.9.0
         version: 4.9.0
@@ -330,9 +330,6 @@ importers:
 
   packages/infra:
     dependencies:
-      "@effect/vitest":
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@faker-js/faker":
         specifier: ^8.4.1
         version: 8.4.1
@@ -345,9 +342,6 @@ importers:
       "@sentry/node":
         specifier: 10.55.0
         version: 10.55.0(supports-color@8.1.1)
-      effect:
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -374,8 +368,11 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5(supports-color@8.1.1)
       "@effect/sql-sqlite-node":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)
+      "@effect/vitest":
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@sentry/opentelemetry":
         specifier: 10.55.0
         version: 10.55.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.40.0)
@@ -397,6 +394,9 @@ importers:
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.10.0
+      effect:
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       jwt-decode:
         specifier: ^4.0.0
         version: 4.0.0
@@ -419,12 +419,6 @@ importers:
 
   packages/vue:
     dependencies:
-      "@effect/atom-vue":
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
-      "@effect/platform-browser":
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       "@formatjs/intl":
         specifier: ^4.1.12
         version: 4.1.12
@@ -440,9 +434,6 @@ importers:
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
-      effect:
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -453,9 +444,15 @@ importers:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
+      "@effect/atom-vue":
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      "@effect/platform-browser":
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)
       "@effect/vitest":
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@formatjs/icu-messageformat-parser":
         specifier: ^3.5.10
         version: 3.5.10
@@ -465,6 +462,9 @@ importers:
       "@vitejs/plugin-vue":
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      effect:
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       intl-messageformat:
         specifier: ^11.2.7
         version: 11.2.7
@@ -493,9 +493,6 @@ importers:
       "@tanstack/vue-form":
         specifier: ^1.32.0
         version: 1.32.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
-      effect:
-        specifier: ^4.0.0-rc.112
-        version: 4.0.0-rc.112
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -548,6 +545,9 @@ importers:
       "@vueuse/core":
         specifier: ^14.3.0
         version: 14.3.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      effect:
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
+        version: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -1188,10 +1188,12 @@ packages:
     }
     hasBin: true
 
-  "@effect/atom-vue@4.0.0-rc.112":
+  "@effect/atom-vue@https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70":
     resolution: {
-      integrity: sha512-2sOESDblJGtJMxObqAw9UHHVrqhLHr2ha7JqvXdt2yhf4h57rK+rY3eEjclSgNsshABdcClP/Z0jNvgUD+A42g==,
+      integrity: sha512-hygZTEoDFGQ5q2+ao3m1yQemfh8CTxAOS/ylRMKkbuFXmClRC91oCt5i/8kvH/a4dXdRUdHmVhkJ8QD8N2cDXA==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
     peerDependencies:
       effect: ^4.0.0-rc.112
       vue: ^3.5.35
@@ -1202,10 +1204,12 @@ packages:
     }
     hasBin: true
 
-  "@effect/platform-browser@4.0.0-rc.112":
+  "@effect/platform-browser@https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70":
     resolution: {
-      integrity: sha512-GSlqNDnjILz2EqOFPhVdMEHxlPq6SGb8+KOpNnLfRvVJjXRTMawEO+v1PCuwt2CHAqESbJAa2Nk+qcQvTrv4MQ==,
+      integrity: sha512-/6H2ldq7LKktAbk34w2UUOfqlD9M2wCRWvm/O0QzkInjOVGPqAE52qc1MoLD8kTIDV+ZcuDeqM9Xtq5ajywWlw==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
     peerDependencies:
       effect: ^4.0.0-rc.112
 
@@ -1217,10 +1221,12 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  "@effect/platform-node-shared@4.0.0-rc.112":
+  "@effect/platform-node-shared@https://pkg.pr.new/Effect-TS/effect/@effect/platform-node-shared@addeaea":
     resolution: {
-      integrity: sha512-ttjz0xKamFN7vL8pNDYVwddJLjZvqKePc05djlz2VcdaKbLsnYbtMnL1rbOfHgEnIUSHGh7FkjaN4DM1Ov81sQ==,
+      integrity: sha512-XlXy4u1F/UE7JviJ2t17P7RB3uzxKEwPa6nXwWywE98gBQDcKEybg4rTb7E9QET2IgHyrVcbnwkf6deb4Mmuyw==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node-shared@addeaea,
     }
+    version: 4.0.0-rc.112
     engines: { node: ">=18.0.0" }
     peerDependencies:
       effect: ^4.0.0-rc.112
@@ -1234,19 +1240,23 @@ packages:
       effect: ^4.0.0-beta.86
       ioredis: ^5.7.0
 
-  "@effect/platform-node@4.0.0-rc.112":
+  "@effect/platform-node@https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70":
     resolution: {
-      integrity: sha512-/BMAcdNGQQskLmI0Zoa95KfTZkr9HV9N4NSxaSrusG6GeW6Ulp9KvZ+Rlaiw8lnOt43CXjFLdfll5/k5rxL4hQ==,
+      integrity: sha512-cTGBpi7ryIFc06wVrEGQmPGyrW5kC2DgaSe3yuPBm7YYlZENVS8uuFTuRoFTgkgU8DWHPz2RrWs03frJLUIqVQ==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
     engines: { node: ">=18.0.0" }
     peerDependencies:
       effect: ^4.0.0-rc.112
       redis: ">=5.0.0 <7.0.0"
 
-  "@effect/sql-sqlite-node@4.0.0-rc.112":
+  "@effect/sql-sqlite-node@https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70":
     resolution: {
-      integrity: sha512-jGRtbJsn5z7DqsMEPSbXq2Q9mYEvMy1v9DTeziTtDEnDzlxhxfrXkSeupZbYqAP5pukIM1JBa10zfAn6KnHG2Q==,
+      integrity: sha512-XGbD0nN4fMe/LlklpLBT6tl/fR9oItVQ5MeFu1usTIuX9vKl3PhKrxbmdBCLsXcaivlgXEb9FpCzsyvnQiB8Dw==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
     peerDependencies:
       effect: ^4.0.0-rc.112
 
@@ -1305,13 +1315,15 @@ packages:
     }
     hasBin: true
 
-  "@effect/vitest@4.0.0-rc.112":
+  "@effect/vitest@https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70":
     resolution: {
-      integrity: sha512-mEKh/FI64mt8JK1/v9mpOrJYdnp+UFZdRUBMEdZMiKz7klg6NPqVgg/oeAGH6wOOQc2iAPcfc2H9BbAv1KyzMQ==,
+      integrity: sha512-gGXcxkIcb/PpRaAei3oKZfQDOyy35szoM5kD7MEnK0hZlPUOjq6rGFol0C5qd9e6hr37m5HxC8ePmC8xpx57ZA==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
     peerDependencies:
       effect: ^4.0.0-rc.112
-      vitest: ">=4.1.0 <5.0.0"
+      vitest: ">=5.0.0 <6.0.0"
 
   "@emnapi/core@1.10.0":
     resolution: {
@@ -5739,10 +5751,12 @@ packages:
       integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==,
     }
 
-  effect@4.0.0-rc.112:
+  effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70:
     resolution: {
-      integrity: sha512-wXxwuh1Ywnv4cPRM3Wfa0vDwuOHnZ1TsTgHJkG9XgzND6inhBH9n1vBxhg3iIXOia/OrpmvVmd3lrD4vq6bF3A==,
+      integrity: sha512-FlnhpW5G20GdwEaH8fSnZF/gvi6BFIeMdz6hjRmQBqwbz2WlrY9qSTuOCQMZHytGPHkiHiQm+GPBBB1cBgWe0Q==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70,
     }
+    version: 4.0.0-rc.112
 
   electron-to-chromium@1.5.267:
     resolution: {
@@ -7495,11 +7509,6 @@ packages:
       integrity: sha512-9J+tqTEsbHqY8YohazYgty7LgerFIWxvMLpUjqETSmjHojtJm2WnX2kK/2a1fLI7CO7ERP1YSEUXMucz4j+yBA==,
     }
 
-  msgpackr@2.0.5:
-    resolution: {
-      integrity: sha512-cef05H/dSYpLpqp3sj/qyZh5vhUYCalnaLO7j1yOmpsR0y/XwLVtK7r5gn+U/F7CTEfMowcGhlUQJDLcLf7jcA==,
-    }
-
   muggle-string@0.4.1:
     resolution: {
       integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==,
@@ -9114,9 +9123,9 @@ packages:
     }
     engines: { node: ">=20.18.1" }
 
-  undici@8.10.0:
+  undici@8.10.2:
     resolution: {
-      integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==,
+      integrity: sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==,
     }
     engines: { node: ">=22.19.0" }
 
@@ -10324,16 +10333,16 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  "@effect/atom-vue@4.0.0-rc.112(effect@4.0.0-rc.112)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
+  "@effect/atom-vue@https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
     dependencies:
-      effect: 4.0.0-rc.112
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       vue: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   "@effect/language-service@0.86.2": {}
 
-  "@effect/platform-browser@4.0.0-rc.112(effect@4.0.0-rc.112)":
+  "@effect/platform-browser@https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)":
     dependencies:
-      effect: 4.0.0-rc.112
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
 
   "@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.86)":
     dependencies:
@@ -10344,10 +10353,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node-shared@4.0.0-rc.112(effect@4.0.0-rc.112)":
+  "@effect/platform-node-shared@https://pkg.pr.new/Effect-TS/effect/@effect/platform-node-shared@addeaea(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)":
     dependencies:
       "@types/ws": 8.18.1
-      effect: 4.0.0-rc.112
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -10364,20 +10373,19 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1(@opentelemetry/api@1.9.1))":
+  "@effect/platform-node@https://pkg.pr.new/Effect-TS/effect/@effect/platform-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(redis@6.2.1(@opentelemetry/api@1.9.1))":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-rc.112(effect@4.0.0-rc.112)
-      effect: 4.0.0-rc.112
-      mime: 4.1.0
+      "@effect/platform-node-shared": https://pkg.pr.new/Effect-TS/effect/@effect/platform-node-shared@addeaea(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       redis: 6.2.1(@opentelemetry/api@1.9.1)
-      undici: 8.10.0
+      undici: 8.10.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/sql-sqlite-node@4.0.0-rc.112(effect@4.0.0-rc.112)":
+  "@effect/sql-sqlite-node@https://pkg.pr.new/Effect-TS/effect/@effect/sql-sqlite-node@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)":
     dependencies:
-      effect: 4.0.0-rc.112
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
 
   "@effect/tsgo-darwin-arm64@0.31.0":
     optional: true
@@ -10410,9 +10418,9 @@ snapshots:
       "@effect/tsgo-win32-arm64": 0.31.0
       "@effect/tsgo-win32-x64": 0.31.0
 
-  "@effect/vitest@4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
+  "@effect/vitest@https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70(effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
     dependencies:
-      effect: 4.0.0-rc.112
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70
       vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@emnapi/core@1.10.0":
@@ -13058,10 +13066,7 @@ snapshots:
       uuid: 14.0.0
       yaml: 2.9.0
 
-  effect@4.0.0-rc.112:
-    dependencies:
-      fast-check: 4.9.0
-      msgpackr: 2.0.5
+  effect@https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70: {}
 
   electron-to-chromium@1.5.267:
     optional: true
@@ -14387,10 +14392,6 @@ snapshots:
     optionalDependencies:
       msgpackr-extract: 3.0.4
 
-  msgpackr@2.0.5:
-    optionalDependencies:
-      msgpackr-extract: 3.0.4
-
   muggle-string@0.4.1: {}
 
   multipasta@0.2.7: {}
@@ -15701,7 +15702,7 @@ snapshots:
 
   undici@7.25.0: {}
 
-  undici@8.10.0: {}
+  undici@8.10.2: {}
 
   undici@8.3.0: {}
 

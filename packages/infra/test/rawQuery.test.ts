@@ -99,7 +99,7 @@ class SomethingRepo extends Context.Service<SomethingRepo>()(
       Layer.provide(
         Effect
           .gen(function*() {
-            const url = yield* Config.redacted("STORAGE_URL").pipe(
+            const url = yield* Config.Redacted("STORAGE_URL").pipe(
               Config.withDefault(
                 Redacted.make(
                   // the emulator doesn't implement array projections :/ so you need an actual cloud instance!

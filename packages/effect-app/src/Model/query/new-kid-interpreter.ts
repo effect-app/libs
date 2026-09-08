@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { identity, pipe } from "effect/Function"
-import * as Match from "effect/Match"
+import { identity } from "effect/Function"
 import * as Array from "../../Array.ts"
 import { toNonEmptyArray } from "../../Array.ts"
 import * as Option from "../../Option.ts"
@@ -192,197 +191,204 @@ const interpret = <
       ? { ..._, path: `${path}.-1.${_.path}` }
       : { ..._, result: _.result.map(applyPath(path)) }
 
-  pipe(
-    a,
-    Match.valueTags({
-      value: () => {
-        // data.filter.push(value)
-      },
-      where: ({ current, operation, relation, subPath }) => {
-        upd(interpret(current))
-        if (typeof operation === "function") {
-          data.filter.push(
-            {
-              t: "where-scope",
-              result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
-              relation
-            }
-          )
-        } else {
-          data.filter.push(
-            {
-              t: "where",
-              path: operation[0],
-              op: operation.length === 2 ? "eq" : operation[1],
-              value: operation.length === 2 ? operation[1] : operation[2]
-            }
-          )
-        }
-      },
-      and: ({ current, operation, relation }) => {
-        upd(interpret(current))
-        if (typeof operation === "function") {
-          data.filter.push(
-            { t: "and-scope", result: interpret(operation(make())).filter, relation }
-          )
-        } else {
-          data.filter.push(
-            {
-              t: "and",
-              path: operation[0],
-              op: operation.length === 2 ? "eq" : operation[1],
-              value: operation.length === 2 ? operation[1] : operation[2]
-            }
-          )
-        }
-      },
-      or: ({ current, operation, relation }) => {
-        upd(interpret(current))
-        if (typeof operation === "function") {
-          data.filter.push(
-            { t: "or-scope", result: interpret(operation(make())).filter, relation }
-          )
-        } else {
-          data.filter.push(
-            {
-              t: "or",
-              path: operation[0],
-              op: operation.length === 2 ? "eq" : operation[1],
-              value: operation.length === 2 ? operation[1] : operation[2]
-            }
-          )
-        }
-      },
-      one: ({ current }) => {
-        upd(interpret(current))
-        data.limit = 1
-        data.ttype = "one"
-      },
-      count: ({ current }) => {
-        upd(interpret(current))
-        data.ttype = "count"
-        data.schema = S.Struct({ id: S.String }) as any
-      },
-      order: ({ current, direction, field }) => {
-        upd(interpret(current))
-        data.order.push({ key: field, direction })
-      },
-      page: (v) => {
-        upd(interpret(v.current))
-        data.limit = v.take
-        data.skip = v.skip
-      },
-      project: (v) => {
-        upd(interpret(v.current))
-        if (v.mode === "aggregate" && v.aggregateMap) {
-          data.schema = v.schema
-          data.mode = "aggregate"
-          data.aggregateMap = Object.fromEntries(
-            Object.entries(v.aggregateMap).map(([key, expression]) => {
-              switch (expression._tag) {
-                case "agg-field":
-                  return [key, { _tag: "agg-field" as const, path: expression.path }]
-                case "agg-count":
-                  return [key, { _tag: "agg-count" as const }]
-                case "agg-count-when": {
-                  const filter = interpret(expression.operation(make())).filter
-                  return [key, { _tag: "agg-count-when" as const, filter }]
-                }
-                case "agg-sum":
-                  return [key, { _tag: "agg-sum" as const, field: expression.field }]
-                case "agg-min":
-                  return [key, { _tag: "agg-min" as const, field: expression.field }]
-                case "agg-max":
-                  return [key, { _tag: "agg-max" as const, field: expression.field }]
-              }
-            })
-          )
-          return
-        }
-        if (v.computed && v.mode === "transform") {
-          throw new Error("Computed projections require mode 'project' or 'collect', not 'transform'")
-        }
-        data.schema = v.schema
-        data.mode = v.computed
-          ? v.mode === "collect" ? "collect" : "project"
-          : v.mode
-        data.computed = v.computed
-          ? Object.fromEntries(
-            Object.entries(v.computed).map(([key, expression]) => {
-              const e = expression
-              const op = "operation" in e ? e.operation : undefined
-              const filter = op ? interpret(op(make())).filter.map(applyPath(e.path)) : []
-              switch (e._tag) {
-                case "relation-count":
-                case "relation-any":
-                case "relation-every":
-                  return [key, { _tag: e._tag, path: e.path, filter }]
-                case "relation-distinct-count":
-                case "relation-sum":
-                  return [
-                    key,
-                    { _tag: e._tag, path: e.path, field: e.field, filter }
-                  ]
-                case "relation-sum-expr":
-                  return [
-                    key,
-                    { _tag: e._tag, path: e.path, expression: e.expression, filter }
-                  ]
-                case "relation-sum-expr-by":
-                  return [
-                    key,
-                    {
-                      _tag: e._tag,
-                      path: e.path,
-                      expression: e.expression,
-                      unit: e.unit,
-                      filter
-                    }
-                  ]
-                case "relation-sum-expr-normalized":
-                  return [
-                    key,
-                    {
-                      _tag: e._tag,
-                      path: e.path,
-                      expression: e.expression,
-                      unit: e.unit,
-                      toBase: e.toBase,
-                      factors: e.factors,
-                      filter
-                    }
-                  ]
-                case "relation-collect":
-                  return [
-                    key,
-                    {
-                      _tag: e._tag,
-                      path: e.path,
-                      field: e.field,
-                      distinct: e.distinct,
-                      filter
-                    }
-                  ]
-                case "relation-collect-fields":
-                  return [
-                    key,
-                    {
-                      _tag: e._tag,
-                      path: e.path,
-                      fields: e.fields,
-                      distinct: e.distinct,
-                      filter
-                    }
-                  ]
-                case "relation-length":
-                  return [key, { _tag: e._tag, path: e.path }]
-              }
-            })
-          )
-          : undefined
+  switch (a._tag) {
+    case "value":
+      break
+    case "where": {
+      const { current, operation, relation, subPath } = a
+      upd(interpret(current))
+      if (typeof operation === "function") {
+        data.filter.push(
+          {
+            t: "where-scope",
+            result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
+            relation
+          }
+        )
+      } else {
+        data.filter.push(
+          {
+            t: "where",
+            path: operation[0],
+            op: operation.length === 2 ? "eq" : operation[1],
+            value: operation.length === 2 ? operation[1] : operation[2]
+          }
+        )
       }
-    })
-  )
+      break
+    }
+    case "and": {
+      const { current, operation, relation } = a
+      upd(interpret(current))
+      if (typeof operation === "function") {
+        data.filter.push(
+          { t: "and-scope", result: interpret(operation(make())).filter, relation }
+        )
+      } else {
+        data.filter.push(
+          {
+            t: "and",
+            path: operation[0],
+            op: operation.length === 2 ? "eq" : operation[1],
+            value: operation.length === 2 ? operation[1] : operation[2]
+          }
+        )
+      }
+      break
+    }
+    case "or": {
+      const { current, operation, relation } = a
+      upd(interpret(current))
+      if (typeof operation === "function") {
+        data.filter.push(
+          { t: "or-scope", result: interpret(operation(make())).filter, relation }
+        )
+      } else {
+        data.filter.push(
+          {
+            t: "or",
+            path: operation[0],
+            op: operation.length === 2 ? "eq" : operation[1],
+            value: operation.length === 2 ? operation[1] : operation[2]
+          }
+        )
+      }
+      break
+    }
+    case "one": {
+      upd(interpret(a.current))
+      data.limit = 1
+      data.ttype = "one"
+      break
+    }
+    case "count": {
+      upd(interpret(a.current))
+      data.ttype = "count"
+      data.schema = S.Struct({ id: S.String }) as any
+      break
+    }
+    case "order": {
+      upd(interpret(a.current))
+      data.order.push({ key: a.field, direction: a.direction })
+      break
+    }
+    case "page": {
+      upd(interpret(a.current))
+      data.limit = a.take
+      data.skip = a.skip
+      break
+    }
+    case "project": {
+      upd(interpret(a.current))
+      if (a.mode === "aggregate" && a.aggregateMap) {
+        data.schema = a.schema
+        data.mode = "aggregate"
+        data.aggregateMap = Object.fromEntries(
+          Object.entries(a.aggregateMap).map(([key, expression]) => {
+            switch (expression._tag) {
+              case "agg-field":
+                return [key, { _tag: "agg-field" as const, path: expression.path }]
+              case "agg-count":
+                return [key, { _tag: "agg-count" as const }]
+              case "agg-count-when": {
+                const filter = interpret(expression.operation(make())).filter
+                return [key, { _tag: "agg-count-when" as const, filter }]
+              }
+              case "agg-sum":
+                return [key, { _tag: "agg-sum" as const, field: expression.field }]
+              case "agg-min":
+                return [key, { _tag: "agg-min" as const, field: expression.field }]
+              case "agg-max":
+                return [key, { _tag: "agg-max" as const, field: expression.field }]
+            }
+          })
+        )
+        break
+      }
+      if (a.computed && a.mode === "transform") {
+        throw new Error("Computed projections require mode 'project' or 'collect', not 'transform'")
+      }
+      data.schema = a.schema
+      data.mode = a.computed
+        ? a.mode === "collect" ? "collect" : "project"
+        : a.mode
+      data.computed = a.computed
+        ? Object.fromEntries(
+          Object.entries(a.computed).map(([key, expression]) => {
+            const e = expression
+            const op = "operation" in e ? e.operation : undefined
+            const filter = op ? interpret(op(make())).filter.map(applyPath(e.path)) : []
+            switch (e._tag) {
+              case "relation-count":
+              case "relation-any":
+              case "relation-every":
+                return [key, { _tag: e._tag, path: e.path, filter }]
+              case "relation-distinct-count":
+              case "relation-sum":
+                return [
+                  key,
+                  { _tag: e._tag, path: e.path, field: e.field, filter }
+                ]
+              case "relation-sum-expr":
+                return [
+                  key,
+                  { _tag: e._tag, path: e.path, expression: e.expression, filter }
+                ]
+              case "relation-sum-expr-by":
+                return [
+                  key,
+                  {
+                    _tag: e._tag,
+                    path: e.path,
+                    expression: e.expression,
+                    unit: e.unit,
+                    filter
+                  }
+                ]
+              case "relation-sum-expr-normalized":
+                return [
+                  key,
+                  {
+                    _tag: e._tag,
+                    path: e.path,
+                    expression: e.expression,
+                    unit: e.unit,
+                    toBase: e.toBase,
+                    factors: e.factors,
+                    filter
+                  }
+                ]
+              case "relation-collect":
+                return [
+                  key,
+                  {
+                    _tag: e._tag,
+                    path: e.path,
+                    field: e.field,
+                    distinct: e.distinct,
+                    filter
+                  }
+                ]
+              case "relation-collect-fields":
+                return [
+                  key,
+                  {
+                    _tag: e._tag,
+                    path: e.path,
+                    fields: e.fields,
+                    distinct: e.distinct,
+                    filter
+                  }
+                ]
+              case "relation-length":
+                return [key, { _tag: e._tag, path: e.path }]
+            }
+          })
+        )
+        : undefined
+      break
+    }
+  }
 
   return data
 }

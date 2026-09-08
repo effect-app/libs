@@ -54,8 +54,8 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
 
 const concurrencySetting = Effect.runSync(
   Config
-    .literal("unbounded", "SCHEMA_CONCURRENCY")
-    .pipe(Config.orElse(() => Config.number("SCHEMA_CONCURRENCY")), Config.option)
+    .Literal("unbounded", "SCHEMA_CONCURRENCY")
+    .pipe(Config.orElse(() => Config.Number("SCHEMA_CONCURRENCY")), Config.option)
 )
 
 export const DefaultParseOptions: SchemaAST.ParseOptions = {

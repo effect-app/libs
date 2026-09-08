@@ -131,7 +131,7 @@ function* buildListArgs(config?: { host?: string | undefined }) {
 
 export const CUPSConfig = Config.all({
   server: Config
-    .string("server")
+    .String("server")
     .pipe(
       Config.map((s) => new URL(s)),
       Config.option,

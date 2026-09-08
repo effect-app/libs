@@ -19,6 +19,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Scope from "effect/Scope"
 import { FetchHttpClient } from "effect/unstable/http"
+import * as NetAddress from "effect/unstable/net/NetAddress"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import { RpcSerialization } from "effect/unstable/rpc"
 import { createServer } from "http"
@@ -143,8 +144,10 @@ const ClientLayer = Layer
     Effect.gen(function*() {
       const server = yield* HttpServer.HttpServer
       const addr = server.address
-      if (addr._tag !== "TcpAddress") return yield* Effect.die(new Error("expected TcpAddress"))
-      const host = addr.hostname === "0.0.0.0" ? "127.0.0.1" : addr.hostname
+      if (NetAddress.isUnixPathAddress(addr)) {
+        return yield* Effect.die(new Error("expected inet address"))
+      }
+      const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
       return ApiClientFactory
         .layer({ url: `http://${host}:${addr.port}`, headers: Option.none() })
         .pipe(Layer.provide(FetchHttpClient.layer))

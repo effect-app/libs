@@ -15,7 +15,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
-import { customRandom, nanoid, urlAlphabet } from "nanoid"
+import { nanoid } from "nanoid"
 import validator from "validator"
 import type * as SchemaAST from "../SchemaAST.ts"
 import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
@@ -164,23 +164,16 @@ export type StringId = string & StringIdBrand
 
 const minLength = 6
 const maxLength = 50
-const size = 21
-const length = 10 * size
 const StringIdSchemaBase = pipe(
   S.String,
   S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
   fromBrand<StringId>(nominal<StringId>(), {
     identifier: "StringId",
-    toArbitrary: () => (fc) => StringIdArb()(fc),
     jsonSchema: {}
   })
 )
 const makeStringId = (s?: string): StringId =>
   s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
-const StringIdArb = (): S.Arbitrary<StringId> => (fc) =>
-  fc
-    .uint8Array({ minLength: length, maxLength: length })
-    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))() as StringId)
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  *
@@ -226,18 +219,11 @@ export function prefixedStringId<Type extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): S.Arbitrary<Type> => (fc) =>
-      StringIdArb()(fc).map(
-        (x) => (pref + x.substring(0, 50 - pref.length)) as Type
-      )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const s = StringIdSchemaBase
       .pipe(
         S.refine((x: string): x is Type => x.startsWith(pref), {
           identifier: name
-        }),
-        S.annotate({
-          toArbitrary: () => (fc) => arb()(fc)
         })
       )
     const schema = s.pipe(withDefaultMake)
@@ -330,9 +316,6 @@ export const Url: UrlSchema = S
     S.refine(isUrl, {
       identifier: "Url",
       jsonSchema: { format: "uri" }
-    }),
-    S.annotate({
-      toArbitrary: () => (fc) => fc.webUrl().map((_) => _ as Url)
     }),
     withDefaultMake
   )

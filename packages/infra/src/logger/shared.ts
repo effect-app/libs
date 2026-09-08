@@ -5,7 +5,7 @@ import { storeId } from "effect-app/Store"
 import type * as Fiber from "effect/Fiber"
 
 export function getRequestContextFromFiber(fiber: Fiber.Fiber<unknown, unknown>) {
-  const span = Option.fromNullishOr(fiber.currentSpan)
+  const span = Option.fromNullishOr(fiber.cache.span)
   const locale = fiber.getRef(LocaleRef)
   const namespace = fiber.getRef(storeId)
   return RequestContext.make({

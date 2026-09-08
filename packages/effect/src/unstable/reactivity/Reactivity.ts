@@ -91,7 +91,7 @@ export const make = Effect.sync(() => {
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
   ): Effect.Effect<void> =>
     Effect.contextWith((services) => {
-      const pending = services.mapUnsafe.get(PendingInvalidation.key) as Set<string | number> | undefined
+      const pending = Context.getOrUndefined(services, PendingInvalidation)
       if (pending) {
         keysToHashes(keys, (hash) => {
           pending.add(hash)
@@ -123,7 +123,8 @@ export const make = Effect.sync(() => {
     })
     return () => {
       for (let i = 0; i < resolvedKeys.length; i++) {
-        const set = handlers.get(resolvedKeys[i])!
+        const set = handlers.get(resolvedKeys[i])
+        if (set === undefined) continue
         set.delete(handler)
         if (set.size === 0) {
           handlers.delete(resolvedKeys[i])

@@ -13,7 +13,8 @@ import type { InstrumentDescriptor } from "@opentelemetry/sdk-metrics/build/src/
 import * as Arr from "effect/Array"
 import type * as Context from "effect/Context"
 import * as Metric from "effect/Metric"
-import type * as Metrics from "../Metrics.ts"
+import * as Rec from "effect/Record"
+import type * as Metrics from "../OtelMetrics.ts"
 
 const sdkName = "@effect/opentelemetry/Metrics"
 
@@ -64,6 +65,10 @@ export class MetricProducerImpl implements MetricProducer {
     this.previousSummaryState = new Map()
   }
 
+  fork(): MetricProducerImpl {
+    return new MetricProducerImpl(this.resource, this.context, this.temporality)
+  }
+
   startTimeFor(name: string, hrTime: HrTime) {
     if (this.startTimes.has(name)) {
       return this.startTimes.get(name)!
@@ -94,7 +99,7 @@ export class MetricProducerImpl implements MetricProducer {
       const state = snapshot[i]
       const attributes = state.attributes
         ? Arr.reduce(Object.entries(state.attributes), {} as Record<string, string>, (acc, [key, value]) => {
-          acc[key] = String(value)
+          Rec.assignProperty(acc, key, String(value))
           return acc
         })
         : {}
@@ -111,7 +116,7 @@ export class MetricProducerImpl implements MetricProducer {
               if (typeof currentCount === "bigint" && typeof previousCount === "bigint") {
                 reportValue = currentCount - previousCount
                 // Handle reset: if current < previous, report current value
-                if (reportValue < BigInt(0)) {
+                if (state.state.incremental && reportValue < BigInt(0)) {
                   reportValue = currentCount
                 }
               } else {
@@ -119,7 +124,7 @@ export class MetricProducerImpl implements MetricProducer {
                 const prev = Number(previousCount)
                 reportValue = curr - prev
                 // Handle reset
-                if (reportValue < 0) {
+                if (state.state.incremental && reportValue < 0) {
                   reportValue = curr
                 }
               }
@@ -128,7 +133,7 @@ export class MetricProducerImpl implements MetricProducer {
           }
 
           const descriptor = descriptorFromState(state, attributes)
-          const startTime = this.startTimeFor(descriptor.name, intervalStartTime)
+          const startTime = isDelta ? intervalStartTime : this.startTimeFor(descriptor.name, intervalStartTime)
           const dataPoint: DataPoint<number> = {
             startTime,
             endTime: hrTimeNow,
@@ -212,7 +217,7 @@ export class MetricProducerImpl implements MetricProducer {
           }
 
           const descriptor = descriptorFromState(state, attributes)
-          const startTime = this.startTimeFor(descriptor.name, intervalStartTime)
+          const startTime = isDelta ? intervalStartTime : this.startTimeFor(descriptor.name, intervalStartTime)
           const dataPoint: DataPoint<Histogram> = {
             startTime,
             endTime: hrTimeNow,
@@ -258,7 +263,7 @@ export class MetricProducerImpl implements MetricProducer {
             }
 
             const descriptor = descriptorFromState(state, attributes)
-            const startTime = this.startTimeFor(descriptor.name, intervalStartTime)
+            const startTime = isDelta ? intervalStartTime : this.startTimeFor(descriptor.name, intervalStartTime)
             dataPoints.push({
               startTime,
               endTime: hrTimeNow,

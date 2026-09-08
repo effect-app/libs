@@ -9,6 +9,7 @@
  *
  * @since 4.0.0
  */
+import type * as ByteSize from "../../ByteSize.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
@@ -28,6 +29,8 @@ import * as Stream from "../../Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
+import * as bodyInternal from "./internal/httpBody.ts"
+import * as Url from "./Url.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 const TypeId = "~effect/http/HttpClientRequest"
@@ -116,7 +119,7 @@ const Proto = {
 export function makeWith(
   method: HttpMethod,
   url: string,
-  urlParams: UrlParams.UrlParams,
+  urlParams: UrlParams.Input,
   hash: Option.Option<string>,
   headers: Headers.Headers,
   body: HttpBody.HttpBody
@@ -325,6 +328,39 @@ export const setHeaders: {
     Headers.setAll(self.headers, input),
     self.body
   ))
+
+/**
+ * Transforms the request headers with the provided function, returning a new request.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const updateHeaders: {
+  (f: (headers: Headers.Headers) => Headers.Headers): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, f: (headers: Headers.Headers) => Headers.Headers): HttpClientRequest
+} = dual(2, (self: HttpClientRequest, f: (headers: Headers.Headers) => Headers.Headers): HttpClientRequest =>
+  makeWith(
+    self.method,
+    self.url,
+    self.urlParams,
+    self.hash,
+    f(self.headers),
+    self.body
+  ))
+
+/**
+ * Removes a single request header by name, returning a new request.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const removeHeader: {
+  (key: string): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, key: string): HttpClientRequest
+} = dual(
+  2,
+  (self: HttpClientRequest, key: string): HttpClientRequest => updateHeaders(self, Headers.remove(key))
+)
 
 /**
  * Sets the `Authorization` header using HTTP Basic authentication credentials.
@@ -615,23 +651,12 @@ export const setBody: {
   (body: HttpBody.HttpBody): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest => {
-  let headers = self.headers
-  if (body._tag === "Empty" || body._tag === "FormData") {
-    headers = Headers.remove(Headers.remove(headers, "Content-Type"), "Content-length")
-  } else {
-    if (body.contentType) {
-      headers = Headers.set(headers, "content-type", body.contentType)
-    }
-    if (body.contentLength !== undefined) {
-      headers = Headers.set(headers, "content-length", body.contentLength.toString())
-    }
-  }
   return makeWith(
     self.method,
     self.url,
     self.urlParams,
     self.hash,
-    headers,
+    bodyInternal.updateHeaders(self.headers, body),
     body
   )
 })
@@ -805,6 +830,13 @@ export const bodyStream: {
 /**
  * Creates a file-backed request body from a filesystem path and sets it on the request.
  *
+ * **Details**
+ *
+ * Uses {@link HttpBody.file} to validate ranges lazily and calculate the EOF-clamped content length with exact
+ * bigint arithmetic. Invalid range inputs or a final length above `Number.MAX_SAFE_INTEGER` fail with
+ * `PlatformError` / `BadArgument`. Larger sizes, offsets, and byte counts are valid when the final length is
+ * representable as a safe integer. The request's Content-Length header contains that exact length.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -812,9 +844,9 @@ export const bodyFile: {
   (
     path: string,
     options?: {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
+      readonly bytesToRead?: ByteSize.Input | undefined
+      readonly chunkSize?: number | undefined
+      readonly offset?: ByteSize.Input | undefined
       readonly contentType?: string
     }
   ): (self: HttpClientRequest) => Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem>
@@ -822,9 +854,9 @@ export const bodyFile: {
     self: HttpClientRequest,
     path: string,
     options?: {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
+      readonly bytesToRead?: ByteSize.Input | undefined
+      readonly chunkSize?: number | undefined
+      readonly offset?: ByteSize.Input | undefined
       readonly contentType?: string
     }
   ): Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem>
@@ -834,9 +866,9 @@ export const bodyFile: {
     self: HttpClientRequest,
     path: string,
     options?: {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
+      readonly bytesToRead?: ByteSize.Input | undefined
+      readonly chunkSize?: number | undefined
+      readonly offset?: ByteSize.Input | undefined
       readonly contentType?: string
     }
   ): Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem> =>
@@ -853,7 +885,7 @@ export const bodyFile: {
  * @since 4.0.0
  */
 export function toUrl(self: HttpClientRequest): Option.Option<URL> {
-  const r = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
+  const r = Url.make(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isSuccess(r)) {
     return Option.some(r.success)
   }
@@ -882,16 +914,8 @@ const fromWebBody = (request: globalThis.Request, method: HttpMethod): HttpBody.
   }
   return HttpBody.raw(request.body, {
     contentType: request.headers.get("content-type") ?? undefined,
-    contentLength: parseContentLength(request.headers.get("content-length"))
+    contentLength: bodyInternal.parseContentLength(request.headers.get("content-length"))
   })
-}
-
-const parseContentLength = (contentLength: string | null): number | undefined => {
-  if (contentLength === null) {
-    return undefined
-  }
-  const parsed = Number.parseInt(contentLength, 10)
-  return Number.isNaN(parsed) ? undefined : parsed
 }
 
 /**
@@ -903,8 +927,8 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 export const toWebResult = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
   readonly context?: Context.Context<never> | undefined
-}): Result.Result<Request, UrlParams.UrlParamsError> => {
-  const url = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
+}): Result.Result<Request, Url.UrlError> => {
+  const url = Url.make(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isFailure(url)) {
     return Result.fail(url.failure)
   }
@@ -944,7 +968,7 @@ export const toWebResult = (self: HttpClientRequest, options?: {
   }
   return Result.try({
     try: () => new Request(url.success, requestInit),
-    catch: (cause) => new UrlParams.UrlParamsError({ cause })
+    catch: (cause) => new Url.UrlError({ cause })
   })
 }
 
@@ -952,14 +976,14 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 /**
- * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlParamsError` when the request URL is invalid.
+ * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlError` when the request URL is invalid.
  *
  * @category converting
  * @since 4.0.0
  */
 export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
-}): Effect.Effect<Request, UrlParams.UrlParamsError> =>
+}): Effect.Effect<Request, Url.UrlError> =>
   Effect.contextWith((context) =>
     Effect.fromResult(toWebResult(self, {
       context: context,

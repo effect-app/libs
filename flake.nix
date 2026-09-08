@@ -14,8 +14,8 @@
         packages = with pkgs; [
           bun
           deno
-          corepack
-          nodejs_25
+          nodejs_latest
+          pnpm
           python3
         ];
       };

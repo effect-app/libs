@@ -1,21 +1,21 @@
 # Effect library documentation
 
-This documentation resides in the Effect monorepo, which contains the source
-code for the Effect library and its related packages.
+This documentation covers the Effect library and its related packages.
 
-When you need to find any information about the Effect library, only use this
-documentation and the source code found in `./packages`. Do not use
-`node_modules` or any other external documentation, as it may be outdated or
-incorrect.
+When you need to find information about Effect, use this documentation and the
+Effect source code available in your environment. Avoid unrelated copies of
+Effect or external documentation, as they may be outdated or incorrect.
 
 **Note**: The examples in this documentation contain comments for illustration
 purposes. In practice, you would not include these comments in your code.
 
 ## Writing `Effect` code
 
-Prefer writing Effect code with `Effect.gen` & `Effect.fn("name")`. Then attach
-additional behaviour with combinators. This style is more readable and easier to
-maintain than using combinators alone.
+Prefer `Effect.gen` for inline Effect code. For reusable functions, prefer
+`Effect.fn("name")` when tracing is useful and `Effect.fnUntraced` when it is not,
+particularly in library implementations and hot paths. Avoid functions that only
+wrap and return `Effect.gen`. Attach additional behaviour with combinators; this
+style is more readable and easier to maintain than using combinators alone.
 
 ### Using Effect.gen
 
@@ -42,19 +42,22 @@ Effect.gen(function*() {
   })
 )
 
-// Use Schema.TaggedErrorClass to define a custom error
-export class FileProcessingError extends Schema.TaggedErrorClass<FileProcessingError>()("FileProcessingError", {
+// Use Schema.TaggedError to define a custom error
+export class FileProcessingError extends Schema.TaggedError<FileProcessingError>()("FileProcessingError", {
   message: Schema.String
 }) {}
 ```
 
-### Using Effect.fn
+### Using Effect.fn and Effect.fnUntraced
 
-When writing functions that return an Effect, use `Effect.fn` to use the
-generator syntax.
+When writing reusable functions that return an Effect, use `Effect.fn` or
+`Effect.fnUntraced` to use the generator syntax.
 
-**Avoid creating functions that return an Effect.gen**, use `Effect.fn`
-instead.
+Use `Effect.fn("name")` when the function should create a tracing span. Prefer
+`Effect.fnUntraced` when tracing is not needed, particularly for library
+implementations and hot paths.
+
+**Avoid creating functions that only wrap and return an `Effect.gen`**.
 
 ```ts
 import { Effect, Schema } from "effect"
@@ -82,8 +85,18 @@ export const effectFunction = Effect.fn("effectFunction")(
   })
 )
 
-// Use Schema.TaggedErrorClass to define a custom error
-export class SomeError extends Schema.TaggedErrorClass<SomeError>()("SomeError", {
+// Effect.fnUntraced avoids tracing and stack-frame capture while still reusing
+// the generator body. This is preferred for library functions that do not
+// represent a useful tracing boundary.
+export const validateBatchSize = Effect.fnUntraced(function*(size: number): Effect.fn.Return<number, SomeError> {
+  if (!Number.isInteger(size) || size <= 0) {
+    return yield* new SomeError({ message: "Batch size must be a positive integer" })
+  }
+  return size
+})
+
+// Use Schema.TaggedError to define a custom error
+export class SomeError extends Schema.TaggedError<SomeError>()("SomeError", {
   message: Schema.String
 }) {}
 ```
@@ -93,6 +106,18 @@ export class SomeError extends Schema.TaggedErrorClass<SomeError>()("SomeError",
 - **[Creating effects from common sources](./ai-docs/src/01_effect/01_basics/10_creating-effects.ts)**:
   Learn how to create effects from various sources, including plain values,
   synchronous code, Promise APIs, optional values, and callback-based APIs.
+
+## Defining schemas and domain models
+
+All validation and domain modeling in Effect is done with `Schema`.
+
+**AVOID using predicates or manual parsing**, instead use `Schema` to parse untrusted data and validate it.
+
+For a comprehensive guide, see [SCHEMA.md](https://github.com/Effect-TS/effect/blob/main/packages/effect/SCHEMA.md). Make sure to read the guide in chunks, as it is a large document.
+
+- **[Schema basics](./ai-docs/src/01_effect/02_schema/10_schema-basics.ts)**:
+  Define `Schema.Class`s, decode unknown input into typed values, and
+  encode typed values back into their external representation.
 
 ## Writing Effect services
 
@@ -138,7 +163,7 @@ export class Database extends Context.Service<Database, {
   )
 }
 
-export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("DatabaseError", {
+export class DatabaseError extends Schema.TaggedError<DatabaseError>()("DatabaseError", {
   cause: Schema.Defect()
 }) {}
 
@@ -148,11 +173,11 @@ export type DatabaseService = Database["Service"]
 
 ### More examples
 
-- **[Context.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
-- **[Composing services with the Layer module](./ai-docs/src/01_effect/02_services/20_layer-composition.ts)**:
+- **[Context.Reference](./ai-docs/src/01_effect/03_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
+- **[Composing services with the Layer module](./ai-docs/src/01_effect/03_services/20_layer-composition.ts)**:
   Build focused service layers, then compose them with `Layer.provide` and
   `Layer.provideMerge` based on what services you want to expose.
-- **[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/02_services/20_layer-unwrap.ts)**: Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
+- **[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/03_services/20_layer-unwrap.ts)**: Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
 
 ## Error handling
 
@@ -163,14 +188,14 @@ Defining custom errors and handling them with Effect.catch and Effect.catchTag.
 ```ts
 import { Effect, Schema } from "effect"
 
-// Define custom errors using Schema.TaggedErrorClass
-export class ParseError extends Schema.TaggedErrorClass<ParseError>()("ParseError", {
+// Define custom errors using Schema.TaggedError
+export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
   input: Schema.String,
   message: Schema.String
 }) {}
 
-export class ReservedPortError extends Schema.TaggedErrorClass<ReservedPortError>()("ReservedPortError", {
-  port: Schema.Number
+export class ReservedPortError extends Schema.TaggedError<ReservedPortError>()("ReservedPortError", {
+  port: Schema.Int
 }) {}
 
 declare const loadPort: (input: string) => Effect.Effect<number, ParseError | ReservedPortError>
@@ -190,8 +215,8 @@ export const withFinalFallback = loadPort("invalid").pipe(
 
 ### More examples
 
-- **[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/03_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.
-- **[Creating and handling errors with reasons](./ai-docs/src/01_effect/03_errors/20_reason-errors.ts)**:
+- **[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/04_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.
+- **[Creating and handling errors with reasons](./ai-docs/src/01_effect/04_errors/20_reason-errors.ts)**:
   Define a tagged error with a tagged `reason` field, then recover with
   `Effect.catchReason`, `Effect.catchReasons`, or by unwrapping the reason into
   the error channel with `Effect.unwrapReason`.
@@ -200,32 +225,32 @@ export const withFinalFallback = loadPort("invalid").pipe(
 
 Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 
-- **[Acquiring resources with Effect.acquireRelease](./ai-docs/src/01_effect/04_resources/10_acquire-release.ts)**:
+- **[Acquiring resources with Effect.acquireRelease](./ai-docs/src/01_effect/05_resources/10_acquire-release.ts)**:
   Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
-- **[Creating Layers that run background tasks](./ai-docs/src/01_effect/04_resources/20_layer-side-effects.ts)**: Use Layer.effectDiscard to encapsulate background tasks without a service interface.
-- **[Dynamic resources with LayerMap](./ai-docs/src/01_effect/04_resources/30_layer-map.ts)**:
+- **[Creating Layers that run background tasks](./ai-docs/src/01_effect/05_resources/20_layer-side-effects.ts)**: Use Layer.effectDiscard to encapsulate background tasks without a service interface.
+- **[Dynamic resources with LayerMap](./ai-docs/src/01_effect/05_resources/30_layer-map.ts)**:
   Use `LayerMap.Service` to dynamically build and manage resources that are
   keyed by some identifier, such as a tenant ID.
 
 ## Running Effect programs
 
-- **[Running effects with NodeRuntime and BunRuntime](./ai-docs/src/01_effect/05_running/10_run-main.ts)**: Use `NodeRuntime.runMain` to run an Effect program as your process entrypoint.
-- **[Using Layer.launch as the application entry point](./ai-docs/src/01_effect/05_running/20_layer-launch.ts)**: Use `Layer.launch` to run a long-running Effect program as your process entrypoint.
+- **[Running effects with NodeRuntime and BunRuntime](./ai-docs/src/01_effect/06_running/10_run-main.ts)**: Use `NodeRuntime.runMain` to run an Effect program as your process entrypoint.
+- **[Using Layer.launch as the application entry point](./ai-docs/src/01_effect/06_running/20_layer-launch.ts)**: Use `Layer.launch` to run a long-running Effect program as your process entrypoint.
 
 ## Broadcasting messages with PubSub
 
 Use `PubSub` when you need one producer to fan out messages to many consumers.
 
-- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**: Build an in-process event bus with `PubSub` and expose it as a service.
+- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/07_pubsub/10_pubsub.ts)**: Build an in-process event bus with `PubSub` and expose it as a service.
 
 ## Working with Streams
 
 Effect Streams represent effectful, pull-based sequences of values over time.
 They let you model finite or infinite data sources.
 
-- **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
+- **[Creating streams from common data sources](./ai-docs/src/03_stream/10_creating-streams.ts)**:
   Learn how to create streams from various data sources. Includes:
   
   - `Stream.fromIterable` for arrays and other iterables
@@ -235,9 +260,9 @@ They let you model finite or infinite data sources.
   - `Stream.fromEventListener` for DOM events
   - `Stream.callback` for any callback-based API
   - `NodeStream.fromReadable` for Node.js readable streams
-- **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
-- **[Decoding and encoding streams](./ai-docs/src/02_stream/30_encoding.ts)**:
-  Use `Stream.pipeThroughChannel` with the `Ndjson` & `Msgpack` modules to
+- **[Consuming and transforming streams](./ai-docs/src/03_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
+- **[Decoding and encoding streams](./ai-docs/src/03_stream/30_encoding.ts)**:
+  Use `Stream.pipeThroughChannel` with the `Ndjson` and `SchemaBinary` modules to
   decode and encode streams of structured data.
 
 ## Integrating Effect into existing applications
@@ -246,7 +271,7 @@ They let you model finite or infinite data sources.
 from your application Layer, then use it anywhere you need imperative execution,
 like web handlers, framework hooks, worker queues, or legacy callback APIs.
 
-- **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
+- **[Using ManagedRuntime with Hono](./ai-docs/src/04_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
 
 ## Batching external requests
 
@@ -289,6 +314,45 @@ setup.
 - **[Writing Effect tests with @effect/vitest](./ai-docs/src/09_testing/10_effect-tests.ts)**: Using `it.effect` for Effect-based tests.
 - **[Testing services with shared layers](./ai-docs/src/09_testing/20_layer-tests.ts)**: How to test Effect services that depend on other services.
 
+## Runtime type guards
+
+The `Predicate` module contains small, reusable runtime checks.
+
+**NEVER** write your own helper functions like `isRecord` or `isString`, instead
+use the helpers from the `Predicate` module.
+
+Predicates can be composed with apis such as `Predicate.and`,
+`Predicate.or`, `Predicate.not`, and `Predicate.compose`.
+
+### Using the Predicate module
+
+
+
+```ts
+import { Predicate } from "effect"
+
+const thing: unknown = {
+  a: 1
+}
+
+if (Predicate.isObject(thing)) {
+  if (Predicate.isNumber(thing.a)) {
+    console.log("number", thing.a)
+  }
+}
+```
+
+## Working with SQL databases
+
+Use the `effect/unstable/sql` modules together with a driver package such as
+`@effect/sql-sqlite-node` to access SQL databases. Define domain models with
+`Model.Class` to derive schemas for the database and JSON boundaries, run
+migrations, and write type-safe queries.
+
+- **[Getting started with SQL](./ai-docs/src/40_sql/10_basics.ts)**:
+  Define a schema-backed domain model, run migrations against a SQLite
+  database, and expose a derived repository through a service.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
@@ -302,10 +366,13 @@ Build http clients with the `HttpClient` module.
 - **[Getting started with HttpApi](./ai-docs/src/51_http-server/10_basics.ts)**:
   Define a schema-first API, implement handlers, secure endpoints with
   middleware, serve it over HTTP, and call it using a generated typed client.
+- **[Testing HttpApi implementations](./ai-docs/src/51_http-server/20_testing.ts)**:
+  Test handlers through an in-memory typed client with `HttpApiTest`, without
+  starting an HTTP server or touching a real database.
 
 ## Working with child processes
 
-Use the `effect/unstable/process` modules to define child processes and run them with `ChildProcessSpawner.
+Use the `effect/unstable/process` modules to define child processes and run them with `ChildProcessSpawner`.
 
 - **[Working with child processes](./ai-docs/src/60_child-process/10_working-with-child-processes.ts)**: This example shows how to collect process output, compose pipelines, and stream long-running command output.
 

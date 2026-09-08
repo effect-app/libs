@@ -16,16 +16,17 @@ import * as Argument from "effect/unstable/cli/Argument"
 import * as Command from "effect/unstable/cli/Command"
 import * as Flag from "effect/unstable/cli/Flag"
 
-const directory = Argument.directory("directory", { mustExist: true })
+const directory = Argument.Directory("directory", { mustExist: true })
 
-const output = Flag.path("output").pipe(
+const output = Flag.Path("output").pipe(
   Flag.withAlias("o"),
   Flag.withDescription("Output file path")
 )
 
-const watch = Flag.boolean("watch").pipe(
+const watch = Flag.Boolean("watch").pipe(
   Flag.withAlias("w"),
-  Flag.withDescription("Watch for file changes and regenerate documentation")
+  Flag.withDescription("Watch for file changes and regenerate documentation"),
+  Flag.withDefault(false)
 )
 
 Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
@@ -60,7 +61,9 @@ Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
 )
 
 const directoryToMarkdown = Effect.fn("directoryToMarkdown")(
-  function*(directory): Effect.fn.Return<string, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
+  function*(
+    directory: string
+  ): Effect.fn.Return<string, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
     const pathService = yield* Path.Path
     const fs = yield* FileSystem.FileSystem
 

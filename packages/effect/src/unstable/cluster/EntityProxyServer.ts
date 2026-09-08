@@ -34,27 +34,29 @@ import type { Sharding } from "./Sharding.ts"
  */
 export const layerHttpApi = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
-  Name extends HttpApiGroup.Name<Groups>,
+  Groups extends HttpApiGroup.Constraint,
+  Identifier extends HttpApiGroup.Identifier<Groups>,
   Type extends string,
   Rpcs extends Rpc.Any
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  name: Name,
+  identifier: Identifier,
   entity: Entity.Entity<Type, Rpcs>
-): Layer.Layer<HttpApiGroup.ApiGroup<ApiId, Name>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
+): Layer.Layer<
+  HttpApiGroup.Service<ApiId, Identifier>,
+  never,
+  Sharding | Rpc.ServicesServer<Rpcs> | Rpc.ServicesClient<Rpcs>
+> =>
   HttpApiBuilder.group(
     api,
-    name,
-    Effect.fnUntraced(function*(handlers_) {
+    identifier,
+    Effect.fnUntraced(function*(handlers: any) {
       const client = yield* entity.client
-      let handlers = handlers_
-      for (const parentRpc_ of entity.protocol.requests.values()) {
-        const parentRpc = parentRpc_ as any as Rpc.AnyWithProps
+      for (const parentRpc of entity.protocol.requests.values()) {
         handlers = handlers
           .handle(
-            parentRpc._tag as any,
-            (({ params, payload }: { params: { entityId: string }; payload: any }) =>
+            parentRpc._tag,
+            ({ params, payload }: { params: { entityId: string }; payload: any }) =>
               (client(params.entityId) as any as Record<string, (p: any) => Effect.Effect<any>>)[parentRpc._tag](
                 payload
               ).pipe(
@@ -65,11 +67,11 @@ export const layerHttpApi = <
                   entityId: params.entityId,
                   method: parentRpc._tag
                 })
-              )) as any
+              )
           )
           .handle(
-            `${parentRpc._tag}Discard` as any,
-            (({ params, payload }: { params: { entityId: string }; payload: any }) =>
+            `${parentRpc._tag}Discard`,
+            ({ params, payload }: { params: { entityId: string }; payload: any }) =>
               (client(params.entityId) as any as Record<string, (p: any, o: {}) => Effect.Effect<any>>)[parentRpc._tag](
                 payload,
                 { discard: true }
@@ -81,10 +83,10 @@ export const layerHttpApi = <
                   entityId: params.entityId,
                   method: `${parentRpc._tag}Discard`
                 })
-              )) as any
-          ) as any
+              )
+          )
       }
-      return handlers as HttpApiBuilder.Handlers<never, never>
+      return handlers as HttpApiBuilder.Handlers<never>
     })
   )
 
@@ -104,7 +106,7 @@ export const layerRpcHandlers = <
   Rpcs extends Rpc.Any
 >(
   entity: Entity.Entity<Type, Rpcs>
-): Layer.Layer<RpcHandlers<Rpcs, Type>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
+): Layer.Layer<RpcHandlers<Rpcs, Type>, never, Sharding | Rpc.ServicesServer<Rpcs> | Rpc.ServicesClient<Rpcs>> =>
   Layer.effectContext(Effect.gen(function*() {
     const context = yield* Effect.context<never>()
     const client = yield* entity.client

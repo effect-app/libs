@@ -16,6 +16,7 @@ import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as InternalRecord from "../../internal/record.ts"
 import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
@@ -32,6 +33,7 @@ import * as HttpClientRequest from "./HttpClientRequest.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import { HttpServerError, type RequestError, RequestParseError } from "./HttpServerError.ts"
+import * as bodyInternal from "./internal/httpBody.ts"
 import * as Multipart from "./Multipart.ts"
 import * as UrlParams from "./UrlParams.ts"
 
@@ -44,7 +46,7 @@ export {
    * Use to configure the maximum body size accepted while reading server
    * request bodies.
    *
-   * @category fiber refs
+   * @category references
    * @since 4.0.0
    */
   MaxBodySize
@@ -104,7 +106,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
  * Use to access the request currently being handled by HTTP server routes and
  * middleware.
  *
- * @category context
+ * @category services
  * @since 4.0.0
  */
 export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerRequest> = Context.Service(
@@ -124,7 +126,7 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
  * Each key maps to a string value, or to an array when the parameter appears more
  * than once.
  *
- * @category search params
+ * @category services
  * @since 4.0.0
  */
 export class ParsedSearchParams extends Context.Service<
@@ -139,21 +141,21 @@ export class ParsedSearchParams extends Context.Service<
  *
  * Repeated parameters are represented as arrays in insertion order.
  *
- * @category search params
+ * @category parsing
  * @since 4.0.0
  */
 export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | Array<string>> => {
   const out: Record<string, string | Array<string>> = {}
   for (const [key, value] of url.searchParams.entries()) {
-    const entry = out[key]
-    if (entry !== undefined) {
+    if (Object.hasOwn(out, key)) {
+      const entry = out[key]
       if (Array.isArray(entry)) {
         entry.push(value)
       } else {
-        out[key] = [entry, value]
+        InternalRecord.assignProperty(out, key, [entry, value])
       }
     } else {
-      out[key] = value
+      InternalRecord.assignProperty(out, key, value)
     }
   }
   return out
@@ -191,8 +193,8 @@ export const upgradeChannel = <IE = never>(): Channel.Channel<
  * @category schemas
  * @since 4.0.0
  */
-export const schemaCookies = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
+export const schemaCookies = <A, I extends Readonly<Record<string, string | undefined>>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, RD | HttpServerRequest> => {
   const parse = Schema.decodeUnknownEffect(schema)
@@ -205,8 +207,8 @@ export const schemaCookies = <A, I extends Readonly<Record<string, string | unde
  * @category schemas
  * @since 4.0.0
  */
-export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
+export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
@@ -222,10 +224,9 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
 export const schemaSearchParams = <
   A,
   I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
-  RD,
-  RE
+  RD
 >(
-  schema: Schema.Codec<A, I, RD, RE>,
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, ParsedSearchParams | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
@@ -242,9 +243,9 @@ export const schemaSearchParams = <
  * @category schemas
  * @since 4.0.0
  */
-export const schemaBodyJson = <A, I, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
-  options?: ParseOptions | undefined
+export const schemaBodyJson = <A, RD>(
+  schema: Schema.ConstraintDecoder<A, RD>,
+  options?: (ParseOptions & HttpIncomingMessage.JsonOptions) | undefined
 ): Effect.Effect<A, HttpServerError | Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = HttpIncomingMessage.schemaBodyJson(schema, options)
   return Effect.flatMap(HttpServerRequest, parse)
@@ -265,12 +266,15 @@ const isMultipart = (request: HttpServerRequest) =>
  * @category schemas
  * @since 4.0.0
  */
-export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
+export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ) => {
   const parseMultipart = Multipart.schemaPersisted(schema)
-  const parseUrlParams = HttpIncomingMessage.schemaBodyUrlParams(schema as Schema.Codec<A, any, RD, RE>, options)
+  const parseUrlParams = HttpIncomingMessage.schemaBodyUrlParams(
+    schema as Schema.ConstraintCodec<A, any, RD, unknown>,
+    options
+  )
   return Effect.flatMap(HttpServerRequest, (request): Effect.Effect<
     A,
     Multipart.MultipartError | Schema.SchemaError | HttpServerError,
@@ -293,10 +297,9 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
 export const schemaBodyUrlParams = <
   A,
   I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
-  RD,
-  RE
+  RD
 >(
-  schema: Schema.Codec<A, I, RD, RE>,
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ): Effect.Effect<A, HttpServerError | Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = HttpIncomingMessage.schemaBodyUrlParams(schema, options)
@@ -315,8 +318,8 @@ export const schemaBodyUrlParams = <
  * @category schemas
  * @since 4.0.0
  */
-export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
+export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>,
   options?: ParseOptions | undefined
 ): Effect.Effect<
   A,
@@ -342,13 +345,13 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
  * @category schemas
  * @since 4.0.0
  */
-export const schemaBodyFormJson = <A, I, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
-  options?: ParseOptions | undefined
+export const schemaBodyFormJson = <A, RD>(
+  schema: Schema.ConstraintDecoder<A, RD>,
+  options?: (ParseOptions & HttpIncomingMessage.JsonOptions) | undefined
 ) => {
   const parseMultipart = Multipart.schemaJson(schema, options)
   return (field: string) => {
-    const parseUrlParams = UrlParams.schemaJsonField(field).pipe(
+    const parseUrlParams = Schema.JsonFromUrlParamsField(field, options).pipe(
       Schema.decodeTo(schema),
       Schema.decodeEffect
     )
@@ -421,34 +424,36 @@ export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
  * @category converting
  * @since 4.0.0
  */
-export const toClientRequest = (request: HttpServerRequest): HttpClientRequest.HttpClientRequest =>
-  HttpClientRequest.setUrl(
+export const toClientRequest = (request: HttpServerRequest): HttpClientRequest.HttpClientRequest => {
+  const body = toClientBody(request)
+  const headers = body._tag !== "Empty" && body.contentLength === undefined
+    ? Headers.remove(request.headers, "content-length")
+    : request.headers
+  return HttpClientRequest.setUrl(
     HttpClientRequest.makeWith(
       request.method,
       "",
       UrlParams.empty,
       Option.none(),
-      request.headers,
-      toClientBody(request)
+      headers,
+      body
     ),
     Option.getOrElse(toURL(request), () => request.url)
   )
+}
 
-const toClientBody = (request: HttpServerRequest): HttpBody.HttpBody =>
-  hasBody(request.method)
+const toClientBody = (request: HttpServerRequest): HttpBody.HttpBody => {
+  if (!hasBody(request.method)) {
+    return HttpBody.empty
+  }
+  const formData = getFormDataBody(request)
+  return formData === undefined
     ? HttpBody.stream(
       request.stream,
       request.headers["content-type"],
-      parseContentLength(request.headers["content-length"])
+      bodyInternal.parseContentLength(request.headers["content-length"])
     )
-    : HttpBody.empty
-
-const parseContentLength = (contentLength: string | undefined): number | undefined => {
-  if (contentLength === undefined) {
-    return undefined
-  }
-  const parsed = Number.parseInt(contentLength, 10)
-  return Number.isNaN(parsed) ? undefined : parsed
+    : HttpBody.formData(formData)
 }
 
 const removeHost = (url: string) => {
@@ -835,7 +840,11 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
   }
 
   get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpServerError> {
-    return Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
+    return Effect.map(
+      this.bytes,
+      // Copy this view because Buffer views may share a larger ArrayBuffer.
+      (bytes) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+    )
   }
 
   get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
@@ -861,24 +870,24 @@ const rawBodyStream = (request: HttpServerRequest, body: unknown): Stream.Stream
   if (body instanceof Request) {
     return streamFromReadable(request, body.body)
   }
-  if (isFormData(body)) {
-    return streamFromReadable(request, new Response(body).body)
-  }
   if (isReadableStream(body)) {
     return streamFromReadable(request, body)
+  }
+  if (isBodyInit(body)) {
+    return streamFromReadable(request, new Response(body).body)
   }
   return Stream.fail(requestParseError(request, "Unsupported body type"))
 }
 
 const rawBodyBytes = (request: HttpServerRequest, body: unknown): Effect.Effect<Uint8Array, HttpServerError> => {
-  if (body instanceof Blob) {
-    return bytesFromBodyInit(request, body)
-  }
   if (body instanceof Request) {
     return Effect.tryPromise({
       try: () => body.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
       catch: (cause) => requestParseError(request, undefined, cause)
     })
+  }
+  if (isBodyInit(body)) {
+    return bytesFromBodyInit(request, body)
   }
   return Effect.fail(requestParseError(request, "Unsupported body type"))
 }
@@ -992,6 +1001,14 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined" && u instanceof FormData
+
+const isBodyInit = (u: unknown): u is BodyInit =>
+  typeof u === "string" ||
+  (typeof ArrayBuffer !== "undefined" && (u instanceof ArrayBuffer || ArrayBuffer.isView(u))) ||
+  (typeof Blob !== "undefined" && u instanceof Blob) ||
+  isFormData(u) ||
+  (typeof URLSearchParams !== "undefined" && u instanceof URLSearchParams) ||
+  isReadableStream(u)
 
 const textDecoder = new TextDecoder()
 

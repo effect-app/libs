@@ -11,11 +11,13 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
+import * as ByteSize from "../../ByteSize.ts"
 import * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
 import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as ErrorReporter from "../../ErrorReporter.ts"
 import * as Exit from "../../Exit.ts"
 import * as FileSystem from "../../FileSystem.ts"
 import { constant, dual } from "../../Function.ts"
@@ -29,9 +31,10 @@ import type { ParseOptions } from "../../SchemaAST.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as IncomingMessage from "./HttpIncomingMessage.ts"
-import * as MP from "./Multipasta.ts"
+import * as HttpServerRespondable from "./HttpServerRespondable.ts"
+import * as HttpServerResponse from "./HttpServerResponse.ts"
+import * as MP from "./MultipartParser.ts"
 
 /**
  * Type identifier used to brand multipart part values.
@@ -95,12 +98,25 @@ export interface Field extends Part.Proto {
 }
 
 /**
- * Returns `true` when a value is a multipart `Part`.
+ * Returns `true` when a value has the multipart part type identifier.
+ *
+ * **Details**
+ *
+ * This includes `Field`, `File`, and `PersistedFile` values. Use
+ * `isStreamPart` to identify only parsed, streamed parts.
  *
  * @category guards
  * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, TypeId)
+
+/**
+ * Returns `true` when a value is a multipart text `Field` or streamed `File`.
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isStreamPart = (u: unknown): u is Part => isPart(u) && (u._tag === "Field" || u._tag === "File")
 
 /**
  * Returns `true` when a value is a multipart text `Field`.
@@ -199,19 +215,30 @@ export class MultipartErrorReason extends Data.Error<{
   readonly cause?: unknown
 }> {}
 
+const responseStatusByReason = {
+  FileTooLarge: 413,
+  FieldTooLarge: 413,
+  BodyTooLarge: 413,
+  TooManyParts: 413,
+  InternalError: 500,
+  Parse: 400
+} as const satisfies Record<MultipartErrorReason["_tag"], number>
+
 /**
  * Error raised while parsing, streaming, or persisting multipart form data.
  *
  * **Details**
  *
- * The `reason` field contains the concrete `MultipartErrorReason`.
+ * The `reason` field contains the concrete `MultipartErrorReason`. When used as
+ * a server response, parse errors render as `400`, limit errors as `413`, and
+ * internal errors as `500`. Multipart errors are ignored by the error reporter.
  *
  * @category errors
  * @since 4.0.0
  */
 export class MultipartError extends Data.TaggedError("MultipartError")<{
   readonly reason: MultipartErrorReason
-}> {
+}> implements HttpServerRespondable.Respondable {
   /**
    * Creates a multipart error from a reason tag and optional cause.
    *
@@ -227,6 +254,22 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
    * @since 4.0.0
    */
   readonly [MultipartErrorTypeId] = MultipartErrorTypeId
+
+  override readonly [ErrorReporter.ignore] = true;
+
+  /**
+   * Converts the multipart error into an HTTP response based on its reason.
+   *
+   * **Details**
+   *
+   * Parse errors produce `400`, size and part-count limits produce `413`, and
+   * internal errors produce `500`.
+   *
+   * @since 4.0.0
+   */
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(HttpServerResponse.empty({ status: responseStatusByReason[this.reason._tag] }))
+  }
 
   /**
    * Uses the concrete multipart error reason as the public message.
@@ -246,6 +289,13 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
  */
 export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 
+const PersistedFileEncoded = Schema.Struct({
+  key: Schema.String,
+  name: Schema.String,
+  contentType: Schema.String.annotate({ contentEncoding: "binary" }),
+  path: Schema.String
+})
+
 /**
  * Schema for persisted multipart files.
  *
@@ -260,23 +310,19 @@ export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
   isPersistedFile,
   {
-    typeConstructor: {
-      _tag: "effect/http/PersistedFile"
+    representation: {
+      id: "effect/http/PersistedFile",
+      payload: null
     },
-    generation: {
-      runtime: `Multipart.PersistedFileSchema`,
-      Type: `Multipart.PersistedFile`,
-      importDeclaration: `import * as Multipart from "effect/unstable/http/Multipart"`
-    },
+    toCode: () => ({
+      runtime: "Multipart.PersistedFileSchema",
+      Type: "Multipart.PersistedFile",
+      importDeclarations: [`import * as Multipart from "effect/unstable/http/Multipart"`]
+    }),
     expected: "PersistedFile",
     toCodecJson: () =>
       Schema.link<PersistedFile>()(
-        Schema.Struct({
-          key: Schema.String,
-          name: Schema.String,
-          contentType: Schema.String.annotate({ contentEncoding: "binary" }),
-          path: Schema.String
-        }),
+        PersistedFileEncoded,
         SchemaTransformation.transform({
           decode: ({ contentType, key, name, path }) => new PersistedFileImpl(key, name, contentType, path),
           encode: (file) => ({
@@ -333,8 +379,8 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
  * @category schemas
  * @since 4.0.0
  */
-export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>
+export const schemaPersisted = <A, I extends Partial<Persisted>, RD>(
+  schema: Schema.ConstraintCodec<A, I, RD, unknown>
 ): (input: unknown, options?: ParseOptions) => Effect.Effect<A, Schema.SchemaError, RD> =>
   Schema.decodeUnknownEffect(schema)
 
@@ -349,7 +395,10 @@ export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
  * @category schemas
  * @since 4.0.0
  */
-export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined): {
+export const schemaJson = <A, RD>(
+  schema: Schema.ConstraintDecoder<A, RD>,
+  options?: (ParseOptions & IncomingMessage.JsonOptions) | undefined
+): {
   (
     field: string
   ): (persisted: Persisted) => Effect.Effect<A, Schema.SchemaError, RD>
@@ -358,7 +407,7 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
     field: string
   ): Effect.Effect<A, Schema.SchemaError, RD>
 } => {
-  const fromJson = Schema.fromJsonString(schema)
+  const fromJson = Schema.fromJsonString(schema, options)
   return dual(2, (persisted: Persisted, field: string): Effect.Effect<A, Schema.SchemaError, RD> =>
     Effect.map(
       Schema.decodeUnknownEffect(Schema.Struct({ [field]: fromJson }))(persisted, options),
@@ -386,9 +435,9 @@ export const makeConfig = (
     return Effect.succeed<MP.BaseConfig>({
       headers,
       maxParts: fiber.getRef(MaxParts),
-      maxFieldSize: Number(fiber.getRef(MaxFieldSize)),
-      maxPartSize: UndefinedOr.map(fiber.getRef(MaxFileSize), Number),
-      maxTotalSize: UndefinedOr.map(fiber.getRef(IncomingMessage.MaxBodySize), Number),
+      maxFieldSize: fiber.getRef(MaxFieldSize),
+      maxPartSize: fiber.getRef(MaxFileSize),
+      maxTotalSize: fiber.getRef(IncomingMessage.MaxBodySize),
       isFile: mimeTypes.length === 0 ? undefined : (info: MP.PartInfo): boolean =>
         !mimeTypes.some(
           (_) => info.contentType.includes(_)
@@ -405,7 +454,7 @@ export const makeConfig = (
  * non-empty batches of parsed `Part` values, failing with `MultipartError` for
  * parser and limit failures.
  *
- * @category Parsers
+ * @category parsing
  * @since 4.0.0
  */
 export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channel<
@@ -420,6 +469,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
     Effect.map(makeConfig(headers), (config) => {
       let partsBuffer: Array<Part> = []
       let exit = Option.none<Exit.Exit<never, IE | MultipartError | Cause.Done>>()
+      let ended = false
 
       const parser = MP.make({
         ...config,
@@ -452,7 +502,9 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           exit = Option.some(Exit.fail(convertError(error_)))
         },
         onDone() {
-          exit = Option.some(Exit.fail(Cause.Done()))
+          if (Option.isNone(exit)) {
+            exit = Option.some(Exit.fail(Cause.Done()))
+          }
         }
       })
 
@@ -465,7 +517,10 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
         }),
         Effect.catchCause((cause) => {
           if (Pull.isDoneCause(cause)) {
-            parser.end()
+            if (!ended) {
+              ended = true
+              parser.end()
+            }
           } else {
             exit = Option.some(Exit.failCause(cause)) as any
           }
@@ -567,7 +622,7 @@ class FileImpl extends PartBase implements File {
     this.contentType = info.contentType
     this.content = Stream.fromChannel(channel)
     this.contentEffect = channel.pipe(
-      collectUint8Array,
+      Channel.mkUint8Array,
       Effect.mapError((cause) => MultipartError.fromReason("InternalError", cause))
     )
   }
@@ -600,24 +655,15 @@ const defaultWriteFile = (path: string, file: File) =>
  * **Gotchas**
  *
  * This materializes the full content in memory.
+ * The source channel must not reuse or mutate emitted buffers, which are retained
+ * until collection completes.
  *
  * @category converting
  * @since 4.0.0
  */
 export const collectUint8Array = <OE, OD, R>(
   self: Channel.Channel<Arr.NonEmptyReadonlyArray<Uint8Array>, OE, OD, unknown, unknown, unknown, R>
-): Effect.Effect<Uint8Array<ArrayBuffer>, OE, R> =>
-  Channel.runFold(self, constant(new Uint8Array(0)), (accumulator, chunk) => {
-    const totalLength = chunk.reduce((sum, element) => sum + element.length, accumulator.length)
-    const newAccumulator = new Uint8Array(totalLength)
-    newAccumulator.set(accumulator, 0)
-    let offset = accumulator.length
-    for (const element of chunk) {
-      newAccumulator.set(element, offset)
-      offset += element.length
-    }
-    return newAccumulator
-  })
+): Effect.Effect<Uint8Array<ArrayBuffer>, OE, R> => Channel.mkUint8Array(self)
 
 /**
  * Persists a stream of multipart parts into a record.
@@ -643,6 +689,8 @@ export const toPersisted = (
     const path_ = yield* Path.Path
     const dir = yield* fs.makeTempDirectoryScoped()
     const persisted: Record<string, Array<PersistedFile> | Array<string> | string> = Object.create(null)
+    const usedPaths = new Set<string>()
+    let fileIndex = 0
     yield* Stream.runForEach(stream, (part) => {
       if (part._tag === "Field") {
         if (!(part.key in persisted)) {
@@ -657,7 +705,12 @@ export const toPersisted = (
         return Effect.void
       }
       const file = part
-      const path = path_.join(dir, path_.basename(file.name).slice(-128))
+      const fileName = path_.basename(file.name).slice(-128)
+      let path = path_.join(dir, fileName)
+      while (usedPaths.has(path)) {
+        path = path_.join(dir, `${fileIndex++}-${fileName}`)
+      }
+      usedPaths.add(path)
       const filePart = new PersistedFileImpl(
         file.key,
         file.name,
@@ -721,9 +774,9 @@ class PersistedFileImpl extends PartBase implements PersistedFile {
  */
 export const limitsServices = (options: {
   readonly maxParts?: number | undefined
-  readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: FileSystem.SizeInput | undefined
-  readonly maxTotalSize?: FileSystem.SizeInput | undefined
+  readonly maxFieldSize?: ByteSize.Input | undefined
+  readonly maxFileSize?: ByteSize.Input | undefined
+  readonly maxTotalSize?: ByteSize.Input | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Context.Context<never> => {
   const map = new Map<string, unknown>()
@@ -731,13 +784,13 @@ export const limitsServices = (options: {
     map.set(MaxParts.key, options.maxParts)
   }
   if (options.maxFieldSize !== undefined) {
-    map.set(MaxFieldSize.key, FileSystem.Size(options.maxFieldSize))
+    map.set(MaxFieldSize.key, ByteSize.fromInputUnsafe(options.maxFieldSize))
   }
   if (options.maxFileSize !== undefined) {
-    map.set(MaxFileSize.key, UndefinedOr.map(options.maxFileSize, FileSystem.Size))
+    map.set(MaxFileSize.key, ByteSize.fromInputUnsafe(options.maxFileSize))
   }
   if (options.maxTotalSize !== undefined) {
-    map.set(IncomingMessage.MaxBodySize.key, UndefinedOr.map(options.maxTotalSize, FileSystem.Size))
+    map.set(IncomingMessage.MaxBodySize.key, ByteSize.fromInputUnsafe(options.maxTotalSize))
   }
   if (options.fieldMimeTypes !== undefined) {
     map.set(FieldMimeTypes.key, options.fieldMimeTypes)
@@ -759,14 +812,14 @@ export declare namespace withLimits {
    * These settings control maximum part count, field size, file size, total body
    * size, and MIME types that should be treated as fields instead of files.
    *
-   * @category fiber refs
+   * @category options
    * @since 4.0.0
    */
   export type Options = {
     readonly maxParts?: number | undefined
-    readonly maxFieldSize?: FileSystem.SizeInput | undefined
-    readonly maxFileSize?: FileSystem.SizeInput | undefined
-    readonly maxTotalSize?: FileSystem.SizeInput | undefined
+    readonly maxFieldSize?: ByteSize.Input | undefined
+    readonly maxFileSize?: ByteSize.Input | undefined
+    readonly maxTotalSize?: ByteSize.Input | undefined
     readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
   }
 }
@@ -778,7 +831,7 @@ export declare namespace withLimits {
  *
  * The default is `undefined`, meaning no explicit part-count limit.
  *
- * @category references
+ * @category services
  * @since 4.0.0
  */
 export const MaxParts = Context.Reference<number | undefined>("effect/http/Multipart/MaxParts", {
@@ -792,11 +845,11 @@ export const MaxParts = Context.Reference<number | undefined>("effect/http/Multi
  *
  * The default limit is 10 MiB.
  *
- * @category references
+ * @category services
  * @since 4.0.0
  */
-export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http/Multipart/MaxFieldSize", {
-  defaultValue: constant(FileSystem.Size(10 * 1024 * 1024))
+export const MaxFieldSize = Context.Reference<ByteSize.ByteSize>("effect/http/Multipart/MaxFieldSize", {
+  defaultValue: constant(ByteSize.mebibytes(10))
 })
 
 /**
@@ -806,10 +859,10 @@ export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http
  *
  * The default is `undefined`, meaning no explicit per-file limit.
  *
- * @category references
+ * @category services
  * @since 4.0.0
  */
-export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
+export const MaxFileSize = Context.Reference<ByteSize.ByteSize | undefined>(
   "effect/http/Multipart/MaxFileSize",
   { defaultValue: () => undefined }
 )
@@ -822,7 +875,7 @@ export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
  *
  * The default treats `application/json` parts as fields.
  *
- * @category references
+ * @category services
  * @since 4.0.0
  */
 export const FieldMimeTypes = Context.Reference<ReadonlyArray<string>>("effect/http/Multipart/FieldMimeTypes", {

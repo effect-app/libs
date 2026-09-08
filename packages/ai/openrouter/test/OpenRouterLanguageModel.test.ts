@@ -1,11 +1,54 @@
 import { Generated, OpenRouterClient, OpenRouterLanguageModel } from "@effect/ai-openrouter"
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Array, Context, Effect, Layer, Redacted, Ref, Schema } from "effect"
-import { LanguageModel, Prompt } from "effect/unstable/ai"
+import { Array, Context, Effect, Layer, Redacted, Ref, Schema, Stream } from "effect"
+import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenRouterLanguageModel", () => {
+  describe("strictJsonSchema", () => {
+    it.effect("omits false from requests while preserving response strictness", () =>
+      Effect.gen(function*() {
+        yield* LanguageModel.generateObject({
+          prompt: "Give me a name",
+          schema: Schema.Struct({ name: Schema.String })
+        }).pipe(Effect.provide(OpenRouterLanguageModel.model("openai/gpt-4o-mini", { strictJsonSchema: false })))
+
+        const requests = yield* MockHttpClient.requests
+        const body = yield* getRequestBody(requests[0])
+        strictEqual(body.response_format.json_schema.strict, false)
+        assert.notProperty(body, "strictJsonSchema")
+      }).pipe(Effect.provide(makeTestLayer({
+        body: {
+          choices: [{
+            finish_reason: "stop",
+            index: 0,
+            message: { role: "assistant", content: JSON.stringify({ name: "Alice" }) }
+          }]
+        }
+      }))))
+
+    it.effect("omits true from streaming requests while preserving tool strictness", () =>
+      Effect.gen(function*() {
+        const tool = Tool.make("FlexibleTool", { parameters: Schema.Struct({ query: Schema.String }) })
+          .annotate(Tool.Strict, false)
+        yield* LanguageModel.streamText({
+          prompt: "Use a tool",
+          toolkit: Toolkit.make(tool),
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runDrain,
+          Effect.provide(OpenRouterLanguageModel.model("openai/gpt-4o-mini", { strictJsonSchema: true }))
+        )
+
+        const requests = yield* MockHttpClient.requests
+        const body = yield* getRequestBody(requests[0])
+        strictEqual(body.stream, true)
+        strictEqual(body.tools[0].function.strict, false)
+        assert.notProperty(body, "strictJsonSchema")
+      }).pipe(Effect.provide(makeStreamTestLayer([]))))
+  })
+
   describe("generateText", () => {
     describe("message preparation", () => {
       describe("audio file parts", () => {
@@ -171,7 +214,215 @@ describe("OpenRouterLanguageModel", () => {
             }])
           }).pipe(Effect.provide(makeTestLayer())))
       })
+
+      it.effect("preserves string tool results", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: Prompt.make([
+              { role: "user", content: "Use the tool" },
+              {
+                role: "assistant",
+                content: [Prompt.toolCallPart({
+                  id: "call_text",
+                  name: "text_tool",
+                  params: {},
+                  providerExecuted: false
+                })]
+              },
+              {
+                role: "tool",
+                content: [Prompt.toolResultPart({
+                  id: "call_text",
+                  name: "text_tool",
+                  result: "PLAIN_TEXT_SENTINEL\n",
+                  isFailure: false,
+                  providerExecuted: false
+                })]
+              }
+            ]),
+            disableToolCallResolution: true
+          }).pipe(Effect.provide(OpenRouterLanguageModel.model("google/gemini-2.5-flash")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+          const toolResult = body.messages.find((message: any) => message.role === "tool")
+
+          assert.isDefined(toolResult)
+          strictEqual(toolResult.content, "PLAIN_TEXT_SENTINEL\n")
+        }).pipe(Effect.provide(makeTestLayer())))
     })
+
+    describe("tool preparation", () => {
+      it.effect("passes raw JSON schema for dynamic tools", () =>
+        Effect.gen(function*() {
+          const inputSchema = {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              limit: { type: "number" }
+            },
+            required: ["query"],
+            additionalProperties: false
+          } as const
+
+          const DynamicTool = Tool.dynamic("DynamicTool", {
+            description: "A dynamic tool",
+            parameters: inputSchema
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the dynamic tool",
+            toolkit: Toolkit.make(DynamicTool),
+            disableToolCallResolution: true
+          }).pipe(Effect.provide(OpenRouterLanguageModel.model("google/gemini-2.5-flash")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((entry: any) =>
+            entry.type === "function" && entry.function.name === "DynamicTool"
+          )
+          assert.isDefined(tool)
+          strictEqual(tool.function.description, "A dynamic tool")
+          deepStrictEqual(tool.function.parameters, inputSchema)
+        }).pipe(Effect.provide(makeTestLayer())))
+    })
+  })
+
+  describe("streamText", () => {
+    it.effect("preserves streamed citation start and end indexes", () =>
+      Effect.gen(function*() {
+        const parts = yield* LanguageModel.streamText({ prompt: "cite a source" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenRouterLanguageModel.model("openai/gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer([{
+            id: "response-1",
+            object: "chat.completion.chunk",
+            model: "openai/gpt-4o-mini",
+            created: 1,
+            choices: [{
+              index: 0,
+              delta: {
+                annotations: [{
+                  type: "url_citation",
+                  url_citation: {
+                    url: "https://example.com/source",
+                    title: "source",
+                    start_index: 2,
+                    end_index: 9
+                  }
+                }]
+              }
+            }]
+          }]))
+        )
+
+        const source = globalThis.Array.from(parts).find((part) => part.type === "source")
+        assert.isDefined(source)
+        if (source?.type === "source") {
+          assert.deepStrictEqual(source.metadata, {
+            openrouter: { startIndex: 2, endIndex: 9 }
+          })
+        }
+      }))
+
+    it.effect("uses lowercase openrouter reasoning-end metadata", () =>
+      Effect.gen(function*() {
+        const reasoningDetails = [{
+          type: "reasoning.text",
+          text: "thinking",
+          signature: "signature-final",
+          format: "unknown"
+        }] as const
+        const parts = yield* LanguageModel.streamText({ prompt: "reason then answer" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenRouterLanguageModel.model("openai/gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer([
+            {
+              id: "response-1",
+              object: "chat.completion.chunk",
+              model: "openai/gpt-4o-mini",
+              created: 1,
+              choices: [{ index: 0, delta: { reasoning_details: reasoningDetails } }]
+            },
+            {
+              id: "response-1",
+              object: "chat.completion.chunk",
+              model: "openai/gpt-4o-mini",
+              created: 1,
+              choices: [{ index: 0, finish_reason: "stop", delta: { content: "answer" } }]
+            }
+          ]))
+        )
+
+        const reasoningEnd = parts.find((part) => part.type === "reasoning-end")
+        deepStrictEqual(reasoningEnd?.metadata, { openrouter: { reasoningDetails } })
+      }))
+
+    it.effect("emits incremental tool parameter fragments", () =>
+      Effect.gen(function*() {
+        const ProbeTool = Tool.make("ProbeTool", {
+          parameters: Schema.Struct({ a: Schema.Number }),
+          success: Schema.String
+        })
+        const toolkit = Toolkit.make(ProbeTool)
+        const parts = yield* LanguageModel.streamText({
+          prompt: "call the tool",
+          toolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenRouterLanguageModel.model("openai/gpt-4o-mini")),
+          Effect.provide(toolkit.toLayer({ ProbeTool: () => Effect.succeed("ok") })),
+          Effect.provide(makeStreamTestLayer([
+            {
+              id: "response-1",
+              object: "chat.completion.chunk",
+              model: "openai/gpt-4o-mini",
+              created: 1,
+              choices: [{
+                index: 0,
+                delta: {
+                  tool_calls: [{
+                    index: 0,
+                    id: "call-1",
+                    type: "function",
+                    function: { name: "ProbeTool", arguments: "{\"a\":" }
+                  }]
+                }
+              }]
+            },
+            {
+              id: "response-1",
+              object: "chat.completion.chunk",
+              model: "openai/gpt-4o-mini",
+              created: 1,
+              choices: [{
+                index: 0,
+                delta: { tool_calls: [{ index: 0 }] }
+              }]
+            },
+            {
+              id: "response-1",
+              object: "chat.completion.chunk",
+              model: "openai/gpt-4o-mini",
+              created: 1,
+              choices: [{
+                index: 0,
+                finish_reason: "tool_calls",
+                delta: { tool_calls: [{ index: 0, function: { arguments: "1}" } }] }
+              }]
+            }
+          ]))
+        )
+
+        deepStrictEqual(
+          globalThis.Array.from(parts)
+            .filter((part) => part.type === "tool-params-delta")
+            .map((part) => part.delta),
+          ["{\"a\":", "1}"]
+        )
+      }))
   })
 })
 
@@ -237,6 +488,7 @@ const makeDefaultResponse = (
   created: 1234567890,
   model: "google/gemini-2.5-flash",
   object: "chat.completion",
+  system_fingerprint: null,
   ...overrides
 })
 
@@ -263,3 +515,30 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
     }
     return yield* Effect.die(new Error("Expected Uint8Array body"))
   })
+
+const makeStreamTestLayer = (events: ReadonlyArray<typeof Generated.ChatStreamChunk.Encoded>) => {
+  const body = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") + "data: [DONE]\n\n"
+  const httpClientLayer = Layer.effectContext(Effect.gen(function*() {
+    const capturedRequests = yield* Ref.make<ReadonlyArray<HttpClientRequest.HttpClientRequest>>([])
+    const httpClient = HttpClient.makeWith(
+      Effect.fnUntraced(function*(requestEffect) {
+        const request = yield* requestEffect
+        yield* Ref.update(capturedRequests, Array.append(request))
+        return HttpClientResponse.fromWeb(
+          request,
+          new Response(body, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" }
+          })
+        )
+      }),
+      Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
+    )
+    return Context.make(HttpClient.HttpClient, httpClient).pipe(
+      Context.add(MockHttpClient, MockHttpClient.of({ requests: Ref.get(capturedRequests) }))
+    )
+  }))
+  return OpenRouterClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+    Layer.provideMerge(httpClientLayer)
+  )
+}

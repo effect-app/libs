@@ -29,8 +29,8 @@ const CodegenLayer = Layer.provideMerge(Codegen.layer, Glob.layer)
  * @since 4.0.0
  */
 export const codegen = Command.make("codegen", {
-  cwd: Flag.directory("cwd", { mustExist: true }).pipe(Flag.withDefault(".")),
-  pattern: Flag.string("pattern").pipe(Flag.withDefault("src/**/index.ts"))
+  cwd: Flag.Directory("cwd", { mustExist: true }).pipe(Flag.withDefault(".")),
+  pattern: Flag.String("pattern").pipe(Flag.withDefault("src/**/index.ts"))
 }, (config) =>
   Effect.gen(function*() {
     const path = yield* Path.Path
@@ -38,7 +38,7 @@ export const codegen = Command.make("codegen", {
     const files = yield* generator.discoverFiles(config.pattern, path.resolve(config.cwd))
 
     yield* Effect.forEach(files, (file) => generator.processFile(file), {
-      concurrency: "inherit",
+      concurrency: "unbounded",
       discard: true
     })
   })).pipe(Command.provide(CodegenLayer))

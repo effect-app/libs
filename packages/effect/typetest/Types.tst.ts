@@ -14,6 +14,10 @@ describe("Types", () => {
       .type.toBe<[]>()
     expect<Types.TupleOf<3, number>>()
       .type.toBe<[number, number, number]>()
+    expect<Types.TupleOf<1.5, number>>()
+      .type.toBe<Array<number>>()
+    expect<Types.TupleOf<-1.5, number>>()
+      .type.toBe<never>()
   })
 
   it("TupleOfAtLeast", () => {
@@ -101,6 +105,46 @@ describe("Types", () => {
     it("optionality of non involved keys must be preserved", () => {
       expect<Types.MergeRight<{ readonly a?: number; b: number }, { readonly c?: string }>>()
         .type.toBe<{ readonly c?: string; readonly a?: number; b: number }>()
+    })
+  })
+
+  describe("RequiredKeys", () => {
+    it("retains named required keys with string, number and symbol indexes", () => {
+      const key = Symbol()
+      expect<
+        Types.RequiredKeys<{ readonly a: number; optional?: number; [key: string]: number | undefined }>
+      >().type.toBe<"a">()
+      expect<Types.RequiredKeys<{ 0: number; [key: number]: number }>>().type.toBe<0>()
+      expect<Types.RequiredKeys<{ [key]: number; [key: symbol]: number }>>().type.toBe<typeof key>()
+    })
+
+    it("excludes index signatures and optional properties", () => {
+      expect<Types.RequiredKeys<Record<string, number>>>().type.toBe<never>()
+      expect<Types.RequiredKeys<{ optional?: number; [key: string]: number | undefined }>>().type.toBe<never>()
+    })
+
+    it("extracts required keys without an index signature", () => {
+      expect<Types.RequiredKeys<{ a: number; b?: string }>>().type.toBe<"a">()
+    })
+
+    it("retains named keys on intersections and indexed unions", () => {
+      expect<Types.RequiredKeys<{ a: number } & { [key: string]: number }>>().type.toBe<"a">()
+      expect<
+        Types.RequiredKeys<
+          | { a: number; [key: string]: number }
+          | { a: number; b: string; [key: string]: unknown }
+        >
+      >().type.toBe<"a">()
+    })
+
+    it("preserves the mixed indexed union result", () => {
+      expect<Types.RequiredKeys<{ a: number; [key: string]: number } | { b: string }>>().type.toBe<"b">()
+    })
+
+    it("preserves array and tuple behavior", () => {
+      type Legacy<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
+      expect<Types.RequiredKeys<ReadonlyArray<number>>>().type.toBe<Legacy<ReadonlyArray<number>>>()
+      expect<Types.RequiredKeys<[number, string?]>>().type.toBe<Legacy<[number, string?]>>()
     })
   })
 

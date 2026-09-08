@@ -20,8 +20,9 @@ import type { HttpPlatform } from "../http/HttpPlatform.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
+import * as preResponseHandler from "../http/internal/preResponseHandler.ts"
 import type * as HttpApi from "./HttpApi.ts"
-import type { Handlers } from "./HttpApiBuilder.ts"
+import type { HandlerRuntime } from "./HttpApiBuilder.ts"
 import * as HttpApiBuilder from "./HttpApiBuilder.ts"
 import * as HttpApiClient from "./HttpApiClient.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
@@ -40,12 +41,12 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
  */
 export const groups = Effect.fnUntraced(function*<
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
-  const Names extends ReadonlyArray<HttpApiGroup.Name<Groups>>,
-  SelectedGroups = HttpApiGroup.WithName<Groups, Names[number]>
+  Groups extends HttpApiGroup.Constraint,
+  const Identifiers extends ReadonlyArray<HttpApiGroup.Identifier<Groups>>,
+  SelectedGroups extends HttpApiGroup.Constraint = HttpApiGroup.WithIdentifier<Groups, Identifiers[number]>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupNames: Names,
+  groupIdentifiers: Identifiers,
   options?: {
     readonly baseUrl?: string | URL | undefined
   }
@@ -63,22 +64,23 @@ export const groups = Effect.fnUntraced(function*<
 > {
   let context = yield* Effect.context<HttpApiGroup.ToService<ApiId, SelectedGroups>>()
 
-  for (const name in api.groups) {
-    const group = api.groups[name]
-    if (groupNames.includes(name as any)) {
+  const groups = api.groups as unknown as Record<string, HttpApiGroup.Top>
+  for (const identifier in groups) {
+    const group = groups[identifier]
+    if (groupIdentifiers.includes(identifier as any)) {
       continue
     }
-    const handlers = new Map<string, Handlers.Item<never>>()
+    const handlers = new Map<string, HandlerRuntime>()
     const routes: Array<HttpRouter.Route<any, any>> = []
-    for (const endpointName in group.endpoints) {
-      const endpoint = group.endpoints[endpointName]
-      const handler: Handlers.Item<never> = {
+    for (const endpointIdentifier in group.endpoints) {
+      const endpoint = group.endpoints[endpointIdentifier]
+      const handler: HandlerRuntime = {
         endpoint: endpoint as any,
-        handler: () => Effect.die(new Error(`Unhandled endpoint: ${endpointName}`)),
+        handler: () => Effect.die(new Error(`Unhandled endpoint: ${endpointIdentifier}`)),
         isRaw: false,
         uninterruptible: false
       }
-      handlers.set(endpointName, handler)
+      handlers.set(endpointIdentifier, handler)
       routes.push(HttpApiBuilder.handlerToRoute(group as any, handler, context))
     }
     context = Context.add(context, group as any, { handlers, routes })
@@ -99,10 +101,14 @@ export const groups = Effect.fnUntraced(function*<
   const httpClient = HttpClient.make(Effect.fnUntraced(function*(request) {
     const serverRequest = HttpServerRequest.fromClientRequest(request)
     const response = yield* handler.pipe(
+      Effect.flatMap((response) => {
+        const preResponse = preResponseHandler.requestPreResponseHandlers.get(serverRequest.source)
+        return preResponse === undefined ? Effect.succeed(response) : preResponse(serverRequest, response)
+      }),
       Effect.provideService(HttpServerRequest.HttpServerRequest, serverRequest),
       Effect.orDie
     )
-    return HttpServerResponse.toClientResponse(response)
+    return HttpServerResponse.toClientResponse(response, { request })
   }, Effect.scoped))
 
   return yield* HttpApiClient.makeWith(api, {

@@ -1,12 +1,14 @@
-import { DateTime, Effect, Option, Result, SchemaGetter } from "effect"
-import { describe, it } from "vitest"
+import { assert, describe, it } from "@effect/vitest"
+import { DateTime, Effect, Option, Result, SchemaGetter, SchemaIssue } from "effect"
 import { assertSome, deepStrictEqual } from "../utils/assert.ts"
+
+const formatIssue = SchemaIssue.makeFormatterDefault()
 
 function makeAsserts<T, E>(getter: SchemaGetter.Getter<T, E>) {
   return async (input: E, expected: T) => {
     const r = await Effect.runPromise(
       getter.run(Option.some(input), {}).pipe(
-        Effect.mapError((issue) => issue.toString()),
+        Effect.mapError(formatIssue),
         Effect.result
       )
     )
@@ -15,6 +17,21 @@ function makeAsserts<T, E>(getter: SchemaGetter.Getter<T, E>) {
 }
 
 describe("SchemaGetter", () => {
+  it.effect("forbiddenEncoding", () =>
+    Effect.gen(function*() {
+      const getter: SchemaGetter.Getter<string, number> = SchemaGetter.forbiddenEncoding
+      const issue = yield* getter.run(Option.some(1), {}).pipe(Effect.flip)
+
+      assert.strictEqual(issue._tag, "Forbidden")
+      assert.strictEqual(formatIssue(issue), "Encoding is not supported")
+    }))
+
+  it.effect("stringifyJson fails when JSON.stringify returns undefined", () =>
+    SchemaGetter.stringifyJson().run(Option.some(undefined), {}).pipe(
+      Effect.flip,
+      Effect.map((issue) => assert.strictEqual(issue._tag, "InvalidValue"))
+    ))
+
   it("map", () => {
     const getter = SchemaGetter.succeed(1).map((t) => t + 1)
     const result = Effect.runSync(getter.run(Option.some(1), {}))
@@ -27,6 +44,93 @@ describe("SchemaGetter", () => {
     await decoding("2020-02-01T11:17:00+1100", DateTime.makeUnsafe("2020-02-01T00:17:00.000Z"))
     // should support strings with explicit GMT zone
     await decoding("Tue, 27 Jan 2026 17:14:06 GMT", DateTime.makeUnsafe("2026-01-27T17:14:06.000Z"))
+  })
+
+  describe("makeTreeRecord", () => {
+    it("preserves array-valued leaves at duplicate paths", () => {
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["permissions", ["read"]],
+          ["permissions", ["write"]],
+          ["permissions", ["share"]]
+        ]),
+        { permissions: [["read"], ["write"], ["share"]] }
+      )
+    })
+
+    it("replaces conflicting leaf values with containers", () => {
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a", "x"],
+          ["a[b]", "y"]
+        ]),
+        { a: { b: "y" } }
+      )
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a", "x"],
+          ["a[0]", "y"]
+        ]),
+        { a: ["y"] }
+      )
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a", Object.freeze({ value: "x" })],
+          ["a[b]", { value: "y" }]
+        ]),
+        { a: { b: { value: "y" } } }
+      )
+    })
+
+    it("replaces conflicting object and array containers", () => {
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a[b]", "x"],
+          ["a[0]", "y"]
+        ]),
+        { a: ["y"] }
+      )
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a[0]", "x"],
+          ["a[b]", "y"]
+        ]),
+        { a: { b: "y" } }
+      )
+    })
+
+    it("reinitializes own undefined values before descending", () => {
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a", undefined],
+          ["a[b]", 1]
+        ]),
+        { a: { b: 1 } }
+      )
+    })
+
+    it("reinitializes own undefined values at numeric indexes", () => {
+      deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["a[0]", undefined],
+          ["a[0][b]", 1]
+        ]),
+        { a: [{ b: 1 }] }
+      )
+    })
+
+    it("preserves invalid array index segments as object keys", () => {
+      assert.deepStrictEqual(
+        SchemaGetter.makeTreeRecord([
+          ["leading[01]", "a"],
+          ["overflow[4294967295]", "b"]
+        ]),
+        {
+          leading: { "01": "a" },
+          overflow: { "4294967295": "b" }
+        }
+      )
+    })
   })
 
   describe("decodeFormData / encodeFormData", () => {
@@ -223,6 +327,23 @@ describe("SchemaGetter", () => {
       }
       await decoding(formData, object)
     })
+
+    it("stores __proto__ paths as own properties", async () => {
+      const pollutedKey = "__effectSchemaPolluted"
+      Reflect.deleteProperty(Object.prototype, pollutedKey)
+      try {
+        const formData = new FormData()
+        formData.append(`__proto__[${pollutedKey}]`, "yes")
+        await decoding(formData, {
+          ["__proto__"]: {
+            [pollutedKey]: "yes"
+          }
+        })
+        assert.isFalse(Object.hasOwn(Object.prototype, pollutedKey))
+      } finally {
+        Reflect.deleteProperty(Object.prototype, pollutedKey)
+      }
+    })
   })
 
   describe("decodeURLSearchParams / encodeURLSearchParams", () => {
@@ -378,6 +499,24 @@ describe("SchemaGetter", () => {
         tags: ["a", "b"]
       }
       await decoding(urlSearchParams, object)
+    })
+
+    it("does not traverse inherited constructor paths", async () => {
+      const pollutedKey = "__effectSchemaPolluted"
+      Reflect.deleteProperty(Object.prototype, pollutedKey)
+      try {
+        const urlSearchParams = new URLSearchParams(`constructor[prototype][${pollutedKey}]=yes`)
+        await decoding(urlSearchParams, {
+          constructor: {
+            prototype: {
+              [pollutedKey]: "yes"
+            }
+          }
+        })
+        assert.isFalse(Object.hasOwn(Object.prototype, pollutedKey))
+      } finally {
+        Reflect.deleteProperty(Object.prototype, pollutedKey)
+      }
     })
   })
 })

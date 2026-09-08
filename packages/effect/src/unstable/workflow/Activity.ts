@@ -117,6 +117,13 @@ export interface AnyWithProps {
  * Creates a workflow activity from an effect, using the provided schemas to
  * encode successes and failures for durable execution.
  *
+ * **Gotchas**
+ *
+ * Only completed activity results are memoized. If the activity suspends while
+ * awaiting child workflows or a durable clock, its body runs again when the
+ * parent workflow replays. Side effects before the suspension can repeat;
+ * make those side effects idempotent.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -178,26 +185,31 @@ export const make = <
   return self
 }
 
-const interruptRetryPolicy = Schedule.exponential(4.0, 1.5).pipe(
-  Schedule.either(Schedule.spaced("10 seconds")),
-  Schedule.either(Schedule.recurs(10)),
-  Schedule.satisfiesInputType<Cause.Cause<unknown>>(),
-  Schedule.while((meta) => Effect.succeed(Cause.hasInterrupts(meta.input)))
+const interruptRetryPolicy = Schedule.min([
+  Schedule.exponential(400, 1.5),
+  Schedule.spaced("10 seconds")
+]).pipe(
+  Schedule.setInputType<Cause.Cause<unknown>>(),
+  Schedule.while((meta) => meta.attempt <= 10 && Cause.hasInterrupts(meta.input))
 )
 
 const retryOnInterrupt = (
   name: string,
   policy: Schedule.Schedule<any, Cause.Cause<unknown>> = interruptRetryPolicy
 ) =>
-<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  effect.pipe(
-    Effect.sandbox,
-    Effect.retry(policy),
-    Effect.catch((cause) => {
-      if (!Cause.hasInterrupts(cause)) return Effect.failCause(cause)
-      return Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
-    })
-  )
+<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R | WorkflowInstance> =>
+  Effect.flatMap(InstanceTag, (instance) =>
+    effect.pipe(
+      Effect.sandbox,
+      // A suspension interrupts the activity body on purpose and must surface
+      // as a suspended result instead of being retried.
+      Effect.retry({ schedule: policy, while: () => !instance.suspended }),
+      Effect.catch((cause) =>
+        Cause.hasInterrupts(cause) && !instance.suspended
+          ? Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
+          : Effect.failCause(cause)
+      )
+    ))
 
 /**
  * Retries an effect with `Effect.retry` while updating `CurrentAttempt` for
@@ -227,7 +239,7 @@ export const retry: {
  * Context reference containing the current activity retry attempt, defaulting
  * to `1`.
  *
- * @category Attempts
+ * @category services
  * @since 4.0.0
  */
 export const CurrentAttempt = Context.Reference<number>(
@@ -239,7 +251,7 @@ export const CurrentAttempt = Context.Reference<number>(
  * Computes a deterministic activity idempotency key from the current workflow
  * execution ID, the supplied name, and optionally the current attempt.
  *
- * @category Idempotency
+ * @category idempotency
  * @since 4.0.0
  */
 export const idempotencyKey: (

@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Option, Predicate, Ref, Schema } from "effect"
+import { Effect, Layer, Predicate, Ref, Schema } from "effect"
 import { TestClock } from "effect/testing"
-import { Chat, IdGenerator, Prompt } from "effect/unstable/ai"
+import { Chat, IdGenerator, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { Persistence } from "effect/unstable/persistence"
 import * as TestUtils from "./utils.ts"
 
@@ -12,11 +12,48 @@ const withConstantIdGenerator = (id: string) =>
 
 const PersistenceLayer = Layer.provideMerge(
   Chat.layerPersisted({ storeId: "chat" }),
-  Persistence.layerMemory
+  Persistence.layerBackingMemory
 )
 
 describe("Chat", () => {
-  it("should persist chat history to the backing persistence store", () =>
+  it.effect("does not replay a completed approved tool", () => {
+    let executions = 0
+    const toolkit = Toolkit.make(Tool.make("Counter", {
+      parameters: Schema.Struct({}),
+      success: Schema.Number,
+      needsApproval: true
+    }))
+
+    return Effect.gen(function*() {
+      const chat = yield* Chat.empty
+      const initial = yield* chat.generateText({ prompt: "Run the counter", toolkit }).pipe(
+        TestUtils.withLanguageModel({
+          generateText: [{ type: "tool-call", id: "counter-call", name: "Counter", params: {} }]
+        })
+      )
+      const approval = initial.content.find((part) => part.type === "tool-approval-request")
+      assert.isDefined(approval)
+
+      yield* chat.generateText({
+        toolkit,
+        prompt: [Prompt.toolMessage({
+          content: [Prompt.toolApprovalResponsePart({ approvalId: approval.approvalId, approved: true })]
+        })]
+      }).pipe(
+        TestUtils.withLanguageModel({ generateText: [{ type: "text", text: "Complete" }] })
+      )
+
+      yield* chat.generateText({ prompt: "Continue", toolkit }).pipe(
+        TestUtils.withLanguageModel({ generateText: [{ type: "text", text: "Continued" }] })
+      )
+
+      assert.strictEqual(executions, 1)
+    }).pipe(
+      Effect.provide(toolkit.toLayer({ Counter: () => Effect.sync(() => ++executions) }))
+    )
+  })
+
+  it.effect("should persist chat history to the backing persistence store", () =>
     Effect.gen(function*() {
       const storeId = "chat"
       const chatId = "1"
@@ -52,7 +89,7 @@ describe("Chat", () => {
       assert.deepStrictEqual(chatHistory, storedHistory)
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
-  it("should respect the specified time to live", () =>
+  it.effect("should respect the specified time to live", () =>
     Effect.gen(function*() {
       const storeId = "chat"
       const chatId = "1"
@@ -92,10 +129,10 @@ describe("Chat", () => {
 
       const afterExpiration = yield* store.get(chatId)
 
-      assert.deepStrictEqual(afterExpiration, Option.none())
+      assert.isUndefined(afterExpiration)
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
-  it("should prefer the message identifier of the most recent assistant message", () =>
+  it.effect("should prefer the message identifier of the most recent assistant message", () =>
     Effect.gen(function*() {
       const storeId = "chat"
       const chatId = "2"
@@ -135,7 +172,7 @@ describe("Chat", () => {
       assert.deepStrictEqual(storedHistory, expectedHistory)
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
-  it("should raise an error when retrieving a chat that does not exist", () =>
+  it.effect("should raise an error when retrieving a chat that does not exist", () =>
     Effect.gen(function*() {
       const persistence = yield* Chat.Persistence
 

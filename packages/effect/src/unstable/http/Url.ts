@@ -9,10 +9,65 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
+import * as Data from "../../Data.ts"
 import { dual } from "../../Function.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as UrlParams from "./UrlParams.ts"
+
+/**
+ * Error returned when constructing a `URL` fails.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class UrlError extends Data.TaggedError("UrlError")<{
+  readonly cause: unknown
+}> {}
+
+/**
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
+ *
+ * **Details**
+ *
+ * Returns a `Result` that fails with `UrlError` if the URL cannot be constructed.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const make = (
+  url: string,
+  params: UrlParams.UrlParams,
+  hash: string | undefined
+): Result.Result<URL, UrlError> =>
+  Result.try({
+    try: () => {
+      const urlInstance = new URL(url, baseUrl())
+      for (let i = 0; i < params.params.length; i++) {
+        const [key, value] = params.params[i]
+        if (value !== undefined) {
+          urlInstance.searchParams.append(key, value)
+        }
+      }
+      if (hash !== undefined) {
+        urlInstance.hash = hash
+      }
+      return urlInstance
+    },
+    catch: (cause) => new UrlError({ cause })
+  })
+
+const baseUrl = (): string | undefined => {
+  if (
+    "location" in globalThis &&
+    globalThis.location !== undefined &&
+    globalThis.location.origin !== undefined &&
+    globalThis.location.pathname !== undefined
+  ) {
+    return location.origin + location.pathname
+  }
+  return undefined
+}
 
 /**
  * Parses a URL string safely into a `URL` object, returning a `Result` type for
@@ -33,7 +88,7 @@ import * as UrlParams from "./UrlParams.ts"
  *
  * **Example** (Parsing absolute and relative URLs)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Result } from "effect"
  * import { Url } from "effect/unstable/http"
  *
@@ -43,22 +98,12 @@ import * as UrlParams from "./UrlParams.ts"
  * //      ▼
  * const parsed = Url.fromString("https://example.com/path")
  *
- * if (Result.isSuccess(parsed)) {
- *   console.log("Parsed URL:", parsed.success.toString())
- * } else {
- *   console.log("Error:", parsed.failure.message)
- * }
- * // Output: Parsed URL: https://example.com/path
+ * Result.map(parsed, (url) => url.toString()) // => Result.succeed("https://example.com/path")
  *
  * // Parse a relative URL with a base
  * const relativeParsed = Url.fromString("/relative-path", "https://example.com")
  *
- * if (Result.isSuccess(relativeParsed)) {
- *   console.log("Parsed relative URL:", relativeParsed.success.toString())
- * } else {
- *   console.log("Error:", relativeParsed.failure.message)
- * }
- * // Output: Parsed relative URL: https://example.com/relative-path
+ * Result.map(relativeParsed, (url) => url.toString()) // => Result.succeed("https://example.com/relative-path")
  * ```
  *
  * @category constructors
@@ -78,7 +123,7 @@ export const fromString: {
  *
  * **Example** (Mutating URL credentials)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Url } from "effect/unstable/http"
  *
  * const myUrl = new URL("https://example.com")
@@ -88,11 +133,10 @@ export const fromString: {
  *   url.password = "pass"
  * })
  *
- * console.log("Mutated:", mutatedUrl.toString())
- * // Output: Mutated: https://user:pass@example.com/
+ * mutatedUrl.toString() // => "https://user:pass@example.com/"
  * ```
  *
- * @category modifiers
+ * @category transforming
  * @since 4.0.0
  */
 export const mutate: {
@@ -240,7 +284,7 @@ export const setUsername: {
  *
  * **Example** (Replacing query parameters)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Url, UrlParams } from "effect/unstable/http"
  *
  * const myUrl = new URL("https://example.com?foo=bar")
@@ -251,19 +295,18 @@ export const setUsername: {
  *   UrlParams.fromInput([["key", "value"]])
  * )
  *
- * console.log(updatedUrl.toString())
- * // Output: https://example.com/?key=value
+ * updatedUrl.toString() // => "https://example.com/?key=value"
  * ```
  *
  * @category setters
  * @since 4.0.0
  */
 export const setUrlParams: {
-  (urlParams: UrlParams.UrlParams): (url: URL) => URL
-  (url: URL, urlParams: UrlParams.UrlParams): URL
-} = dual(2, (url: URL, searchParams: UrlParams.UrlParams) =>
+  (urlParams: UrlParams.Input): (url: URL) => URL
+  (url: URL, urlParams: UrlParams.Input): URL
+} = dual(2, (url: URL, urlParams: UrlParams.Input) =>
   mutate(url, (url) => {
-    url.search = UrlParams.toString(searchParams)
+    url.search = UrlParams.toString(UrlParams.fromInput(urlParams))
   }))
 
 /**
@@ -277,16 +320,15 @@ export const setUrlParams: {
  *
  * **Example** (Reading query parameters)
  *
- * ```ts
- * import { Url } from "effect/unstable/http"
+ * ```ts import.meta.vitest
+ * import { Url, UrlParams } from "effect/unstable/http"
  *
  * const myUrl = new URL("https://example.com?foo=bar")
  *
  * // Read parameters
  * const params = Url.urlParams(myUrl)
  *
- * console.log(params)
- * // Output: [ [ 'foo', 'bar' ] ]
+ * UrlParams.toString(params) // => "foo=bar"
  * ```
  *
  * @category getters
@@ -306,24 +348,23 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  *
  * **Example** (Modifying query parameters)
  *
- * ```ts
+ * ```ts import.meta.vitest
  * import { Url, UrlParams } from "effect/unstable/http"
  *
  * const myUrl = new URL("https://example.com?foo=bar")
  *
  * const changedUrl = Url.modifyUrlParams(myUrl, UrlParams.append("key", "value"))
  *
- * console.log(changedUrl.toString())
- * // Output: https://example.com/?foo=bar&key=value
+ * changedUrl.toString() // => "https://example.com/?foo=bar&key=value"
  * ```
  *
- * @category modifiers
+ * @category transforming
  * @since 4.0.0
  */
 export const modifyUrlParams: {
-  (f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): (url: URL) => URL
-  (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): URL
-} = dual(2, (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams) =>
+  (f: (urlParams: UrlParams.UrlParams) => UrlParams.Input): (url: URL) => URL
+  (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.Input): URL
+} = dual(2, (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.Input) =>
   mutate(url, (url) => {
     const params = f(UrlParams.fromInput(url.searchParams))
     url.search = UrlParams.toString(params)

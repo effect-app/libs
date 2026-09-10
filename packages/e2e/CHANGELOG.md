@@ -1,5 +1,13 @@
 # @effect-app/e2e
 
+## 4.0.0-beta.319
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.319
+- @effect-app/infra@4.0.0-beta.319
+- @effect-app/vue@4.0.0-beta.319
+
 ## 4.0.0-beta.318
 
 ### Patch Changes

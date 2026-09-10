@@ -424,6 +424,7 @@
     "tidy-derived-dependencies",
     "tidy-dprint-oxlint-config",
     "tidy-effects-diagnose",
+    "tidy-forms-report",
     "tidy-pans-rule",
     "tidy-poets-think",
     "tidy-remaining-formatting",

@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.319
+
+### Patch Changes
+
+- 2476064: Handle string form validation errors in OmegaForm.Errors without crashing, and safely ignore unsupported error values.
+  - effect-app@4.0.0-beta.319
+  - @effect-app/vue@4.0.0-beta.319
+
 ## 4.0.0-beta.318
 
 ### Patch Changes

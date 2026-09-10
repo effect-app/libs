@@ -679,6 +679,7 @@ describe("SpecialJsonSchema", () => {
       dialect: "draft-2020-12",
       schema: {
         "type": "object",
+        "additionalProperties": true,
         "properties": {
           "status": { "type": "string" }
         }
@@ -713,6 +714,7 @@ describe("SpecialJsonSchema", () => {
       dialect: "draft-2020-12",
       schema: {
         "type": "object",
+        "additionalProperties": true,
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
@@ -779,6 +781,7 @@ describe("SpecialJsonSchema", () => {
       dialect: "draft-2020-12",
       schema: {
         "type": "object",
+        "additionalProperties": true,
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
@@ -1125,6 +1128,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     // null variant preserved (correct JSON Schema for NullOr)
     expect(doc.schema).toStrictEqual({
       type: "object",
+      additionalProperties: true,
       properties: {
         note: {
           anyOf: [

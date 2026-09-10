@@ -13,3 +13,4 @@ Breaking API updates from this RC:
 - `SchemaTransformation.transformOrFail` renamed to `transformEffect`
 - `Fiber.currentSpan` moved to `fiber.cache.span`
 - HTTP server addresses are `InetAddressV4`/`InetAddressV6` instead of `TcpAddress`
+- Object JSON Schema now emits `additionalProperties: true`

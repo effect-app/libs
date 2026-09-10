@@ -156,14 +156,15 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
     const members = ast.types.map((t) => t.literal)
     return new S.AST.Union(
       ast.types,
-      ast.mode,
+      ast.options,
       {
         ...ast.annotations,
         message: trans("validation.not_a_valid", { type: "select", message: members.join(", ") })
       },
       ast.checks,
       ast.encoding,
-      ast.context
+      ast.context,
+      ast.encodingChecks
     )
   }
   // Mixed unions (e.g. `S.NullOr(S.Literals(...))` → Union<Null, Union<Literals>>)
@@ -175,11 +176,12 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
     if (!changed) return ast
     return new S.AST.Union(
       newTypes,
-      ast.mode,
+      ast.options,
       ast.annotations,
       ast.checks,
       ast.encoding,
-      ast.context
+      ast.context,
+      ast.encodingChecks
     )
   }
   if (S.AST.isArrays(ast)) {
@@ -207,7 +209,8 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
       annotations,
       ast.checks,
       ast.encoding,
-      ast.context
+      ast.context,
+      ast.encodingChecks
     )
   }
   if (S.AST.isObjects(ast)) {
@@ -223,7 +226,8 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
       ast.annotations,
       ast.checks,
       ast.encoding,
-      ast.context
+      ast.context,
+      ast.encodingChecks
     )
   }
   return ast

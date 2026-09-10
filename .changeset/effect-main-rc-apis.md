@@ -14,3 +14,4 @@ Breaking API updates from this RC:
 - `Fiber.currentSpan` moved to `fiber.cache.span`
 - HTTP server addresses are `InetAddressV4`/`InetAddressV6` instead of `TcpAddress`
 - Object JSON Schema now emits `additionalProperties: true`
+- Schema `Union` AST stores matching as `options.mode` instead of `mode`

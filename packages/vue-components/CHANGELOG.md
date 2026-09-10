@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.320
+
+### Patch Changes
+
+- cbf7488: Render indexed OmegaForm inputs outside form.Array and avoid duplicate error entries for registered array fields.
+  - effect-app@4.0.0-beta.320
+  - @effect-app/vue@4.0.0-beta.320
+
 ## 4.0.0-beta.319
 
 ### Patch Changes

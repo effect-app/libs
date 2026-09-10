@@ -1,36 +1,36 @@
 {
-  "$schema": "./node_modules/@effect/tsgo/oxlint-schema.json",
-  "extends": ["./packages/eslint-shared-config/src/oxlintrc.json"],
-  "options": {
-    "typeAware": true
-  },
-  "plugins": ["effecttsgo"],
-  "rules": {
-    "effecttsgo/any-unknown-in-error-context": "off",
-    "effecttsgo/effect-fn-iife": "off",
-    "effecttsgo/global-error-in-effect-catch": "off",
-    "effecttsgo/layer-merge-all-with-dependencies": "off",
-    "effecttsgo/lazy-effect": "off",
-    "effecttsgo/return-effect-in-gen": "off",
-    "effecttsgo/run-effect-inside-effect": "off",
-    "effecttsgo/schema-sync-in-effect": "off",
-    "effecttsgo/strict-effect-provide": "off",
-    "effecttsgo/unknown-in-effect-catch": "off",
-    "effecttsgo/missing-effect-service-dependency": "error",
-    "effecttsgo/effect-fn-opportunity": "warn",
-    "effecttsgo/global-error-in-effect-failure": "warn",
-    "effecttsgo/prefer-schema-over-json": "warn"
-  },
-  // ignorePatterns overwrites (not merges) the base — all standard patterns must be repeated here.
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "extends": ["./packages/tools/oxc/oxlintrc.json"],
   "ignorePatterns": [
-    "**/dist/**",
-    "**/node_modules/**",
-    "**/*.d.ts",
-    "**/*.js",
-    "**/*.jsx",
-    "**/vitest.config.ts",
-    "**/eslint.*.mjs",
+    "LLMS.md",
+    "**/dist",
+    "**/build",
+    "**/docs",
+    "**/*.tsbuildinfo",
     "**/CHANGELOG.md",
-    "repos/**"
-  ]
+    "packages/effect/typeperf/**/*",
+    "packages/effect/src/StandardSchema.ts",
+    "!scratchpad/**/*",
+    "**/.*",
+    "!.agents",
+    "!.agents/**/*",
+    "!.changeset",
+    "!.changeset/**/*",
+    "!.envrc",
+    "!.github",
+    "!.github/**/*",
+    "!.gitignore",
+    "!.oxlintrc.json",
+    "!.vscode",
+    "!.vscode/**/*"
+  ],
+  "jsPlugins": ["@effect/oxc/oxlint"],
+  "overrides": [{
+    "files": ["**/{test,typetest,examples,ai-docs,benchmark,bundle,scripts,scratchpad}/**"],
+    "rules": {
+      "effect/no-bigint-literals": "off",
+      "eslint/no-console": "off",
+      "effect/no-import-from-barrel-package": "off"
+    }
+  }]
 }

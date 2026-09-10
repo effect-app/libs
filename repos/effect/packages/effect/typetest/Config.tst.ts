@@ -55,13 +55,4 @@ describe("Config", () => {
     // @ts-expect-error Expected 1 arguments, but got 2.
     config.parse(provider, ["prefix"])
   })
-
-  it("parse", () => {
-    const config = Config.string("a")
-    const provider = ConfigProvider.fromUnknown({ a: "value" })
-
-    config.parse(provider)
-    // @ts-expect-error Expected 1 arguments, but got 2.
-    config.parse(provider, ["prefix"])
-  })
 })

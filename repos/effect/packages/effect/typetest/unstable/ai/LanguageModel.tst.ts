@@ -43,7 +43,7 @@ class ParamEncodeService extends Context.Service<ParamEncodeService, {
 const AsymmetricParam = Schema.String.pipe(
   Schema.decodeTo(Schema.String, {
     decode: SchemaGetter.passthrough(),
-    encode: SchemaGetter.transformOrFail<string, string, ParamEncodeService>((value) =>
+    encode: SchemaGetter.transformEffect<string, string, ParamEncodeService>((value) =>
       Effect.as(Effect.service(ParamEncodeService), value)
     )
   })
@@ -340,7 +340,7 @@ describe("LanguageModel", () => {
 
   describe("Chat", () => {
     it("uses encoded tool parameters when tool call resolution is disabled", () => {
-      const chat = null as unknown as Chat.Service
+      const chat = null as unknown as Chat.Chat
       const toolkit = Toolkit.make(TransformTool)
       const program = chat.generateText({
         prompt: "hello",

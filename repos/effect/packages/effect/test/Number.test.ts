@@ -305,12 +305,6 @@ describe("remainder", () => {
     assertNegativeZero(N.remainder(-4, -2))
   })
 
-  it("preserves the dividend sign with negative divisors", () => {
-    assert.strictEqual(N.remainder(5, -2), 1)
-    assert.strictEqual(N.remainder(-5, -2), -1)
-    assertNegativeZero(N.remainder(-4, -2))
-  })
-
   it("returns NaN when the divisor is zero", () => {
     assertNaN(N.remainder(5, 0))
     assertNaN(N.remainder(Number("1e-101"), 0))

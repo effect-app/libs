@@ -115,8 +115,8 @@ export type ConstructorDefault = "no-default" | "with-default"
  *
  * **When to use**
  *
- * Use when passing `disableChecks: true` to skip validation when you trust the data.
- * - Pass `parseOptions` to control error reporting behavior.
+ * Use when passing `disableChecks: true` to skip validation when you trust the
+ * data. Pass `parseOptions` to control parsing behavior.
  *
  * @see {@link BottomWithoutNew.makeEffect}
  * @see {@link BottomWithoutNew.make}
@@ -246,13 +246,23 @@ export interface BottomWithoutNew<
    *
    * **When to use**
    *
-   * Use when constructor input may fail validation and you want to
-   * compose that failure with other `Effect` operations instead of throwing.
+   * Use when construction must compose with other `Effect` operations or when
+   * the result supplies a nested constructor default. Otherwise, use
+   * {@link BottomWithoutNew.make} when invalid construction should throw.
    *
    * **Details**
    *
-   * Validation failures are returned directly as `SchemaIssue.Issue` values
-   * and are not wrapped in `SchemaError`.
+   * `SchemaParser` uses `SchemaIssue.Issue` as its canonical structured failure,
+   * and this method exposes the same representation directly. Keeping the issue
+   * unwrapped lets an enclosing schema attach its own path when the effect is
+   * used with {@link withConstructorDefault}. It also avoids allocating a
+   * `SchemaError` and keeps its formatting path out of the resulting bundle.
+   *
+   * **Gotchas**
+   *
+   * Unlike the decoding helpers in `Schema`, validation failures are not wrapped
+   * in `SchemaError`. Map the issue to `SchemaError` or to a domain-specific error
+   * when a wrapped error is needed at the application boundary.
    *
    * @see {@link BottomWithoutNew.make} — construct synchronously when validation failure should throw
    * @see {@link BottomWithoutNew.makeOption} — construct synchronously and discard validation details
@@ -2852,6 +2862,11 @@ export interface Enum<A extends { [x: string]: string | number }>
 }
 /**
  * Creates a schema from a TypeScript enum object. Validates that the input is one of the enum's values.
+ * Numeric enum values must be finite.
+ *
+ * **Gotchas**
+ *
+ * Throws when a numeric member is `NaN`, `Infinity`, or `-Infinity`.
  *
  * **Example** (Defining a direction enum)
  *
@@ -3105,6 +3120,12 @@ export interface UniqueSymbol<sym extends symbol>
 /**
  * Creates a schema for a specific symbol. Only that exact symbol satisfies the schema.
  *
+ * **Gotchas**
+ *
+ * Only globally registered symbols have a JSON encoding. Their canonical JSON
+ * form is the exact string returned by `String(symbol)`. A local symbol cannot
+ * be encoded as JSON.
+ *
  * **Example** (Defining a specific symbol)
  *
  * ```ts import.meta.vitest
@@ -3354,6 +3375,9 @@ function makeStruct<const Fields extends Struct.Fields>(ast: SchemaAST.Objects, 
  *
  * The resulting schema's `Type` is a readonly object type with the fields'
  * decoded types. The `Encoded` form mirrors the field schemas' encoded types.
+ * Declared fields may be inherited and are copied to own properties in the
+ * output. The `__proto__` field is accepted only when it is an own property.
+ * Parsing does not guarantee that output keys retain their input order.
  *
  * **Example** (Defining a basic struct)
  *
@@ -3768,8 +3792,9 @@ export interface $Record<Key extends Record.Key, Value extends Constraint> exten
  *
  * When decoded or encoded key transformations produce the same property key,
  * sequential parsing applies selected own properties in selection order, so
- * the later selected property overwrites the earlier value. With concurrency
- * greater than `1`, completion order determines which value is retained.
+ * the later selected property overwrites the earlier value. Dynamic key
+ * selection always examines own properties. Finite literal keys are declared
+ * fields and may therefore be inherited. Output key order is not guaranteed.
  *
  * **Example** (Defining a string-keyed record of numbers)
  *
@@ -4698,7 +4723,7 @@ function makeUnion<Members extends ReadonlyArray<Constraint>>(
     ): Union<Simplify<Readonly<To>>> {
       const members = f(this.members)
       return makeUnion(
-        SchemaAST.union(members, this.ast.mode, options?.unsafePreserveChecks ? this.ast.checks : undefined),
+        SchemaAST.union(members, this.ast.options, options?.unsafePreserveChecks ? this.ast.checks : undefined),
         members
       )
     }
@@ -4730,9 +4755,9 @@ function makeUnion<Members extends ReadonlyArray<Constraint>>(
  */
 export function Union<const Members extends ReadonlyArray<Constraint>>(
   members: Members,
-  options?: { mode?: "anyOf" | "oneOf" }
+  options?: SchemaAST.UnionOptions
 ): Union<Members> {
-  return makeUnion(SchemaAST.union(members, options?.mode ?? "anyOf", undefined), members)
+  return makeUnion(SchemaAST.union(members, options, undefined), members)
 }
 /**
  * Type-level representation returned by {@link Literals}.
@@ -4774,7 +4799,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>>
  */
 export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
   const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
-  return make(SchemaAST.union(members, "anyOf", undefined), {
+  return make(SchemaAST.union(members, undefined, undefined), {
     literals,
     members,
     mapMembers<To extends ReadonlyArray<Constraint>>(
@@ -6538,7 +6563,9 @@ export function isTrimmed(annotations?: Annotations.Filter) {
  *
  * JSON Schema:
  *
- * This check corresponds to the `pattern` constraint in JSON Schema.
+ * JSON Schema receives the RegExp source as a `pattern`. JavaScript flags are
+ * not represented, so validation can differ when the RegExp uses flags or
+ * relies on JavaScript's non-Unicode behavior.
  *
  * Arbitrary:
  *
@@ -6987,7 +7014,7 @@ export function isLowercased(annotations?: Annotations.Filter) {
   )
 }
 
-const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
+const CAPITALIZED_PATTERN = "^(?:[^a-z][\\s\\S]*)?$"
 /**
  * Validates that the first character of a string is unchanged by
  * `toUpperCase()`.
@@ -7020,7 +7047,7 @@ export function isCapitalized(annotations?: Annotations.Filter) {
   )
 }
 
-const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
+const UNCAPITALIZED_PATTERN = "^(?:[^A-Z][\\s\\S]*)?$"
 /**
  * Validates that the first character of a string is unchanged by
  * `toLowerCase()`.
@@ -7469,24 +7496,38 @@ export const isBetween: (options: {
  * JSON Schema:
  *
  * This check corresponds to the `multipleOf` constraint in JSON Schema.
+ * Negative divisors are normalized to their absolute value because JSON
+ * Schema requires `multipleOf` to be positive.
+ *
+ * **Gotchas**
+ *
+ * Throws a `RangeError` when `divisor` is zero or is not finite.
  *
  * @category validation
  * @since 4.0.0
  */
-export const isMultipleOf: (divisor: number, annotations?: Annotations.Filter) => SchemaAST.Filter<number> =
-  makeIsMultipleOf({
-    remainder,
-    zero: 0,
-    annotate: (divisor) => ({
+export function isMultipleOf(
+  divisor: number,
+  annotations?: Annotations.Filter
+): SchemaAST.Filter<number> {
+  if (!globalThis.Number.isFinite(divisor) || divisor === 0) {
+    throw new globalThis.RangeError(`Expected a finite non-zero number, got ${globalThis.String(divisor)}`)
+  }
+  divisor = globalThis.Math.abs(divisor)
+  return makeFilter(
+    (input: number) => remainder(input, divisor) === 0,
+    {
       expected: `a value that is a multiple of ${divisor}`,
       representation: {
         id: "effect/schema/isMultipleOf",
         payload: { divisor }
       },
       toJsonSchema: () => ({ multipleOf: divisor }),
-      toCode: () => ({ runtime: `Schema.isMultipleOf(${format(divisor)})` })
-    })
-  })
+      toCode: () => ({ runtime: `Schema.isMultipleOf(${format(divisor)})` }),
+      ...annotations
+    }
+  )
+}
 /**
  * Validates that a number is a safe integer (within the safe integer range
  * that can be exactly represented in JavaScript).
@@ -7978,8 +8019,9 @@ export const isBetweenBigInt: (options: {
  *
  * JSON Schema:
  *
- * This check corresponds to the `minLength` constraint for strings or the
- * `minItems` constraint for arrays in JSON Schema.
+ * For arrays, this check corresponds to `minItems`. For strings, it corresponds
+ * to `minLength`. JavaScript counts UTF-16 code units while JSON Schema counts
+ * Unicode code points, so the two validations can differ for some strings.
  *
  * Arbitrary:
  *
@@ -8091,8 +8133,10 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
  *
  * JSON Schema:
  *
- * This check corresponds to `minLength`/`maxLength` constraints for strings
- * or `minItems`/`maxItems` constraints for arrays in JSON Schema.
+ * For arrays, this check corresponds to `minItems` and `maxItems`. For strings,
+ * it corresponds to `minLength` and `maxLength`. JavaScript counts UTF-16 code
+ * units while JSON Schema counts Unicode code points, so the two validations
+ * can differ for some strings.
  *
  * Arbitrary:
  *
@@ -8259,7 +8303,10 @@ export function isSizeBetween(minimum: number, maximum: number, annotations?: An
  *
  * JSON Schema:
  *
- * This check corresponds to the `minProperties` constraint in JSON Schema.
+ * This check corresponds to `minProperties` in JSON Schema. Effect applies the
+ * check to the decoded object, while JSON Schema applies it to the original
+ * input. Defaults and property transformations can therefore produce different
+ * results.
  *
  * Arbitrary:
  *
@@ -8296,7 +8343,10 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
  *
  * JSON Schema:
  *
- * This check corresponds to the `maxProperties` constraint in JSON Schema.
+ * This check corresponds to `maxProperties` in JSON Schema. Effect applies the
+ * check to the decoded object, while JSON Schema applies it to the original
+ * input. Excess-property handling and property transformations can therefore
+ * produce different results.
  *
  * Arbitrary:
  *
@@ -8333,8 +8383,10 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
  *
  * JSON Schema:
  *
- * This check corresponds to `minProperties` and `maxProperties`
- * constraints in JSON Schema.
+ * This check corresponds to `minProperties` and `maxProperties` in JSON
+ * Schema. Effect applies the check to the decoded object, while JSON Schema
+ * applies it to the original input. Defaults, excess-property handling, and
+ * property transformations can therefore produce different results.
  *
  * Arbitrary:
  *
@@ -8378,8 +8430,10 @@ export function isPropertiesLengthBetween(minimum: number, maximum: number, anno
  * string property names.
  *
  * JSON Schema:
- * For string property names, this corresponds to the `propertyNames` constraint
- * in JSON Schema.
+ * This check corresponds to `propertyNames` in JSON Schema. Effect checks the
+ * decoded object's keys, including symbols, while JSON Schema checks the string
+ * names in the original input. Property transformations and excess-property
+ * handling can therefore produce different results.
  *
  * @category validation
  * @since 4.0.0
@@ -8879,7 +8933,7 @@ export const RegExp: RegExp = instanceOf(
           source: String,
           flags: String
         }),
-        SchemaTransformation.transformOrFail({
+        SchemaTransformation.transformEffect({
           decode: (e, options) =>
             Effect.try({
               try: () => new globalThis.RegExp(e.source, e.flags),
@@ -9191,7 +9245,7 @@ export const File: File = instanceOf(globalThis.File, {
         name: String,
         lastModified: Int
       }),
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: (e, options) =>
           Result_.match(Encoding.decodeBase64(e.data), {
             onFailure: () =>
@@ -9271,7 +9325,7 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
           ])
         ])
       ),
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: (e) => {
           const out = new globalThis.FormData()
           for (const [key, entry] of e) {
@@ -10002,7 +10056,7 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
 // -----------------------------------------------------------------------------
 
 const bigDecimalFromString: SchemaTransformation.Transformation<BigDecimal_.BigDecimal, string> = SchemaTransformation
-  .transformOrFail<BigDecimal_.BigDecimal, string>({
+  .transformEffect<BigDecimal_.BigDecimal, string>({
     decode: (s, options) => {
       const result = BigDecimal_.fromString(s)
       return Option_.isNone(result)
@@ -10700,7 +10754,7 @@ export function Chunk<Value extends Constraint>(value: Value): Chunk<Value> {
 // -----------------------------------------------------------------------------
 
 function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): SchemaGetter.Getter<DateTime.Utc, E> {
-  return SchemaGetter.transformOrFail((input, options) => {
+  return SchemaGetter.transformEffect((input, options) => {
     return Option_.match(DateTime.make(input), {
       onNone: () =>
         Effect.fail(
@@ -10716,7 +10770,7 @@ const timeZoneOffsetFromNumber: SchemaTransformation.Transformation<DateTime.Tim
     encode: (tz) => tz.offset
   })
 const timeZoneNamedFromString: SchemaTransformation.Transformation<DateTime.TimeZone.Named, string> =
-  SchemaTransformation.transformOrFail<DateTime.TimeZone.Named, string>({
+  SchemaTransformation.transformEffect<DateTime.TimeZone.Named, string>({
     decode: (s, options) => {
       return Option_.match(DateTime.zoneMakeNamed(s), {
         onNone: () =>
@@ -10733,7 +10787,7 @@ const timeZoneNamedFromString: SchemaTransformation.Transformation<DateTime.Time
     encode: (tz) => Effect.succeed(tz.id)
   })
 const timeZoneFromString: SchemaTransformation.Transformation<DateTime.TimeZone, string> = SchemaTransformation
-  .transformOrFail<DateTime.TimeZone, string>({
+  .transformEffect<DateTime.TimeZone, string>({
     decode: (s, options) => {
       return Option_.match(DateTime.zoneFromString(s), {
         onNone: () =>
@@ -10750,7 +10804,7 @@ const timeZoneFromString: SchemaTransformation.Transformation<DateTime.TimeZone,
     encode: (tz) => Effect.succeed(DateTime.zoneToString(tz))
   })
 const dateTimeUtcFromString: SchemaTransformation.Transformation<DateTime.Utc, string> = SchemaTransformation
-  .transformOrFail<DateTime.Utc, string>({
+  .transformEffect<DateTime.Utc, string>({
     decode: (s, options) => {
       return Option_.match(DateTime.make(s), {
         onNone: () =>
@@ -10767,7 +10821,7 @@ const dateTimeUtcFromString: SchemaTransformation.Transformation<DateTime.Utc, s
     encode: (utc) => Effect.succeed(DateTime.formatIso(utc))
   })
 const dateTimeZonedFromString: SchemaTransformation.Transformation<DateTime.Zoned, string> = SchemaTransformation
-  .transformOrFail<DateTime.Zoned, string>({
+  .transformEffect<DateTime.Zoned, string>({
     decode: (s, options) => {
       return Option_.match(DateTime.makeZonedFromString(s), {
         onNone: () =>
@@ -11291,7 +11345,7 @@ const netAddressFromString = <S extends declare<any>, E extends { readonly messa
 ) =>
   String.pipe(decodeTo(
     declaration,
-    SchemaTransformation.transformOrFail({
+    SchemaTransformation.transformEffect({
       decode: (input, options) => {
         const result = parse(input)
         return Result_.isSuccess(result)
@@ -11939,7 +11993,7 @@ export const SocketAddress: SocketAddress = declare(NetAddress_.isSocketAddress,
 // -----------------------------------------------------------------------------
 
 const durationFromString: SchemaTransformation.Transformation<Duration_.Duration, string> = SchemaTransformation
-  .transformOrFail<Duration_.Duration, string>({
+  .transformEffect<Duration_.Duration, string>({
     decode: (s, options) =>
       Option_.match(Duration_.fromInput(s as Duration_.Input), {
         onNone: () =>
@@ -11955,7 +12009,7 @@ const durationFromString: SchemaTransformation.Transformation<Duration_.Duration
     encode: (duration) => Effect.succeed(globalThis.String(duration))
   })
 const durationFromNanos: SchemaTransformation.Transformation<Duration_.Duration, bigint> = SchemaTransformation
-  .transformOrFail({
+  .transformEffect({
     decode: (i) => Effect.succeed(Duration_.nanos(i)),
     encode: (a, options) =>
       Option_.match(Duration_.toNanos(a), {
@@ -12531,7 +12585,7 @@ export function Graph<T extends Graph_.Kind, Node extends Constraint, Edge exten
       toCodec: ([node, edge]) =>
         link<Graph_.Graph<Node["Encoded"], Edge["Encoded"], T>>()(
           graphEncodedSchema(type, node, edge),
-          SchemaTransformation.transformOrFail({
+          SchemaTransformation.transformEffect({
             decode: graphDecode,
             encode: (graph, options) => graphEncode(graph, type, options)
           })
@@ -13179,7 +13233,7 @@ export const JsonFromUrlParamsField = (
   UrlParams.pipe(
     decodeTo(
       fromJsonString(Unknown, options),
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: (params) =>
           Option_.match(UrlParams_.getFirst(params, field), {
             onNone: () => Effect.fail(new SchemaIssue.Pointer([field], new SchemaIssue.MissingKey(undefined))),
@@ -13640,6 +13694,10 @@ export interface Class<Self, S extends Constraint & { readonly fields: Struct.Fi
       S["~encoded.optionality"]
     >
 {
+  /**
+   * `make`, `makeOption`, and `makeEffect` preserve an existing instance of
+   * this class. Use `new` when a distinct instance is required.
+   */
   readonly "Type": Self
   readonly "Encoded": S["Encoded"]
   readonly "DecodingServices": S["DecodingServices"]
@@ -13774,7 +13832,7 @@ function makeClass<
       return getClassSchema(this).rebuild(ast)
     }
     static make(input: S["~type.make.in"], options?: MakeOptions): Self {
-      return new this(input, options)
+      return SchemaParser.make(getClassSchema(this) as any)(input ?? {}, options) as Self
     }
     static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
       return SchemaParser.makeOption(getClassSchema(this) as any)(input ?? {}, options) as any
@@ -14291,17 +14349,23 @@ export function toRepresentation(
  */
 export interface ToJsonSchemaOptions extends SchemaRepresentation.ToRepresentationOptions {
   /**
-   * Controls how additional properties are handled while resolving the JSON
-   * schema.
+   * Controls whether generated object schemas accept properties that are not
+   * modeled by the Effect schema.
    *
    * **Details**
    *
-   * Possible values include:
-   * - `false`: Disallow additional properties (default)
-   * - `true`: Allow additional properties
-   * - `JsonSchema`: Use the provided JSON Schema for additional properties
+   * The default, `"ignore"`, matches the decoder's default excess-property
+   * behavior and leaves unmodeled properties open. Use `"error"` together
+   * with the decoder option of the same name to reject unmodeled properties
+   * whenever the key space can be represented.
+   *
+   * Index signatures still determine the schema for properties they model.
+   * When an index-signature key cannot be used as a `patternProperties`
+   * selector, `"ignore"` leaves unmatched properties open. `"error"` instead
+   * constrains their names with `propertyNames` and uses the candidate index
+   * value schemas for `additionalProperties`.
    */
-  readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
+  readonly onExcessProperty?: "ignore" | "error" | undefined
   /**
    * Controls whether to generate descriptions for checks (if the user has not
    * provided them) based on the `expected` annotation of the check.
@@ -14361,28 +14425,35 @@ export interface ToJsonSchemaOptions extends SchemaRepresentation.ToRepresentati
  * **Details**
  *
  * The `options` parameter controls reference extraction and generation details
- * such as additional properties and synthesized check descriptions; it does
- * not change the draft target. The reference policy receives canonical JSON
- * encoded ASTs. By default, anonymous non-recursive candidates remain inline, while candidates with resolved identifiers
- * become definitions. Declarations are lowered through their `toCodecJson` or `toCodec`
- * annotation when available before the representation document is compiled.
- * For schemas whose codec JSON AST can be represented exactly in JSON Schema,
- * importing the emitted document reconstructs a schema that accepts the same
- * JSON values. This is a semantic round-trip guarantee; the reconstructed AST
- * may have a different shape.
+ * such as excess properties and synthesized check descriptions; it does not
+ * change the draft target. The reference policy receives canonical JSON
+ * encoded ASTs. By default, anonymous non-recursive candidates remain inline,
+ * while candidates with resolved identifiers become definitions. Declarations
+ * are lowered through their `toCodecJson` or `toCodec` annotation when
+ * available before the representation document is compiled.
+ *
+ * The generated document is intended for preliminary validation. JSON Schema
+ * and Effect checks do not always have identical semantics, so the Effect
+ * decoder remains the final authority. Passing JSON Schema validation does not
+ * guarantee that Effect decoding will succeed.
  *
  * **Gotchas**
  *
- * JSON Schema generation is best-effort. Some Effect schema semantics cannot
- * be represented exactly in JSON Schema, and importing an emitted JSON Schema
- * may produce an equivalent approximation rather than the original schema
- * shape. Such schemas are outside the exact round-trip subset. When canonical
- * JSON derivation adds an artificial transformation, checks and annotations on
- * its source node are not copied to the JSON target, so they do not appear in
- * the emitted document. Opaque declarations without a structural codec are
- * represented by an unconstrained JSON Schema. Effect decoding may discard
- * excess object properties by default; use `onExcessProperty: "error"` when
- * comparing validation semantics with an emitted JSON Schema.
+ * JSON Schema generation is best-effort. String length uses Unicode code points
+ * in JSON Schema and UTF-16 code units in Effect. A generated `pattern` cannot
+ * retain JavaScript RegExp flags. Object property checks apply to the original
+ * input in JSON Schema but to the decoded object in Effect. `oneOf` can also
+ * reject values accepted by overlapping Effect union members. Custom
+ * `toJsonSchema` annotations are the annotation author's responsibility. When
+ * canonical JSON derivation adds an artificial transformation, checks and
+ * annotations on its source node are not copied to the JSON target, so they do
+ * not appear in the emitted document. Opaque declarations without a structural
+ * codec are represented by an unconstrained JSON Schema. The default
+ * `onExcessProperty: "ignore"` matches the decoder default and leaves
+ * unrepresentable index-signature keys open. In `"error"` mode, the compiler
+ * constrains those keys with `propertyNames` and applies a permissive choice of
+ * candidate index value schemas. The Effect decoder enforces the exact
+ * key-value association.
  *
  * @see {@link SchemaRepresentation.toJsonSchemaDocument} for compiling an existing live representation document
  *
@@ -15027,8 +15098,8 @@ export declare namespace Annotations {
   }
   /**
    * Base annotations shared by all composite schema nodes. Extends
-   * {@link Documentation} with error messages, branding, parse options, and
-   * arbitrary generation hooks. {@link Declaration} and other annotation
+   * {@link Documentation} with error messages, branding, and arbitrary
+   * generation hooks. {@link Declaration} and other annotation
    * interfaces build on top of this.
    *
    * @category models
@@ -15066,7 +15137,6 @@ export declare namespace Annotations {
      * filter/refinement instead.
      */
     readonly identifier?: string | undefined
-    readonly parseOptions?: SchemaAST.ParseOptions | undefined
     /**
      * Accumulated brands when multiple brands are added with `Schema.brand`.
      */

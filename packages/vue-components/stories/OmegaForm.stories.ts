@@ -19,6 +19,7 @@ import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import EnterSubmitReproComponent from "./OmegaForm/EnterSubmitRepro.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
+import IndexedTableComponent from "./OmegaForm/IndexedTable.vue"
 import InputRegistryComponent from "./OmegaForm/InputRegistry.vue"
 import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerman.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
@@ -285,6 +286,22 @@ export const Array: Story = {
   render: () => ({
     components: { ArrayComponent },
     template: "<ArrayComponent />"
+  })
+}
+
+export const IndexedTable: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "A sortable, paginated v-data-table with indexed form.Input cells outside form.Array. "
+          + "Each item retains its source index before table sorting and pagination, while its stable ID is the row key. "
+          + "Submit with Row 14 empty to see one labelled summary error alongside the field error."
+      }
+    }
+  },
+  render: () => ({
+    components: { IndexedTableComponent },
+    template: "<IndexedTableComponent />"
   })
 }
 

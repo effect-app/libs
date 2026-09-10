@@ -44,7 +44,7 @@
   generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { computed, onMounted, provide } from "vue"
+import { computed, onMounted } from "vue"
 import { type OmegaArrayProps } from "./types"
 
 const props = defineProps<OmegaArrayProps<From, To, Name>>()
@@ -73,17 +73,4 @@ onMounted(async () => {
     props.form.setFieldValue(props.name, props.defaultItems)
   }
 })
-
-const getMetaFromArray = computed(() => {
-  const getMeta = (path: string) => {
-    // Transform path like 'a[0].b[11].c' into 'a.b.c'
-    const simplifiedPath = path.replace(/\[\d+\]/g, "")
-
-    return props.form.meta[simplifiedPath as keyof typeof props.form.meta]
-  }
-
-  return getMeta
-})
-
-provide("getMetaFromArray", getMetaFromArray)
 </script>

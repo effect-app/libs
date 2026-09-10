@@ -85,10 +85,10 @@ const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
 )
 
 const meta = computed(() => {
-  if (getMetaFromArray?.value && getMetaFromArray.value(props.name as DeepKeys<From>)) {
-    return getMetaFromArray.value(propsName.value)
-  }
+  const fromArray = getMetaFromArray?.value?.(propsName.value)
+  if (fromArray) return fromArray
   return props.form.meta[propsName.value]
+    ?? props.form.meta[propsName.value.replace(/\[\d+\]/g, "") as DeepKeys<From>]
 })
 
 const errori18n = useErrorLabel(props.form)

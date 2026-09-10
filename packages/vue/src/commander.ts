@@ -14,7 +14,6 @@ import * as Cause from "effect/Cause"
 import type * as Exit from "effect/Exit"
 import type * as Fiber from "effect/Fiber"
 import { flow } from "effect/Function"
-import * as Match from "effect/Match"
 import * as MutableHashMap from "effect/MutableHashMap"
 import * as Predicate from "effect/Predicate"
 import { type Refinement } from "effect/Predicate"
@@ -2001,18 +2000,14 @@ const renderErrorMaker = Effect.gen(function*() {
         return ""
       }
       const e2: SupportedErrors | S.SchemaError = e
-      return Match.value(e2).pipe(
-        Match.tags({
-          NotFoundError: (e) => {
-            return intl.formatMessage({ id: "handle.not_found" }, { type: e.type, id: e.id })
-          },
-          SchemaError: (e) => {
-            console.warn(e.toString())
-            return intl.formatMessage({ id: "validation.failed" })
-          }
-        }),
-        Match.orElse((e) => e.message ?? e._tag ?? e)
-      )
+      if (e2._tag === "NotFoundError") {
+        return intl.formatMessage({ id: "handle.not_found" }, { type: e2.type, id: String(e2.id) })
+      }
+      if (e2._tag === "SchemaError") {
+        console.warn(e2.toString())
+        return intl.formatMessage({ id: "validation.failed" })
+      }
+      return e2.message ?? e2._tag ?? e2
     }
   )
 })

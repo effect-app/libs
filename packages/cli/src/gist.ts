@@ -70,7 +70,7 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
           name: Schema.String
         }))
       }),
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: Effect.fnUntraced(function*(entry) {
           const files_with_name = entry.files.map((file) => ({
             path: file,

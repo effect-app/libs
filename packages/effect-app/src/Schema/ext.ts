@@ -611,7 +611,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
   from.pipe(
     S.decodeTo(
       to,
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: (input: any, options: any) => Effect.sync(() => decode(input, options)),
         encode: (i: any) =>
           Effect.fail(
@@ -624,7 +624,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
     )
   )
 
-/** A version of transformOrFail which is only a one way mapping of From->To */
+/** A version of transformEffect which is only a one way mapping of From->To */
 export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
   from: From,
   to: To,
@@ -636,7 +636,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
   from.pipe(
     S.decodeTo(
       to,
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode,
         encode: (i: any) =>
           Effect.fail(

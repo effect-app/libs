@@ -5,6 +5,8 @@ import { useIntl } from "../../utils"
 import type { OmegaError } from "./types"
 import type { OF } from "./useOmegaForm"
 
+const normalizePath = (path: string) => path.replace(/\[(\d+)\]/g, ".$1")
+
 export const useErrorLabel = (form: OF<any, any>) => {
   const { formatMessage } = useIntl()
   const humanize = (str: string) => {
@@ -49,7 +51,7 @@ export const eHoc = (errorProps: {
               return acc
             }
 
-            const fieldInfo = fieldMap.value.get(key)
+            const fieldInfo = fieldMap.value.get(normalizePath(key))
             if (!fieldInfo) {
               return acc
             }
@@ -120,15 +122,16 @@ export const makeFieldMap = () => {
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
   const registerField = (field: ComputedRef<{ name: string; label: string; id: string }>) => {
     watch(field, (f) => {
-      fieldMap.value.set(f.name, { label: f.label, id: f.id })
+      fieldMap.value.set(normalizePath(f.name), { label: f.label, id: f.id })
     }, { immediate: true })
     onUnmounted(() => {
       // Only delete if we still own this entry (id matches)
       // This prevents old components from deleting entries registered by new components
       // during re-mount transitions (e.g., when :key changes)
-      const currentEntry = fieldMap.value.get(field.value.name)
+      const path = normalizePath(field.value.name)
+      const currentEntry = fieldMap.value.get(path)
       if (currentEntry?.id === field.value.id) {
-        fieldMap.value.delete(field.value.name)
+        fieldMap.value.delete(path)
       }
     })
   }

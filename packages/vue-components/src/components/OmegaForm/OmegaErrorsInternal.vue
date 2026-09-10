@@ -99,7 +99,6 @@
 </template>
 
 <script setup lang="ts">
-import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { computed, getCurrentInstance } from "vue"
 import { useIntl } from "../../utils"
 import { type OmegaError } from "./types"
@@ -109,7 +108,7 @@ const vuetified = instance?.appContext.components["VAlert"]
 
 const props = defineProps<
   {
-    generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[]
+    generalErrors: unknown[]
     errors: OmegaError[]
     hideErrorDetails?: boolean
   }
@@ -120,21 +119,25 @@ const { trans } = useIntl()
 const showedGeneralErrors = computed(() => {
   if (!props.generalErrors) return []
 
-  return props
-    .generalErrors
-    .filter((record): record is Record<string, StandardSchemaV1Issue[]> => Boolean(record))
-    .flatMap((errorRecord) =>
-      Object
-        .values(errorRecord)
-        .filter((issues): issues is StandardSchemaV1Issue[] => Boolean(issues))
-        .flatMap((issues) =>
-          issues
-            .filter(
-              (issue): issue is StandardSchemaV1Issue & { message: string } => Boolean(issue?.message)
-            )
-            .map((issue) => issue.message)
+  return props.generalErrors.flatMap((record) => {
+    if (typeof record === "string") return record ? [record] : []
+    if (typeof record !== "object" || record === null) return []
+
+    return Object
+      .values(record)
+      .filter((issues): issues is unknown[] => Array.isArray(issues))
+      .flatMap((issues) =>
+        issues.flatMap((issue) =>
+          typeof issue === "object"
+            && issue !== null
+            && "message" in issue
+            && typeof issue.message === "string"
+            && issue.message
+            ? [issue.message]
+            : []
         )
-    )
+      )
+  })
 })
 </script>
 

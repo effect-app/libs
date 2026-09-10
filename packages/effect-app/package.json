@@ -18,7 +18,6 @@
     "validator": "^13.15.35"
   },
   "devDependencies": {
-    "effect": "https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
     "@faker-js/faker": "^8.4.1",
     "@types/node": "25.9.1",
     "@types/validator": "^13.15.10",
@@ -27,7 +26,7 @@
     "vitest": "^4.1.7"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-rc.112"
+    "effect": "^4.0.0-rc.113"
   },
   "typesVersions": {
     "*": {

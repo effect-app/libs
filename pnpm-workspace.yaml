@@ -1,7 +1,5 @@
 packages:
   - packages/*
-# pkg.pr.new Effect tarballs nest URL deps; required to consume unpublished RC main.
-blockExoticSubdeps: false
 allowBuilds:
   "@parcel/watcher": false
   better-sqlite3: true
@@ -18,6 +16,13 @@ minimumReleaseAgeExclude:
   - "@effect/tsgo-win32-arm64@0.31.0"
   - "@effect/tsgo-win32-x64@0.31.0"
   - "@effect/tsgo@0.31.0"
+  - "@effect/atom-vue@4.0.0-rc.113"
+  - "@effect/platform-browser@4.0.0-rc.113"
+  - "@effect/platform-node-shared@4.0.0-rc.113"
+  - "@effect/platform-node@4.0.0-rc.113"
+  - "@effect/sql-sqlite-node@4.0.0-rc.113"
+  - "@effect/vitest@4.0.0-rc.113"
+  - effect@4.0.0-rc.113
 overrides:
   date-fns: ^4.4.0
   fast-check: ^4.9.0

@@ -18,17 +18,14 @@
     "query-string": "^9.4.0"
   },
   "peerDependencies": {
-    "@effect/atom-vue": "^4.0.0-rc.112",
-    "@effect/platform-browser": "^4.0.0-rc.112",
+    "@effect/atom-vue": "^4.0.0-rc.113",
+    "@effect/platform-browser": "^4.0.0-rc.113",
     "@sentry/browser": "^10.55.0",
-    "effect": "^4.0.0-rc.112",
+    "effect": "^4.0.0-rc.113",
     "vue": "^3.5.35"
   },
   "devDependencies": {
-    "effect": "https://pkg.pr.new/Effect-TS/effect/effect@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
-    "@effect/atom-vue": "https://pkg.pr.new/Effect-TS/effect/@effect/atom-vue@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
-    "@effect/platform-browser": "https://pkg.pr.new/Effect-TS/effect/@effect/platform-browser@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
-    "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect/@effect/vitest@addeaea0b0abe0dc24ca1d4d0fd194a0e458be70",
+    "@effect/vitest": "4.0.0-rc.113",
     "@formatjs/icu-messageformat-parser": "^3.5.10",
     "@types/node": "25.9.1",
     "@vitejs/plugin-vue": "^6.0.7",

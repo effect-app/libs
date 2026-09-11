@@ -6,6 +6,7 @@ settings:
 
 overrides:
   date-fns: ^4.4.0
+  effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
   fast-check: ^4.9.0
   vue: ^3.5.35
 
@@ -42,17 +43,17 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       "@effect/language-service":
-        specifier: 0.86.2
-        version: 0.86.2
+        specifier: 0.87.2
+        version: 0.87.2
       "@effect/platform-node":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/tsgo":
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.45.0
+        version: 0.45.0
       "@effect/vitest":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tsconfig/strictest":
         specifier: ^2.0.8
         version: 2.0.8
@@ -72,8 +73,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -93,8 +94,8 @@ importers:
         specifier: ^22.2.1
         version: 22.2.1
       oxlint:
-        specifier: 1.77.0
-        version: 1.77.0(oxlint-tsgolint@7.0.2001)
+        specifier: 1.82.0
+        version: 1.82.0(oxlint-tsgolint@7.0.2001)
       oxlint-tsgolint:
         specifier: 7.0.2001
         version: 7.0.2001
@@ -117,11 +118,11 @@ importers:
   packages/cli:
     dependencies:
       "@effect/platform-node":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(redis@6.2.1(@opentelemetry/api@1.9.1))
       effect:
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       js-yaml:
         specifier: 4.2.0
         version: 4.2.0
@@ -153,14 +154,14 @@ importers:
         version: link:../effect-app
     devDependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-node":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tanstack/vue-query":
         specifier: 5.96.2
         version: 5.96.2(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
@@ -171,8 +172,8 @@ importers:
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       typescript:
         specifier: ~6.0.3
         version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
@@ -192,8 +193,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       effect:
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -331,8 +332,8 @@ importers:
   packages/infra:
     dependencies:
       "@effect/vitest":
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: ^4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@faker-js/faker":
         specifier: ^8.4.1
         version: 8.4.1
@@ -346,8 +347,8 @@ importers:
         specifier: 10.55.0
         version: 10.55.0(supports-color@8.1.1)
       effect:
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -374,8 +375,8 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5(supports-color@8.1.1)
       "@effect/sql-sqlite-node":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)
       "@sentry/opentelemetry":
         specifier: 10.55.0
         version: 10.55.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.40.0)
@@ -420,11 +421,11 @@ importers:
   packages/vue:
     dependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-browser":
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)
+        specifier: ^4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)
       "@formatjs/intl":
         specifier: ^4.1.12
         version: 4.1.12
@@ -441,8 +442,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -454,8 +455,8 @@ importers:
         version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       "@effect/vitest":
-        specifier: 4.0.0-rc.113
-        version: 4.0.0-rc.113(effect@4.0.0-rc.113)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0-rc.114
+        version: 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@formatjs/icu-messageformat-parser":
         specifier: ^3.5.10
         version: 3.5.10
@@ -494,8 +495,8 @@ importers:
         specifier: ^1.32.0
         version: 1.32.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-rc.113
-        version: 4.0.0-rc.113
+        specifier: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
+        version: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -1188,129 +1189,137 @@ packages:
     }
     hasBin: true
 
-  "@effect/atom-vue@4.0.0-rc.113":
+  "@effect/atom-vue@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-F8ipomHmrMIqtvanvU7fCKbNwXl3Fu5/8uAR2wWJp4/K5AN3PRkbNretxHlSJd545DkLbu/b4bVuOYFYw9+ytQ==,
+      integrity: sha512-nVsD7QnJL1/zOXxIlAwBrjAeGp9ik47it43VXOgURRkXK+25rz+MJ0bM0QSZZGtdIOpEET610Hmrh1uIQOVE2A==,
     }
+    version: 4.0.0-rc.114
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
       vue: ^3.5.35
 
-  "@effect/language-service@0.86.2":
+  "@effect/language-service@0.87.2":
     resolution: {
-      integrity: sha512-SaPln+8srOqDJDUwNTDmP5e+IYpEDr9+1epGznnsLqu8xvo6VnxyWARdeLpqvZJlb0Pgy9ca7ppqvvdWbHPXAg==,
+      integrity: sha512-CfiSoaVQO8pZgaMZGw5VvMvRGybsJ2LaSDoLYaqiVGvo/YYPYVR2GzUKY0h1NtIweq/+SQ5XLrvtzPIttWQ0GQ==,
     }
     hasBin: true
 
-  "@effect/platform-browser@4.0.0-rc.113":
+  "@effect/platform-browser@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-/w5pyOIVzJYcFA1d3Xxjvi9VQNiLDvt+vUaOy3HuHefIx3hxC3JG0vZDCfth6ytcYiQ1EzUqSVVTieXpyYGFTg==,
+      integrity: sha512-QlE2aKZyjg6Rn7OYs3hZ2k+2ei+CI/wtsZ1eZQr5SR4b06Vqb/At0v/sliGGMkp3S8zII3Y87dkmENWrxSqlRw==,
     }
+    version: 4.0.0-rc.114
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
 
   "@effect/platform-node-shared@4.0.0-beta.86":
     resolution: {
       integrity: sha512-QNixdacCFZ001duRVZTIRUa6BS1YkU9cbC8yN7NnAMc0upUiIuLI6YO9jKMG3HetW1MjZ3PeSOzMM6nneUYPow==,
     }
+    version: 4.0.0-beta.86
     engines: { node: ">=18.0.0" }
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  "@effect/platform-node-shared@4.0.0-rc.113":
+  "@effect/platform-node-shared@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-EPCfjvKlHmNDgqIlT85P1OcgNUNvRxNtBpTFOz1UGHwNJe6Ap7rP93Rue7kzFUeplQMy6EfoZEH4CJR4N0nJ1g==,
+      integrity: sha512-YVoL71bJpa8HmAZl63nvVgOI4UBg61Z+6U0qnNN2ZlUktxG7eu26Y/puRxEtMxivxEUHR5vKJsuqQ3PRK4fLQA==,
     }
+    version: 4.0.0-rc.114
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
 
   "@effect/platform-node@4.0.0-beta.86":
     resolution: {
       integrity: sha512-K9omw3cICZAHV4caMD9ZVixmnMYZ97+5A8d11orza0VcJiSLoHmwiC9X9nxL+mAcFIUTMvKt4EVR7mCk5hbUzg==,
     }
+    version: 4.0.0-beta.86
     engines: { node: ">=18.0.0" }
     peerDependencies:
       effect: ^4.0.0-beta.86
       ioredis: ^5.7.0
 
-  "@effect/platform-node@4.0.0-rc.113":
+  "@effect/platform-node@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-8luSE2JcGVsALQ6cZOWh5jdZu+VgcUKIKPfhN/MjX+ZzIuK/krm3jZBHYZdhqkXjM9s8aYGBxNMHGF0WzF+Gpg==,
+      integrity: sha512-eqPvK8XswUw+FVe7CVqiyYUz4NHPz/1DiNsXi8GwIrsMOLT2wLteaAUID4grjDX7XWK1ONUVy4gS9IwBvp+EjA==,
     }
+    version: 4.0.0-rc.114
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
       redis: ">=5.0.0 <7.0.0"
 
-  "@effect/sql-sqlite-node@4.0.0-rc.113":
+  "@effect/sql-sqlite-node@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-3O5Qb6LFBhQGJqFXoNzbc4Psf/TaYvFw4QhjjUGtwaYiIubZ62zbKxDG/ihiqQ2LmzE78+AFiUKkB8zTnyTNBg==,
+      integrity: sha512-2E2kWKi1dJxg87o5FqbhKfVJGs9qSmBAXC4riUJvPa+gNgGa38k9MmpAYJyJUw933Shh1sBE8urpsiZi4mt0sQ==,
     }
+    version: 4.0.0-rc.114
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
 
-  "@effect/tsgo-darwin-arm64@0.31.0":
+  "@effect/tsgo-darwin-arm64@0.45.0":
     resolution: {
-      integrity: sha512-83StWyiq0vB9unpsObZoCIiix73til4yW1zCpHEDuBirxoNLymmOBv22kW132FD74tBzWBSffsmTHQEMUg+j7Q==,
+      integrity: sha512-WUoiEVcm8E19QK6fl63lsssM4dkT9IFnULbmqQ6LBfv7H9uRkpE9S3thj8ZtZ+vl/QY8atwfuaTf+3A1m/kGtQ==,
     }
     cpu: [arm64]
     os: [darwin]
 
-  "@effect/tsgo-darwin-x64@0.31.0":
+  "@effect/tsgo-darwin-x64@0.45.0":
     resolution: {
-      integrity: sha512-1jk7VItW+/oFEbGT0txq74Ejn81144DQ8GspcnBi09KH9rBareNBSTcFmi71caDfPBiJyMun8rVi04jbmaxFmg==,
+      integrity: sha512-s3yz7ZfIzvObXJ/r5xd9sEPxHKC3L+D+yedS1BV2Kpn47Je2svYCNYKxzXIpqFLkNjK+RcOQrcfYbYEpKZZa6g==,
     }
     cpu: [x64]
     os: [darwin]
 
-  "@effect/tsgo-linux-arm64@0.31.0":
+  "@effect/tsgo-linux-arm64@0.45.0":
     resolution: {
-      integrity: sha512-ClSiB/tpf6uABf7JT2p+ukdQpEesTfNqzMSRqrR1yIeb/l20VY4Qklm4HKeqFdYz5cbg65Y2P+IDeGHGxnq4aA==,
+      integrity: sha512-N+lyzixtylOOn49demDaqg0kb/U8ISxM10Gphs1pIMSGlqlfqC4inYEoFpYej+f4T/cRlkA11Ue7wJzNz83ePA==,
     }
     cpu: [arm64]
     os: [linux]
 
-  "@effect/tsgo-linux-arm@0.31.0":
+  "@effect/tsgo-linux-arm@0.45.0":
     resolution: {
-      integrity: sha512-XUcOl5OhUD685CnhRhdMtbXjmVjxMwNVlgM5bU+h0kkBzrLlLUHFBSzkMhQcVL8L+gnXXLua2N0aY6I+PGbvaQ==,
+      integrity: sha512-f6zL6YbWA9lXdfJ//KOjUz/U3CdGtajKi5NsR/lcQaKfZiJwHfeeLBB3yetF3qbPGSA149/kuMoDMWL13RUH3A==,
     }
     cpu: [arm]
     os: [linux]
 
-  "@effect/tsgo-linux-x64@0.31.0":
+  "@effect/tsgo-linux-x64@0.45.0":
     resolution: {
-      integrity: sha512-T1WSK5T4smwfrXPJEynNfoNPA2a/IXBAEPrtLhddv/whUY5MeazCt2vY80XupigqI1cPAEt8QVjHj7m7YQzNOA==,
+      integrity: sha512-aWt0G8celAxJOis4+xiILkyMP/3J+vukimUhSoCmUAPt8zoT9qhZcN64XYZE7jfqp88ByRdgN9GK1/C7YfPtcQ==,
     }
     cpu: [x64]
     os: [linux]
 
-  "@effect/tsgo-win32-arm64@0.31.0":
+  "@effect/tsgo-win32-arm64@0.45.0":
     resolution: {
-      integrity: sha512-5oNVxv7EV3vuYlv6v3RXdVYu3a2xrmUMJzH3So9h1neZynZ3P9122wVJae3Q+aiRIkyIBo7TZii3UiFtEHTiqw==,
+      integrity: sha512-EAdeV366ja+M4XCx6xjXMv4Xkc0Fgzy4bapa0saDWcGhllNLqJDfOk4lk0BgAEjBUI8+0xC+PXKVB5SMz4EpVA==,
     }
     cpu: [arm64]
     os: [win32]
 
-  "@effect/tsgo-win32-x64@0.31.0":
+  "@effect/tsgo-win32-x64@0.45.0":
     resolution: {
-      integrity: sha512-7UXqXF+3sMXWcjy9paP5rnvbVzGYAYLkO9UPYzAfE9B0Hda+Npkt8Ofa3uggRNMyOTzP8o3o9Se518k527hyzQ==,
+      integrity: sha512-1Hsr/sT5dmIafoY9L0ASJo4VqGyPNzM1nwTb4Wj1Lmjq6kGuwO/PVozFg3WZZ0piChFmgiU3nx1AKZfyqgjGUw==,
     }
     cpu: [x64]
     os: [win32]
 
-  "@effect/tsgo@0.31.0":
+  "@effect/tsgo@0.45.0":
     resolution: {
-      integrity: sha512-mv/p4nPg5IhJWnZXIctSa2QG9Y79yQzRMMdZI+BD5QUrGXL6giqWMJZ3S+IaooQc6pjny3q9IeOvSf0CBTPfQw==,
+      integrity: sha512-gPG0ixVHgtYBUe5DbKX9vzHlhqd9+ZEfs4m/XWy0808av0A2XqMzaG3F5rnPBN7EUJRPlo9TluIi8WHx/pBV+A==,
     }
     hasBin: true
 
-  "@effect/vitest@4.0.0-rc.113":
+  "@effect/vitest@4.0.0-rc.114":
     resolution: {
-      integrity: sha512-ebuPhtZmumq1967n0vgF0sgAx/8tRHMmNGOdH1Oya1jKzV2Yoqhlv8WCGT0N//PuaV/Pc/zky3mmDvxmW81FiQ==,
+      integrity: sha512-UQcfWdp7akz7EUp/lqb9UPFG3cgb3yQHhBV77QvzvxuxjwX5gK658X+TjDvgP+7LHl2lAgj3aOCBbnaSapfe6g==,
     }
+    version: 4.0.0-rc.114
     peerDependencies:
-      effect: ^4.0.0-rc.113
+      effect: ^4.0.0-rc.114
       vitest: ">=5.0.0 <6.0.0"
 
   "@emnapi/core@1.10.0":
@@ -2160,48 +2169,6 @@ packages:
       integrity: sha512-p7X/ytJDIdwUfFL/CLOhKgdfJe1Fa8uw9seJYvdOmnP9JBWGWHW69HkOixXS6Wy9yvGf1MbhcS6lVmrhy4jm2g==,
     }
 
-  "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4":
-    resolution: {
-      integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==,
-    }
-    cpu: [arm64]
-    os: [darwin]
-
-  "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4":
-    resolution: {
-      integrity: sha512-zExlW9zUJKZH/tOtVMttwjKa4Xm/3KcNjnE3dPN92uCktwavMxpgCA3MoJK/DOnTWsQgo224OaST27/mPNAf+w==,
-    }
-    cpu: [x64]
-    os: [darwin]
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4":
-    resolution: {
-      integrity: sha512-dgX0P/9wGPJeHFBG+ZmhgE6bmtMt7NP5CRBGyyktpopdk/mW4POnrpQsSLtKI1dwpc+pPLuXHDh6vvskyQE/sw==,
-    }
-    cpu: [arm64]
-    os: [linux]
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4":
-    resolution: {
-      integrity: sha512-Tg3yX65f5GbtXLkrYEHE5oibZG9epyYWas7FogTTEJeDEF9JlXJzKgXaNhT3UXlTOeA+AfZpYZYZ0uPj7Cfquw==,
-    }
-    cpu: [arm]
-    os: [linux]
-
-  "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4":
-    resolution: {
-      integrity: sha512-8TNXMEjJc3QEy7R/x1INhgiU+XakDAFUzBhaz7+Rbrs8NH5UQeHQxxmzsSBJGyV6I1jW79undiQm8tOI+D+8FQ==,
-    }
-    cpu: [x64]
-    os: [linux]
-
-  "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4":
-    resolution: {
-      integrity: sha512-CmCXPQrkbwExx3j946/PtHWHbYJiCRBRDl4BlkRQcJB/YOwQxJRTpoo7aTsortjgoJ1x7opzTSxn7C+ASSLVjQ==,
-    }
-    cpu: [x64]
-    os: [win32]
-
   "@napi-rs/wasm-runtime@1.1.4":
     resolution: {
       integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==,
@@ -2860,9 +2827,9 @@ packages:
     cpu: [arm]
     os: [android]
 
-  "@oxlint/binding-android-arm-eabi@1.77.0":
+  "@oxlint/binding-android-arm-eabi@1.82.0":
     resolution: {
-      integrity: sha512-E06sKWS6PiI6HRxS1wyQg22HvApt01hI7fV+T3wUk3OSbaaP4a3hYGY/MIQDmASqCiRjBdpRQYkgMkqH82cWmQ==,
+      integrity: sha512-a3LB+C5Dsj5b/qtmG/mv5WrzuiXEpg1KF5nXWcEvaoN5TYAqkIvxPOwTPp3Jy/FoGpRo8zsTFhMElMXfeoOEzA==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm]
@@ -2876,9 +2843,9 @@ packages:
     cpu: [arm64]
     os: [android]
 
-  "@oxlint/binding-android-arm64@1.77.0":
+  "@oxlint/binding-android-arm64@1.82.0":
     resolution: {
-      integrity: sha512-NvsKz0KZxTp9cYWPLf+FXaSZwB3oO3peAjtukpOMBgse2vhQSoIIVqeO1yR0lEo/UcdZIDL18uq+kL0LzQ0ytA==,
+      integrity: sha512-OBlhRgNqFblGpGenno/aqOfJLOkQ2B8Ig3iDAalfn0H8hJGZKXPeexCRTDm6uwv6YUjSA9Xnwt1y/Bgj5ZH8uw==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -2892,9 +2859,9 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  "@oxlint/binding-darwin-arm64@1.77.0":
+  "@oxlint/binding-darwin-arm64@1.82.0":
     resolution: {
-      integrity: sha512-bgjTn6nW4bQCFBvSvuHCpDD+sONvmpo4lGI4PxzMt1quBA+xYxhczk6RiCn3GZ9gY8uhaBbwhj9MdKGfu6T9DA==,
+      integrity: sha512-dsopxqtY5ZdyT9uLHyGt1SyiLop6hi7hWI3PKpePodkRQOkLaCm+OE4fR9CAz9qdfjiFO8531tX/QDyP/psjFg==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -2908,9 +2875,9 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  "@oxlint/binding-darwin-x64@1.77.0":
+  "@oxlint/binding-darwin-x64@1.82.0":
     resolution: {
-      integrity: sha512-aotaIttH1R6j1Rwhx0M0htgeZyGtVQqYNTVEYMN/UcgHPquGA6kmk9OyuDc3a2GKUQBC+3C3GVQCcrRPMYqAFA==,
+      integrity: sha512-94Lu0SgTClKColU66g1VDuigV3HkcbkJBnTtZjGYfE8UPugaWDgKrm2icjC6HJVUYler2OXaHP/X0TBy8+CowQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [x64]
@@ -2924,9 +2891,9 @@ packages:
     cpu: [x64]
     os: [freebsd]
 
-  "@oxlint/binding-freebsd-x64@1.77.0":
+  "@oxlint/binding-freebsd-x64@1.82.0":
     resolution: {
-      integrity: sha512-nNx/wta7ksRAdYvq+l4AWjXkLxEXHALhENxjj2cYbQAIR4ybaA5L+hCbE63HOmft5czQ6ks+hb8vmEAnn7YGPg==,
+      integrity: sha512-hne/V06ewhh1i0w8+l7GDNROAGCGPmyFuOwiP7YTRu0JycyStJ4785dmF8xU5p0uUwt2emvIF9vc7Xjis+cJ0g==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [x64]
@@ -2940,9 +2907,9 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  "@oxlint/binding-linux-arm-gnueabihf@1.77.0":
+  "@oxlint/binding-linux-arm-gnueabihf@1.82.0":
     resolution: {
-      integrity: sha512-tMLLjM7xXtzXisVCzkOTXNCy9bZVId2wteNwjohlFDR/jY6WagpEDA1c1wu4xRc20Hojaxj+V6DSR7gbKxijWA==,
+      integrity: sha512-aWY2xtbZf1LneW9Qsv/n2Sp8gOu74JrlQzEtj4coHX2SHFrCfhmAumaU+sI/A5nr+yoTRTSmI/pL2s6ADlNSkw==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm]
@@ -2956,9 +2923,9 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  "@oxlint/binding-linux-arm-musleabihf@1.77.0":
+  "@oxlint/binding-linux-arm-musleabihf@1.82.0":
     resolution: {
-      integrity: sha512-MiAFDFaqR0tmHTAyo0YDcZ5hyLREdYw/RQhc2R3cbT+8O3tB+zqPM2th9TTQ+Uo3jn/embS+DO+HyX9ztCPkOQ==,
+      integrity: sha512-Fe+TtXCXMh/5f7kWlZ2VAwsMumZWtraFlKVk1NJlL52/beGwfDE7ov+/8gVirHzWokzGu7X65hSPq0ucPDskWQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm]
@@ -2973,9 +2940,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  "@oxlint/binding-linux-arm64-gnu@1.77.0":
+  "@oxlint/binding-linux-arm64-gnu@1.82.0":
     resolution: {
-      integrity: sha512-/xqQ3B16i1T4cyt/9Mn+4CpzhUXoBXp7kVpIwzOXNFLj5JmK1bIjsbSnX296Gg8A/o7oDtKWikFgBx0SLwztkw==,
+      integrity: sha512-6azCZ6OJudlvipNttXCCQcyeFfcJ/NvUZdSN1z8elo73kCHtyQC7WTiUcSjWYvJ1jaq9KDUyMAoAS/vNzhBomA==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -2991,9 +2958,9 @@ packages:
     os: [linux]
     libc: [musl]
 
-  "@oxlint/binding-linux-arm64-musl@1.77.0":
+  "@oxlint/binding-linux-arm64-musl@1.82.0":
     resolution: {
-      integrity: sha512-LSbwuRKiNCenPDcbARqAZ5RfBy7gmj7vOvfJRLeCDU3gFtSxWbhv/+VTlaUqzUhNj1gFLHB8h7ALnxa/Az6z6g==,
+      integrity: sha512-PLEaSD8IAIIlwW4dwOd9YaxuxeOpwiXL4J24rcnE4iNtyM5j9Q9/3+gti08oXpx0u2ygNjRDx9xjWWpQonuJEw==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -3009,9 +2976,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  "@oxlint/binding-linux-ppc64-gnu@1.77.0":
+  "@oxlint/binding-linux-ppc64-gnu@1.82.0":
     resolution: {
-      integrity: sha512-QWdcH31mXEUe5Nq1s0CfCpceaKjIo9uZtwDjAuL681g1axf+5x8xrg/eXWaw//4NCxYZ4V4e5Hu5tvdR+pTBlg==,
+      integrity: sha512-D94em/BwknNTn4vqxjHh5wb2oL566eFhArabqKIr0cNZMHOJuiraFp1A8tXpH05bbE5tqwEfLXTI0MWEGtn3Dw==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [ppc64]
@@ -3027,9 +2994,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  "@oxlint/binding-linux-riscv64-gnu@1.77.0":
+  "@oxlint/binding-linux-riscv64-gnu@1.82.0":
     resolution: {
-      integrity: sha512-GnOfYgJxbcElOiPZaDFDl406ONddwvOWk2jvAAAEjwAl4GofNoHF+/HHUIBYa6bFCArlcGPi0XjC4cU1pkgF/Q==,
+      integrity: sha512-MOprxBaoYU2D4VgxXCl3ghydThWtx7Um1lL51kGYNeQ5Al7WzsH7/tqGdNtbLrIWnjq3bsm13+nz/gRIxjrOXw==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [riscv64]
@@ -3045,9 +3012,9 @@ packages:
     os: [linux]
     libc: [musl]
 
-  "@oxlint/binding-linux-riscv64-musl@1.77.0":
+  "@oxlint/binding-linux-riscv64-musl@1.82.0":
     resolution: {
-      integrity: sha512-AyEMTUCf0xY+hHF+IxqXFQIX0yQOIR8ykpY0lJNOw9xYqOzUX8dyZfRvlG0RfXwuQn2eonf/8NrMmDSZJjdqsA==,
+      integrity: sha512-5h55QsfJ/luDXZzC20k6SNOY1Az+dCP9WvntKtcUWh2JhckAdwApY2ZusaBTwLENnReXU+A2fJtSrYvZJNKNPg==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [riscv64]
@@ -3063,9 +3030,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  "@oxlint/binding-linux-s390x-gnu@1.77.0":
+  "@oxlint/binding-linux-s390x-gnu@1.82.0":
     resolution: {
-      integrity: sha512-sPLzEcNvxd/oyVQ5oZo92CiHkFkpBeRop13E/P3TPY+hZfXHKCOWKI70TE2RYwMKFJDc20EMjH16L7NZICtKTw==,
+      integrity: sha512-IE8NJNLlHr0CaXyGJPGVn0eTkUyoj1I2UfA8x7I4PSOYKsQ/6btVC7Pywrj5onk0cMH25r6Z38SoN3AvE5Zuog==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [s390x]
@@ -3081,9 +3048,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  "@oxlint/binding-linux-x64-gnu@1.77.0":
+  "@oxlint/binding-linux-x64-gnu@1.82.0":
     resolution: {
-      integrity: sha512-1Oh2ssH2L7lwyvkdSqaMUfsGfwU2Wfvew+obBUYjRVqhpBcUpwnsPSEr1IzVi9XqkuY10geiLsNKecqaZC34Dw==,
+      integrity: sha512-XUUUxaBo9XKl+J1B9EmP1cTGQPddzeURvoGkfwh/94PGnbW+hBprDljneoI2M1jzC1bzrIV3ihc7iM9UXl8+tg==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [x64]
@@ -3099,9 +3066,9 @@ packages:
     os: [linux]
     libc: [musl]
 
-  "@oxlint/binding-linux-x64-musl@1.77.0":
+  "@oxlint/binding-linux-x64-musl@1.82.0":
     resolution: {
-      integrity: sha512-0j/2wRgNGO+Qj/M1uu/p57h/hFTTWWcfie0ufkbabeus2s5+/QqkCflnMOwLLN5m2GsNeWp4xdl4cPa4n7QCOQ==,
+      integrity: sha512-SWLSFulX9TDuH6yvbPYp4+VNn6jkkIvvI+KiujDM5rWBRHEfkesCC/pCneIIUr6ovkxZ5fRtpi2v5Cz5FrMJZg==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [x64]
@@ -3116,9 +3083,9 @@ packages:
     cpu: [arm64]
     os: [openharmony]
 
-  "@oxlint/binding-openharmony-arm64@1.77.0":
+  "@oxlint/binding-openharmony-arm64@1.82.0":
     resolution: {
-      integrity: sha512-BJ/j54qS0usEnyDkLYURMj2iiD9h5Cyy+ppzeMSXBGRXaGRNWnj1Mw14NqWMR5E/PzdgB30OOCCzLzbRoduafw==,
+      integrity: sha512-BQy35f6ZUdNr9a6c7B7orxQTcLjByGT2z3WAgmRovpRwmPYAaJ+NTplmMzhdjdJ4qSchfMNZy/Ukg+qRg6zseQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -3132,9 +3099,9 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  "@oxlint/binding-win32-arm64-msvc@1.77.0":
+  "@oxlint/binding-win32-arm64-msvc@1.82.0":
     resolution: {
-      integrity: sha512-Yh8w+g2Lpx7StrvtYkoz9JJvXjB9wxgFChFNb85nrXm/wj/XTwGWS1hve9+900HL7llrntYB3YP+y32E3tRqzA==,
+      integrity: sha512-V4QhSTg5gctZue8RJjsGi7NpQPThr/p1/HfmiMC5kfe1KFEup9SQRVub4A6kijQjdHfxj7bLL1KO3QO7/5bwMQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [arm64]
@@ -3148,9 +3115,9 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  "@oxlint/binding-win32-ia32-msvc@1.77.0":
+  "@oxlint/binding-win32-ia32-msvc@1.82.0":
     resolution: {
-      integrity: sha512-zja5b7+6a7UsRFgAQSrnax5vrzliEyNPLCjfXONu/vTWswaIVZGFajJZptaeRvPE4LghtFdAzVFlexTm7MVTGA==,
+      integrity: sha512-TUSCLaKB2yktpFAJ/r3HAUYsaV/3DT7JS4iNKyoh3a9YNwD0UG7Ezh4D8m23654vQcU6P/RQrCAjRPKe4peP/A==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [ia32]
@@ -3164,9 +3131,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  "@oxlint/binding-win32-x64-msvc@1.77.0":
+  "@oxlint/binding-win32-x64-msvc@1.82.0":
     resolution: {
-      integrity: sha512-+teyvPDZ2RjUvo+SuCqS/UhaJl1QtdW5fWT5NJTV61V5MIuIS90Db9LixmtEGvXixyttiK62P96MSu3UlpviBw==,
+      integrity: sha512-VTVoRIWJTb+wvUX8EYoPArfFH02whuR10goFXE/LHRRX33ajRrFgqbcONXZMiF4C5rnattfkm87HqYn8jb8hmQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     cpu: [x64]
@@ -5734,15 +5701,12 @@ packages:
     engines: { node: ">=14" }
     hasBin: true
 
-  effect@4.0.0-beta.86:
+  effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4:
     resolution: {
-      integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==,
+      integrity: sha512-3mUudXofhydQQAPOvd0w+N9HxQN2kLjjBfl0SXKRh9dMYBsayyO5z1W+CiB+gzuUAmtU8ppV/W5QRiHPGwV98A==,
+      tarball: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4,
     }
-
-  effect@4.0.0-rc.113:
-    resolution: {
-      integrity: sha512-uZ4Bh7KSlw2sdVdNDHPLSNjLGH+MWap7cheIHZoB/1T/ZJ3pvI4KiN3kUp50MpFKXhygOMmReJJOwWMQPwpPAg==,
-    }
+    version: 4.0.0-rc.114
 
   electron-to-chromium@1.5.267:
     resolution: {
@@ -6180,11 +6144,6 @@ packages:
     }
     engines: { node: ">=14.16" }
 
-  find-my-way-ts@0.1.6:
-    resolution: {
-      integrity: sha512-a85L9ZoXtNAey3Y6Z+eBWW658kO/MwR7zIafkIUPUMf3isZG0NCs2pjW2wtjxAKuJPxMAsHUIP4ZPGv0o5gyTA==,
-    }
-
   find-up@4.1.0:
     resolution: {
       integrity: sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw==,
@@ -6587,12 +6546,6 @@ packages:
     resolution: {
       integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==,
     }
-
-  ini@7.0.0:
-    resolution: {
-      integrity: sha512-ifK0CgjALofS5bkrcTy4RaQ9Vx2Knf/eLeIO+NaswQEpH1UblrtTSCIvN71qQDMq0PeQ/SSPojvEJp9vvvfr+w==,
-    }
-    engines: { node: ^22.22.2 || ^24.15.0 || >=26.0.0 }
 
   internal-slot@1.1.0:
     resolution: {
@@ -7030,11 +6983,6 @@ packages:
   keyv@4.5.4:
     resolution: {
       integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==,
-    }
-
-  kubernetes-types@1.30.0:
-    resolution: {
-      integrity: sha512-Dew1okvhM/SQcIa2rcgujNndZwU8VnSapDgdxlYoB84ZlpAD43U6KLAFqYo17ykSFGHNPrg0qry0bP+GJd9v7Q==,
     }
 
   levn@0.4.1:
@@ -7484,25 +7432,9 @@ packages:
       integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==,
     }
 
-  msgpackr-extract@3.0.4:
-    resolution: {
-      integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==,
-    }
-    hasBin: true
-
-  msgpackr@2.0.1:
-    resolution: {
-      integrity: sha512-9J+tqTEsbHqY8YohazYgty7LgerFIWxvMLpUjqETSmjHojtJm2WnX2kK/2a1fLI7CO7ERP1YSEUXMucz4j+yBA==,
-    }
-
   muggle-string@0.4.1:
     resolution: {
       integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==,
-    }
-
-  multipasta@0.2.7:
-    resolution: {
-      integrity: sha512-KPA58d68KgGil15oDqXjkUBEBYc00XvbPj5/X+dyzeo/lWm9Nc25pQRlf1D+gv4OpK7NM0J1odrbu9JNNGvynA==,
     }
 
   nanoid@3.3.12:
@@ -7549,12 +7481,6 @@ packages:
     resolution: {
       integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==,
     }
-
-  node-gyp-build-optional-packages@5.2.2:
-    resolution: {
-      integrity: sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw==,
-    }
-    hasBin: true
 
   node-releases@2.0.27:
     resolution: {
@@ -7722,9 +7648,9 @@ packages:
       vite-plus:
         optional: true
 
-  oxlint@1.77.0:
+  oxlint@1.82.0:
     resolution: {
-      integrity: sha512-qnGh8XJHaQ0dprrDXNQZgS0FgjI6v+V3+X8DwmaV++5Aamy6jGKfDdQ1TUvhUxtmKFAbEf4/WeO5QZX+5WSngg==,
+      integrity: sha512-+iFM1BGw1ntYJt3QngbJmjbrGxPaKMUADOXOijpWGnYcBPq8YZnQftSS1C+pVcDYy9YxqDVJKQqQkTazTQMboQ==,
     }
     engines: { node: ^20.19.0 || >=22.12.0 }
     hasBin: true
@@ -8935,12 +8861,6 @@ packages:
       integrity: sha512-VSsyNPPW74RpHwR8Fc21uubwHY7wMDeJLys2IX5zJNih+OnAnaifKHo+1LHT7DAdloQ7apeaaWg8l7qnf/TnEg==,
     }
 
-  toml@4.1.1:
-    resolution: {
-      integrity: sha512-EBJnVBr3dTXdA89WVFoAIPUqkBjxPMwRqsfuo1r240tKFHXv3zgca4+NJib/h6TyvGF7vOawz0jGuryJCdNHrw==,
-    }
-    engines: { node: ">=20" }
-
   tough-cookie@6.0.1:
     resolution: {
       integrity: sha512-LktZQb3IeoUWB9lqR5EWTHgW/VTITCXg4D21M+lvybRVdylLrRMnqaIONLVb5mav8vM19m44HIcGq4qASeu2Qw==,
@@ -9199,12 +9119,6 @@ packages:
     resolution: {
       integrity: sha512-kZf/K6hEIrWHI6XqOFUiiMa+79wE/D8Q+NCNAWclkyg3b4d2k7s0QGepNjiABc+aR3N1PAyHL7p6UcLY6LmrnA==,
     }
-
-  uuid@14.0.0:
-    resolution: {
-      integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==,
-    }
-    hasBin: true
 
   validator@13.15.35:
     resolution: {
@@ -10311,47 +10225,47 @@ snapshots:
 
   "@effect-app/cli@2.1.0-beta.35(ioredis@5.9.3(supports-color@8.1.1))":
     dependencies:
-      "@effect/platform-node": 4.0.0-beta.86(effect@4.0.0-beta.86)(ioredis@5.9.3(supports-color@8.1.1))
-      effect: 4.0.0-beta.86
+      "@effect/platform-node": 4.0.0-beta.86(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(ioredis@5.9.3(supports-color@8.1.1))
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       js-yaml: 4.2.0
     transitivePeerDependencies:
       - bufferutil
       - ioredis
       - utf-8-validate
 
-  "@effect/atom-vue@4.0.0-rc.113(effect@4.0.0-rc.113)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
+  "@effect/atom-vue@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
     dependencies:
-      effect: 4.0.0-rc.113
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       vue: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
-  "@effect/language-service@0.86.2": {}
+  "@effect/language-service@0.87.2": {}
 
-  "@effect/platform-browser@4.0.0-rc.113(effect@4.0.0-rc.113)":
+  "@effect/platform-browser@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)":
     dependencies:
-      effect: 4.0.0-rc.113
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
 
-  "@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.86)":
+  "@effect/platform-node-shared@4.0.0-beta.86(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)":
     dependencies:
       "@types/ws": 8.18.1
-      effect: 4.0.0-beta.86
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node-shared@4.0.0-rc.113(effect@4.0.0-rc.113)":
+  "@effect/platform-node-shared@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)":
     dependencies:
       "@types/ws": 8.18.1
-      effect: 4.0.0-rc.113
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-beta.86(effect@4.0.0-beta.86)(ioredis@5.9.3(supports-color@8.1.1))":
+  "@effect/platform-node@4.0.0-beta.86(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(ioredis@5.9.3(supports-color@8.1.1))":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-beta.86(effect@4.0.0-beta.86)
-      effect: 4.0.0-beta.86
+      "@effect/platform-node-shared": 4.0.0-beta.86(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       ioredis: 5.9.3(supports-color@8.1.1)
       mime: 4.1.0
       undici: 8.3.0
@@ -10359,54 +10273,54 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-rc.113(effect@4.0.0-rc.113)(redis@6.2.1(@opentelemetry/api@1.9.1))":
+  "@effect/platform-node@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(redis@6.2.1(@opentelemetry/api@1.9.1))":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-rc.113(effect@4.0.0-rc.113)
-      effect: 4.0.0-rc.113
+      "@effect/platform-node-shared": 4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       redis: 6.2.1(@opentelemetry/api@1.9.1)
       undici: 8.10.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/sql-sqlite-node@4.0.0-rc.113(effect@4.0.0-rc.113)":
+  "@effect/sql-sqlite-node@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)":
     dependencies:
-      effect: 4.0.0-rc.113
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
 
-  "@effect/tsgo-darwin-arm64@0.31.0":
+  "@effect/tsgo-darwin-arm64@0.45.0":
     optional: true
 
-  "@effect/tsgo-darwin-x64@0.31.0":
+  "@effect/tsgo-darwin-x64@0.45.0":
     optional: true
 
-  "@effect/tsgo-linux-arm64@0.31.0":
+  "@effect/tsgo-linux-arm64@0.45.0":
     optional: true
 
-  "@effect/tsgo-linux-arm@0.31.0":
+  "@effect/tsgo-linux-arm@0.45.0":
     optional: true
 
-  "@effect/tsgo-linux-x64@0.31.0":
+  "@effect/tsgo-linux-x64@0.45.0":
     optional: true
 
-  "@effect/tsgo-win32-arm64@0.31.0":
+  "@effect/tsgo-win32-arm64@0.45.0":
     optional: true
 
-  "@effect/tsgo-win32-x64@0.31.0":
+  "@effect/tsgo-win32-x64@0.45.0":
     optional: true
 
-  "@effect/tsgo@0.31.0":
+  "@effect/tsgo@0.45.0":
     optionalDependencies:
-      "@effect/tsgo-darwin-arm64": 0.31.0
-      "@effect/tsgo-darwin-x64": 0.31.0
-      "@effect/tsgo-linux-arm": 0.31.0
-      "@effect/tsgo-linux-arm64": 0.31.0
-      "@effect/tsgo-linux-x64": 0.31.0
-      "@effect/tsgo-win32-arm64": 0.31.0
-      "@effect/tsgo-win32-x64": 0.31.0
+      "@effect/tsgo-darwin-arm64": 0.45.0
+      "@effect/tsgo-darwin-x64": 0.45.0
+      "@effect/tsgo-linux-arm": 0.45.0
+      "@effect/tsgo-linux-arm64": 0.45.0
+      "@effect/tsgo-linux-x64": 0.45.0
+      "@effect/tsgo-win32-arm64": 0.45.0
+      "@effect/tsgo-win32-x64": 0.45.0
 
-  "@effect/vitest@4.0.0-rc.113(effect@4.0.0-rc.113)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
+  "@effect/vitest@4.0.0-rc.114(effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
     dependencies:
-      effect: 4.0.0-rc.113
+      effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
       vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@emnapi/core@1.10.0":
@@ -10818,24 +10732,6 @@ snapshots:
     dependencies:
       sparse-bitfield: 3.0.3
 
-  "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4":
-    optional: true
-
-  "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4":
-    optional: true
-
   "@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)":
     dependencies:
       "@emnapi/core": 1.10.0
@@ -11131,115 +11027,115 @@ snapshots:
   "@oxlint/binding-android-arm-eabi@1.67.0":
     optional: true
 
-  "@oxlint/binding-android-arm-eabi@1.77.0":
+  "@oxlint/binding-android-arm-eabi@1.82.0":
     optional: true
 
   "@oxlint/binding-android-arm64@1.67.0":
     optional: true
 
-  "@oxlint/binding-android-arm64@1.77.0":
+  "@oxlint/binding-android-arm64@1.82.0":
     optional: true
 
   "@oxlint/binding-darwin-arm64@1.67.0":
     optional: true
 
-  "@oxlint/binding-darwin-arm64@1.77.0":
+  "@oxlint/binding-darwin-arm64@1.82.0":
     optional: true
 
   "@oxlint/binding-darwin-x64@1.67.0":
     optional: true
 
-  "@oxlint/binding-darwin-x64@1.77.0":
+  "@oxlint/binding-darwin-x64@1.82.0":
     optional: true
 
   "@oxlint/binding-freebsd-x64@1.67.0":
     optional: true
 
-  "@oxlint/binding-freebsd-x64@1.77.0":
+  "@oxlint/binding-freebsd-x64@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-arm-gnueabihf@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-arm-gnueabihf@1.77.0":
+  "@oxlint/binding-linux-arm-gnueabihf@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-arm-musleabihf@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-arm-musleabihf@1.77.0":
+  "@oxlint/binding-linux-arm-musleabihf@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-arm64-gnu@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-arm64-gnu@1.77.0":
+  "@oxlint/binding-linux-arm64-gnu@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-arm64-musl@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-arm64-musl@1.77.0":
+  "@oxlint/binding-linux-arm64-musl@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-ppc64-gnu@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-ppc64-gnu@1.77.0":
+  "@oxlint/binding-linux-ppc64-gnu@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-riscv64-gnu@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-riscv64-gnu@1.77.0":
+  "@oxlint/binding-linux-riscv64-gnu@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-riscv64-musl@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-riscv64-musl@1.77.0":
+  "@oxlint/binding-linux-riscv64-musl@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-s390x-gnu@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-s390x-gnu@1.77.0":
+  "@oxlint/binding-linux-s390x-gnu@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-x64-gnu@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-x64-gnu@1.77.0":
+  "@oxlint/binding-linux-x64-gnu@1.82.0":
     optional: true
 
   "@oxlint/binding-linux-x64-musl@1.67.0":
     optional: true
 
-  "@oxlint/binding-linux-x64-musl@1.77.0":
+  "@oxlint/binding-linux-x64-musl@1.82.0":
     optional: true
 
   "@oxlint/binding-openharmony-arm64@1.67.0":
     optional: true
 
-  "@oxlint/binding-openharmony-arm64@1.77.0":
+  "@oxlint/binding-openharmony-arm64@1.82.0":
     optional: true
 
   "@oxlint/binding-win32-arm64-msvc@1.67.0":
     optional: true
 
-  "@oxlint/binding-win32-arm64-msvc@1.77.0":
+  "@oxlint/binding-win32-arm64-msvc@1.82.0":
     optional: true
 
   "@oxlint/binding-win32-ia32-msvc@1.67.0":
     optional: true
 
-  "@oxlint/binding-win32-ia32-msvc@1.77.0":
+  "@oxlint/binding-win32-ia32-msvc@1.82.0":
     optional: true
 
   "@oxlint/binding-win32-x64-msvc@1.67.0":
     optional: true
 
-  "@oxlint/binding-win32-x64-msvc@1.77.0":
+  "@oxlint/binding-win32-x64-msvc@1.82.0":
     optional: true
 
   "@parcel/watcher-android-arm64@2.5.4":
@@ -13039,20 +12935,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.86:
-    dependencies:
-      "@standard-schema/spec": 1.1.0
-      fast-check: 4.9.0
-      find-my-way-ts: 0.1.6
-      ini: 7.0.0
-      kubernetes-types: 1.30.0
-      msgpackr: 2.0.1
-      multipasta: 0.2.7
-      toml: 4.1.1
-      uuid: 14.0.0
-      yaml: 2.9.0
-
-  effect@4.0.0-rc.113: {}
+  effect@https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4: {}
 
   electron-to-chromium@1.5.267:
     optional: true
@@ -13506,8 +13389,6 @@ snapshots:
 
   filter-obj@5.1.0: {}
 
-  find-my-way-ts@0.1.6: {}
-
   find-up@4.1.0:
     dependencies:
       locate-path: 5.0.0
@@ -13797,8 +13678,6 @@ snapshots:
   inherits@2.0.4: {}
 
   ini@1.3.8: {}
-
-  ini@7.0.0: {}
 
   internal-slot@1.1.0:
     dependencies:
@@ -14102,8 +13981,6 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  kubernetes-types@1.30.0: {}
-
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -14362,25 +14239,7 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msgpackr-extract@3.0.4:
-    dependencies:
-      node-gyp-build-optional-packages: 5.2.2
-    optionalDependencies:
-      "@msgpackr-extract/msgpackr-extract-darwin-arm64": 3.0.4
-      "@msgpackr-extract/msgpackr-extract-darwin-x64": 3.0.4
-      "@msgpackr-extract/msgpackr-extract-linux-arm": 3.0.4
-      "@msgpackr-extract/msgpackr-extract-linux-arm64": 3.0.4
-      "@msgpackr-extract/msgpackr-extract-linux-x64": 3.0.4
-      "@msgpackr-extract/msgpackr-extract-win32-x64": 3.0.4
-    optional: true
-
-  msgpackr@2.0.1:
-    optionalDependencies:
-      msgpackr-extract: 3.0.4
-
   muggle-string@0.4.1: {}
-
-  multipasta@0.2.7: {}
 
   nanoid@3.3.12: {}
 
@@ -14400,11 +14259,6 @@ snapshots:
       semver: 7.7.3
 
   node-addon-api@7.1.1:
-    optional: true
-
-  node-gyp-build-optional-packages@5.2.2:
-    dependencies:
-      detect-libc: 2.1.2
     optional: true
 
   node-releases@2.0.27:
@@ -14624,27 +14478,27 @@ snapshots:
       "@oxlint/binding-win32-x64-msvc": 1.67.0
       oxlint-tsgolint: 0.23.0
 
-  oxlint@1.77.0(oxlint-tsgolint@7.0.2001):
+  oxlint@1.82.0(oxlint-tsgolint@7.0.2001):
     optionalDependencies:
-      "@oxlint/binding-android-arm-eabi": 1.77.0
-      "@oxlint/binding-android-arm64": 1.77.0
-      "@oxlint/binding-darwin-arm64": 1.77.0
-      "@oxlint/binding-darwin-x64": 1.77.0
-      "@oxlint/binding-freebsd-x64": 1.77.0
-      "@oxlint/binding-linux-arm-gnueabihf": 1.77.0
-      "@oxlint/binding-linux-arm-musleabihf": 1.77.0
-      "@oxlint/binding-linux-arm64-gnu": 1.77.0
-      "@oxlint/binding-linux-arm64-musl": 1.77.0
-      "@oxlint/binding-linux-ppc64-gnu": 1.77.0
-      "@oxlint/binding-linux-riscv64-gnu": 1.77.0
-      "@oxlint/binding-linux-riscv64-musl": 1.77.0
-      "@oxlint/binding-linux-s390x-gnu": 1.77.0
-      "@oxlint/binding-linux-x64-gnu": 1.77.0
-      "@oxlint/binding-linux-x64-musl": 1.77.0
-      "@oxlint/binding-openharmony-arm64": 1.77.0
-      "@oxlint/binding-win32-arm64-msvc": 1.77.0
-      "@oxlint/binding-win32-ia32-msvc": 1.77.0
-      "@oxlint/binding-win32-x64-msvc": 1.77.0
+      "@oxlint/binding-android-arm-eabi": 1.82.0
+      "@oxlint/binding-android-arm64": 1.82.0
+      "@oxlint/binding-darwin-arm64": 1.82.0
+      "@oxlint/binding-darwin-x64": 1.82.0
+      "@oxlint/binding-freebsd-x64": 1.82.0
+      "@oxlint/binding-linux-arm-gnueabihf": 1.82.0
+      "@oxlint/binding-linux-arm-musleabihf": 1.82.0
+      "@oxlint/binding-linux-arm64-gnu": 1.82.0
+      "@oxlint/binding-linux-arm64-musl": 1.82.0
+      "@oxlint/binding-linux-ppc64-gnu": 1.82.0
+      "@oxlint/binding-linux-riscv64-gnu": 1.82.0
+      "@oxlint/binding-linux-riscv64-musl": 1.82.0
+      "@oxlint/binding-linux-s390x-gnu": 1.82.0
+      "@oxlint/binding-linux-x64-gnu": 1.82.0
+      "@oxlint/binding-linux-x64-musl": 1.82.0
+      "@oxlint/binding-openharmony-arm64": 1.82.0
+      "@oxlint/binding-win32-arm64-msvc": 1.82.0
+      "@oxlint/binding-win32-ia32-msvc": 1.82.0
+      "@oxlint/binding-win32-x64-msvc": 1.82.0
       oxlint-tsgolint: 7.0.2001
 
   p-filter@2.1.0:
@@ -15563,8 +15417,6 @@ snapshots:
 
   token-stream@1.0.0: {}
 
-  toml@4.1.1: {}
-
   tough-cookie@6.0.1:
     dependencies:
       tldts: 7.0.19
@@ -15759,8 +15611,6 @@ snapshots:
       is-generator-function: 1.1.2
       is-typed-array: 1.1.15
       which-typed-array: 1.1.20
-
-  uuid@14.0.0: {}
 
   validator@13.15.35: {}
 

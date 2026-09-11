@@ -3,7 +3,7 @@
 "@effect-app/cli": patch
 ---
 
-Upgrade Effect packages to `4.0.0-rc.113`.
+Upgrade Effect packages to `4.0.0-rc.114` (core `effect` via pkg.pr.new at `cdb3ac91` until npm publishes that version). Also bump independently versioned `@effect/language-service` to `0.87.2` and `@effect/tsgo` to `0.45.0` (requires `oxlint` `1.82.0`).
 
 Breaking API updates from this RC:
 

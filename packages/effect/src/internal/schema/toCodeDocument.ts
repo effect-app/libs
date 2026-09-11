@@ -484,7 +484,7 @@ export function toCodeDocument(
             `${element.isOptional ? "Schema.optionalKey(" : ""}${type.runtime}${element.isOptional ? ")" : ""}${
               runtimeAnnotate(element.annotations, "annotateKey")
             }`,
-            `${type.Type}${element.isOptional ? "?" : ""}`
+            element.isOptional ? `(${type.Type})?` : type.Type
           )
         })
         const rest = representation.rest.map((item, index) => recur(item, [...path, "rest", index]))
@@ -516,15 +516,15 @@ export function toCodeDocument(
         const properties = representation.propertySignatures.map((property, index) => {
           const isSymbol = typeof property.name === "symbol"
           const name = isSymbol
-            ? addSymbol(property.name)
+            ? `[${addSymbol(property.name)}]`
             : formatPropertyKey(property.name)
           const type = recur(property.type, [...path, "propertySignatures", index, "type"])
           let runtime = type.runtime
           if (property.isMutable) runtime = `Schema.mutableKey(${runtime})`
           if (property.isOptional) runtime = `Schema.optionalKey(${runtime})`
           runtime += runtimeAnnotate(property.annotations, "annotateKey")
-          const runtimeName = isSymbol ? `[${name}]` : name
-          const typeName = `${property.isMutable ? "" : "readonly "}${runtimeName}${property.isOptional ? "?" : ""}`
+          const runtimeName = property.name === "__proto__" ? `[${name}]` : name
+          const typeName = `${property.isMutable ? "" : "readonly "}${name}${property.isOptional ? "?" : ""}`
           return {
             code: makeCode(`${runtimeName}: ${runtime}`, `${typeName}: ${type.Type}`)
           }

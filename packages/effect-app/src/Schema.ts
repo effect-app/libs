@@ -2,10 +2,11 @@ import * as S from "effect/Schema"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
+import type { Arbitrary as FastCheckArbitrary } from "fast-check"
 import type { NonEmptyReadonlyArray } from "./Array.ts"
-import { fakerArb } from "./faker.ts"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.ts"
 import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.ts"
+import type { FC } from "./Schema/FastCheck.ts"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.ts"
 import { type AST } from "./Schema/schema.ts"
 import * as SchemaAST from "./SchemaAST.ts"
@@ -128,6 +129,9 @@ export * from "./Schema/strings.ts"
 export { NonEmptyString } from "./Schema/strings.ts"
 
 export * as SchemaIssue from "effect/SchemaIssue"
+
+/** Fast-check generator factory previously exported as `Schema.Arbitrary`. */
+export type Arbitrary<T> = (fc: FC) => FastCheckArbitrary<T>
 
 export const decodeEffectConcurrently: typeof S.decodeEffect = withDefaultParseOptions(S.decodeEffect)
 export const decodeUnknownEffectConcurrently: typeof S.decodeUnknownEffect = withDefaultParseOptions(
@@ -347,29 +351,11 @@ export interface WithOptionalSpan {
   [SpanId]?: Tracer.Span
 }
 
-const makeEmail = S.decodeSync(EmailT as any) as (value: string) => EmailType
-const makePhoneNumber = S.decodeSync(PhoneNumberT as any) as (value: string) => PhoneNumberType
-
-export const Email = EmailT
-  .pipe(
-    S.annotate({
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      toArbitrary: () => (fc) => fakerArb((faker) => faker.internet.exampleEmail)(fc).map(makeEmail)
-    }),
-    withDefaultMake
-  )
+export const Email = EmailT.pipe(withDefaultMake)
 
 export type Email = EmailType
 
-export const PhoneNumber = PhoneNumberT
-  .pipe(
-    S.annotate({
-      toArbitrary: () => (fc) =>
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        fakerArb((faker) => faker.phone.number)(fc).map(makePhoneNumber)
-    }),
-    withDefaultMake
-  )
+export const PhoneNumber = PhoneNumberT.pipe(withDefaultMake)
 
 export type PhoneNumber = PhoneNumberType
 

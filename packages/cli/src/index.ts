@@ -403,7 +403,7 @@ NodeRuntime.runMain(
        * CLI
        */
 
-      const WrapAsOption = Flag.string("wrap").pipe(
+      const WrapAsOption = Flag.String("wrap").pipe(
         Flag.withAlias("w"),
         Flag.optional,
         Flag.withDescription(
@@ -413,7 +413,7 @@ NodeRuntime.runMain(
 
       // has prio over WrapAsOption
       const WrapAsArg = Argument
-        .string("wrap")
+        .String("wrap")
         .pipe(
           Argument.atLeast(1),
           Argument.optional,
@@ -473,7 +473,7 @@ NodeRuntime.runMain(
         )
 
       const EffectAppLibsPath = Argument
-        .directory("effect-app-libs-path", { mustExist: true })
+        .Directory("effect-app-libs-path", { mustExist: true })
         .pipe(
           Argument.withDefault("../../effect-app/libs"),
           Argument.withDescription("Path to the effect-app-libs directory")
@@ -506,7 +506,7 @@ NodeRuntime.runMain(
           Effect.fn("effa-cli.ue")(function*({}) {
             yield* Effect.logInfo("Update effect-app and/or effect packages")
 
-            const prompted = yield* Prompt.select({
+            const prompted = yield* Prompt.Select({
               choices: [
                 {
                   title: "effect-app",
@@ -665,7 +665,7 @@ NodeRuntime.runMain(
         .make(
           "gist",
           {
-            config: Flag.file("config").pipe(
+            config: Flag.File("config").pipe(
               Flag.withDefault("gists.yaml"),
               Flag.withDescription("Path to YAML configuration file")
             )
@@ -683,10 +683,10 @@ NodeRuntime.runMain(
         .make(
           "nuke",
           {
-            dryRun: Flag.boolean("dry-run").pipe(
+            dryRun: Flag.Boolean("dry-run").pipe(
               Flag.withDescription("Show what would be done without making changes")
             ),
-            storePrune: Flag.boolean("store-prune").pipe(
+            storePrune: Flag.Boolean("store-prune").pipe(
               Flag.withDescription("Prune the package manager store")
             )
           },
@@ -718,18 +718,18 @@ NodeRuntime.runMain(
         .make(
           "sync-effect",
           {
-            manifests: Flag.string("manifests").pipe(
+            manifests: Flag.String("manifests").pipe(
               Flag.withAlias("m"),
               Flag.optional,
               Flag.withDescription(
                 "Comma-separated list of package.json paths to scan (default: package.json)"
               )
             ),
-            prefix: Flag.string("prefix").pipe(
+            prefix: Flag.String("prefix").pipe(
               Flag.optional,
               Flag.withDescription("Subtree prefix (default: repos/effect)")
             ),
-            url: Flag.string("url").pipe(
+            url: Flag.String("url").pipe(
               Flag.optional,
               Flag.withDescription(
                 "Git repository URL (default: https://github.com/Effect-TS/effect.git)"
@@ -753,24 +753,24 @@ NodeRuntime.runMain(
         .make(
           "sync-effect-app",
           {
-            manifests: Flag.string("manifests").pipe(
+            manifests: Flag.String("manifests").pipe(
               Flag.withAlias("m"),
               Flag.optional,
               Flag.withDescription(
                 "Comma-separated list of package.json paths to scan (default: package.json)"
               )
             ),
-            prefix: Flag.string("prefix").pipe(
+            prefix: Flag.String("prefix").pipe(
               Flag.optional,
               Flag.withDescription("Subtree prefix (default: repos/libs)")
             ),
-            url: Flag.string("url").pipe(
+            url: Flag.String("url").pipe(
               Flag.optional,
               Flag.withDescription(
                 "Git repository URL (default: https://github.com/effect-app/libs.git)"
               )
             ),
-            ref: Flag.string("ref").pipe(
+            ref: Flag.String("ref").pipe(
               Flag.optional,
               Flag.withDescription("Ref escape hatch (branch/tag/sha/latest); latest means main")
             )
@@ -792,7 +792,7 @@ NodeRuntime.runMain(
         )
         .pipe(Command.withDescription("Sync the Effect App libs subtree to the version pinned in package.json"))
 
-      const SharedLockfileFlag = Flag.file("lockfile").pipe(
+      const SharedLockfileFlag = Flag.File("lockfile").pipe(
         Flag.optional,
         Flag.withDescription("Path to lockfile (default: .shared.json)")
       )
@@ -802,10 +802,10 @@ NodeRuntime.runMain(
           "sync",
           {
             lockfile: SharedLockfileFlag,
-            update: Flag.boolean("update").pipe(
+            update: Flag.Boolean("update").pipe(
               Flag.withDescription("Bump the pinned ref to the latest sha before syncing")
             ),
-            ref: Flag.string("ref").pipe(
+            ref: Flag.String("ref").pipe(
               Flag.optional,
               Flag.withDescription("Ref (branch/tag/sha) to update to; default: remote default branch HEAD")
             )
@@ -839,16 +839,16 @@ NodeRuntime.runMain(
           "sync-push",
           {
             lockfile: SharedLockfileFlag,
-            message: Flag.string("message").pipe(
+            message: Flag.String("message").pipe(
               Flag.withAlias("m"),
               Flag.optional,
               Flag.withDescription("Commit message for the push")
             ),
-            branch: Flag.string("branch").pipe(
+            branch: Flag.String("branch").pipe(
               Flag.optional,
               Flag.withDescription("Branch name in shared repo (default: auto-generated)")
             ),
-            pr: Flag.boolean("pr").pipe(
+            pr: Flag.Boolean("pr").pipe(
               Flag.withDescription("Open a PR via `gh pr create` after pushing")
             )
           },

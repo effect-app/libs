@@ -15,6 +15,7 @@
     "effecttsgo/run-effect-inside-effect": "off",
     "effecttsgo/schema-sync-in-effect": "off",
     "effecttsgo/strict-effect-provide": "off",
+    "effecttsgo/unsafe-effect-type-assertion": "off",
     "effecttsgo/unknown-in-effect-catch": "off",
     "effecttsgo/missing-effect-service-dependency": "error",
     "effecttsgo/effect-fn-opportunity": "warn",

@@ -1,5 +1,6 @@
 packages:
   - packages/*
+blockExoticSubdeps: false
 allowBuilds:
   "@parcel/watcher": false
   better-sqlite3: true
@@ -8,16 +9,23 @@ allowBuilds:
   msgpackr-extract: false
   vue-demi: false
 minimumReleaseAgeExclude:
-  - "@effect/tsgo-darwin-arm64@0.31.0"
-  - "@effect/tsgo-darwin-x64@0.31.0"
-  - "@effect/tsgo-linux-arm64@0.31.0"
-  - "@effect/tsgo-linux-arm@0.31.0"
-  - "@effect/tsgo-linux-x64@0.31.0"
-  - "@effect/tsgo-win32-arm64@0.31.0"
-  - "@effect/tsgo-win32-x64@0.31.0"
-  - "@effect/tsgo@0.31.0"
+  - "@effect/tsgo-darwin-arm64@0.45.0"
+  - "@effect/tsgo-darwin-x64@0.45.0"
+  - "@effect/tsgo-linux-arm64@0.45.0"
+  - "@effect/tsgo-linux-arm@0.45.0"
+  - "@effect/tsgo-linux-x64@0.45.0"
+  - "@effect/tsgo-win32-arm64@0.45.0"
+  - "@effect/tsgo-win32-x64@0.45.0"
+  - "@effect/tsgo@0.45.0"
+  - "@effect/atom-vue@4.0.0-rc.114"
+  - "@effect/platform-browser@4.0.0-rc.114"
+  - "@effect/platform-node-shared@4.0.0-rc.114"
+  - "@effect/platform-node@4.0.0-rc.114"
+  - "@effect/sql-sqlite-node@4.0.0-rc.114"
+  - "@effect/vitest@4.0.0-rc.114"
 overrides:
   date-fns: ^4.4.0
+  effect: https://pkg.pr.new/Effect-TS/effect/effect@cdb3ac9171c63fade3e70d12d6d0de52ae164bc4
   fast-check: ^4.9.0
   vue: ^3.5.35
 patchedDependencies:

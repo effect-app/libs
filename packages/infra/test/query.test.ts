@@ -1665,7 +1665,7 @@ it("find with transformed id", () =>
       const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
         S.decodeTo(
           S.toType(PreconfigurationId),
-          SchemaTransformation.transformOrFail({
+          SchemaTransformation.transformEffect({
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
@@ -1723,7 +1723,7 @@ it("find with transformed id in tagged union", () =>
       const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
         S.decodeTo(
           S.toType(PreconfigurationId),
-          SchemaTransformation.transformOrFail({
+          SchemaTransformation.transformEffect({
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())

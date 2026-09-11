@@ -28,12 +28,7 @@ export interface Constructor<in out A extends B.Brand<any>> {
   is(a: Unbranded<A>): a is Unbranded<A> & A
 }
 
-type BrandAnnotations<C extends B.Brand<any>> =
-  & S.Annotations.Filter
-  & (
-    C extends string ? { readonly toArbitrary?: S.Annotations.ToArbitrary.Declaration<C, readonly []> }
-      : {}
-  )
+type BrandAnnotations = S.Annotations.Filter
 
 export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
   S.Bottom<
@@ -57,7 +52,7 @@ export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
 
 export const fromBrand = <C extends B.Brand<any>>(
   constructor: Constructor<C>,
-  options?: BrandAnnotations<C>
+  options?: BrandAnnotations
 ) =>
 <Self extends S.Top>(self: Self): BrandedSchema<Self, C> => {
   const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)

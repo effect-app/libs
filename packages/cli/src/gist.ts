@@ -70,7 +70,7 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
           name: Schema.String
         }))
       }),
-      SchemaTransformation.transformOrFail({
+      SchemaTransformation.transformEffect({
         decode: Effect.fnUntraced(function*(entry) {
           const files_with_name = entry.files.map((file) => ({
             path: file,
@@ -547,9 +547,9 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
       handler: Effect.fn("effa-cli.gist.GistHandler")(function*({ YAMLPath }: { YAMLPath: string }) {
         // load company and environment from environment variables
         const CONFIG = yield* Config.all({
-          company: Config.string("COMPANY"),
-          env: Config.string("ENV").pipe(Config.withDefault("local-dev")),
-          gistCacheId: Config.nonEmptyString("EFFA_GIST_CACHE_ID")
+          company: Config.String("COMPANY"),
+          env: Config.String("ENV").pipe(Config.withDefault("local-dev")),
+          gistCacheId: Config.NonEmptyString("EFFA_GIST_CACHE_ID")
         })
 
         yield* Effect.logInfo(`Company: ${CONFIG.company}, ENV: ${CONFIG.env}`)
@@ -576,7 +576,7 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
         )
 
         // load GitHub token securely from environment variable
-        const redactedToken = yield* Config.redacted(configFromYaml.settings.token_env)
+        const redactedToken = yield* Config.Redacted(configFromYaml.settings.token_env)
 
         yield* Effect.logInfo(`Using GitHub token from environment variable: ${configFromYaml.settings.token_env}`)
         yield* Effect.logInfo(`Token loaded: ${redactedToken}`) // this will show <redacted> in logs

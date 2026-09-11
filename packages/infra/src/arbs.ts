@@ -3,7 +3,9 @@
 import { faker } from "@faker-js/faker"
 import { setFaker } from "effect-app/faker"
 import type * as S from "effect-app/Schema"
-import * as FastCheck from "effect/testing/FastCheck"
+import * as Effect from "effect/Effect"
+import * as Arbitrary from "effect/unstable/arbitrary/Arbitrary"
+import * as FastCheck from "fast-check"
 import { Random } from "fast-check"
 import { congruential32 } from "pure-rand/generator/congruential32"
 
@@ -19,4 +21,15 @@ export function generate<T>(arb: FastCheck.Arbitrary<T>) {
 
 export function generateFromArbitrary<T>(arb: S.Arbitrary<T>) {
   return generate(arb(FastCheck))
+}
+
+export function generateFromSchema<S extends S.Constraint>(schema: S) {
+  const samples = Effect.runSync(
+    Arbitrary.sampleEffect(Arbitrary.schema(schema), { count: 1, seed })
+  )
+  const value = samples[0]
+  if (value === undefined) {
+    throw new Error("failed to sample schema")
+  }
+  return { value }
 }

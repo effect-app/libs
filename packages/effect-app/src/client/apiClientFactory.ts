@@ -25,13 +25,8 @@ export interface ApiConfig {
 }
 
 export const DefaultApiConfig = Config.all({
-  url: Config.string("apiUrl").pipe(Config.withDefault("/api")),
-  headers: Config
-    .schema(
-      Config.Record(Schema.String, Schema.String),
-      "headers"
-    )
-    .pipe(Config.option)
+  url: Config.String("apiUrl").pipe(Config.withDefault("/api")),
+  headers: Config.Record(Schema.String, Schema.String, "headers").pipe(Config.option)
 })
 
 export type Req = S.Top & {

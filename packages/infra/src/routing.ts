@@ -182,7 +182,7 @@ export type RouteMatcher<
 
 export const skipOnProd = Effect
   .gen(function*() {
-    const env = yield* Config.string("env")
+    const env = yield* Config.String("env")
     return env !== "prod"
   })
   .pipe(Effect.orDie)

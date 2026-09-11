@@ -9,8 +9,9 @@ import * as Layer from "./Layer.ts"
 
 export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
   const l = layer.pipe(
-    Layer.provide(Logger.layer([Logger.consolePretty()]))
-  ) as Layer.Layer<A>
+    Layer.provide(Logger.layer([Logger.consolePretty()])),
+    Layer.orDie
+  )
   const mrt = ManagedRuntime.make(l)
   yield* mrt.contextEffect
   return Object.assign(mrt, {

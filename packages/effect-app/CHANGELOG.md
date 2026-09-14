@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.322
+
+### Patch Changes
+
+- 2231ef8: Upgrade Effect packages to npm `4.0.0-rc.115`. Drop the pkg.pr.new pin used while `effect@4.0.0-rc.114` was unpublished.
+
 ## 4.0.0-beta.321
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.43
+
+### Patch Changes
+
+- 2231ef8: Upgrade Effect packages to npm `4.0.0-rc.115`. Drop the pkg.pr.new pin used while `effect@4.0.0-rc.114` was unpublished.
+
 ## 2.1.0-beta.42
 
 ### Patch Changes

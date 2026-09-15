@@ -11,4 +11,11 @@ describe("generateFromSchema", () => {
     }
     expect(new Set(samples.map((sample) => JSON.stringify(sample))).size).toBeGreaterThan(1)
   })
+
+  it("samples refined strings that native generation cannot invert (Email, PhoneNumber)", () => {
+    const schema = S.Struct({ email: S.Email, phone: S.PhoneNumber })
+    for (let i = 0; i < 10; i++) {
+      expect(S.is(schema)(generateFromSchema(schema).value)).toBe(true)
+    }
+  })
 })

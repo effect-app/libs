@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.324
+
+### Patch Changes
+
+- a0075b8: `generateFromSchema` advances its seed on every call, so successive samples differ (deterministic across runs) instead of always returning the same value.
+- Updated dependencies [a0075b8]
+  - effect-app@4.0.0-beta.324
+
 ## 4.0.0-beta.323
 
 ### Minor Changes

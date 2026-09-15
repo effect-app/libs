@@ -20,7 +20,11 @@ export const PhoneNumber = S
     S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
       identifier: "PhoneNumber",
       description: "a phone number with at least 7 digits",
-      jsonSchema: { format: "phone" }
+      jsonSchema: { format: "phone" },
+      // Native Arbitrary cannot invert `isValidPhone`; steer sampling to digit-only numbers (>= 7 digits).
+      arbitraryConstraint: {
+        patterns: [{ source: "^\\+?[1-9][0-9]{6,11}$", flags: "" }]
+      }
     }),
     withDefaultMake
   )

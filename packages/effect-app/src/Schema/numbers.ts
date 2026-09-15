@@ -10,6 +10,7 @@
  */
 import { extendM } from "effect-app/utils"
 import * as Effect from "effect/Effect"
+import * as Order from "effect/Order"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import type * as SchemaAST from "../SchemaAST.ts"
@@ -90,13 +91,20 @@ export const Int: IntSchema = extendM(
 export interface PositiveNumberBrand extends Simplify<B.Brand<"PositiveNumber"> & NonNegativeNumberBrand> {}
 export type PositiveNumber = number & PositiveNumberBrand
 /** Positive finite number. `.withConstructorDefault` => `1` (construction-only). */
+// Generation-only: native Arbitrary otherwise samples up to Number.MAX_VALUE, so derived totals
+// (amount x weight, sums) overflow to Infinity. Validation and JSON Schema are unaffected.
+const realisticMaximum = 1_000_000
+
 export interface PositiveNumberSchema extends BrandedSchema<S.Finite, PositiveNumber> {
   (i: number, options?: SchemaAST.ParseOptions): PositiveNumber
   readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Finite, PositiveNumber>>
 }
 export const PositiveNumber: PositiveNumberSchema = extendM(
   S.Finite.pipe(
-    S.check(S.isGreaterThan(0)),
+    S.check(S.isGreaterThan(0, {
+      // the full constraint: annotations replace the check default, which carries `order` + `minimum`
+      arbitraryConstraint: { order: Order.Number, minimum: 0, exclusiveMinimum: true, maximum: realisticMaximum }
+    })),
     fromBrand<PositiveNumber>(nominal<PositiveNumber>(), {
       identifier: "PositiveNumber",
       jsonSchema: {}
@@ -124,7 +132,9 @@ export const NonNegativeNumber: NonNegativeNumberSchema = extendM(
   S
     .Finite
     .pipe(
-      S.check(S.isGreaterThanOrEqualTo(0)),
+      S.check(S.isGreaterThanOrEqualTo(0, {
+        arbitraryConstraint: { order: Order.Number, minimum: 0, maximum: realisticMaximum }
+      })),
       fromBrand<NonNegativeNumber>(nominal<NonNegativeNumber>(), {
         identifier: "NonNegativeNumber",
         jsonSchema: {}

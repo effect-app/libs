@@ -45,11 +45,11 @@ import type * as Scope from "effect/Scope"
 import * as Workflow from "effect/unstable/workflow/Workflow"
 import { type Encoded, makeUnsafe, WorkflowEngine, WorkflowInstance } from "effect/unstable/workflow/WorkflowEngine"
 import { randomUUID } from "node:crypto"
-import { CosmosClient, CosmosClientLayer } from "./cosmos-client.ts"
+import { CosmosClient, CosmosClientLayer, type CosmosContainerThroughput, createContainerIfNotExists } from "./cosmos-client.ts"
 import { OptimisticConcurrencyException } from "./errors.ts"
 import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
-export interface WorkflowEngineCosmosConfig {
+export interface WorkflowEngineCosmosConfig extends CosmosContainerThroughput {
   readonly url: Redacted.Redacted<string>
   readonly dbName: string
   readonly prefix?: string
@@ -147,10 +147,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const { db } = yield* CosmosClient
   const containerId = `${cfg.prefix ?? ""}workflow-engine`
   yield* Effect.promise(() =>
-    db.containers.createIfNotExists({
+    createContainerIfNotExists(db, {
       id: containerId,
       partitionKey: { paths: ["/_partitionKey"], version: 2 }
-    })
+    }, cfg)
   )
   const container = db.container(containerId)
   const scope = yield* Effect.scope

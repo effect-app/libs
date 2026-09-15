@@ -15,10 +15,10 @@ import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import * as ShardId from "effect/unstable/cluster/ShardId"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as Snowflake from "effect/unstable/cluster/Snowflake"
-import { CosmosClient, CosmosClientLayer } from "./cosmos-client.ts"
+import { CosmosClient, CosmosClientLayer, type CosmosContainerThroughput, createContainerIfNotExists } from "./cosmos-client.ts"
 import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
-export interface ClusterCosmosConfig {
+export interface ClusterCosmosConfig extends CosmosContainerThroughput {
   readonly url: Redacted.Redacted<string>
   readonly dbName: string
   readonly prefix?: string
@@ -344,26 +344,26 @@ const shardIdFromString = (shardId: string): Envelope.Encoded["address"]["shardI
 
 const machineIdCounterDocId = cosmosId("machine-id-counter")
 
-const createContainer = (prefix: string) =>
+type StorageOptions = { readonly prefix?: string | undefined } & CosmosContainerThroughput
+
+const createContainer = (prefix: string, throughput?: CosmosContainerThroughput) =>
   Effect.fnUntraced(function*() {
     const { db } = yield* CosmosClient
     const containerId = `${prefix}cluster`
     yield* Effect
       .tryPromise(() =>
-        db.containers.create({
+        createContainerIfNotExists(db, {
           id: containerId,
           partitionKey: { paths: ["/_partitionKey"], version: 2 }
-        })
+        }, throughput)
       )
       .pipe(Effect.catchIf(isConflict, () => Effect.void))
     return db.container(containerId)
   })
 
-export const makeMessageStorage = Effect.fnUntraced(function*(options?: {
-  readonly prefix?: string | undefined
-}) {
+export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageOptions) {
   const prefix = options?.prefix ?? "cluster-"
-  const container = yield* createContainer(prefix)().pipe(Effect.orDie)
+  const container = yield* createContainer(prefix, options)().pipe(Effect.orDie)
   const containerId = `${prefix}cluster`
   const annotate = (operation: string) =>
     annotateDb({ operation, system: "cosmosdb", collection: containerId, entity: "cluster-message-storage" })
@@ -834,11 +834,9 @@ const lastRepliesById = <E>(
     .pipe(Effect.map((replies) => new Map(replies.map((reply) => [reply.rowid, replyFromDoc(reply)]))))
 }
 
-export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
-  readonly prefix?: string | undefined
-}) {
+export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOptions) {
   const prefix = options?.prefix ?? "cluster-"
-  const container = yield* createContainer(prefix)().pipe(Effect.orDie)
+  const container = yield* createContainer(prefix, options)().pipe(Effect.orDie)
   const config = yield* ShardingConfig.ShardingConfig
   const expires = Duration.toMillis(Duration.fromInputUnsafe(config.shardLockExpiration))
   const containerId = `${prefix}cluster`
@@ -1124,21 +1122,19 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: {
   })
 })
 
-export const layerMessageStorage = (options?: {
-  readonly prefix?: string | undefined
-}): Layer.Layer<MessageStorage.MessageStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
+export const layerMessageStorage = (
+  options?: StorageOptions
+): Layer.Layer<MessageStorage.MessageStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
   Layer.effect(MessageStorage.MessageStorage, makeMessageStorage(options)).pipe(
     Layer.provide(Snowflake.layerGenerator)
   )
 
-export const layerRunnerStorage = (options?: {
-  readonly prefix?: string | undefined
-}): Layer.Layer<RunnerStorage.RunnerStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
+export const layerRunnerStorage = (
+  options?: StorageOptions
+): Layer.Layer<RunnerStorage.RunnerStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
   Layer.effect(RunnerStorage.RunnerStorage, makeRunnerStorage(options))
 
-export const layerStorage = (options?: {
-  readonly prefix?: string | undefined
-}): Layer.Layer<
+export const layerStorage = (options?: StorageOptions): Layer.Layer<
   MessageStorage.MessageStorage | RunnerStorage.RunnerStorage,
   never,
   CosmosClient | ShardingConfig.ShardingConfig
@@ -1149,6 +1145,6 @@ export const layerCosmos = (config: ClusterCosmosConfig): Layer.Layer<
   never,
   ShardingConfig.ShardingConfig
 > =>
-  layerStorage({ prefix: config.prefix }).pipe(
+  layerStorage({ prefix: config.prefix, autoscaleMaxThroughput: config.autoscaleMaxThroughput }).pipe(
     Layer.provide(CosmosClientLayer(Redacted.value(config.url), config.dbName))
   )

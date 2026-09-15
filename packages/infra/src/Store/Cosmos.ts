@@ -14,7 +14,7 @@ import * as Duration from "effect/Duration"
 import { pipe } from "effect/Function"
 import * as Redacted from "effect/Redacted"
 import * as Struct from "effect/Struct"
-import { CosmosClient, CosmosClientLayer } from "../cosmos-client.ts"
+import { CosmosClient, CosmosClientLayer, createContainerIfNotExists } from "../cosmos-client.ts"
 import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
@@ -87,7 +87,7 @@ const annotateItem = (resp: {
     responseBytes: respBytes(resp)
   })
 
-const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
+const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, prefix }: StorageConfig) {
   const { db } = yield* CosmosClient
   return {
     make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
@@ -106,16 +106,20 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
       const containerId = `${prefix}${name}`
       yield* Effect.promise(() =>
-        db.containers.createIfNotExists(dropUndefinedT({
-          id: containerId,
-          uniqueKeyPolicy: config?.uniqueKeys
-            ? { uniqueKeys: config.uniqueKeys }
-            : undefined,
-          partitionKey: {
-            paths: ["/_partitionKey"],
-            version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
-          }
-        }))
+        createContainerIfNotExists(
+          db,
+          dropUndefinedT({
+            id: containerId,
+            uniqueKeyPolicy: config?.uniqueKeys
+              ? { uniqueKeys: config.uniqueKeys }
+              : undefined,
+            partitionKey: {
+              paths: ["/_partitionKey"],
+              version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
+            }
+          }),
+          { autoscaleMaxThroughput }
+        )
       )
 
       const basePartitionKey = config?.partitionValue() ?? "primary"

@@ -277,4 +277,9 @@ export interface StorageConfig {
   url: Redacted.Redacted
   prefix: string
   dbName: string
+  /**
+   * Cosmos only: autoscale max RU/s for containers the store creates, in databases
+   * without shared throughput. Unset keeps the Cosmos default (manual 400 RU/s).
+   */
+  autoscaleMaxThroughput?: number | undefined
 }

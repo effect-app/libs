@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.325
+
+### Patch Changes
+
+- f233f3d: `PositiveNumber` and `NonNegativeNumber` bound native Arbitrary generation to at most 1,000,000 (`arbitraryConstraint` on their existing checks), so generated fixtures no longer overflow derived totals to `Infinity`. Validation and JSON Schema output are unchanged.
+
 ## 4.0.0-beta.324
 
 ### Patch Changes

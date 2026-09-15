@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.324
+
+### Patch Changes
+
+- a0075b8: `Email` and `PhoneNumber` carry native `arbitraryConstraint` patterns, so `effect/unstable/arbitrary` (and `generateFromSchema`) can sample them instead of exhausting rejection sampling on their `refine` guards.
+
 ## 4.0.0-beta.323
 
 ### Minor Changes

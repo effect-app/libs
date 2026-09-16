@@ -35,6 +35,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as Function from "effect/Function"
 import * as Option from "effect/Option"
+import * as Order from "effect/Order"
 import * as S from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaTransformation from "effect/SchemaTransformation"
@@ -177,21 +178,28 @@ export const Number = Object.assign(S.Number, {
   withDecodingDefaultType: S.Number.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
 })
 
+// Generation-only: native Arbitrary otherwise samples up to ±Number.MAX_VALUE, so
+// derived totals overflow to Infinity. Validation and JSON Schema are unaffected.
+const realisticFiniteSamples = S.makeFilter<number>(() => undefined, {
+  arbitraryConstraint: { order: Order.Number, minimum: -1_000_000, maximum: 1_000_000 }
+})
+const FiniteSchema = S.Finite.pipe(S.check(realisticFiniteSamples))
+
 /** Like the default Schema `Finite` but with default helpers. */
-export const Finite = Object.assign(S.Finite, {
+export const Finite = Object.assign(FiniteSchema, {
   /**
    * Construction-only default `0`. Applied only when the field is omitted
    * from `.make(...)` input. NOT applied during decode — cannot be used to
    * JIT-migrate database fields. See file-level note.
    */
-  withConstructorDefault: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  withConstructorDefault: FiniteSchema.pipe(S.withConstructorDefault(Effect.succeed(0))),
   /**
    * Decode-time default `0`. **Discouraged for persisted data:** a missing
    * field may be data corruption, not an old-shape document; silently
    * substituting `0` hides the problem. Prefer an explicit, preferably
    * versioned migration over a decode-time fallback. See file-level note.
    */
-  withDecodingDefaultType: S.Finite.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
+  withDecodingDefaultType: FiniteSchema.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
 })
 
 /** Like the default Schema `Literals` but with default helpers. Default value is `literals[0]`. */

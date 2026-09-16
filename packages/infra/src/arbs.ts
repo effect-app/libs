@@ -23,13 +23,14 @@ export function generateFromArbitrary<T>(arb: S.Arbitrary<T>) {
   return generate(arb(FastCheck))
 }
 
-// Advance the seed per call: deterministic across runs, but successive calls yield different
-// samples (like `generate` advancing its shared fast-check Random).
+// Native `sampleEffect({ count: 1 })` always uses attempt 0 of the master seed (edge-biased).
+// Integer `seed + n` stayed in that bucket and collided for StringId. Mix a per-call suffix
+// so each call is a jump-before-toss, like successive `generate(rnd)` draws.
 let schemaSamples = 0
 
 export function generateFromSchema<S extends S.Constraint>(schema: S) {
   const samples = Effect.runSync(
-    Arbitrary.sampleEffect(Arbitrary.schema(schema), { count: 1, seed: seed + schemaSamples++ })
+    Arbitrary.sampleEffect(Arbitrary.schema(schema), { count: 1, seed: `${seed}:${schemaSamples++}` })
   )
   const value = samples[0]
   if (value === undefined) {

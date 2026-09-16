@@ -15,7 +15,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
-import { nanoid } from "nanoid"
+import { nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import type * as SchemaAST from "../SchemaAST.ts"
 import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
@@ -164,9 +164,23 @@ export type StringId = string & StringIdBrand
 
 const minLength = 6
 const maxLength = 50
+const nanoidSize = 21
+// `-` in urlAlphabet is a char-class range if left unescaped.
+const nanoidCharClass = urlAlphabet.replace(/[\\\]^-]/g, "\\$&")
+const nanoidPatternSource = `^[${nanoidCharClass}]{${nanoidSize}}$`
+
 const StringIdSchemaBase = pipe(
   S.String,
-  S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
+  S.check(
+    S.isMinLength(minLength, {
+      arbitraryConstraint: {
+        minLength: nanoidSize,
+        maxLength: nanoidSize,
+        patterns: [{ source: nanoidPatternSource, flags: "" }]
+      }
+    }),
+    S.isMaxLength(maxLength)
+  ),
   fromBrand<StringId>(nominal<StringId>(), {
     identifier: "StringId",
     jsonSchema: {}
@@ -223,7 +237,15 @@ export function prefixedStringId<Type extends StringId>() {
     const s = StringIdSchemaBase
       .pipe(
         S.refine((x: string): x is Type => x.startsWith(pref), {
-          identifier: name
+          identifier: name,
+          arbitraryConstraint: {
+            patterns: [{
+              source: `^${pref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[${nanoidCharClass}]{${
+                Math.max(1, nanoidSize - pref.length)
+              }}$`,
+              flags: ""
+            }]
+          }
         })
       )
     const schema = s.pipe(withDefaultMake)
@@ -315,7 +337,15 @@ export const Url: UrlSchema = S
     }),
     S.refine(isUrl, {
       identifier: "Url",
-      jsonSchema: { format: "uri" }
+      jsonSchema: { format: "uri" },
+      // Native Arbitrary otherwise emits strings that `isURL({ require_tld: false })`
+      // accepts (`"R"`, `"prototype"`). Restore the old fast-check `fc.webUrl()` shape.
+      arbitraryConstraint: {
+        patterns: [{
+          source: "^https://[a-z]{3,12}\\.(?:com|net|org|de)(?:/[a-z0-9-]{0,16})?$",
+          flags: ""
+        }]
+      }
     }),
     withDefaultMake
   )

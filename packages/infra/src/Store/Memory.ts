@@ -18,7 +18,7 @@ import * as Struct from "effect/Struct"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb } from "../otel.ts"
 import { codeFilter, codeFilter3_ } from "./codeFilter.ts"
-import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { get, jsonifyFilter, type JsonLower, makeJsonLower, makeUpdateETag, toJsonQueryValue } from "./utils.ts"
 
 export { get } from "./utils.ts"
@@ -335,14 +335,16 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
   _defaultValues?: Partial<Encoded>,
   schema?: StoreConfig<Encoded>["schema"],
-  json?: JsonLower
+  json?: JsonLower,
+  jitM?: StoreConfig<Encoded>["jitM"]
 ) {
   type PM = PersistenceModelType<Encoded>
   return Effect.gen(function*() {
     const updateETag = makeUpdateETag(modelName)
     const codec = makeJsonDocumentCodec<Encoded>(schema)
     const encodeDoc = (e: Encoded | PM): PM => codec.encode({ _etag: undefined, ...e })
-    const decodeDoc = (e: PM): PM => codec.decode(e)
+    // read path: stored JSON -> jitM -> JSON→Encoded decode
+    const decodeDoc = makeStoredDecode<Encoded>(codec, jitM)
     const items_ = yield* seed ?? Effect.sync(() => [])
     const toJson = json?.toJson ?? toJsonQueryValue
     const lowerFilter = json?.jsonifyFilter ?? jsonifyFilter
@@ -546,7 +548,8 @@ export const makeMemoryStore = () => ({
       seed,
       config?.defaultValues,
       config?.schema,
-      json
+      json,
+      config?.jitM
     )
     const ctx = yield* Effect.context<R>()
     const stores = new Map([["primary", primary]])
@@ -566,7 +569,16 @@ export const makeMemoryStore = () => ({
         if (config?.allowNamespace && !config.allowNamespace(namespace)) {
           throw new Error(`Namespace ${namespace} not allowed!`)
         }
-        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues, config?.schema, json)
+        return makeMemoryStoreInt(
+          modelName,
+          idKey,
+          namespace,
+          seed,
+          config?.defaultValues,
+          config?.schema,
+          json,
+          config?.jitM
+        )
           .pipe(
             Effect.orDie,
             Effect.provide(ctx),

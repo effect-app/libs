@@ -132,7 +132,6 @@ export function makeRepoInternal<
   >(
     name: ItemType,
     schema: S.Codec<T, Encoded, R>,
-    mapFrom: (pm: Encoded) => Encoded,
     mapTo: (e: Encoded, etag: string | undefined) => PersistenceModelType<Encoded>,
     idKey: IdKey
   ) => {
@@ -149,7 +148,8 @@ export function makeRepoInternal<
       setEtag: (id: string, eTag: string | undefined) => void
     ): Encoded {
       setEtag((e as any)[idKey], _etag)
-      return mapFrom(e as unknown as Encoded)
+      // the store already applied `jitM` and decoded JSON→Encoded
+      return e as unknown as Encoded
     }
 
     const mkStore = makeStore<Encoded>()(name, schema, mapTo, idKey)
@@ -694,10 +694,12 @@ export function makeRepoInternal<
 
                 if (Option.isNone(rawResult)) continue
 
+                // the store merged `defaultValues`, applied `jitM` on the raw
+                // JSON document and decoded JSON→Encoded, so this is exactly
+                // what the repository decodes into the domain type.
                 const rawData = rawResult.value as Encoded
-                const jitMResult = mapFrom(rawData) // apply jitM
 
-                const decodeResult = yield* S.decodeEffectConcurrently(schema)(jitMResult).pipe(
+                const decodeResult = yield* S.decodeEffectConcurrently(schema)(rawData).pipe(
                   Effect.result,
                   provideRctx
                 )
@@ -707,7 +709,7 @@ export function makeRepoInternal<
                     ValidationError.make({
                       id,
                       rawData,
-                      jitMResult,
+                      jitMResult: rawData,
                       error: decodeResult.failure
                     })
                   )

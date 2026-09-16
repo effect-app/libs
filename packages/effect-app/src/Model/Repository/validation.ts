@@ -3,14 +3,21 @@ import { NonNegativeInt } from "../../Schema.ts"
 
 /**
  * Represents a single validation error when decoding a repository item.
- * Contains full context for debugging: raw data, jitM result, and decode error.
+ * Contains full context for debugging: the stored data and the decode error.
  */
 export class ValidationError extends S.Opaque<ValidationError>()(S.Struct({
   /** the id of the item that failed validation */
   id: S.Unknown,
-  /** the raw data from the database before jitM */
+  /**
+   * the data as returned by the store: `defaultValues` merged, `jitM` applied
+   * to the raw JSON document, and JSON decoded to the Encoded shape
+   */
   rawData: S.Unknown,
-  /** the data after applying jitM transformation */
+  /**
+   * @deprecated identical to {@link rawData}. `jitM` now runs inside the store,
+   * before the JSON→Encoded decode, so the repository never sees the document
+   * as it was before the migration.
+   */
   jitMResult: S.Unknown,
   /** the S.SchemaError from schema decode */
   error: S.Unknown

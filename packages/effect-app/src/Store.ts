@@ -11,7 +11,7 @@ import type { FieldPath } from "./Model/filter/types/path/index.ts"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.ts"
 import type * as Option from "./Option.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
-import { NonEmptyString255, type Top as SchemaTop } from "./Schema.ts"
+import { type Json as SchemaJson, NonEmptyString255, type Top as SchemaTop } from "./Schema.ts"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
@@ -24,6 +24,16 @@ export interface UniqueKey {
   readonly paths: string[]
 }
 
+/**
+ * A raw stored JSON document: a readonly record of JSON values.
+ *
+ * This is the shape a document has *in the database*: dates are ISO strings,
+ * `ReadonlyMap`/`ReadonlySet` are arrays, and absent or legacy keys are
+ * whatever was written. It is deliberately not the `Encoded` shape, which
+ * holds native `Date`/`Map`/`Set` values.
+ */
+export type JsonRecord = { readonly [key: string]: SchemaJson }
+
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
   /**
@@ -35,6 +45,26 @@ export interface StoreConfig<E> {
    * just in time migrations, supported by the database driver, supporting queries, for simple default values
    */
   defaultValues?: Partial<E>
+
+  /**
+   * just in time Migration: for complex migrations that aren't just simple
+   * default values - use {@link defaultValues} for those.
+   *
+   * Runs at the store boundary on the **raw JSON document**: after
+   * {@link defaultValues} have been merged in (they still only fill *absent*
+   * keys) and *before* the JSON→Encoded decode
+   * (`Schema.toCodecJson(Schema.toEncoded(schema))`).
+   *
+   * It therefore sees exactly what is stored - a `Date` field as an ISO
+   * string, a `ReadonlyMap` as an array of pairs, an explicit `null` as
+   * `null` - and it must return JSON again, never native Encoded values
+   * (no `Date`/`Map`/`Set` instances). That is what lets it repair legacy
+   * shapes, including explicit `null`s, before any schema decode happens.
+   *
+   * `_etag` is infrastructure metadata and is not part of the document passed
+   * to `jitM`. Not applied on the write/encode path.
+   */
+  jitM?: (json: JsonRecord) => JsonRecord
 
   /**
    * How many items can be processed in one batch at a time.

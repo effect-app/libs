@@ -6,7 +6,7 @@ import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedPro
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
-import { jsonifyFilter, type JsonLower, toJsonQueryValue } from "../utils.ts"
+import { jsonifyFilter, type JsonLower } from "../utils.ts"
 
 export interface SQLDialect {
   readonly jsonExtract: (path: string) => string
@@ -216,9 +216,9 @@ export function buildWhereSQLQuery(
   namespace?: string,
   json?: JsonLower
 ) {
-  const toJson = json?.toJson ?? toJsonQueryValue
+  // defaultValues are already JSON-lowered at store construction; a second
+  // schema encode of an ISO Date string throws "Expected a valid Date".
   filter = (json?.jsonifyFilter ?? jsonifyFilter)(filter)
-  defaultValues = toJson(defaultValues) as Record<string, unknown>
   const params: unknown[] = []
   let paramIndex = 1
 

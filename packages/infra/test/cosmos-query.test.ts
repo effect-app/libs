@@ -3,6 +3,7 @@ import { and, computed, make, project, projectComputed, relation, toFilter, wher
 import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { buildWhereCosmosQuery3 } from "../src/Store/Cosmos/query.js"
+import { makeJsonLower } from "../src/Store/utils.js"
 
 class Order extends S.Class<Order>("Order")({
   id: S.String,
@@ -319,5 +320,49 @@ describe("cosmos query: aggregate (GROUP BY + agg functions)", () => {
 
     // Must GROUP BY the nested path in Cosmos access notation
     expect(result.query).toMatch(/GROUP BY f(?:\.address\.city|\["address"\]\["city"\])/)
+  })
+})
+
+describe("cosmos query defaultValues are already JSON-lowered", () => {
+  class Item extends S.Class<Item>("CosmosDefaultValuesItem")({
+    id: S.String,
+    at: S.Date
+  }) {}
+
+  const json = makeJsonLower({ schema: Item })
+  const at = new Date("2024-06-01T00:00:00.000Z")
+  const lowered = json.toJson({ at }) as Record<string, unknown>
+
+  it("does not re-encode store-lowered Date defaults on select-only filter", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [],
+      "Item",
+      lowered,
+      ["id"],
+      undefined,
+      undefined,
+      undefined,
+      json
+    )
+    expect(result.query).toContain("SELECT f[\"id\"]")
+  })
+
+  it("embeds already-lowered Date defaults as JSON literals", () => {
+    const result = buildWhereCosmosQuery3(
+      "id",
+      [{ t: "where", path: "at", op: "eq", value: at }],
+      "Item",
+      lowered,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      json
+    )
+    expect(result.query).toContain("?? \"2024-06-01T00:00:00.000Z\"")
+    expect(result.parameters).toEqual(
+      expect.arrayContaining([{ name: "@v0", value: "2024-06-01T00:00:00.000Z" }])
+    )
   })
 })

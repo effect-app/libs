@@ -2,7 +2,7 @@ import type { Ops } from "effect-app/Model/filter/filterApi"
 import * as S from "effect-app/Schema"
 import * as Getter from "effect/SchemaGetter"
 import { describe, expect, it } from "vitest"
-import { jsonifyFilter } from "../src/Store/utils.js"
+import { jsonifyFilter, makeJsonLower } from "../src/Store/utils.js"
 
 class Day {
   readonly ymd: string
@@ -111,5 +111,19 @@ describe("jsonifyFilter Encoded key paths", () => {
     expect(jsonifyFilter([where("createdAt", "eq", at)], Batch)).toEqual([
       where("createdAt", "eq", at.toISOString())
     ])
+  })
+})
+
+describe("makeJsonLower Date defaultValues", () => {
+  class Item extends S.Class<Item>("JsonLowerDateItem")({
+    id: S.String,
+    at: S.Date
+  }) {}
+
+  it("is not idempotent: a second pass over ISO strings throws Expected a valid Date", () => {
+    const json = makeJsonLower({ schema: Item })
+    const once = json.toJson({ at: new Date("2024-06-01T00:00:00.000Z") })
+    expect(once).toEqual({ at: "2024-06-01T00:00:00.000Z" })
+    expect(() => json.toJson(once)).toThrow(/Expected a valid Date/)
   })
 })

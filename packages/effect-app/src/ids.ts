@@ -20,9 +20,20 @@ export type RequestId = NonEmptyString255
  * applied during decode — cannot be used to JIT-migrate database fields).
  * See `./Schema/ext.ts` for the full policy note.
  */
+const requestIdSamples = S.makeFilter<string>(() => undefined, {
+  arbitraryConstraint: {
+    minLength: 21,
+    maxLength: 21,
+    patterns: [{ source: "^[A-Za-z0-9_-]{21}$", flags: "" }]
+  }
+})
+
 export const RequestId = extendM(
   Object
-    .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as unknown as Codec<NonEmptyString255, string>),
+    .assign(
+      Object.create(NonEmptyString255) as {},
+      NonEmptyString255.pipe(S.check(requestIdSamples)) as unknown as Codec<NonEmptyString255, string>
+    ),
   (s) => {
     function make(): NonEmptyString255
     function make(input: string, options?: S.MakeOptions): NonEmptyString255

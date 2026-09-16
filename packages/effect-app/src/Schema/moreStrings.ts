@@ -14,8 +14,10 @@ import type * as B from "effect/Brand"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
+import * as Getter from "effect/SchemaGetter"
+import * as SchemaIssue from "effect/SchemaIssue"
 import type { Simplify } from "effect/Types"
-import { nanoid } from "nanoid"
+import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import type * as SchemaAST from "../SchemaAST.ts"
 import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
@@ -164,7 +166,10 @@ export type StringId = string & StringIdBrand
 
 const minLength = 6
 const maxLength = 50
-const StringIdSchemaBase = pipe(
+const nanoidSize = 21
+const nanoidByteLength = 10 * nanoidSize
+
+const StringIdString = pipe(
   S.String,
   S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
   fromBrand<StringId>(nominal<StringId>(), {
@@ -172,21 +177,54 @@ const StringIdSchemaBase = pipe(
     jsonSchema: {}
   })
 )
+
+const nanoidFromBytes = (bytes: Uint8Array) =>
+  customRandom(urlAlphabet, nanoidSize, (size) => bytes.subarray(0, size))() as StringId
+
+// JSON stays a branded string (toCodec). Generation uses toCodecArbitrary — the native
+// replacement for fast-check `toArbitrary` — same as the old StringIdArb:
+// uint8Array(210).map(bytes => customRandom(urlAlphabet, 21, …)).
+const StringIdSchemaBase = S.declareConstructor<StringId, string>()(
+  [],
+  () => (input, ast, options) =>
+    S.is(StringIdString)(input)
+      ? Effect.succeed(input)
+      : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
+  {
+    identifier: "StringId",
+    expected: "StringId",
+    toCodec: () =>
+      S.link<StringId>()(StringIdString, {
+        decode: Getter.passthrough(),
+        encode: Getter.passthrough()
+      }),
+    toCodecArbitrary: () =>
+      S.link<StringId>()(
+        S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
+        {
+          decode: Getter.transform(nanoidFromBytes),
+          encode: Getter.forbiddenEncoding
+        }
+      )
+  }
+)
 const makeStringId = (s?: string): StringId =>
-  s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
+  s !== undefined ? S.decodeSync(StringIdString)(s) : nanoid() as unknown as StringId
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  *
  * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
  * applied during decode — see file-level note).
  */
-export interface StringIdSchema extends BrandedSchema<S.String, StringId> {
+export interface StringIdSchema extends S.declareConstructor<StringId, string, readonly [], StringId> {
   (i: string, options?: SchemaAST.ParseOptions): StringId
   /** Generate fresh `nanoid()`-shaped `StringId`. */
   make(): StringId
   /** Construct a `StringId` from a known string (validated via decodeSync). */
   make(input: string, options?: S.MakeOptions): StringId
-  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.String, StringId>>
+  readonly withConstructorDefault: S.withConstructorDefault<
+    S.declareConstructor<StringId, string, readonly [], StringId>
+  >
 }
 export const StringId: StringIdSchema = extendM(
   StringIdSchemaBase,
@@ -219,13 +257,36 @@ export function prefixedStringId<Type extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s = StringIdSchemaBase
-      .pipe(
-        S.refine((x: string): x is Type => x.startsWith(pref), {
-          identifier: name
-        })
-      )
+    const PrefixedString = StringIdString.pipe(
+      S.refine((x): x is Type => x.startsWith(pref), { identifier: name })
+    )
+    // Pre-rc.114: StringIdArb().map(x => pref + x.substring(0, 50 - pref.length))
+    const s = S.declareConstructor<Type, string>()(
+      [],
+      () => (input, ast, options) =>
+        S.is(PrefixedString)(input)
+          ? Effect.succeed(input)
+          : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
+      {
+        identifier: name,
+        expected: name,
+        toCodec: () =>
+          S.link<Type>()(PrefixedString, {
+            decode: Getter.passthrough(),
+            encode: Getter.passthrough()
+          }),
+        toCodecArbitrary: () =>
+          S.link<Type>()(
+            S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
+            {
+              decode: Getter.transform((bytes) =>
+                (pref + nanoidFromBytes(bytes).substring(0, maxLength - pref.length)) as Type
+              ),
+              encode: Getter.forbiddenEncoding
+            }
+          )
+      }
+    )
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Type
 
@@ -315,7 +376,15 @@ export const Url: UrlSchema = S
     }),
     S.refine(isUrl, {
       identifier: "Url",
-      jsonSchema: { format: "uri" }
+      jsonSchema: { format: "uri" },
+      // Native Arbitrary otherwise emits strings that `isURL({ require_tld: false })`
+      // accepts (`"R"`, `"prototype"`). Restore the old fast-check `fc.webUrl()` shape.
+      arbitraryConstraint: {
+        patterns: [{
+          source: "^https://[a-z]{3,12}\\.(?:com|net|org|de)(?:/[a-z0-9-]{0,16})?$",
+          flags: ""
+        }]
+      }
     }),
     withDefaultMake
   )

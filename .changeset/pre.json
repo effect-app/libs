@@ -145,6 +145,7 @@
     "fix-path-recursive-index-signature",
     "fix-project-encodekeys-selection",
     "fix-projection-union-adapter",
+    "fix-query-defaultvalues-double-encode",
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",
     "fix-resolver-cache-precheck",

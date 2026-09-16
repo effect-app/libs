@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.327
+
+### Patch Changes
+
+- ebffba8: Stop re-encoding store `defaultValues` in Cosmos and SQL query builders.
+
+  Stores already JSON-lower `defaultValues` at construction. A second schema encode of an ISO `Date` string throws `Expected a valid Date`, which failed `filter({ select: [id] })` even when the select path never decoded a document.
+
+  - effect-app@4.0.0-beta.327
+
 ## 4.0.0-beta.326
 
 ### Minor Changes

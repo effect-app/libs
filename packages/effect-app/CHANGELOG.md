@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.328
+
+### Minor Changes
+
+- 3a8c710: Store document decode fails as a typed `SchemaError` instead of a defect; repositories keep their public error channels by dying at the boundary; `validateSample` reports documents that fail at the store boundary.
+
 ## 4.0.0-beta.327
 
 ## 4.0.0-beta.326

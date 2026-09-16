@@ -381,6 +381,7 @@
     "stale-actors-remain",
     "stale-emus-see",
     "stale-papers-join",
+    "store-decode-schema-error",
     "store-effect-cached",
     "store-json-values",
     "store-seed-uninterruptible",

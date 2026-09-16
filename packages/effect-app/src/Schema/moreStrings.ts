@@ -15,6 +15,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
 import * as Getter from "effect/SchemaGetter"
+import * as SchemaIssue from "effect/SchemaIssue"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
@@ -185,8 +186,12 @@ const nanoidFromBytes = (bytes: Uint8Array) =>
 // JSON stays a branded string (toCodec). Generation uses toCodecArbitrary — the native
 // replacement for fast-check `toArbitrary` — same as the old StringIdArb:
 // uint8Array(210).map(bytes => customRandom(urlAlphabet, 21, …)).
-const StringIdSchemaBase = S.declare(
-  (u): u is StringId => S.is(StringIdString)(u),
+const StringIdSchemaBase = S.declareConstructor<StringId, string>()(
+  [],
+  () => (input, ast, options) =>
+    S.is(StringIdString)(input)
+      ? Effect.succeed(input)
+      : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
   {
     identifier: "StringId",
     expected: "StringId",
@@ -196,27 +201,32 @@ const StringIdSchemaBase = S.declare(
         encode: Getter.passthrough()
       }),
     toCodecArbitrary: () =>
-      S.linkDecoding<StringId>()(
+      S.link<StringId>()(
         S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
-        Getter.transform(nanoidFromBytes)
+        {
+          decode: Getter.transform(nanoidFromBytes),
+          encode: Getter.forbiddenEncoding
+        }
       )
   }
 )
 const makeStringId = (s?: string): StringId =>
-  s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
+  s !== undefined ? S.decodeSync(StringIdString)(s) : nanoid() as unknown as StringId
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  *
  * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
  * applied during decode — see file-level note).
  */
-export interface StringIdSchema extends BrandedSchema<S.String, StringId> {
+export interface StringIdSchema extends S.declareConstructor<StringId, string, readonly [], StringId> {
   (i: string, options?: SchemaAST.ParseOptions): StringId
   /** Generate fresh `nanoid()`-shaped `StringId`. */
   make(): StringId
   /** Construct a `StringId` from a known string (validated via decodeSync). */
   make(input: string, options?: S.MakeOptions): StringId
-  readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.String, StringId>>
+  readonly withConstructorDefault: S.withConstructorDefault<
+    S.declareConstructor<StringId, string, readonly [], StringId>
+  >
 }
 export const StringId: StringIdSchema = extendM(
   StringIdSchemaBase,
@@ -252,7 +262,7 @@ export function prefixedStringId<Type extends StringId>() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const s = StringIdString
       .pipe(
-        S.refine((x: string): x is Type => x.startsWith(pref), {
+        S.refine((x): x is Type => x.startsWith(pref), {
           identifier: name,
           arbitraryConstraint: {
             patterns: [{

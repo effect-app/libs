@@ -1,6 +1,6 @@
 import type { FieldValues } from "effect-app/Model/filter/types"
 import * as S from "effect-app/Schema"
-import type { PersistenceModelType } from "effect-app/Store"
+import type { PersistenceModelType, StoreConfig } from "effect-app/Store"
 import { decodeWithSchema, toJsonQueryValue } from "./utils.ts"
 
 export interface JsonDocumentCodec<E extends FieldValues> {
@@ -51,5 +51,33 @@ export const makeJsonDocumentCodec = <E extends FieldValues>(schema?: S.Top): Js
   return {
     encode: (doc) => toJsonQueryValue(doc) as PersistenceModelType<E>,
     decode: (doc) => doc
+  }
+}
+
+/**
+ * The store *read* boundary: apply `jitM` to the raw JSON document - after the
+ * adapter merged `defaultValues` into it - and only then decode JSON→Encoded.
+ *
+ * This is what makes `jitM` able to repair legacy shapes, including explicit
+ * `null`s: it runs before any schema decode sees the document.
+ *
+ * `_etag` is infrastructure metadata rather than part of the domain document,
+ * so it is split off first and `jitM` never sees it.
+ *
+ * Returns `codec.decode` unchanged when there is no `jitM`; the write path,
+ * which must not run migrations, keeps using `codec.decode` directly.
+ */
+export const makeStoredDecode = <E extends FieldValues>(
+  codec: JsonDocumentCodec<E>,
+  jitM: StoreConfig<E>["jitM"]
+): JsonDocumentCodec<E>["decode"] => {
+  if (jitM === undefined) return codec.decode
+  return (doc) => {
+    const { rest, _etag } = splitEtag(doc)
+    // adapters type the stored document as the Encoded persistence model, but
+    // at this point it is still the raw JSON document that `jitM` is written
+    // against - and `jitM` returns JSON, which is what `codec.decode` consumes.
+    const migrated = jitM(rest) as unknown as E
+    return codec.decode(joinEtag(migrated, _etag))
   }
 }

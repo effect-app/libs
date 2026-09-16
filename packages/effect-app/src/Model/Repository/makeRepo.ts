@@ -12,7 +12,7 @@ import type * as Context from "../../Context.ts"
 import type * as DataDependencies from "../../DataDependencies.ts"
 import * as Effect from "../../Effect.ts"
 import type * as S from "../../Schema.ts"
-import type { StoreConfig, StoreMaker } from "../../Store.ts"
+import type { JsonRecord, StoreConfig, StoreMaker } from "../../Store.ts"
 import type { FieldValues } from "../filter/types.ts"
 import { type ExtendedRepository, extendRepo } from "./ext.ts"
 import { makeRepoInternal } from "./internal/internal.ts"
@@ -40,8 +40,16 @@ export interface RepositoryOptions<
   /**
    * just in time Migration: for complex migrations that aren't just default simple values
    * use the config.defaultValues instead for simple default values
+   *
+   * Runs at the **store boundary** on the raw JSON document, after
+   * `config.defaultValues` have been merged in and *before* the JSON→Encoded
+   * decode. It sees the document as stored - a `Date` field as an ISO string,
+   * a `ReadonlyMap` as an array of pairs, an explicit `null` as `null` - and
+   * must return JSON again, not native Encoded values.
+   *
+   * @see StoreConfig.jitM
    */
-  jitM?: (pm: Encoded) => Encoded
+  jitM?: (json: JsonRecord) => JsonRecord
   config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
     partitionValue?: (e?: Encoded) => string
   }
@@ -143,11 +151,15 @@ export const makeRepo: {
     const mkRepo = makeRepoInternal<Evt>()(
       itemType,
       schema,
-      options?.jitM ? (pm) => options.jitM!(pm) : (pm) => pm,
       (e, _etag) => ({ ...e, _etag }),
       options.idKey ?? "id" as any
     )
-    let r = yield* mkRepo.make<RInitial, E, RPublish, RCtx>(options as any)
+    // `jitM` belongs to the store: it migrates the raw JSON document before the
+    // store decodes JSON→Encoded, so it travels as part of the store config.
+    const { jitM, ...rest } = options
+    let r = yield* mkRepo.make<RInitial, E, RPublish, RCtx>(
+      (jitM ? { ...rest, config: { ...rest.config, jitM } } : rest) as any
+    )
     if (options.overrides) r = options.overrides(r)
     const repo = extendRepo(r)
     const registry = yield* RepositoryRegistry

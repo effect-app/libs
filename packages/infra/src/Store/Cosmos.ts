@@ -19,7 +19,7 @@ import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
-import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { makeJsonLower } from "./utils.ts"
 
 const makeMapId =
@@ -99,9 +99,11 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
+      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
       const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
-      const fromStored = (raw: Encoded) => codec.decode({ ...defaultValues, ...mapReverseId(raw as any) })
+      // stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
+      const fromStored = (raw: Encoded) => decodeStored({ ...defaultValues, ...mapReverseId(raw as any) })
       type PM = PersistenceModelType<Encoded>
       type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
       const containerId = `${prefix}${name}`

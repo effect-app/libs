@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
+import * as S from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { parseRow } from "../src/Store/SQL.js"
 import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
-import { makeETag } from "../src/Store/utils.js"
+import { makeETag, makeJsonLower } from "../src/Store/utils.js"
 
 const query = (db: Sqlite.Database, sql: string, params: unknown[] = []) =>
   db.prepare(sql).all(...params as any[]) as any[]
@@ -62,6 +63,31 @@ describe("SQL query builder (SQLite dialect)", () => {
       json as never
     )
     expect(result.params).toContain("2024-06-01")
+  })
+
+  it("does not re-encode store-lowered Date defaultValues", () => {
+    class Item extends S.Class<Item>("SqlDefaultValuesItem")({
+      id: S.String,
+      at: S.Date
+    }) {}
+    const json = makeJsonLower({ schema: Item })
+    const at = new Date("2024-06-01T00:00:00.000Z")
+    const lowered = json.toJson({ at }) as Record<string, unknown>
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "at", op: "eq", value: at }],
+      "items",
+      lowered,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      json
+    )
+    expect(result.sql).toContain("COALESCE(")
+    expect(result.params).toContain("2024-06-01T00:00:00.000Z")
   })
 
   it("where in Set binds array values", () => {

@@ -15,7 +15,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb, type DbSystem } from "../otel.ts"
-import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
+import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
 import { makeETag, makeJsonLower, toJsonQueryValue } from "./utils.ts"
 
@@ -43,18 +43,22 @@ export class WithNsTransaction
   extends Context.Service<WithNsTransaction, WithNsTransactionFn>()("effect-app/WithNsTransaction")
 {}
 
-/** @internal */
+/**
+ * Row -> raw stored JSON document: `data` parsed, `defaultValues` merged, `id`
+ * and `_etag` re-injected from their columns. Decoding it is a separate step
+ * (`makeStoredDecode`), so a document `jitM` does not repair fails as a typed
+ * `S.SchemaError` rather than throwing out of here.
+ *
+ * @internal
+ */
 export const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: string },
   idKey: PropertyKey,
-  defaultValues: Partial<Encoded>,
-  decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
+  defaultValues: Partial<Encoded>
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
   const jsonDefaults = toJsonQueryValue(defaultValues) as Partial<Encoded>
-  return decode(
-    { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
-  )
+  return { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
 }
 
 const parseSelectRow = (
@@ -95,7 +99,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
         const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
         const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
         // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
-        const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
+        const decodeStored = makeStoredDecode<Encoded>(config?.schema, config?.jitM)
+        const decodeRow = (row: { id: string; _etag: string | null; data: string }) =>
+          decodeStored(parseRow<Encoded>(row, idKey, defaultValues))
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
@@ -218,9 +224,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`
               return exec(sqlText, [ns])
                 .pipe(
-                  Effect.map((rows) =>
-                    (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
-                  ),
+                  Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
                   annotateDb({
                     operation: "all",
                     system,
@@ -239,12 +243,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                 const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`
                 return exec(sqlText, [id, ns])
                   .pipe(
-                    Effect.map((rows) => {
-                      const row = (rows as any[])[0]
-                      return row
-                        ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
-                        : Option.none()
-                    }),
+                    Effect.flatMap((rows) =>
+                      Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                    ),
                     annotateDb({
                       operation: "find",
                       system,
@@ -302,9 +303,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                       Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                       Effect.flatMap((q) =>
                         exec(q.sql, q.params).pipe(
-                          Effect.map((rows) => {
+                          Effect.flatMap((rows) => {
                             if (f.select) {
-                              return (rows as any[]).map((r) => {
+                              return Effect.succeed((rows as any[]).map((r) => {
                                 const selected = parseSelectRow(r, idKey)
                                 return {
                                   ...Struct.pick(
@@ -313,10 +314,11 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                                   ),
                                   ...selected
                                 } as M
-                              })
+                              }))
                             }
-                            return (rows as any[]).map((r) =>
-                              parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
+                            return Effect.map(
+                              Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
+                              (decoded) => decoded as any as M[]
                             )
                           })
                         )
@@ -436,7 +438,9 @@ function makeSQLiteStorePerNs(
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
       // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
-      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
+      const decodeStored = makeStoredDecode<Encoded>(config?.schema, config?.jitM)
+      const decodeRow = (row: { id: string; _etag: string | null; data: string }) =>
+        decodeStored(parseRow<Encoded>(row, idKey, defaultValues))
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -567,9 +571,7 @@ function makeSQLiteStorePerNs(
           const sqlText = `SELECT id, _etag, data FROM "${tableName}"`
           return exec(ns, sqlText)
             .pipe(
-              Effect.map((rows) =>
-                (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
-              ),
+              Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
               annotateDb({
                 operation: "all",
                 system: "sqlite",
@@ -587,12 +589,9 @@ function makeSQLiteStorePerNs(
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`
               return exec(ns, sqlText, [id])
                 .pipe(
-                  Effect.map((rows) => {
-                    const row = (rows as any[])[0]
-                    return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
-                      : Option.none()
-                  }),
+                  Effect.flatMap((rows) =>
+                    Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                  ),
                   annotateDb({
                     operation: "find",
                     system: "sqlite",
@@ -650,9 +649,9 @@ function makeSQLiteStorePerNs(
                     Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                     Effect.flatMap((q) =>
                       exec(ns, q.sql, q.params).pipe(
-                        Effect.map((rows) => {
+                        Effect.flatMap((rows) => {
                           if (f.select) {
-                            return (rows as any[]).map((r) => {
+                            return Effect.succeed((rows as any[]).map((r) => {
                               const selected = parseSelectRow(r, idKey)
                               return {
                                 ...Struct.pick(
@@ -661,10 +660,11 @@ function makeSQLiteStorePerNs(
                                 ),
                                 ...selected
                               } as M
-                            })
+                            }))
                           }
-                          return (rows as any[]).map((r) =>
-                            parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
+                          return Effect.map(
+                            Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
+                            (decoded) => decoded as any as M[]
                           )
                         })
                       )

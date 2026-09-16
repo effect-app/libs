@@ -19,7 +19,7 @@ import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateCosmosResponse, annotateDb } from "../otel.ts"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.ts"
-import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
+import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { makeJsonLower } from "./utils.ts"
 
 const makeMapId =
@@ -99,7 +99,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
       const mapId = makeMapId<IdKey, Encoded>(idKey)
       const mapReverseId = makeReverseMapId<IdKey, Encoded>(idKey)
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
-      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
+      const decodeStored = makeStoredDecode<Encoded>(config?.schema, config?.jitM)
       const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       // stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
@@ -458,7 +458,9 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                     container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                   )
                   yield* annotateFeed(response)
-                  return response.resources.map((_) => fromStored(_ as unknown as Encoded))
+                  return yield* Effect.fromResult(
+                    decodeStoredMany(response.resources, (_) => fromStored(_ as unknown as Encoded))
+                  )
                 })
                 .pipe(
                   annotateDb({
@@ -532,7 +534,10 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                         container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
                       )
                       yield* annotateFeed(response)
-                      return response.resources.map(({ f }) => fromStored(f as Encoded) as any)
+                      const decoded = yield* Effect.fromResult(
+                        decodeStoredMany(response.resources, ({ f }) => fromStored(f as Encoded))
+                      )
+                      return decoded as any
                     })
                     .pipe(
                       annotateDb({
@@ -557,8 +562,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                     .read<Encoded>()
                 )
                 yield* annotateItem(response)
-                return Option.fromNullishOr(response.resource).pipe(
-                  Option.map((_) => fromStored(_))
+                return yield* Effect.fromResult(
+                  decodeStoredOption(Option.fromNullishOr(response.resource), fromStored)
                 )
               })
               .pipe(annotateDb({

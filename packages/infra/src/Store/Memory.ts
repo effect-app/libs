@@ -18,7 +18,7 @@ import * as Struct from "effect/Struct"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb } from "../otel.ts"
 import { codeFilter, codeFilter3_ } from "./codeFilter.ts"
-import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
+import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { get, jsonifyFilter, type JsonLower, makeJsonLower, makeUpdateETag, toJsonQueryValue } from "./utils.ts"
 
 export { get } from "./utils.ts"
@@ -344,7 +344,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const codec = makeJsonDocumentCodec<Encoded>(schema)
     const encodeDoc = (e: Encoded | PM): PM => codec.encode({ _etag: undefined, ...e })
     // read path: stored JSON -> jitM -> JSON→Encoded decode
-    const decodeDoc = makeStoredDecode<Encoded>(codec, jitM)
+    const decodeDoc = makeStoredDecode<Encoded>(schema, jitM)
     const items_ = yield* seed ?? Effect.sync(() => [])
     const toJson = json?.toJson ?? toJsonQueryValue
     const lowerFilter = json?.jsonifyFilter ?? jsonifyFilter
@@ -362,7 +362,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const values = Effect.map(Ref.get(store), (s) => s.values())
 
     const allStored = Effect.map(values, Array.fromIterable)
-    const all = Effect.map(allStored, (rows) => rows.map(decodeDoc))
+    const all = Effect.flatMap(allStored, (rows) => Effect.fromResult(decodeStoredMany(rows, decodeDoc)))
 
     const batchSet = (items: NonEmptyReadonlyArray<PM>) =>
       Effect
@@ -384,7 +384,9 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 )
             ),
           Effect
-            .map((items) => items.map(decodeDoc) as unknown as NonEmptyReadonlyArray<PM>),
+            .flatMap((items) => Effect.fromResult(decodeStoredMany(items, decodeDoc))),
+          Effect
+            .map((items) => items as unknown as NonEmptyReadonlyArray<PM>),
           withPermit
         )
 
@@ -430,7 +432,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         Ref
           .get(store)
           .pipe(
-            Effect.map((_) => Option.fromNullishOr(_.get(id)).pipe(Option.map(decodeDoc))),
+            Effect.flatMap((_) => Effect.fromResult(decodeStoredOption(Option.fromNullishOr(_.get(id)), decodeDoc))),
             annotateDb({
               operation: "find",
               system: "memory",
@@ -445,10 +447,13 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .pipe(
             Effect.tap(() => logQuery(f, encodedDefaults)),
             Effect.map(memFilter({ ...f, filter: f.filter ? lowerFilter(f.filter) : f.filter })),
-            Effect.map((rows): (U extends undefined ? Encoded : Pick<Encoded, U>)[] =>
+            Effect.flatMap((rows) =>
               f.select
-                ? rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
-                : rows.map(decodeDoc) as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
+                ? Effect.succeed(rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[])
+                : Effect.map(
+                  Effect.fromResult(decodeStoredMany(rows, decodeDoc)),
+                  (decoded) => decoded as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
+                )
             ),
             annotateDb({
               operation: "filter",
@@ -470,7 +475,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                   Effect.flatMap((_) => Ref.set(store, _))
                 )
               ),
-            Effect.map(decodeDoc),
+            Effect.flatMap((stored) => Effect.fromResult(decodeDoc(stored))),
             withPermit,
             annotateDb({
               operation: "set",

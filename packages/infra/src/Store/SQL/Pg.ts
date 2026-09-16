@@ -12,7 +12,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
-import { makeJsonDocumentCodec, makeStoredDecode } from "../jsonDocument.ts"
+import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStoredDecode } from "../jsonDocument.ts"
 import { makeETag, makeJsonLower, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
@@ -34,17 +34,19 @@ const preserveStoreError = (e: unknown): DatabaseError | OptimisticConcurrencyEx
   return toDatabaseError(e)
 }
 
+/**
+ * Row -> raw stored JSON document. Decoding it is a separate step
+ * (`makeStoredDecode`), so a document `jitM` does not repair fails as a typed
+ * `S.SchemaError` rather than throwing out of here.
+ */
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown },
   idKey: PropertyKey,
-  defaultValues: Partial<Encoded>,
-  decode: (doc: PersistenceModelType<Encoded>) => PersistenceModelType<Encoded> = (doc) => doc
+  defaultValues: Partial<Encoded>
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
   const jsonDefaults = toJsonQueryValue(defaultValues) as Partial<Encoded>
-  return decode(
-    { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
-  )
+  return { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
 }
 
 const parseSelectRow = (
@@ -79,7 +81,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
       // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
-      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
+      const decodeStored = makeStoredDecode<Encoded>(config?.schema, config?.jitM)
+      const decodeRow = (row: { id: string; _etag: string | null; data: unknown }) =>
+        decodeStored(parseRow<Encoded>(row, idKey, defaultValues))
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -202,9 +206,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
             return exec(sqlText, [ns])
               .pipe(
-                Effect.map((rows) =>
-                  (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
-                ),
+                Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
                 annotateDb({
                   operation: "all",
                   system: "postgresql",
@@ -223,12 +225,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`
               return exec(sqlText, [id, ns])
                 .pipe(
-                  Effect.map((rows) => {
-                    const row = (rows as any[])[0]
-                    return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
-                      : Option.none()
-                  }),
+                  Effect.flatMap((rows) =>
+                    Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                  ),
                   annotateDb({
                     operation: "find",
                     system: "postgresql",
@@ -286,9 +285,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                 Effect.flatMap((q) =>
                   exec(q.sql, q.params).pipe(
-                    Effect.map((rows) => {
+                    Effect.flatMap((rows) => {
                       if (f.select) {
-                        return (rows as any[]).map((r) => {
+                        return Effect.succeed((rows as any[]).map((r) => {
                           const selected = parseSelectRow(r, idKey, {})
                           return {
                             ...Struct.pick(
@@ -297,10 +296,11 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                             ),
                             ...selected
                           } as M
-                        })
+                        }))
                       }
-                      return (rows as any[]).map((r) =>
-                        parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
+                      return Effect.map(
+                        Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
+                        (decoded) => decoded as any as M[]
                       )
                     })
                   )

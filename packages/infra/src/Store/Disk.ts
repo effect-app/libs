@@ -10,7 +10,7 @@ import * as Console from "effect/Console"
 import { flow } from "effect/Function"
 import * as Semaphore from "effect/Semaphore"
 import { annotateDb } from "../otel.ts"
-import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
+import { decodeStoredMany, makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { makeMemoryStoreInt } from "./Memory.ts"
 import { type JsonLower, makeJsonLower } from "./utils.ts"
 
@@ -30,7 +30,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   const codec = makeJsonDocumentCodec<Encoded>(schema)
   // the file is the raw JSON boundary for this adapter:
   // stored JSON -> jitM -> JSON→Encoded decode
-  const decodeStored = makeStoredDecode<Encoded>(codec, jitM)
+  const decodeStored = makeStoredDecode<Encoded>(schema, jitM)
   return Effect.gen(function*() {
     if (namespace !== "primary") {
       dir = dir + "/" + namespace
@@ -53,7 +53,8 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
             extra: fileExtra
           }),
           Effect.flatMap((x) =>
-            Effect.sync(() => (JSON.parse(x) as PM[]).map((row) => decodeStored(row))).pipe(
+            Effect.sync(() => JSON.parse(x) as PM[]).pipe(
+              Effect.flatMap((docs) => Effect.fromResult(decodeStoredMany(docs, decodeStored))),
               annotateDb({
                 operation: "read.parse",
                 system: "disk",

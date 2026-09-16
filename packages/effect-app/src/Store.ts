@@ -11,7 +11,7 @@ import type { FieldPath } from "./Model/filter/types/path/index.ts"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, RawQuery } from "./Model/query.ts"
 import type * as Option from "./Option.ts"
 import * as RequestScopedDependencies from "./RequestScopedDependencies.ts"
-import { type Json as SchemaJson, NonEmptyString255, type Top as SchemaTop } from "./Schema.ts"
+import { type Json as SchemaJson, NonEmptyString255, type SchemaError, type Top as SchemaTop } from "./Schema.ts"
 
 /**
  * Adapter-neutral unique-key definition for stores that support unique indexes,
@@ -133,27 +133,34 @@ export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded
   skip?: number | undefined
 }
 
+/** decodes stored documents unless `select` projects fields, hence `SchemaError` */
 export type FilterFunc<Encoded extends FieldValues> = <U extends keyof Encoded = never>(
   args: FilterArgs<Encoded, U>
-) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[], DatabaseError>
+) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[], DatabaseError | SchemaError>
 
 export interface Store<
   IdKey extends keyof Encoded,
   Encoded extends FieldValues,
   PM extends PersistenceModelType<Encoded> = PersistenceModelType<Encoded>
 > {
-  all: Effect.Effect<PM[], DatabaseError>
+  /** decodes every stored document, so a document `jitM` does not repair fails with `SchemaError` */
+  all: Effect.Effect<PM[], DatabaseError | SchemaError>
   filter: FilterFunc<Encoded>
-  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>, DatabaseError>
-  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError>
+  /** decodes the stored document, so a document `jitM` does not repair fails with `SchemaError` */
+  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>, DatabaseError | SchemaError>
+  /** adapters that decode the written document on the way back can fail with `SchemaError` */
+  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError | SchemaError>
+  /** adapters that decode the written documents on the way back can fail with `SchemaError` */
   batchSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError | SchemaError>
+  /** adapters that decode the written documents on the way back can fail with `SchemaError` */
   bulkSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError | SchemaError>
   batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void, DatabaseError>
-  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[], DatabaseError>
+  /** adapters that run the raw query over decoded documents can fail with `SchemaError` */
+  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[], DatabaseError | SchemaError>
   /**
    * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
    * Non-primary namespaces must be seeded explicitly before use.

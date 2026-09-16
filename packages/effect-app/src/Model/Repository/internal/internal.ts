@@ -667,10 +667,15 @@ export function makeRepoInternal<
                   t: null as unknown as Encoded,
                   select: [idKey as keyof Encoded]
                 })
-                .pipe(Effect.withSpan("Repository.filter", {
-                  kind: "client",
-                  attributes: { "app.entity": name }
-                }, { captureStackTrace: false }))
+                .pipe(
+                  // a projection never decodes a whole document, so the store's
+                  // document decode cannot fail here
+                  Effect.catchTag("SchemaError", (e) => Effect.die(e)),
+                  Effect.withSpan("Repository.filter", {
+                    kind: "client",
+                    attributes: { "app.entity": name }
+                  }, { captureStackTrace: false })
+                )
 
               // 2. random subset
               const shuffled = [...allIds].sort(() => Math.random() - 0.5)
@@ -685,13 +690,34 @@ export function makeRepoInternal<
 
               for (const item of sample) {
                 const id = item[idKey]
-                const rawResult = yield* store.find(id).pipe(
+                const stored = yield* store.find(id).pipe(
+                  Effect.result,
                   Effect.withSpan("Repository.find", {
                     kind: "client",
                     attributes: { "app.entity": name, "app.entity.id": id }
                   }, { captureStackTrace: false })
                 )
 
+                // a store-boundary failure: `defaultValues` + `jitM` did not
+                // produce a document the Encoded shape accepts, so the store
+                // failed with `S.SchemaError` instead of returning one. Report
+                // that document and keep sampling - it used to kill the run.
+                if (Result.isFailure(stored)) {
+                  const failure = stored.failure
+                  if (!S.isSchemaError(failure)) return yield* Effect.fail(failure)
+                  errors.push(
+                    ValidationError.make({
+                      id,
+                      // the store failed before it could hand back a document
+                      rawData: undefined,
+                      jitMResult: undefined,
+                      error: failure
+                    })
+                  )
+                  continue
+                }
+
+                const rawResult = stored.success
                 if (Option.isNone(rawResult)) continue
 
                 // the store merged `defaultValues`, applied `jitM` on the raw
@@ -699,6 +725,7 @@ export function makeRepoInternal<
                 // what the repository decodes into the domain type.
                 const rawData = rawResult.value as Encoded
 
+                // the repository's own decode of a document the store accepted
                 const decodeResult = yield* S.decodeEffectConcurrently(schema)(rawData).pipe(
                   Effect.result,
                   provideRctx
@@ -725,15 +752,24 @@ export function makeRepoInternal<
             }
           )
 
+          // The store fails with `S.SchemaError` when a stored document does not
+          // decode - see `Store.all` / `Store.find`. The internals above let that
+          // failure propagate; producing the public members is the single
+          // boundary where it becomes a defect, because these signatures declare
+          // only `DatabaseError`. `queryRaw`, `query` and `mapped` already
+          // declare `S.SchemaError`, and `validateSample` reports it per
+          // document instead of dying.
           const r = {
             changeFeed,
             itemType: name,
             idKey,
-            find,
-            all,
-            saveAndPublish,
+            find: (id: T[IdKey]) => find(id).pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e))),
+            all: all.pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e))),
+            saveAndPublish: (items: Iterable<T>, events?: Iterable<Evt>) =>
+              saveAndPublish(items, events).pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e))),
             removeAndPublish,
-            removeById,
+            removeById: (idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) =>
+              removeById(idOrIds).pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e))),
             seedNamespace: (namespace: string) => store.seedNamespace(namespace),
             validateSample,
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {

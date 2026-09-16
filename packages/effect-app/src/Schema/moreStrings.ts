@@ -14,8 +14,9 @@ import type * as B from "effect/Brand"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/Schema"
+import * as Getter from "effect/SchemaGetter"
 import type { Simplify } from "effect/Types"
-import { nanoid, urlAlphabet } from "nanoid"
+import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import type * as SchemaAST from "../SchemaAST.ts"
 import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
@@ -165,26 +166,41 @@ export type StringId = string & StringIdBrand
 const minLength = 6
 const maxLength = 50
 const nanoidSize = 21
+const nanoidByteLength = 10 * nanoidSize
 // `-` in urlAlphabet is a char-class range if left unescaped.
 const nanoidCharClass = urlAlphabet.replace(/[\\\]^-]/g, "\\$&")
-const nanoidPatternSource = `^[${nanoidCharClass}]{${nanoidSize}}$`
 
-const StringIdSchemaBase = pipe(
+const StringIdString = pipe(
   S.String,
-  S.check(
-    S.isMinLength(minLength, {
-      arbitraryConstraint: {
-        minLength: nanoidSize,
-        maxLength: nanoidSize,
-        patterns: [{ source: nanoidPatternSource, flags: "" }]
-      }
-    }),
-    S.isMaxLength(maxLength)
-  ),
+  S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
   fromBrand<StringId>(nominal<StringId>(), {
     identifier: "StringId",
     jsonSchema: {}
   })
+)
+
+const nanoidFromBytes = (bytes: Uint8Array) =>
+  customRandom(urlAlphabet, nanoidSize, (size) => bytes.subarray(0, size))() as StringId
+
+// JSON stays a branded string (toCodec). Generation uses toCodecArbitrary — the native
+// replacement for fast-check `toArbitrary` — same as the old StringIdArb:
+// uint8Array(210).map(bytes => customRandom(urlAlphabet, 21, …)).
+const StringIdSchemaBase = S.declare(
+  (u): u is StringId => S.is(StringIdString)(u),
+  {
+    identifier: "StringId",
+    expected: "StringId",
+    toCodec: () =>
+      S.link<StringId>()(StringIdString, {
+        decode: Getter.passthrough(),
+        encode: Getter.passthrough()
+      }),
+    toCodecArbitrary: () =>
+      S.linkDecoding<StringId>()(
+        S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
+        Getter.transform(nanoidFromBytes)
+      )
+  }
 )
 const makeStringId = (s?: string): StringId =>
   s !== undefined ? S.decodeSync(StringIdSchemaBase)(s) : nanoid() as unknown as StringId
@@ -234,7 +250,7 @@ export function prefixedStringId<Type extends StringId>() {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s = StringIdSchemaBase
+    const s = StringIdString
       .pipe(
         S.refine((x: string): x is Type => x.startsWith(pref), {
           identifier: name,

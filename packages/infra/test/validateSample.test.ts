@@ -4,6 +4,7 @@ import { makeRepo, ValidationError, ValidationResult } from "effect-app/Model/Re
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
+import type { JsonRecord } from "effect-app/Store"
 import { describe, expect, it } from "vitest"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
@@ -47,11 +48,11 @@ describe("validateSample", () => {
     Effect
       .gen(function*() {
         // jitM that corrupts one specific item's count to be negative
-        const corruptingJitM = (pm: typeof SimpleItem.Encoded) => {
-          if (pm.id === "2" || pm.id === "3") {
-            return { ...pm, count: -999 } // make count negative (invalid for NonNegativeInt)
+        const corruptingJitM = (json: JsonRecord): JsonRecord => {
+          if (json["id"] === "2" || json["id"] === "3") {
+            return { ...json, count: -999 } // make count negative (invalid for NonNegativeInt)
           }
-          return pm
+          return json
         }
 
         const repo = yield* makeRepo("CorruptItem", SimpleItem, {
@@ -152,9 +153,9 @@ describe("validateSample", () => {
 
         // jitM that adds default status for items
         const repo = yield* makeRepo("ItemWithStatus", ItemWithStatus, {
-          jitM: (pm) => ({
-            ...pm,
-            status: pm.status ?? "active" // default to active if missing
+          jitM: (json) => ({
+            ...json,
+            status: json["status"] ?? "active" // default to active if missing
           }),
           makeInitial: Effect.succeed([
             new ItemWithStatus({ id: "1", status: "active" }),
@@ -180,8 +181,8 @@ describe("validateSample", () => {
     Effect
       .gen(function*() {
         // jitM that corrupts the data
-        const corruptingJitM = (pm: typeof SimpleItem.Encoded) => ({
-          ...pm,
+        const corruptingJitM = (json: JsonRecord): JsonRecord => ({
+          ...json,
           count: -999 // always corrupt count
         })
 
@@ -199,19 +200,16 @@ describe("validateSample", () => {
         const error = result.errors[0]!
         expect(error.id).toBe("bad-item")
 
-        // rawData should contain the original db data (with valid count)
+        // rawData is what the store returned: jitM already ran at the store
+        // boundary, so the corrupted count is what the repository decoded
         expect(error.rawData).toMatchObject({
-          id: "bad-item",
-          name: "Test",
-          count: 100
-        })
-
-        // jitMResult should contain the corrupted data
-        expect(error.jitMResult).toMatchObject({
           id: "bad-item",
           name: "Test",
           count: -999
         })
+
+        // jitMResult is kept for compatibility and is identical to rawData
+        expect(error.jitMResult).toEqual(error.rawData)
 
         // error should be a SchemaError
         expect(error.error).toBeDefined()

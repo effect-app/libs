@@ -168,8 +168,6 @@ const minLength = 6
 const maxLength = 50
 const nanoidSize = 21
 const nanoidByteLength = 10 * nanoidSize
-// `-` in urlAlphabet is a char-class range if left unescaped.
-const nanoidCharClass = urlAlphabet.replace(/[\\\]^-]/g, "\\$&")
 
 const StringIdString = pipe(
   S.String,
@@ -259,21 +257,36 @@ export function prefixedStringId<Type extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s = StringIdString
-      .pipe(
-        S.refine((x): x is Type => x.startsWith(pref), {
-          identifier: name,
-          arbitraryConstraint: {
-            patterns: [{
-              source: `^${pref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[${nanoidCharClass}]{${
-                Math.max(1, nanoidSize - pref.length)
-              }}$`,
-              flags: ""
-            }]
-          }
-        })
-      )
+    const PrefixedString = StringIdString.pipe(
+      S.refine((x): x is Type => x.startsWith(pref), { identifier: name })
+    )
+    // Pre-rc.114: StringIdArb().map(x => pref + x.substring(0, 50 - pref.length))
+    const s = S.declareConstructor<Type, string>()(
+      [],
+      () => (input, ast, options) =>
+        S.is(PrefixedString)(input)
+          ? Effect.succeed(input)
+          : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
+      {
+        identifier: name,
+        expected: name,
+        toCodec: () =>
+          S.link<Type>()(PrefixedString, {
+            decode: Getter.passthrough(),
+            encode: Getter.passthrough()
+          }),
+        toCodecArbitrary: () =>
+          S.link<Type>()(
+            S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
+            {
+              decode: Getter.transform((bytes) =>
+                (pref + nanoidFromBytes(bytes).substring(0, maxLength - pref.length)) as Type
+              ),
+              encode: Getter.forbiddenEncoding
+            }
+          )
+      }
+    )
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Type
 

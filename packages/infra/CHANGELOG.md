@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.329
+
+### Patch Changes
+
+- 459697f: Restore native Arbitrary for the schemas that lost custom fast-check `toArbitrary`. `StringId` uses `toCodecArbitrary` (the native replacement): generate a 210-byte `Uint8Array` and run `customRandom(urlAlphabet, 21, …)` — same as the old `StringIdArb`. JSON stays a branded string via `toCodec`. `Url` is `https://…`. `RequestId` samples unique nanoid-shaped ids. `Finite` generation is capped at ±1e6. `generateFromSchema` jumps its master seed per call so successive `count: 1` draws do not collide on attempt-0 edge strings.
+- Updated dependencies [459697f]
+  - effect-app@4.0.0-beta.329
+
 ## 4.0.0-beta.328
 
 ### Minor Changes

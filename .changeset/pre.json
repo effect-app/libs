@@ -396,6 +396,7 @@
     "stream-on-command-query",
     "stream-withdefaulttoast",
     "strict-stream-handlers",
+    "stringid-native-arbitrary",
     "strong-dots-sin",
     "struct-pick-omit",
     "structfacade-effect-app-struct",

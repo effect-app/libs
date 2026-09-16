@@ -163,6 +163,32 @@ describe("makeJsonDocumentCodec lenient decode", () => {
     expect(decoded["vatRate"]).toBeNaN()
   })
 
+  it("lowers and preserves encodeKeys-renamed fields, missing ones staying absent", () => {
+    const Renamed = S
+      .Struct({
+        id: S.String,
+        day: DayFromSelf,
+        updatedAt: S.Date
+      })
+      .pipe(S.encodeKeys({ day: "the_day", updatedAt: "updated_at" }))
+    const codec = makeJsonDocumentCodec<typeof Renamed.Encoded>(Renamed)
+
+    const decoded = codec.decode({
+      id: "r-1",
+      the_day: "2024-06-01",
+      updated_at: "2024-06-02T00:00:00.000Z"
+    } as never) as Record<string, unknown>
+
+    expect(decoded["the_day"]).toBeInstanceOf(Day)
+    expect(decoded["updated_at"]).toBeInstanceOf(Date)
+    expect(decoded["day"]).toBeUndefined()
+
+    // a renamed key the stored document does not have stays absent
+    const partial = codec.decode({ id: "r-2", the_day: "2024-06-03" } as never) as Record<string, unknown>
+    expect(partial["the_day"]).toBeInstanceOf(Day)
+    expect("updated_at" in partial).toBe(false)
+  })
+
   it("still round-trips a complete document through encode", () => {
     const decoded = shopCodec.decode(completeShop as never)
     expect(shopCodec.encode(decoded)).toEqual(completeShop)

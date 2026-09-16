@@ -12,7 +12,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
 import { InfraLogger } from "../../logger.ts"
 import { annotateDb } from "../../otel.ts"
-import { makeJsonDocumentCodec } from "../jsonDocument.ts"
+import { makeJsonDocumentCodec, makeStoredDecode } from "../jsonDocument.ts"
 import { makeETag, makeJsonLower, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
@@ -78,6 +78,8 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
+      // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
+      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -201,7 +203,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             return exec(sqlText, [ns])
               .pipe(
                 Effect.map((rows) =>
-                  (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+                  (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
                 ),
                 annotateDb({
                   operation: "all",
@@ -224,7 +226,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
                     return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
                       : Option.none()
                   }),
                   annotateDb({
@@ -298,7 +300,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                         })
                       }
                       return (rows as any[]).map((r) =>
-                        parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                        parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
                       )
                     })
                   )

@@ -15,7 +15,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { DatabaseError, OptimisticConcurrencyException } from "../errors.ts"
 import { InfraLogger } from "../logger.ts"
 import { annotateDb, type DbSystem } from "../otel.ts"
-import { makeJsonDocumentCodec } from "./jsonDocument.ts"
+import { makeJsonDocumentCodec, makeStoredDecode } from "./jsonDocument.ts"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
 import { makeETag, makeJsonLower, toJsonQueryValue } from "./utils.ts"
 
@@ -94,6 +94,8 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
         const json = makeJsonLower(config)
         const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
         const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
+        // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
+        const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
@@ -217,7 +219,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               return exec(sqlText, [ns])
                 .pipe(
                   Effect.map((rows) =>
-                    (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+                    (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
                   ),
                   annotateDb({
                     operation: "all",
@@ -240,7 +242,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                     Effect.map((rows) => {
                       const row = (rows as any[])[0]
                       return row
-                        ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
+                        ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
                         : Option.none()
                     }),
                     annotateDb({
@@ -314,7 +316,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                               })
                             }
                             return (rows as any[]).map((r) =>
-                              parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                              parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
                             )
                           })
                         )
@@ -433,6 +435,8 @@ function makeSQLiteStorePerNs(
       const json = makeJsonLower(config)
       const defaultValues = json.toJson(config?.defaultValues ?? {}) as Partial<Encoded>
       const codec = makeJsonDocumentCodec<Encoded>(config?.schema)
+      // read path: stored JSON -> defaultValues -> jitM -> JSON→Encoded decode
+      const decodeStored = makeStoredDecode<Encoded>(codec, config?.jitM)
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
@@ -564,7 +568,7 @@ function makeSQLiteStorePerNs(
           return exec(ns, sqlText)
             .pipe(
               Effect.map((rows) =>
-                (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, codec.decode))
+                (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues, decodeStored))
               ),
               annotateDb({
                 operation: "all",
@@ -586,7 +590,7 @@ function makeSQLiteStorePerNs(
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
                     return row
-                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, codec.decode))
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues, decodeStored))
                       : Option.none()
                   }),
                   annotateDb({
@@ -660,7 +664,7 @@ function makeSQLiteStorePerNs(
                             })
                           }
                           return (rows as any[]).map((r) =>
-                            parseRow<Encoded>(r, idKey, defaultValues, codec.decode) as any as M
+                            parseRow<Encoded>(r, idKey, defaultValues, decodeStored) as any as M
                           )
                         })
                       )

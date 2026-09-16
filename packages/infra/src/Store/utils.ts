@@ -5,6 +5,7 @@ import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
 import * as SchemaAST from "effect-app/SchemaAST"
 import type { PersistenceModelType, SupportedValues2 } from "effect-app/Store"
+import * as Exit from "effect/Exit"
 import { OptimisticConcurrencyException } from "../errors.ts"
 
 const dateJson = S.toCodecJson(S.Date)
@@ -151,6 +152,71 @@ const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => 
   )
 }
 
+/**
+ * Decode a leaf (Date/Map/Set/app-native declaration) without ever throwing:
+ * the store boundary only lowers JSON into native Encoded values, it does not
+ * validate. A value we cannot decode is passed through unchanged, so the strict
+ * decode that runs after `jitM` reports it with the full path context.
+ */
+const decodeLeafExit = (ast: SchemaAST.AST, value: unknown): Exit.Exit<unknown, S.SchemaError> =>
+  Effect.runSyncExit(
+    S.decodeUnknownEffect(S.toCodecJson(S.make(ast)))(value) as Effect.Effect<unknown, S.SchemaError>
+  )
+
+const decodeLeaf = (ast: SchemaAST.AST, value: unknown): unknown => {
+  const exit = decodeLeafExit(ast, value)
+  return Exit.isSuccess(exit) ? exit.value : value
+}
+
+/**
+ * Resolve the union member a JSON object belongs to: by `_tag` literal when the
+ * union is tagged, else the first member that decodes the value as a whole.
+ */
+const unionMemberAst = (
+  current: SchemaAST.Union,
+  value: Record<string, unknown>
+): SchemaAST.AST | undefined => {
+  const tag = value["_tag"]
+  if (typeof tag === "string") {
+    const tagged = current.types.find((member) => {
+      const memberTag = astAtPath(member, ["_tag"])
+      return memberTag !== undefined && SchemaAST.isLiteral(memberTag) && memberTag.literal === tag
+    })
+    if (tagged !== undefined) return unwrapAst(tagged)
+  }
+  const hit = current.types.find((member) => Exit.isSuccess(decodeLeafExit(unwrapAst(member), value)))
+  return hit === undefined ? undefined : unwrapAst(hit)
+}
+
+const decodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => {
+  if (ast === undefined) return value
+  const current = unwrapAst(ast)
+  if (isPlainObject(value)) {
+    if (SchemaAST.isObjects(current)) {
+      // iterate the document's own keys, never the schema's: a key the stored
+      // document does not have stays absent instead of failing to decode.
+      const out: Record<string, unknown> = {}
+      for (const [key, child] of Object.entries(value)) {
+        out[key] = decodeJson(astAtPath(current, [key]), child)
+      }
+      return out
+    }
+    if (SchemaAST.isUnion(current)) {
+      return decodeJson(unionMemberAst(current, value), value)
+    }
+    return decodeLeaf(current, value)
+  }
+  if (Array.isArray(value)) {
+    if (SchemaAST.isArrays(current) || SchemaAST.isUnion(current)) {
+      const element = elementAst(current)
+      return value.map((item) => decodeJson(element, item))
+    }
+    // e.g. a ReadonlyMap/ReadonlySet declaration, whose JSON form is an array
+    return decodeLeaf(current, value)
+  }
+  return decodeLeaf(current, value)
+}
+
 const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: unknown): unknown => {
   if (fieldAst === undefined) return toJsonQueryValue(value)
   if (op === "in" || op === "notIn") {
@@ -250,6 +316,20 @@ export function toJsonQueryValue(value: unknown): unknown {
 export function encodeWithSchema(schema: S.Top | undefined, value: unknown): unknown {
   if (schema === undefined) return toJsonQueryValue(value)
   return encodeJson(SchemaAST.toEncoded(schema.ast), value)
+}
+
+/**
+ * Lift JSON back to native Encoded values (Date/Map/Set and app-native
+ * declarations) for the keys that are present.
+ *
+ * Deliberately lenient: it enforces neither required keys, nor refinements, nor
+ * checks. Store reads happen before the repository's `jitM` migration, so a
+ * stored document may still be of an older shape here; the repository's own
+ * decode validates the migrated document.
+ */
+export function decodeWithSchema(schema: S.Top | undefined, value: unknown): unknown {
+  if (schema === undefined) return value
+  return decodeJson(SchemaAST.toEncoded(schema.ast), value)
 }
 
 export function jsonifyFilter(

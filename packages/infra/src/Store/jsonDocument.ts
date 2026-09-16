@@ -1,7 +1,7 @@
 import type { FieldValues } from "effect-app/Model/filter/types"
 import * as S from "effect-app/Schema"
 import type { PersistenceModelType } from "effect-app/Store"
-import { toJsonQueryValue } from "./utils.ts"
+import { decodeWithSchema, toJsonQueryValue } from "./utils.ts"
 
 export interface JsonDocumentCodec<E extends FieldValues> {
   readonly encode: (doc: PersistenceModelType<E>) => PersistenceModelType<E>
@@ -19,8 +19,20 @@ const joinEtag = <E extends FieldValues>(
 ): PersistenceModelType<E> => (_etag === undefined ? rest : { ...rest, _etag })
 
 /**
- * Encoded document ↔ JSON document. Prefer `Schema.toCodecJson(toEncoded(schema))`
- * when the store has a schema; otherwise lower Date/Map/Set structurally.
+ * Encoded document ↔ JSON document.
+ *
+ * Writes always carry a complete document, so `encode` uses the strict
+ * whole-document codec `Schema.toCodecJson(toEncoded(schema))`.
+ *
+ * `decode` is deliberately lenient (see {@link decodeWithSchema}): it only
+ * lifts the keys that are present back to native Encoded values (Date/Map/Set
+ * and app-native declarations). It enforces neither required keys, nor
+ * refinements, nor checks, because the store boundary runs *before* the
+ * repository's `jitM` migration — an older-shaped document must still reach
+ * `jitM`, which fills it in before the repository's own (strict) decode.
+ *
+ * Without a schema, Date/Map/Set are lowered structurally on write and
+ * documents are read back as stored.
  */
 export const makeJsonDocumentCodec = <E extends FieldValues>(schema?: S.Top): JsonDocumentCodec<E> => {
   if (schema) {
@@ -32,7 +44,7 @@ export const makeJsonDocumentCodec = <E extends FieldValues>(schema?: S.Top): Js
       },
       decode: (doc) => {
         const { rest, _etag } = splitEtag(doc)
-        return joinEtag(S.decodeSync(codec)(rest as S.Json), _etag)
+        return joinEtag(decodeWithSchema(schema, rest) as E, _etag)
       }
     }
   }

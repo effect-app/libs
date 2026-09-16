@@ -9,8 +9,11 @@ import * as S from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "effect-app/setupRequest"
 import type { JsonRecord } from "effect-app/Store"
 import { StoreMaker } from "effect-app/Store"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
+import * as Result from "effect/Result"
 import { describe, expect, it } from "vitest"
-import { makeJsonDocumentCodec, makeStoredDecode } from "../src/Store/jsonDocument.js"
+import { decodeStoredMany, decodeStoredOption, makeStoredDecode } from "../src/Store/jsonDocument.js"
 import { makeMemoryStoreInt } from "../src/Store/Memory.js"
 import { makeJsonLower } from "../src/Store/utils.js"
 
@@ -39,12 +42,15 @@ const LegacyDocStoreLive = (docs: readonly Record<string, unknown>[]) =>
           makeJsonLower(config)
         ),
         (store) => {
-          const decode = makeStoredDecode<any>(makeJsonDocumentCodec<any>(config?.schema), config?.jitM)
+          const decode = makeStoredDecode<any>(config?.schema, config?.jitM)
           return {
             ...store,
-            all: Effect.map(store.all, (rows) => rows.map(decode)),
-            find: (id: any) => Effect.map(store.find(id), Option.map(decode)),
-            filter: (f: any) => Effect.map(store.filter(f), (rows: any[]) => f.select ? rows : rows.map(decode))
+            all: Effect.flatMap(store.all, (rows) => Effect.fromResult(decodeStoredMany(rows, decode))),
+            find: (id: any) =>
+              Effect.flatMap(store.find(id), (doc) => Effect.fromResult(decodeStoredOption(doc, decode))),
+            filter: (f: any) =>
+              Effect.flatMap(store.filter(f), (rows: any[]) =>
+                f.select ? Effect.succeed(rows) : Effect.fromResult(decodeStoredMany(rows, decode)))
           }
         }
       )) as any
@@ -62,6 +68,12 @@ class Shop extends S.Class<Shop>("LegacyDocShop")({
 
 // `vatRate` was added later; stored documents from before that do not have it.
 const jitM = (json: JsonRecord): JsonRecord => "vatRate" in json ? json : { ...json, vatRate: 19 }
+
+/** does *not* repair `vatRate`, so `legacyDoc` cannot decode at the store boundary */
+const jitMThatDoesNotRepair = (json: JsonRecord): JsonRecord => ({
+  ...json,
+  updatedAt: json["updatedAt"] ?? "2024-06-03T00:00:00.000Z"
+})
 
 const legacyDoc = {
   id: "shop-legacy",
@@ -270,53 +282,106 @@ describe("repository reads of legacy documents", () => {
   /**
    * The store boundary decode is deliberately **strict**: `jitM` is the one and
    * only place a legacy document can be repaired, and a document it does not
-   * repair must fail loudly rather than be read back half-decoded. This test
-   * pins that behaviour down on purpose - do not "fix" it by making the decode
-   * lenient.
+   * repair must fail rather than be read back half-decoded. This test pins that
+   * behaviour down on purpose - do not "fix" it by making the decode lenient.
+   *
+   * It fails as a *typed* `S.SchemaError` in the store's error channel (it used
+   * to throw out of `decodeSync` as a defect), which is what lets
+   * `validateSample` report the document instead of losing the whole run.
    */
-  it("a document jitM does not repair fails loudly at the store boundary", async () => {
-    const program = Effect
+  it("a document jitM does not repair fails as a typed SchemaError at the store boundary", () =>
+    Effect
       .gen(function*() {
+        const { make } = yield* StoreMaker
         // `vatRate` is still missing after this jitM ran: it only touches `updatedAt`
-        const repo = yield* makeRepo("LegacyDocShop", Shop, {
-          jitM: (json) => ({ ...json, updatedAt: json["updatedAt"] ?? "2024-06-03T00:00:00.000Z" })
+        const store = yield* make<"id", any>("LegacyDocShop", "id", undefined, {
+          partitionValue: () => "primary",
+          schema: Shop,
+          jitM: jitMThatDoesNotRepair
         })
 
-        return yield* repo.all
+        // `Effect.result` only catches typed failures - a defect would reject here
+        const result = yield* store.all.pipe(Effect.result)
+
+        expect(Result.isFailure(result)).toBe(true)
+        if (!Result.isFailure(result)) return
+        const failure = result.failure
+        expect(S.isSchemaError(failure)).toBe(true)
+        expect((failure as S.SchemaError)._tag).toBe("SchemaError")
+        // the strict `toCodecJson(toEncoded(schema))` decode still reports the
+        // key jitM failed to add, with the path to it
+        expect((failure as S.SchemaError).message).toContain("Missing key")
+        expect((failure as S.SchemaError).message).toContain("vatRate")
       })
       .pipe(
         Effect.provide(TestLive),
         setupRequestContextFromCurrent(),
         Effect.scoped,
         Effect.runPromise
-      )
+      ))
 
-    let caught: unknown = undefined
-    try {
-      await program
-    } catch (e) {
-      caught = e
-    }
+  /**
+   * ...and the *public* repository surface is unchanged: `Repository.find`/`all`
+   * declare only `DatabaseError`, so the store's `SchemaError` becomes a defect
+   * when the public members are produced.
+   */
+  it("the same document still dies on a public repository read", () =>
+    Effect
+      .gen(function*() {
+        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
 
-    expect(caught).toBeDefined()
-    const message = caught instanceof Error ? caught.message : String(caught)
-    // the strict `toCodecJson(toEncoded(schema))` decode reports the key jitM
-    // failed to add, with the path to it
-    expect(message).toContain("Missing key")
-    expect(message).toContain("vatRate")
-  })
+        const exit = yield* repo.all.pipe(Effect.exit)
+        expect(Exit.isFailure(exit)).toBe(true)
+        if (Exit.isFailure(exit)) {
+          expect(Cause.hasDies(exit.cause)).toBe(true)
+          expect(Cause.hasFails(exit.cause)).toBe(false)
+        }
+
+        // a defect is not catchable as a typed failure
+        const notCaught = yield* repo.find("shop-legacy").pipe(Effect.result, Effect.exit)
+        expect(Exit.isFailure(notCaught)).toBe(true)
+      })
+      .pipe(
+        Effect.provide(TestLive),
+        setupRequestContextFromCurrent(),
+        Effect.scoped,
+        Effect.runPromise
+      ))
+
+  it("validateSample reports a document that fails at the store boundary and keeps going", () =>
+    Effect
+      .gen(function*() {
+        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
+
+        const result = yield* repo.validateSample({ percentage: 1.0 })
+
+        expect(result.total).toBe(2)
+        expect(result.sampled).toBe(2)
+        // `shop-current` decodes, `shop-legacy` does not
+        expect(result.valid).toBe(1)
+        expect(result.errors).toHaveLength(1)
+        const error = result.errors[0]!
+        expect(error.id).toBe("shop-legacy")
+        expect(S.isSchemaError(error.error)).toBe(true)
+      })
+      .pipe(
+        Effect.provide(TestLive),
+        setupRequestContextFromCurrent(),
+        Effect.scoped,
+        Effect.runPromise
+      ))
 
   it("_etag is not visible to jitM and survives the round trip", () => {
     const seen: JsonRecord[] = []
     const decode = makeStoredDecode<any>(
-      makeJsonDocumentCodec<any>(Shop),
+      Shop,
       (json) => {
         seen.push(json)
         return { ...json, vatRate: 19 }
       }
     )
 
-    const decoded = decode({ ...legacyDoc, _etag: "etag-1" } as any)
+    const decoded = Result.getOrThrow(decode({ ...legacyDoc, _etag: "etag-1" } as any))
 
     // jitM sees the document without the infra metadata
     expect(seen).toHaveLength(1)

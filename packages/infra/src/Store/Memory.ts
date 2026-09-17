@@ -408,9 +408,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
       seedNamespace: () => Effect.void,
 
       queryRaw: (query) =>
-        all
+        allStored
           .pipe(
-            // Effect.tap(() => logQuery(query, defaultValues)),
             Effect.map(query.memory),
             annotateDb({
               operation: "queryRaw",

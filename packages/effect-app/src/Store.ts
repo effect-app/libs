@@ -159,7 +159,10 @@ export interface Store<
     items: NonEmptyReadonlyArray<PM>
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException | DatabaseError | SchemaError>
   batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void, DatabaseError>
-  /** adapters that run the raw query over decoded documents can fail with `SchemaError` */
+  /**
+   * Runs the raw query over stored JSON documents, not Encoded.
+   * `Repository.queryRaw` applies `toCodecJson` to the projector output.
+   */
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[], DatabaseError | SchemaError>
   /**
    * Explicitly seed a namespace. Primary is seeded eagerly on initialization.

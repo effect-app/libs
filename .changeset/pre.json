@@ -286,6 +286,7 @@
     "query-map-has-ops",
     "query-optional-mode",
     "query-span-propagation",
+    "queryraw-stored-json",
     "quick-seals-relate",
     "quick-wolves-yawn",
     "quiet-shrimps-juggle",

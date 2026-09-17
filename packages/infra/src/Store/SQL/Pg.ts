@@ -198,13 +198,21 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         }
         return cached
       }
+      const selectAllSql = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
+      const allStored = resolveNamespace.pipe(
+        Effect.flatMap((ns) =>
+          exec(selectAllSql, [ns]).pipe(
+            Effect.map((rows) => (rows as any[]).map((row) => parseRow<Encoded>(row, idKey, defaultValues)))
+          )
+        )
+      )
+
       const s: Store<IdKey, Encoded> = {
         seedNamespace: (ns) => seedNamespace(ns),
 
         all: resolveNamespace.pipe(
           Effect.flatMap((ns) => {
-            const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
-            return exec(sqlText, [ns])
+            return exec(selectAllSql, [ns])
               .pipe(
                 Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
                 annotateDb({
@@ -213,7 +221,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   collection: tableName,
                   namespace: ns,
                   entity: name,
-                  query: sqlText
+                  query: selectAllSql
                 })
               )
           })
@@ -377,7 +385,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         },
 
         queryRaw: (query) =>
-          s.all.pipe(
+          allStored.pipe(
             Effect.map(query.memory),
             annotateDb({
               operation: "queryRaw",

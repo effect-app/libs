@@ -216,13 +216,21 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           }
           return cached
         }
+        const selectAllSql = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`
+        const allStored = resolveNamespace.pipe(
+          Effect.flatMap((ns) =>
+            exec(selectAllSql, [ns]).pipe(
+              Effect.map((rows) => (rows as any[]).map((row) => parseRow<Encoded>(row, idKey, defaultValues)))
+            )
+          )
+        )
+
         const s: Store<IdKey, Encoded> = {
           seedNamespace: (ns) => seedNamespace(ns),
 
           all: resolveNamespace.pipe(
             Effect.flatMap((ns) => {
-              const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`
-              return exec(sqlText, [ns])
+              return exec(selectAllSql, [ns])
                 .pipe(
                   Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
                   annotateDb({
@@ -231,7 +239,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                     collection: tableName,
                     namespace: ns,
                     entity: name,
-                    query: sqlText
+                    query: selectAllSql
                   })
                 )
             })
@@ -394,7 +402,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           },
 
           queryRaw: (query) =>
-            s.all.pipe(
+            allStored.pipe(
               Effect.map(query.memory),
               annotateDb({
                 operation: "queryRaw",
@@ -564,12 +572,20 @@ function makeSQLiteStorePerNs(
         return cached
       }
 
+      const selectAllSql = `SELECT id, _etag, data FROM "${tableName}"`
+      const allStored = resolveNamespace.pipe(
+        Effect.flatMap((ns) =>
+          exec(ns, selectAllSql).pipe(
+            Effect.map((rows) => (rows as any[]).map((row) => parseRow<Encoded>(row, idKey, defaultValues)))
+          )
+        )
+      )
+
       const s: Store<IdKey, Encoded> = {
         seedNamespace: (ns) => seedNamespace(ns),
 
         all: resolveNamespace.pipe(Effect.flatMap((ns) => {
-          const sqlText = `SELECT id, _etag, data FROM "${tableName}"`
-          return exec(ns, sqlText)
+          return exec(ns, selectAllSql)
             .pipe(
               Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
               annotateDb({
@@ -578,7 +594,7 @@ function makeSQLiteStorePerNs(
                 collection: tableName,
                 namespace: ns,
                 entity: name,
-                query: sqlText
+                query: selectAllSql
               })
             )
         })),
@@ -740,7 +756,7 @@ function makeSQLiteStorePerNs(
         },
 
         queryRaw: (query) =>
-          s.all.pipe(
+          allStored.pipe(
             Effect.map(query.memory),
             annotateDb({
               operation: "queryRaw",

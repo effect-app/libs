@@ -740,3 +740,112 @@ describe("removeByIds", () => {
     test
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
+
+describe("queryRaw reads stored JSON, not Encoded", () => {
+  class Dated extends S.Class<Dated>("Dated")({
+    id: S.String,
+    at: S.Date,
+    name: S.String
+  }) {}
+
+  const dated = new Dated({
+    id: "d1",
+    at: new Date("2024-06-01T00:00:00.000Z"),
+    name: "one"
+  })
+
+  // @effect-diagnostics-next-line missingEffectServiceDependency:off
+  class DatedRepo extends Context.Service<DatedRepo>()(
+    "DatedRepo",
+    {
+      make: Effect.gen(function*() {
+        return yield* makeRepo("Dated", Dated, { config: { partitionValue: () => "dated-" + new Date().getTime() } })
+      })
+    }
+  ) {
+    static readonly layer = Layer
+      .effect(
+        DatedRepo,
+        Effect.gen(function*() {
+          const repo = DatedRepo.of(
+            yield* makeRepo("Dated", Dated, { config: { partitionValue: () => "dated-" + new Date().getTime() } })
+          )
+          yield* repo.saveAndPublish([dated]).pipe(setupRequestContextFromCurrent("init"))
+          return repo
+        })
+      )
+    static readonly Test = this
+      .layer
+      .pipe(Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive)))
+    static readonly TestSqlite = this
+      .layer
+      .pipe(
+        Layer.provide(
+          Layer.merge(
+            SQLiteStoreLayer({
+              url: Redacted.make("sqlite://"),
+              prefix: "test_",
+              dbName: "test"
+            }),
+            RepositoryRegistryLive
+          )
+        ),
+        Layer.provide(SqliteClient.layer({ filename: ":memory:" }))
+      )
+    static readonly TestCosmos = this
+      .layer
+      .pipe(
+        Layer.provide(
+          Effect
+            .gen(function*() {
+              const url = yield* Config.Redacted("STORAGE_URL").pipe(
+                Config.withDefault(
+                  Redacted.make(
+                    "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+                  )
+                )
+              )
+              return CosmosStoreLayer({
+                dbName: "test",
+                prefix: "",
+                url
+              })
+                .pipe(Layer.merge(RepositoryRegistryLive))
+            })
+            .pipe(Layer.unwrap)
+        )
+      )
+  }
+
+  const test = Effect
+    .gen(function*() {
+      const repo = yield* DatedRepo
+      const rows = yield* repo.queryRaw(S.Unknown, {
+        cosmos: ({ name }) => ({
+          query: `SELECT c.id, c AS raw FROM ${name} c`,
+          parameters: []
+        }),
+        memory: (items) => items.map((row) => ({ id: String(row.id), raw: row }))
+      })
+      expect(rows).toEqual([{
+        id: "d1",
+        raw: expect.objectContaining({
+          id: "d1",
+          at: "2024-06-01T00:00:00.000Z",
+          name: "one"
+        })
+      }])
+      const loaded = yield* repo.all
+      expect(loaded[0]!.at).toEqual(dated.at)
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it.skipIf(!process.env["STORAGE_URL"])(
+    "works well in CosmosDB",
+    () => test.pipe(Effect.provide(DatedRepo.TestCosmos), rt.runPromise)
+  )
+
+  it("works well in Memory", () => test.pipe(Effect.provide(DatedRepo.Test), rt.runPromise))
+
+  it("works well in SQLite", () => test.pipe(Effect.provide(DatedRepo.TestSqlite), rt.runPromise))
+})

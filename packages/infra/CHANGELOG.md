@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.331
+
+### Patch Changes
+
+- 65835a6: Create missing Cosmos containers without throughput when the account is serverless (offer read/replace returns 400). Provisioned databases still get autoscale when configured.
+  - effect-app@4.0.0-beta.331
+
 ## 4.0.0-beta.330
 
 ### Patch Changes

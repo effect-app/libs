@@ -136,6 +136,7 @@
     "fix-contextmap-leak",
     "fix-cosmos-cluster-deferred",
     "fix-cosmos-cluster-machineid",
+    "fix-cosmos-serverless-create",
     "fix-cosmos-workflow-engine",
     "fix-is-generator-function",
     "fix-json-schema-annotations",

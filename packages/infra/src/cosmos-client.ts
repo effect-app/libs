@@ -36,6 +36,17 @@ export interface ContainerDb {
 
 const isNotFound = (e: unknown) => typeof e === "object" && e !== null && "code" in e && e.code === 404
 
+const isServerlessOfferError = (error: unknown): boolean => {
+  const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "object" && error !== null && "message" in error
+    ? String(error.message)
+    : String(error)
+  const badRequest = code === 400 || code === "BadRequest" || code === "400"
+  return badRequest && message.toLowerCase().includes("not supported for serverless")
+}
+
 export const createContainerIfNotExists = async (
   db: ContainerDb,
   body: ContainerRequest & { id: string },
@@ -51,6 +62,11 @@ export const createContainerIfNotExists = async (
     (e) => isNotFound(e) ? false : Promise.reject(e)
   )
   if (exists) return
-  const { resource: sharedOffer } = await db.readOffer()
-  await db.containers.createIfNotExists(sharedOffer ? body : { ...body, maxThroughput })
+  try {
+    const { resource: sharedOffer } = await db.readOffer()
+    await db.containers.createIfNotExists(sharedOffer ? body : { ...body, maxThroughput })
+  } catch (error) {
+    if (!isServerlessOfferError(error)) throw error
+    await db.containers.createIfNotExists(body)
+  }
 }

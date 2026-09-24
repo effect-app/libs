@@ -3,7 +3,11 @@ import { type ContainerDb, createContainerIfNotExists } from "../src/cosmos-clie
 
 const body = { id: "prefix-Orders", partitionKey: { paths: ["/_partitionKey"], version: 2 } }
 
-const fakeDb = (opts: { readonly read: () => Promise<unknown>; readonly sharedOffer: boolean }) => {
+const fakeDb = (opts: {
+  readonly read: () => Promise<unknown>
+  readonly sharedOffer: boolean
+  readonly offerError?: unknown
+}) => {
   const calls = { created: [] as Array<unknown>, offerReads: 0 }
   const db: ContainerDb = {
     container: () => ({ read: opts.read }),
@@ -15,6 +19,7 @@ const fakeDb = (opts: { readonly read: () => Promise<unknown>; readonly sharedOf
     },
     readOffer: () => {
       calls.offerReads++
+      if (opts.offerError !== undefined) return Promise.reject(opts.offerError)
       return Promise.resolve({ resource: opts.sharedOffer ? { id: "offer" } : undefined })
     }
   }
@@ -57,5 +62,19 @@ describe("createContainerIfNotExists", () => {
       code: 403
     })
     expect(calls.created).toEqual([])
+  })
+
+  it("creates without throughput when offer reads are rejected as serverless", async () => {
+    const { calls, db } = fakeDb({
+      read: missing,
+      sharedOffer: false,
+      offerError: {
+        code: 400,
+        message: "Reading or replacing offers is not supported for serverless accounts."
+      }
+    })
+    await createContainerIfNotExists(db, body, { autoscaleMaxThroughput: 1000 })
+    expect(calls.created).toEqual([body])
+    expect(calls.offerReads).toBe(1)
   })
 })

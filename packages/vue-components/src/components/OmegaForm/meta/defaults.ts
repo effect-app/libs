@@ -2,13 +2,24 @@
 import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
+import * as SchemaGetter from "effect/SchemaGetter"
 import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 
-const extractDefaultFromLink = (link: any): unknown | undefined => {
-  if (!link?.transformation?.decode?.run) return undefined
+const extractConstructorDefault = (property: S.AST.AST): unknown | undefined => {
+  const ctor = property.context?.constructorDefault
+  if (ctor === undefined) return undefined
   try {
-    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- vue-tsc needs the decoded value narrowed at this boundary
-    const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
+    return Effect.runSync(ctor)
+  } catch {
+    return undefined
+  }
+}
+
+const extractDecodingDefault = (property: S.AST.AST): unknown | undefined => {
+  const decode = property.encoding?.[0]?.transformation?.decode
+  if (!decode || property.context?.isOptional !== true) return undefined
+  try {
+    const result = Effect.runSync(SchemaGetter.run(decode, Option.none(), {}))
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined
@@ -16,19 +27,9 @@ const extractDefaultFromLink = (link: any): unknown | undefined => {
 }
 
 const getDefaultFromAst = (property: S.AST.AST) => {
-  // 1. Check withConstructorDefault (context.constructorDefault is a single Link since beta.107;
-  //    previously context.defaultValue was an Encoding tuple of Links)
-  const constructorLink = property.context?.constructorDefault
-  const constructorDefault = extractDefaultFromLink(constructorLink)
+  const constructorDefault = extractConstructorDefault(property)
   if (constructorDefault !== undefined) return constructorDefault
-
-  // 2. Check withDecodingDefault (stored in encoding)
-  const encodingLink = property.encoding?.[0]
-  if (encodingLink && property.context?.isOptional) {
-    return extractDefaultFromLink(encodingLink)
-  }
-
-  return undefined
+  return extractDecodingDefault(property)
 }
 
 type SchemaWithMembers = {

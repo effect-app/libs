@@ -491,7 +491,7 @@ describe("JSON Schema", () => {
           title: "Email",
           description: "an email according to RFC 5322",
           format: "email",
-          minLength: 3,
+          minLength: 2,
           maxLength: 998
         }
       }
@@ -509,7 +509,7 @@ describe("JSON Schema", () => {
           title: "Email",
           description: "an email according to RFC 5322",
           format: "email",
-          minLength: 3,
+          minLength: 2,
           maxLength: 998
         }
       }

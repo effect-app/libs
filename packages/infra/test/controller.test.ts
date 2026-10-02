@@ -11,8 +11,8 @@ import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import { TypeTestId } from "effect-app/TypeTest"
+import { type RpcSerialization } from "effect/rpc"
 import * as Scope from "effect/Scope"
-import { type RpcSerialization } from "effect/unstable/rpc"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
 import { sort } from "../src/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
@@ -253,7 +253,7 @@ export class SomethingService extends Context.Service<SomethingService>()(
   static Default = Layer.effect(this, this.make)
 }
 
-declare const a: {
+declare const _a: {
   (opt: { a: 1 }): void
   (opt: { a: 2 }): void
   (opt: { b: 3 }): void

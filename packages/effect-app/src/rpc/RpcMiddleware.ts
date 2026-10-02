@@ -3,11 +3,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NonEmptyReadonlyArray } from "effect/Array"
 import type * as Effect from "effect/Effect"
+import { type Rpc, RpcMiddleware } from "effect/rpc"
+import { type TypeId } from "effect/rpc/RpcMiddleware"
 import type * as S from "effect/Schema"
 import type * as Scope from "effect/Scope"
 import type * as Stream from "effect/Stream"
-import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
-import { type TypeId } from "effect/unstable/rpc/RpcMiddleware"
 import type * as Context from "../Context.ts"
 import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.ts"
 

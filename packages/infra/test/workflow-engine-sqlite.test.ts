@@ -9,8 +9,8 @@ import * as S from "effect-app/Schema"
 import * as Duration from "effect/Duration"
 import * as Exit from "effect/Exit"
 import * as Schema from "effect/Schema"
-import { SqlClient } from "effect/unstable/sql"
-import { Activity, DurableDeferred, Workflow } from "effect/unstable/workflow"
+import { SqlClient } from "effect/sql"
+import { Activity, DurableDeferred, Workflow } from "effect/workflow"
 import { layerSqlite } from "../src/WorkflowEngineSqlite.js"
 
 // --- Shared mutable counter service -----------------------------------

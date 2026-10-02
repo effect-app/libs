@@ -1,6 +1,6 @@
 // Join wrap args into a single argv element so that
 // `effect-app-cli index-multi tsc --build` works without quoting.
-// The new effect/unstable/cli lexer classifies --flags as LongOption tokens
+// The new effect/cli lexer classifies --flags as LongOption tokens
 // and discards unrecognized ones at the subcommand level.
 // By joining all args after the subcommand into one string, the lexer
 // sees a single Value token instead of separate LongOption tokens.

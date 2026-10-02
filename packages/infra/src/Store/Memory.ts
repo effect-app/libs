@@ -241,7 +241,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       }
 
       return r.map((i) => {
-        const [keys, entries] = pipe(
+        const [entries, keys] = pipe(
           sel,
           Array.partition((entry) => typeof entry === "string" ? Result.fail(String(entry)) : Result.succeed(entry))
         )

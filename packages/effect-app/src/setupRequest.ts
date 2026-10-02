@@ -1,5 +1,5 @@
+import { SqlClient } from "effect/sql"
 import * as Tracer from "effect/Tracer"
-import { SqlClient } from "effect/unstable/sql"
 import { DataDependencyRecorder } from "./DataDependencies.ts"
 import * as Effect from "./Effect.ts"
 import * as Layer from "./Layer.ts"

@@ -9,8 +9,8 @@ import { MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import type { unhandled } from "effect-app/Types"
 import * as Result from "effect/Result"
-import { Rpc } from "effect/unstable/rpc"
-import { type SuccessValue } from "effect/unstable/rpc/RpcMiddleware"
+import { Rpc } from "effect/rpc"
+import { type SuccessValue } from "effect/rpc/RpcMiddleware"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware

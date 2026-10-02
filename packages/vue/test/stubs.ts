@@ -8,8 +8,8 @@ import * as Option from "effect-app/Option"
 import { RpcContextMap } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as ManagedRuntime from "effect/ManagedRuntime"
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { createApp, ref } from "vue"
 import { Commander } from "../src/commander.js"
 import { I18n } from "../src/intl.js"
@@ -146,7 +146,7 @@ class SomethingGetSomething2WithDependencies
     id: S.String
   }, {
     // this is intentilally fake, to simulate a codec that requires a dependency
-    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    success: S.FiniteFromString,
     error: S.String
   })
 {}
@@ -262,7 +262,7 @@ class SomethingElseGetSomething2WithDependencies
   extends SomethingElseQuery<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
     id: S.String
   }, {
-    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    success: S.FiniteFromString,
     error: S.String
   })
 {}

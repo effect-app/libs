@@ -11,7 +11,7 @@
  * Usage with the OpenApi `Transform` annotation:
  *
  * ```ts
- * import { OpenApi } from "effect/unstable"
+ * import { OpenApi } from "effect/http-api"
  * import { deduplicateOpenApiSchemas } from "./SpecialOpenApi.ts"
  *
  * const api = HttpApi.make("myApi")

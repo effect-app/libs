@@ -17,13 +17,13 @@ import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as RequestResolver from "effect/RequestResolver"
 import * as Schema from "effect/Schema"
+import * as VariantSchema from "effect/schema/VariantSchema"
 import * as Getter from "effect/SchemaGetter"
 import * as Transformation from "effect/SchemaTransformation"
 import type { Scope } from "effect/Scope"
-import * as VariantSchema from "effect/unstable/schema/VariantSchema"
-import { SqlClient } from "effect/unstable/sql/SqlClient"
-import * as SqlResolver from "effect/unstable/sql/SqlResolver"
-import * as SqlSchema from "effect/unstable/sql/SqlSchema"
+import { SqlClient } from "effect/sql/SqlClient"
+import * as SqlResolver from "effect/sql/SqlResolver"
+import * as SqlSchema from "effect/sql/SqlSchema"
 import { type DbSystem, withDbSpan } from "../otel.ts"
 
 const {
@@ -75,7 +75,7 @@ export {
    * @category constructors
    * @example
    * import * as Schema from "effect/Schema"
-   * import { Model } from "effect/unstable/schema"
+   * import { Model } from "effect/schema"
    *
    * export const GroupId = Schema.Number.pipe(Schema.brand("GroupId"))
    *
@@ -332,7 +332,7 @@ export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, S
  */
 export const Date: Date = Schema.String.pipe(
   Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: Getter.dateTimeUtcFromInput().map(DateTime.removeTime),
+    decode: Getter.map(Getter.dateTimeUtcFromInput(), DateTime.removeTime),
     encode: Getter.transform(DateTime.formatIsoDate)
   })
 )

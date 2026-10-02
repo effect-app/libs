@@ -6,8 +6,8 @@ import * as Effect from "effect-app/Effect"
 import * as S from "effect-app/Schema"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import * as Atom from "effect/reactivity/Atom"
 import { TestClock } from "effect/testing"
-import * as Atom from "effect/unstable/reactivity/Atom"
 import type { CommandFromRequest } from "../src/makeClient.js"
 import { combineQueryInvalidators, invalidateQueries } from "../src/mutate.js"
 import { useAtomQuery, useAtomSuspense } from "../src/query.js"
@@ -352,7 +352,7 @@ it("additive atom query api type tests", () => {
     const mappedFamilyAtom = Atom.mapResult(familyAtom, (data) => data.toString())
     expectTypeOf<Atom.Success<typeof mappedFamilyAtom>>().toEqualTypeOf<string>()
     expectTypeOf(useAtomQuery(() => mappedFamilyAtom).data.value).toEqualTypeOf<string | undefined>()
-    useAtomSuspense(() => mappedFamilyAtom).then((view) => {
+    void useAtomSuspense(() => mappedFamilyAtom).then((view) => {
       expectTypeOf(view[1].value).toEqualTypeOf<string>()
       return view
     })
@@ -368,7 +368,7 @@ it("additive atom query api type tests", () => {
     const selected = client.GetSomething2.queryNew({ id: "a" }, { select: (data) => data.toString() })
     expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
 
-    client.GetSomething2.suspenseNew({ id: "a" }, { select: (data) => data.toString() }).then((view) => {
+    void client.GetSomething2.suspenseNew({ id: "a" }, { select: (data) => data.toString() }).then((view) => {
       expectTypeOf(view[1].value).toEqualTypeOf<string>()
       return view
     })
@@ -379,7 +379,7 @@ it("additive atom query api type tests", () => {
     const projectedAtom = projected.atom({ id: "a" })
     expectTypeOf<Atom.Success<typeof projectedAtom>>().toEqualTypeOf<string>()
     expectTypeOf(projected.queryNew({ id: "a" }).data.value).toEqualTypeOf<string | undefined>()
-    projected.suspenseNew({ id: "a" }).then((view) => {
+    void projected.suspenseNew({ id: "a" }).then((view) => {
       expectTypeOf(view[1].value).toEqualTypeOf<string>()
       return view
     })
@@ -387,7 +387,7 @@ it("additive atom query api type tests", () => {
     const helperFamilyAtom = client.helpers.getSomething2QueryFamily({ id: "a" })
     expectTypeOf<Atom.Success<typeof helperFamilyAtom>>().toEqualTypeOf<number>()
     expectTypeOf(client.helpers.getSomething2QueryNew({ id: "a" }).data.value).toEqualTypeOf<number | undefined>()
-    client.helpers.getSomething2SuspenseQueryNew({ id: "a" }).then((view) => {
+    void client.helpers.getSomething2SuspenseQueryNew({ id: "a" }).then((view) => {
       expectTypeOf(view[1].value).toEqualTypeOf<number>()
       return view
     })

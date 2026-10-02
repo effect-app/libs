@@ -3,11 +3,11 @@ import type { Req } from "effect-app/client"
 import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type * as Effect from "effect-app/Effect"
 import * as Cause from "effect/Cause"
-import { isHttpClientError } from "effect/unstable/http/HttpClientError"
+import { isHttpClientError } from "effect/http/HttpClientError"
 import { isProxy, isReactive, isRef, type MaybeRefOrGetter, toRaw } from "vue"
 import { reportError } from "./errorReporter.ts"
 
-export * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+export * as AsyncResult from "effect/reactivity/AsyncResult"
 
 const reportRuntimeError_ = reportError("Runtime")
 

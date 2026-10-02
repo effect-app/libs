@@ -17,9 +17,12 @@ const extractConstructorDefault = (property: S.AST.AST): unknown | undefined => 
 
 const extractDecodingDefault = (property: S.AST.AST): unknown | undefined => {
   const decode = property.encoding?.[0]?.transformation?.decode
-  if (!decode || property.context?.isOptional !== true) return undefined
+  if (decode === undefined || property.context?.isOptional !== true) return undefined
   try {
-    const result = Effect.runSync(SchemaGetter.run(decode, Option.none(), {}))
+    const getter = decode as SchemaGetter.Getter<unknown, unknown>
+    const result: Option.Option<unknown> = Effect.runSync(
+      SchemaGetter.run(getter, Option.none(), {})
+    )
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined

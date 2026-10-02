@@ -2,10 +2,10 @@ import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform"
 import { assert, describe, it } from "@effect/vitest"
 import * as ByteSize from "effect/ByteSize"
 import * as Effect from "effect/Effect"
+import * as Etag from "effect/http/Etag"
+import type * as HttpBody from "effect/http/HttpBody"
+import * as HttpPlatform from "effect/http/HttpPlatform"
 import * as Layer from "effect/Layer"
-import * as Etag from "effect/unstable/http/Etag"
-import type * as HttpBody from "effect/unstable/http/HttpBody"
-import * as HttpPlatform from "effect/unstable/http/HttpPlatform"
 import * as Fs from "node:fs"
 import { Readable } from "node:stream"
 import { afterEach, beforeEach, vi } from "vitest"
@@ -21,6 +21,13 @@ const readStream = (stream: Readable) =>
   })
 
 describe("NodeHttpPlatform", { concurrent: false }, () => {
+  it.effect("fileWebResponse prefers File.type over the extension", () =>
+    Effect.gen(function*() {
+      const platform = yield* HttpPlatform.HttpPlatform
+      const response = yield* platform.fileWebResponse(new File([], "script.js", { type: "application/custom" }))
+      assert.strictEqual(response.headers["content-type"], "application/custom")
+    }).pipe(Effect.provide(NodeHttpPlatform.layer)))
+
   it.effect("fileResponse reads exact bytesToRead", () =>
     Effect.gen(function*() {
       const platform = yield* HttpPlatform.HttpPlatform

@@ -8,7 +8,7 @@ This package provides two custom durable `WorkflowEngine` implementations for
   (single container, per-execution partition key).
 
 Both implement the low-level `WorkflowEngine.Encoded` contract from
-`effect/unstable/workflow/WorkflowEngine` and wrap it with `makeUnsafe`. They are
+`effect/workflow/WorkflowEngine` and wrap it with `makeUnsafe`. They are
 drop-in alternatives to Effect's built-in `ClusterWorkflowEngine`, trading
 cluster-grade routing for a much lighter operational footprint: they need only a
 database, not the full cluster stack (ShardManager, Runners, MessageStorage).

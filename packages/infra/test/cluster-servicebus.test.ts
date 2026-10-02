@@ -1,9 +1,9 @@
 import type { ServiceBusMessage, ServiceBusReceiverOptions } from "@azure/service-bus"
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Effect, Layer, Option, Schema, Stream } from "effect"
-import { ClusterSchema, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Runners, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/unstable/cluster"
-import { Headers } from "effect/unstable/http"
-import { Rpc } from "effect/unstable/rpc"
+import { ClusterSchema, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Runners, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/cluster"
+import { Headers } from "effect/http"
+import { Rpc } from "effect/rpc"
 import { type ClusterServiceBusClient, layerClientFrom, layerRunners, makeStoragePoller } from "../src/ClusterServiceBus.js"
 
 describe("ClusterServiceBus", () => {

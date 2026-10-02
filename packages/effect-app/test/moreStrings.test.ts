@@ -1,6 +1,6 @@
 import * as S from "effect-app/Schema"
+import * as Arbitrary from "effect/Arbitrary"
 import * as Effect from "effect/Effect"
-import * as Arbitrary from "effect/unstable/arbitrary/Arbitrary"
 import { customRandom, urlAlphabet } from "nanoid"
 import { test } from "vitest"
 

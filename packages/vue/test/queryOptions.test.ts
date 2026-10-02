@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest"
 import * as Cause from "effect/Cause"
 import * as Option from "effect/Option"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { shallowRef } from "vue"
 import { withDataFallback } from "../src/query.js"
 

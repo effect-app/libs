@@ -2,7 +2,7 @@
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
-import { Argument, Command, Flag, Prompt } from "effect/unstable/cli"
+import { Argument, Command, Flag, Prompt } from "effect/cli"
 
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"

@@ -4,17 +4,17 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
 import * as Cause from "effect/Cause"
+import { PersistenceError } from "effect/cluster/ClusterError"
+import type * as Envelope from "effect/cluster/Envelope"
+import * as MessageStorage from "effect/cluster/MessageStorage"
+import { SaveResultEncoded } from "effect/cluster/MessageStorage"
+import type * as Reply from "effect/cluster/Reply"
+import * as RunnerStorage from "effect/cluster/RunnerStorage"
+import * as ShardId from "effect/cluster/ShardId"
+import * as ShardingConfig from "effect/cluster/ShardingConfig"
+import * as Snowflake from "effect/cluster/Snowflake"
 import * as Duration from "effect/Duration"
 import * as Redacted from "effect/Redacted"
-import { PersistenceError } from "effect/unstable/cluster/ClusterError"
-import type * as Envelope from "effect/unstable/cluster/Envelope"
-import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
-import { SaveResultEncoded } from "effect/unstable/cluster/MessageStorage"
-import type * as Reply from "effect/unstable/cluster/Reply"
-import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
-import * as ShardId from "effect/unstable/cluster/ShardId"
-import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
-import * as Snowflake from "effect/unstable/cluster/Snowflake"
 import { CosmosClient, CosmosClientLayer, type CosmosContainerThroughput, createContainerIfNotExists } from "./cosmos-client.ts"
 import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
@@ -562,10 +562,20 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
         })
         .pipe(annotate("saveReply"), refailPersistence, withTracerDisabled),
 
-    clearReplies: (requestId) =>
+    clearReplies: (requestId, options) =>
       Effect
         .gen(function*() {
           const id = String(requestId)
+          const messages = yield* queryMessages(
+            "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
+            [{ name: "@requestId", value: id }]
+          )
+          const request = messages.find((message) => message.kind === "Request")
+          if (!request) return
+          if (
+            options?.expectedReplyId !== undefined
+            && request.lastReplyId !== String(options.expectedReplyId)
+          ) return
           const replies = yield* queryReplies(
             "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'WithExit'",
             [
@@ -573,10 +583,6 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
             ]
           )
           yield* deleteDocs(replies)
-          const messages = yield* queryMessages(
-            "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
-            [{ name: "@requestId", value: id }]
-          )
           yield* deleteDocs(messages.filter((message) => message.kind === "Interrupt"))
           yield* patchDocs(
             messages.filter((message) => message.kind !== "Interrupt"),
@@ -667,6 +673,20 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           refailPersistence,
           withTracerDisabled
         ),
+
+    resetRequests: (requestIds) => {
+      if (requestIds.length === 0) return Effect.void
+      return queryMessages(
+        "SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND (ARRAY_CONTAINS(@requestIds, c.id) OR ARRAY_CONTAINS(@requestIds, c.requestId))",
+        [{ name: "@requestIds", value: Array.from(requestIds, String) }]
+      )
+        .pipe(
+          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
+          annotate("resetRequests"),
+          refailPersistence,
+          withTracerDisabled
+        )
+    },
 
     resetAddresses: (addresses) => {
       if (addresses.length === 0) return Effect.void

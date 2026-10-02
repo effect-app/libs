@@ -1,10 +1,10 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Context, Duration, Effect, Exit, Fiber, Latch, Layer, Option, Redacted, Schema } from "effect"
+import { ClusterSchema, ClusterWorkflowEngine, Entity, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerHealth, Runners, RunnerStorage, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/cluster"
+import { Headers } from "effect/http"
+import { Rpc, RpcSchema } from "effect/rpc"
 import { TestClock } from "effect/testing"
-import { ClusterSchema, ClusterWorkflowEngine, Entity, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Reply, Runner, RunnerAddress, RunnerHealth, Runners, RunnerStorage, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/unstable/cluster"
-import { Headers } from "effect/unstable/http"
-import { Rpc, RpcSchema } from "effect/unstable/rpc"
-import { DurableDeferred, Workflow } from "effect/unstable/workflow"
+import { DurableDeferred, Workflow } from "effect/workflow"
 import { layerCosmos } from "../src/ClusterCosmos.js"
 
 const cosmosUrl = process.env["COSMOS_TEST_URL"]
@@ -83,6 +83,28 @@ describe.skipIf(!cosmosUrl)("ClusterCosmos MessageStorage", () => {
         yield* storage.resetShards([request1.envelope.address.shardId])
         messages = yield* storage.unprocessedMessages([request1.envelope.address.shardId])
         assert.deepStrictEqual(messages.map((message) => requestPayloadId(message)), [2])
+      })
+      .pipe(Effect.provide(layerFor())))
+
+  it.effect("releases selected request claims without changing replies", () =>
+    Effect
+      .gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const shardId = testShardId("message-reset-requests")
+        const request1 = yield* makeRequest({ payload: { id: 1 }, shardId })
+        const request2 = yield* makeRequest({ payload: { id: 2 }, shardId })
+        assert.strictEqual((yield* storage.saveRequest(request1))._tag, "Success")
+        assert.strictEqual((yield* storage.saveRequest(request2))._tag, "Success")
+
+        let messages = yield* storage.unprocessedMessages([request1.envelope.address.shardId])
+        assert.deepStrictEqual(messages.map((message) => requestPayloadId(message)).sort(), [1, 2])
+
+        messages = yield* storage.unprocessedMessages([request1.envelope.address.shardId])
+        assert.strictEqual(messages.length, 0)
+
+        yield* storage.resetRequests([request1.envelope.requestId])
+        messages = yield* storage.unprocessedMessages([request1.envelope.address.shardId])
+        assert.deepStrictEqual(messages.map((message) => requestPayloadId(message)), [1])
       })
       .pipe(Effect.provide(layerFor())))
 

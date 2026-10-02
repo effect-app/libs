@@ -51,12 +51,12 @@ export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
 {}
 
 export const fromBrand = <C extends B.Brand<any>>(
-  constructor: Constructor<C>,
+  _constructor: Constructor<C>,
   options?: BrandAnnotations
 ) =>
 <Self extends S.Top>(self: Self): BrandedSchema<Self, C> => {
-  const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)
-  return options ? (branded as any).pipe(S.annotate(options)) : branded as any
+  const branded = self.pipe(S.brand("Brand"))
+  return (options ? branded.pipe(S.annotate(options)) : branded) as BrandedSchema<Self, C>
 }
 
 export type Brands<P> = P extends B.Brand<any> ? B.Brand.Brands<P>

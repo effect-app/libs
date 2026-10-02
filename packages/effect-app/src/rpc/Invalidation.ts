@@ -1,5 +1,5 @@
 import * as Ref from "effect/Ref"
-import { Rpc } from "effect/unstable/rpc"
+import { Rpc } from "effect/rpc"
 import { type ClientForOptions, makeQueryKey } from "../client/clientFor.ts"
 import * as Context from "../Context.ts"
 import * as DataDependencies from "../DataDependencies.ts"

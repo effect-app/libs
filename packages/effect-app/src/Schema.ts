@@ -1,4 +1,5 @@
 import * as S from "effect/Schema"
+import * as EffectSchemaParser from "effect/SchemaParser"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
@@ -10,7 +11,7 @@ import type { FC } from "./Schema/FastCheck.ts"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.ts"
 import { type AST } from "./Schema/schema.ts"
 import * as SchemaAST from "./SchemaAST.ts"
-import { copy, extendM, type StructuralCopyOrigin } from "./utils.ts"
+import { copy, defineOwn, extendM, type StructuralCopyOrigin } from "./utils.ts"
 
 // ---------------------------------------------------------------------------
 // Default helpers — re-exported from effect/Schema
@@ -158,18 +159,17 @@ export function Struct<const Fields extends S.Struct.Fields>(
   const result = S.Struct(fields).annotate(concurrencyUnbounded)
   const allowVoidMake = (schema: any): any => {
     // Normalize omitted input to an empty object so optional/default-only structs can be constructed with make().
-    const origMake: any = schema.make
-    const origMakeOption: any = schema.makeOption
-    const origMakeEffect: any = schema.makeEffect
-    schema.make = function(this: any, input: any, options?: any) {
-      return origMake.call(this, input === undefined ? {} : input, options)
-    }
-    schema.makeOption = function(this: any, input: any, options?: any) {
-      return origMakeOption.call(this, input === undefined ? {} : input, options)
-    }
-    schema.makeEffect = function(this: any, input: any, options?: any) {
-      return origMakeEffect.call(this, input === undefined ? {} : input, options)
-    }
+    // Do not read schema.make first: Effect 4 caches it as a non-writable own property.
+    const origMake = EffectSchemaParser.make(schema)
+    const origMakeOption = EffectSchemaParser.makeOption(schema)
+    const origMakeEffect = EffectSchemaParser.makeEffect(schema)
+    const wrap = (orig: (input: any, options?: any) => any) =>
+      function(this: any, input: any, options?: any) {
+        return orig.call(this, input === undefined ? {} : input, options)
+      }
+    defineOwn(schema, "make", wrap(origMake))
+    defineOwn(schema, "makeOption", wrap(origMakeOption))
+    defineOwn(schema, "makeEffect", wrap(origMakeEffect))
     return schema
   }
   // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment

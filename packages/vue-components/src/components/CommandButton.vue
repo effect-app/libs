@@ -5,7 +5,7 @@
 >
 import type { CommandBase, Progress } from "@effect-app/vue/makeClient"
 import * as Option from "effect-app/Option"
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import type * as AsyncResult from "effect/reactivity/AsyncResult"
 import { computed } from "vue"
 import type { VBtn } from "vuetify/components"
 

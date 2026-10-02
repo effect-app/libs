@@ -1,5 +1,5 @@
+import type { HttpClientResponse } from "effect/http/HttpClientResponse"
 import * as Option from "effect/Option"
-import type { HttpClientResponse } from "effect/unstable/http/HttpClientResponse"
 import * as Effect from "../Effect.ts"
 import { HttpClient, HttpClientError, HttpClientRequest, HttpHeaders } from "./internal/lib.ts"
 

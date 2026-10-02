@@ -2,8 +2,8 @@ import { NodeCrypto } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Duration, Effect, Exit, Fiber, Layer, Option, Schema } from "effect"
-import { ClusterSchema, ClusterWorkflowEngine, RunnerAddress, RunnerHealth, Runners, Sharding, ShardingConfig, SqlMessageStorage, SqlRunnerStorage } from "effect/unstable/cluster"
-import { DurableDeferred, Workflow } from "effect/unstable/workflow"
+import { ClusterSchema, ClusterWorkflowEngine, RunnerAddress, RunnerHealth, Runners, Sharding, ShardingConfig, SqlMessageStorage, SqlRunnerStorage } from "effect/cluster"
+import { DurableDeferred, Workflow } from "effect/workflow"
 
 const testRunId = `${Date.now()}-${process.pid}-${Math.random().toString(16).slice(2)}`
 const runnerPortBase = 10000 + Date.now() % 40000

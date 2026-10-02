@@ -12,7 +12,7 @@ import { MiddlewareMaker } from "effect-app/rpc"
 import * as S from "effect-app/Schema"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { type ConfigError } from "effect/Config"
-import { type RpcSerialization } from "effect/unstable/rpc/RpcSerialization"
+import { type RpcSerialization } from "effect/rpc/RpcSerialization"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 

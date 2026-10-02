@@ -21,7 +21,8 @@ export const Email = S
     S.refine(isValidEmail as Refinement<string, Email>, {
       identifier: "Email",
       description: "an email according to RFC 5322",
-      jsonSchema: { format: "email", minLength: 3, maxLength: 998 },
+      // JSON Schema minLength counts code points; isMinLength(3) is UTF-16 units (ceil(3/2)=2).
+      jsonSchema: { format: "email", minLength: 2, maxLength: 998 },
       // Native Arbitrary cannot invert `isValidEmail`; without a constraint, rejection sampling
       // discards (almost) every random string.
       arbitraryConstraint: {

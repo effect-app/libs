@@ -42,17 +42,17 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       "@effect/language-service":
-        specifier: 0.87.2
-        version: 0.87.2
+        specifier: 0.87.3
+        version: 0.87.3
       "@effect/platform-node":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/tsgo":
-        specifier: ^0.45.0
-        version: 0.45.0
+        specifier: ^0.47.2
+        version: 0.47.2
       "@effect/vitest":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tsconfig/strictest":
         specifier: ^2.0.8
         version: 2.0.8
@@ -72,8 +72,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: 4.0.0
+        version: 4.0.0
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -117,11 +117,11 @@ importers:
   packages/cli:
     dependencies:
       "@effect/platform-node":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(redis@6.2.1(@opentelemetry/api@1.9.1))
       effect:
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: 4.0.0
+        version: 4.0.0
       js-yaml:
         specifier: 4.2.0
         version: 4.2.0
@@ -153,14 +153,14 @@ importers:
         version: link:../effect-app
     devDependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0
+        version: 4.0.0(effect@4.0.0)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-node":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@tanstack/vue-query":
         specifier: 5.96.2
         version: 5.96.2(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
@@ -171,8 +171,8 @@ importers:
         specifier: ^6.0.7
         version: 6.0.7(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
@@ -192,8 +192,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -331,8 +331,8 @@ importers:
   packages/infra:
     dependencies:
       "@effect/vitest":
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: ^4.0.0
+        version: 4.0.0(effect@4.0.0)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@faker-js/faker":
         specifier: ^8.4.1
         version: 8.4.1
@@ -346,8 +346,8 @@ importers:
         specifier: 10.55.0
         version: 10.55.0(supports-color@8.1.1)
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -374,8 +374,8 @@ importers:
         specifier: ^7.9.5
         version: 7.9.5(supports-color@8.1.1)
       "@effect/sql-sqlite-node":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)
       "@sentry/opentelemetry":
         specifier: 10.55.0
         version: 10.55.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.40.0)
@@ -420,11 +420,11 @@ importers:
   packages/vue:
     dependencies:
       "@effect/atom-vue":
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        specifier: ^4.0.0
+        version: 4.0.0(effect@4.0.0)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       "@effect/platform-browser":
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)
+        specifier: ^4.0.0
+        version: 4.0.0(effect@4.0.0)
       "@formatjs/intl":
         specifier: ^4.1.12
         version: 4.1.12
@@ -441,8 +441,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -454,8 +454,8 @@ importers:
         version: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       "@effect/vitest":
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
       "@formatjs/icu-messageformat-parser":
         specifier: ^3.5.10
         version: 3.5.10
@@ -494,8 +494,8 @@ importers:
         specifier: ^1.32.0
         version: 1.32.0(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -1188,26 +1188,34 @@ packages:
     }
     hasBin: true
 
-  "@effect/atom-vue@4.0.0-rc.115":
+  "@effect/atom-vue@4.0.0":
     resolution: {
-      integrity: sha512-1750Ozq5zxliHP78hbw80ynant7IuB6V1MKS+6dnhATZ5I1oViM1Y10ZsSdU9/aGnbnMfpN3SG2URwqhzorXmA==,
+      integrity: sha512-ZlVU+qGJA/2C0ZsBS9ytSBdSM93aLecjXnMp/s0qvoMEf+kKRlrrYfD7dRpCrD56JqI0IcGJ9C8Y74Lu2Sz6AQ==,
     }
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
       vue: ^3.5.35
 
-  "@effect/language-service@0.87.2":
+  "@effect/language-service@0.87.3":
     resolution: {
-      integrity: sha512-CfiSoaVQO8pZgaMZGw5VvMvRGybsJ2LaSDoLYaqiVGvo/YYPYVR2GzUKY0h1NtIweq/+SQ5XLrvtzPIttWQ0GQ==,
+      integrity: sha512-g1OmRBZF5chbW9QMNoirPo5Bb4zzU2HfP88tR7/VSZEUxHJ1/qVb8AQ0kUh2ggctLH1I715yCwP4gkw56PTjpQ==,
     }
     hasBin: true
 
-  "@effect/platform-browser@4.0.0-rc.115":
+  "@effect/platform-browser@4.0.0":
     resolution: {
-      integrity: sha512-RwpnxRYSBHBL1HYYlRwIrwz0+1hwmn5RvgqkKI0Tb+ChOIR9UCMpXsAhnwQcGP+mBidrC7dlloL42poGHZW4yw==,
+      integrity: sha512-OHo7EPpF3RVPiI+mjoU9yd05LdCdKPjzDXqs5wRgF9CsdVvwN76B0zgt54DxPUcvMYri1tVJOtLCVnK0tRkNQQ==,
     }
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
+
+  "@effect/platform-node-shared@4.0.0":
+    resolution: {
+      integrity: sha512-VBXHJU9UXVZPdQGGDRjGXpo+TpOzRwZuMrdKAtIxi1qwcRftmacZ1zTgIrzBa0Z2RA2KVkoOecQUsTlt/nJZhw==,
+    }
+    engines: { node: ">=18.0.0" }
+    peerDependencies:
+      effect: ^4.0.0
 
   "@effect/platform-node-shared@4.0.0-beta.86":
     resolution: {
@@ -1217,13 +1225,14 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.86
 
-  "@effect/platform-node-shared@4.0.0-rc.115":
+  "@effect/platform-node@4.0.0":
     resolution: {
-      integrity: sha512-rcBwhDIfb82akJoTv7Vwh8K5x9vC/XfuePS7JjOr+z+dORXzsmKqI1BUQF27ARCN9fTAbDh7I6YvBlWhLjnqNg==,
+      integrity: sha512-/L+4MUbl8FejPKLHLROYSOebvHnfixkP8KiblSD/DE5uH5xENZBHaux4nH6XMnRP+lr8ajpEJFS8sUrmmxFJeQ==,
     }
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
+      redis: ">=5.0.0 <7.0.0"
 
   "@effect/platform-node@4.0.0-beta.86":
     resolution: {
@@ -1234,83 +1243,74 @@ packages:
       effect: ^4.0.0-beta.86
       ioredis: ^5.7.0
 
-  "@effect/platform-node@4.0.0-rc.115":
+  "@effect/sql-sqlite-node@4.0.0":
     resolution: {
-      integrity: sha512-mW03Wjq2FiTL5oi9yOkaKpCyUNBaduKgTk7qMHNELvC21Jq2qOAfdsfH+p+s2zmpB9w2RSa+ApODv4WjO9wQfw==,
-    }
-    engines: { node: ">=18.0.0" }
-    peerDependencies:
-      effect: ^4.0.0-rc.115
-      redis: ">=5.0.0 <7.0.0"
-
-  "@effect/sql-sqlite-node@4.0.0-rc.115":
-    resolution: {
-      integrity: sha512-53n3Kbwush7K/8/G1CDz638ClEoMvnUOT5BltCxMZ8TqcxeNoMv+nty08ZdrJ7P6m1q1RIeWlqdy5J9ZDICpbw==,
+      integrity: sha512-xyUSLY7v55iMgGxrjFrTo5ngixgQ3jLmOQ+AX8CCazO/caxuMM0oq8zb974FAcvQHRrpMEWU7Vnoo+rxct7PAQ==,
     }
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
 
-  "@effect/tsgo-darwin-arm64@0.45.0":
+  "@effect/tsgo-darwin-arm64@0.47.2":
     resolution: {
-      integrity: sha512-WUoiEVcm8E19QK6fl63lsssM4dkT9IFnULbmqQ6LBfv7H9uRkpE9S3thj8ZtZ+vl/QY8atwfuaTf+3A1m/kGtQ==,
+      integrity: sha512-sLYKt201VdTjSHG3rbyIdpLMNGEMiArm0OgO7kYfnA0yRV0ux0blgcucf97bx90gIvDJFSSL17QCSDPGs9jsKQ==,
     }
     cpu: [arm64]
     os: [darwin]
 
-  "@effect/tsgo-darwin-x64@0.45.0":
+  "@effect/tsgo-darwin-x64@0.47.2":
     resolution: {
-      integrity: sha512-s3yz7ZfIzvObXJ/r5xd9sEPxHKC3L+D+yedS1BV2Kpn47Je2svYCNYKxzXIpqFLkNjK+RcOQrcfYbYEpKZZa6g==,
+      integrity: sha512-gW0fdFjSIacCDOjLa+vS/xWmyElbM0jX3cCTlKXGzNCyMKsP/T0MkvT2GZO/njB2jIt/XXG9qEQ5FE/Rcqt7Zg==,
     }
     cpu: [x64]
     os: [darwin]
 
-  "@effect/tsgo-linux-arm64@0.45.0":
+  "@effect/tsgo-linux-arm64@0.47.2":
     resolution: {
-      integrity: sha512-N+lyzixtylOOn49demDaqg0kb/U8ISxM10Gphs1pIMSGlqlfqC4inYEoFpYej+f4T/cRlkA11Ue7wJzNz83ePA==,
+      integrity: sha512-hA3SoKGuLd0HNqJ34QcYEWwpE6tvit3xpKupwj1TaPtHpLLGdtSF7czBIknp6kR8fOvnuYLjB6aEkxXmJsTVWg==,
     }
     cpu: [arm64]
     os: [linux]
 
-  "@effect/tsgo-linux-arm@0.45.0":
+  "@effect/tsgo-linux-arm@0.47.2":
     resolution: {
-      integrity: sha512-f6zL6YbWA9lXdfJ//KOjUz/U3CdGtajKi5NsR/lcQaKfZiJwHfeeLBB3yetF3qbPGSA149/kuMoDMWL13RUH3A==,
+      integrity: sha512-GT8fgQ3Pnzr0ax/AtYptztVquLAWeWoyLvQTpfI5APrs+Me+/rSwOLSA7//17ZVmNYbcGbKImX8laUYeDqByNQ==,
     }
     cpu: [arm]
     os: [linux]
 
-  "@effect/tsgo-linux-x64@0.45.0":
+  "@effect/tsgo-linux-x64@0.47.2":
     resolution: {
-      integrity: sha512-aWt0G8celAxJOis4+xiILkyMP/3J+vukimUhSoCmUAPt8zoT9qhZcN64XYZE7jfqp88ByRdgN9GK1/C7YfPtcQ==,
+      integrity: sha512-vELwVsUQ5VlM2jbvv7zaIPOkFsxmaS0nLqq+p0RodtkQiuScg27febnLClzKAv/Tl6GrXTBz4IBh78aBF2CvbQ==,
     }
     cpu: [x64]
     os: [linux]
 
-  "@effect/tsgo-win32-arm64@0.45.0":
+  "@effect/tsgo-win32-arm64@0.47.2":
     resolution: {
-      integrity: sha512-EAdeV366ja+M4XCx6xjXMv4Xkc0Fgzy4bapa0saDWcGhllNLqJDfOk4lk0BgAEjBUI8+0xC+PXKVB5SMz4EpVA==,
+      integrity: sha512-FSwpJp3XaJK9o7cOXtJcYIsvZWR/mrY4ZZyyTuRgphEZju7FwOzLeVhLr9ziyScfmisOpX2i+8v1H+PlMMZ1TQ==,
     }
     cpu: [arm64]
     os: [win32]
 
-  "@effect/tsgo-win32-x64@0.45.0":
+  "@effect/tsgo-win32-x64@0.47.2":
     resolution: {
-      integrity: sha512-1Hsr/sT5dmIafoY9L0ASJo4VqGyPNzM1nwTb4Wj1Lmjq6kGuwO/PVozFg3WZZ0piChFmgiU3nx1AKZfyqgjGUw==,
+      integrity: sha512-Lh/N7E2p6E0tBZM+uZ40Hv/AUG81WGtw76H4pLLPAG7wFANwGSx984NwKypXqGtOXBmKqb0R/cYpszDyzbNyYA==,
     }
     cpu: [x64]
     os: [win32]
 
-  "@effect/tsgo@0.45.0":
+  "@effect/tsgo@0.47.2":
     resolution: {
-      integrity: sha512-gPG0ixVHgtYBUe5DbKX9vzHlhqd9+ZEfs4m/XWy0808av0A2XqMzaG3F5rnPBN7EUJRPlo9TluIi8WHx/pBV+A==,
+      integrity: sha512-mGIelPZhTJg8g+RgiAe7wrB8NLw/lOzPGntAYBBqEJS0/I8ir1/ULKcpFQyuAfPjwkDYrg93KWv1PDGwgsgBIA==,
     }
     hasBin: true
 
-  "@effect/vitest@4.0.0-rc.115":
+  "@effect/vitest@4.0.0":
     resolution: {
-      integrity: sha512-DJR0hfdr3HNXAkzW8AzfvUz6VmrNFLrKk9tZGDURi33faMyxkc7ZewxELMMZwGpOTGN4mfqYVbX2CXgI+ZJBeQ==,
+      integrity: sha512-kGElCPFGtP+CgMCwV/HjJWqtE3zYo6I1+8MSA54l+EI24lPU9p2Efa+TBp1jfkg9j711KKzEqgSAy3VzTsb76Q==,
     }
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
       vitest: ">=5.0.0 <6.0.0"
 
   "@emnapi/core@1.10.0":
@@ -5734,14 +5734,14 @@ packages:
     engines: { node: ">=14" }
     hasBin: true
 
+  effect@4.0.0:
+    resolution: {
+      integrity: sha512-ooc1TG5t+FfzgYnFz2ff6BBKyZ7EwBRVXC7c4RhQUAD6/TZ2gTXXMeb4WX7a19ozQo4J73/QW+S00YAIresoMQ==,
+    }
+
   effect@4.0.0-beta.86:
     resolution: {
       integrity: sha512-+Y16hy3LhAju/FM3dz3Xp+aGi8dw9AtEzswcvwxREpeEPq+rL8TFS1PgWAO1+/3kKKH4bq9NdBGtfhHzM2K7Ow==,
-    }
-
-  effect@4.0.0-rc.115:
-    resolution: {
-      integrity: sha512-ogYulZ5ffeOzrJqQrG0XOkDO5lKn2s9KNHhoxJy/6wKUkF0i12dlVXWA9TgsgQ+zV/JzizyG0+XMPepZEQX6vw==,
     }
 
   electron-to-chromium@1.5.267:
@@ -9109,9 +9109,9 @@ packages:
     }
     engines: { node: ">=20.18.1" }
 
-  undici@8.10.2:
+  undici@8.11.2:
     resolution: {
-      integrity: sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==,
+      integrity: sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ==,
     }
     engines: { node: ">=22.19.0" }
 
@@ -9659,6 +9659,20 @@ packages:
   ws@8.21.3:
     resolution: {
       integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==,
+    }
+    engines: { node: ">=10.0.0" }
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: ">=5.0.2"
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.22.0:
+    resolution: {
+      integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==,
     }
     engines: { node: ">=10.0.0" }
     peerDependencies:
@@ -10319,16 +10333,25 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  "@effect/atom-vue@4.0.0-rc.115(effect@4.0.0-rc.115)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
+  "@effect/atom-vue@4.0.0(effect@4.0.0)(vue@3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))":
     dependencies:
-      effect: 4.0.0-rc.115
+      effect: 4.0.0
       vue: 3.5.35(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
-  "@effect/language-service@0.87.2": {}
+  "@effect/language-service@0.87.3": {}
 
-  "@effect/platform-browser@4.0.0-rc.115(effect@4.0.0-rc.115)":
+  "@effect/platform-browser@4.0.0(effect@4.0.0)":
     dependencies:
-      effect: 4.0.0-rc.115
+      effect: 4.0.0
+
+  "@effect/platform-node-shared@4.0.0(effect@4.0.0)":
+    dependencies:
+      "@types/ws": 8.18.1
+      effect: 4.0.0
+      ws: 8.22.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   "@effect/platform-node-shared@4.0.0-beta.86(effect@4.0.0-beta.86)":
     dependencies:
@@ -10339,11 +10362,12 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node-shared@4.0.0-rc.115(effect@4.0.0-rc.115)":
+  "@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.2.1(@opentelemetry/api@1.9.1))":
     dependencies:
-      "@types/ws": 8.18.1
-      effect: 4.0.0-rc.115
-      ws: 8.21.3
+      "@effect/platform-node-shared": 4.0.0(effect@4.0.0)
+      effect: 4.0.0
+      redis: 6.2.1(@opentelemetry/api@1.9.1)
+      undici: 8.11.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -10359,54 +10383,44 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-rc.115(effect@4.0.0-rc.115)(redis@6.2.1(@opentelemetry/api@1.9.1))":
+  "@effect/sql-sqlite-node@4.0.0(effect@4.0.0)":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-rc.115(effect@4.0.0-rc.115)
-      effect: 4.0.0-rc.115
-      redis: 6.2.1(@opentelemetry/api@1.9.1)
-      undici: 8.10.2
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
+      effect: 4.0.0
 
-  "@effect/sql-sqlite-node@4.0.0-rc.115(effect@4.0.0-rc.115)":
-    dependencies:
-      effect: 4.0.0-rc.115
-
-  "@effect/tsgo-darwin-arm64@0.45.0":
+  "@effect/tsgo-darwin-arm64@0.47.2":
     optional: true
 
-  "@effect/tsgo-darwin-x64@0.45.0":
+  "@effect/tsgo-darwin-x64@0.47.2":
     optional: true
 
-  "@effect/tsgo-linux-arm64@0.45.0":
+  "@effect/tsgo-linux-arm64@0.47.2":
     optional: true
 
-  "@effect/tsgo-linux-arm@0.45.0":
+  "@effect/tsgo-linux-arm@0.47.2":
     optional: true
 
-  "@effect/tsgo-linux-x64@0.45.0":
+  "@effect/tsgo-linux-x64@0.47.2":
     optional: true
 
-  "@effect/tsgo-win32-arm64@0.45.0":
+  "@effect/tsgo-win32-arm64@0.47.2":
     optional: true
 
-  "@effect/tsgo-win32-x64@0.45.0":
+  "@effect/tsgo-win32-x64@0.47.2":
     optional: true
 
-  "@effect/tsgo@0.45.0":
+  "@effect/tsgo@0.47.2":
     optionalDependencies:
-      "@effect/tsgo-darwin-arm64": 0.45.0
-      "@effect/tsgo-darwin-x64": 0.45.0
-      "@effect/tsgo-linux-arm": 0.45.0
-      "@effect/tsgo-linux-arm64": 0.45.0
-      "@effect/tsgo-linux-x64": 0.45.0
-      "@effect/tsgo-win32-arm64": 0.45.0
-      "@effect/tsgo-win32-x64": 0.45.0
+      "@effect/tsgo-darwin-arm64": 0.47.2
+      "@effect/tsgo-darwin-x64": 0.47.2
+      "@effect/tsgo-linux-arm": 0.47.2
+      "@effect/tsgo-linux-arm64": 0.47.2
+      "@effect/tsgo-linux-x64": 0.47.2
+      "@effect/tsgo-win32-arm64": 0.47.2
+      "@effect/tsgo-win32-x64": 0.47.2
 
-  "@effect/vitest@4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
+  "@effect/vitest@4.0.0(effect@4.0.0)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))":
     dependencies:
-      effect: 4.0.0-rc.115
+      effect: 4.0.0
       vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@emnapi/core@1.10.0":
@@ -13039,6 +13053,8 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
+  effect@4.0.0: {}
+
   effect@4.0.0-beta.86:
     dependencies:
       "@standard-schema/spec": 1.1.0
@@ -13051,8 +13067,6 @@ snapshots:
       toml: 4.3.0
       uuid: 14.0.2
       yaml: 2.9.0
-
-  effect@4.0.0-rc.115: {}
 
   electron-to-chromium@1.5.267:
     optional: true
@@ -15688,7 +15702,7 @@ snapshots:
 
   undici@7.25.0: {}
 
-  undici@8.10.2: {}
+  undici@8.11.2: {}
 
   undici@8.3.0: {}
 
@@ -16141,6 +16155,8 @@ snapshots:
   ws@8.20.0: {}
 
   ws@8.21.3: {}
+
+  ws@8.22.0: {}
 
   wsl-utils@0.1.0:
     dependencies:

@@ -17,7 +17,7 @@
  */
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Duration, Effect, Exit, Layer, Option, Redacted, Schema } from "effect"
-import { Activity, DurableDeferred, Workflow, WorkflowEngine } from "effect/unstable/workflow"
+import { Activity, DurableDeferred, Workflow, WorkflowEngine } from "effect/workflow"
 import { CosmosClient, CosmosClientLayer } from "../src/cosmos-client.js"
 import { layerCosmos } from "../src/WorkflowEngineCosmos.js"
 

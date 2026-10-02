@@ -1,5 +1,5 @@
 import { Effect } from "effect-app"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { computed, type ComputedRef, nextTick } from "vue"
 
 /**

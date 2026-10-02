@@ -2,8 +2,8 @@ import { Generated, OpenRouterClient, OpenRouterLanguageModel } from "@effect/ai
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, Schema, Stream } from "effect"
-import { type AiError, LanguageModel, type Response, Tool, Toolkit } from "effect/unstable/ai"
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { type AiError, LanguageModel, type Response, Tool, Toolkit } from "effect/ai"
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 
 describe("Generated", () => {
   it("decodes nullable generation statistics", () => {
@@ -132,6 +132,7 @@ describe("Generated", () => {
         }))
         const client = OpenRouterClient.OpenRouterClient.of({
           client: Generated.make(HttpClient.make(() => Effect.die("Unexpected HTTP request"))),
+          createDecisions: () => Effect.die("Unexpected decisions request"),
           createChatCompletion: () => Effect.succeed([body, response]),
           createChatCompletionStream: () => Effect.succeed([response, Stream.fromIterable(chunks)])
         })

@@ -6,7 +6,7 @@ import * as Effect from "effect-app/Effect"
 import * as Option from "effect-app/Option"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { createApp, effectScope, nextTick, ref } from "vue"
 import { makeAtomClientRuntime } from "../src/atomQuery.js"
 import { makeTanstackQuery } from "../src/internal/tanstackQuery.js"
@@ -37,9 +37,9 @@ it("makeClient .suspense(): observer re-pointed mid-flight -> resolves (seeded) 
   const getRuntime = () => Context.empty()
   const qi = new QueryImpl(
     getRuntime,
-    (() => {
+    () => {
       throw new Error("atom runtime is unused by this legacy TanStack regression")
-    }) as any,
+    },
     makeTanstackQuery(getRuntime, queryClient)
   )
 
@@ -115,7 +115,7 @@ it("atom engine .suspense(): reactive arg switched to an uncached input serves t
   app.provide(registryKey, defaultRegistry)
   app.mount(host)
 
-  const [resultRef, latestRef] = (await promise) as any
+  const [resultRef, latestRef] = await promise
   expect(latestRef.value).toBe("DATA_A")
 
   // Re-point to an input whose atom has never fetched -> Initial, no previousSuccess.

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.332
+
+### Patch Changes
+
+- 6b57330: Upgrade Effect packages to npm `4.0.0`.
+
 ## 4.0.0-beta.331
 
 ## 4.0.0-beta.330

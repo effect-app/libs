@@ -423,9 +423,7 @@ it.skip("works", () => {
   // @ts-expect-error query request does not match Command.wrap mutation signature
   const e000 = Command.wrap(client.GetSomething2WithDependencies)
   const e00 = client.GetSomething2WithDependencies.request(null as any)
-  // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
-  // @ts-expect-error dependencies required that are not provided
   const e2 = client.GetSomething2WithDependencies.query(null as any)
   // @ts-expect-error query requests no longer expose command helpers
   const f0 = client.GetSomething2WithDependencies.fn(null as any)

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
@@ -10,16 +11,16 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Path from "effect/Path"
 import * as Stream from "effect/Stream"
-import { ExtractExportMappingsService } from "./extract.js"
-import { GistHandler } from "./gist.js"
-import { RunCommandService } from "./os-command.js"
-import { packages } from "./shared.js"
+import { ExtractExportMappingsService } from "./extract.ts"
+import { GistHandler } from "./gist.ts"
+import { RunCommandService } from "./os-command.ts"
+import { packages } from "./shared.ts"
 
-import { patchArgvForWrapCommands } from "./argv-patch.js"
-import { syncEffectAppSubtree } from "./sync-effect-app-subtree.js"
-import { syncEffectSubtree } from "./sync-effect-subtree.js"
-import { syncDiff, syncPush, syncShared } from "./sync-shared.js"
-import { makeNcuUpdateCommand } from "./update-packages.js"
+import { patchArgvForWrapCommands } from "./argv-patch.ts"
+import { syncEffectAppSubtree } from "./sync-effect-app-subtree.ts"
+import { syncEffectSubtree } from "./sync-effect-subtree.ts"
+import { syncDiff, syncPush, syncShared } from "./sync-shared.ts"
+import { makeNcuUpdateCommand } from "./update-packages.ts"
 
 patchArgvForWrapCommands(process.argv)
 

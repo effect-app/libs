@@ -27,46 +27,46 @@
   "typesVersions": {
     "*": {
       "*": [
-        "dist/*"
+        "src/*"
       ]
     }
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./argv-patch": {
-      "types": "./dist/argv-patch.d.ts",
-      "default": "./dist/argv-patch.js"
+      "types": "./src/argv-patch.ts",
+      "default": "./src/argv-patch.ts"
     },
     "./extract": {
-      "types": "./dist/extract.d.ts",
-      "default": "./dist/extract.js"
+      "types": "./src/extract.ts",
+      "default": "./src/extract.ts"
     },
     "./gist": {
-      "types": "./dist/gist.d.ts",
-      "default": "./dist/gist.js"
+      "types": "./src/gist.ts",
+      "default": "./src/gist.ts"
     },
     "./os-command": {
-      "types": "./dist/os-command.d.ts",
-      "default": "./dist/os-command.js"
+      "types": "./src/os-command.ts",
+      "default": "./src/os-command.ts"
     },
     "./shared": {
-      "types": "./dist/shared.d.ts",
-      "default": "./dist/shared.js"
+      "types": "./src/shared.ts",
+      "default": "./src/shared.ts"
     },
     "./sync-effect-subtree": {
-      "types": "./dist/sync-effect-subtree.d.ts",
-      "default": "./dist/sync-effect-subtree.js"
+      "types": "./src/sync-effect-subtree.ts",
+      "default": "./src/sync-effect-subtree.ts"
     },
     "./sync-effect-app-subtree": {
-      "types": "./dist/sync-effect-app-subtree.d.ts",
-      "default": "./dist/sync-effect-app-subtree.js"
+      "types": "./src/sync-effect-app-subtree.ts",
+      "default": "./src/sync-effect-app-subtree.ts"
     },
     "./sync-shared": {
-      "types": "./dist/sync-shared.d.ts",
-      "default": "./dist/sync-shared.js"
+      "types": "./src/sync-shared.ts",
+      "default": "./src/sync-shared.ts"
     }
   },
   "scripts": {
@@ -103,6 +103,56 @@
   ],
   "publishConfig": {
     "directory": ".publish",
-    "linkDirectory": false
+    "linkDirectory": false,
+    "bin": {
+      "effect-app": "./dist/index.js",
+      "effa": "./dist/index.js",
+      "effect-app-cli": "./dist/index.js"
+    },
+    "typesVersions": {
+      "*": {
+        "*": [
+          "dist/*"
+        ]
+      }
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./argv-patch": {
+        "types": "./dist/argv-patch.d.ts",
+        "default": "./dist/argv-patch.js"
+      },
+      "./extract": {
+        "types": "./dist/extract.d.ts",
+        "default": "./dist/extract.js"
+      },
+      "./gist": {
+        "types": "./dist/gist.d.ts",
+        "default": "./dist/gist.js"
+      },
+      "./os-command": {
+        "types": "./dist/os-command.d.ts",
+        "default": "./dist/os-command.js"
+      },
+      "./shared": {
+        "types": "./dist/shared.d.ts",
+        "default": "./dist/shared.js"
+      },
+      "./sync-effect-subtree": {
+        "types": "./dist/sync-effect-subtree.d.ts",
+        "default": "./dist/sync-effect-subtree.js"
+      },
+      "./sync-effect-app-subtree": {
+        "types": "./dist/sync-effect-app-subtree.d.ts",
+        "default": "./dist/sync-effect-app-subtree.js"
+      },
+      "./sync-shared": {
+        "types": "./dist/sync-shared.d.ts",
+        "default": "./dist/sync-shared.js"
+      }
+    }
   }
 }

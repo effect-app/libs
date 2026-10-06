@@ -7,6 +7,7 @@
     "moduleResolution": "Node16",
     "outDir": "./dist",
     "rootDir": "./src",
+    "verbatimModuleSyntax": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": [

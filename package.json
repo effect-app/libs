@@ -2,6 +2,7 @@
   "private": true,
   "packageManager": "pnpm@11.18.0",
   "engines": {
+    "node": ">=24",
     "pnpm": ">= 11.0.0"
   },
   "scripts": {
@@ -32,7 +33,7 @@
     "build:tsc": "pnpm check && node scripts/rewrite-dist-declaration-imports.mjs",
     "check": "tsgo --build ./tsconfig.all.json",
     "watch": "pnpm build:tsc --watch",
-    "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
+    "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && pnpm build:tsc && cd packages/vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
     "prepare": "node -e \"const v=require('typescript/package.json').version;if(v.startsWith('6.')){require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\" && effect-tsgo patch --no-typescript --oxlint && node scripts/install-git-hooks.mjs",

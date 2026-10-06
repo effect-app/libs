@@ -1,5 +1,80 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0
+
+### Minor Changes
+
+- 4b91f31: Add oxlint integration: run oxlint before ESLint, with `eslint-plugin-oxlint` disabling ESLint rules already covered by oxlint. Add repo-root `.oxlintrc.json` with shared rule config. Update `lint`/`lint-fix` scripts in cli, effect-app, and infra packages.
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- af43f2f: Add `no-await-effect` lint rule that errors when awaiting Effect, Option, Result, or Fiber values from the effect library. Enabled when type-checked linting is active (`ESLINT_TS=1`).
+
+### Patch Changes
+
+- b3ea988: update dprint plugins
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+
+- 52b0b01: Beta25
+- 10b55ff: update packages
+- 55c6572: update packages
+- c991be1: update packages
+- c9caa37: pin dprint/formatter
+- c1e73de:
+- 16b1cf9: update oxlint rule
+- 22be885: Add `stripSuffixes` option to the meta codegen preset and configure `.Queries` stripping in the shared oxlint config.
+- c82d746: dprint bs
+- eb28ea5: bogus
+- cec026d: update packages
+- f58e58a: Add shared oxlintrc.json base config. Consumers extend via `"extends": ["./node_modules/@effect-app/eslint-shared-config/src/oxlintrc.json"]`. Note: oxlint does not merge `ignorePatterns` — repeat the base patterns and add project-specific ones.
+- dba5779: namespaces
+- 784c732: bs
+- b8b9080: update packages
+- 68c3ba6: fml
+- 16bbd9c: ship shared dprint config and wire oxlint and dprint into package lint scripts
+- c63c0af: Run configured Effect diagnostics through Oxlint's type-aware lint integration.
+- 52b0b01: update all teh tings
+- c3299f7: update packages
+- Updated dependencies [21ac90a]
+- Updated dependencies [50ce7e6]
+- Updated dependencies [b2e0f62]
+- Updated dependencies [34ab818]
+- Updated dependencies [52b0b01]
+- Updated dependencies [10b55ff]
+- Updated dependencies [d605f3d]
+- Updated dependencies [50b022e]
+- Updated dependencies [f04327a]
+- Updated dependencies [55c6572]
+- Updated dependencies [c991be1]
+- Updated dependencies [82655fa]
+- Updated dependencies [50b022e]
+- Updated dependencies [c1e73de]
+- Updated dependencies [e71b67a]
+- Updated dependencies [3b27909]
+- Updated dependencies [22be885]
+- Updated dependencies [25008fb]
+- Updated dependencies [6fff09c]
+- Updated dependencies [eb28ea5]
+- Updated dependencies [830e1ce]
+- Updated dependencies [a354345]
+- Updated dependencies [cec026d]
+- Updated dependencies [77efa95]
+- Updated dependencies [025de47]
+- Updated dependencies [a69da09]
+- Updated dependencies [b8b9080]
+- Updated dependencies [3613e87]
+- Updated dependencies [8c753cb]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c3299f7]
+- Updated dependencies [ccd4845]
+- Updated dependencies [52b0b01]
+  - @effect-app/eslint-codegen-model@2.0.0
+
 ## 0.6.0-beta.36
 
 ### Patch Changes

@@ -1,5 +1,785 @@
 # @effect-app/infra
 
+## 4.0.0
+
+### Major Changes
+
+- ba789a2: Move core service contracts and runtime-agnostic modules into `effect-app`, keep `infra` and `vue` focused on adapters, and drop the temporary `infra` compatibility re-export paths in favor of the new canonical imports.
+
+  `@effect-app/infra` no longer re-exports moved core modules such as `./Model`, `./Emailer/service`, `./QueueMaker/service`, `./Store/service`, `./adapters/*`, or `./api/*` entrypoints.
+
+- 52b0b01: Fix Schema->Codec
+- 52b0b01: Effect v4 beta
+
+### Minor Changes
+
+- 6884a32: Add Azure Service Bus topic notifications for persisted cluster storage polling.
+- fb93244: Extend computed projections with additional relation operators:
+
+  - `relation(path).every(op)` — boolean, all elements match the filter (compiled as `NOT EXISTS(... WHERE NOT (filter))`).
+  - `relation(path).distinctCount(field, op?)` — distinct count of values at `field` within the relation.
+  - `relation(path).sum(field, op?)` — numeric sum over a relation field.
+  - `relation(path).collect(field, op?)` / `collectDistinct(field, op?)` — collect values into an array (with optional dedup).
+
+  All operators compile to native subqueries on SQL (sqlite/pg) and Cosmos, and to in-memory equivalents on the Memory store.
+
+- aac6308: Add computed projections for repository queries with adapter-level compilation for memory, SQL, and Cosmos stores.
+- fd67f0b: Add `withRequestResolverCache` to scope RequestResolver cache to the ContextMap (request-scoped). Add `getOrCreateStore` to ContextMap for generic scoped storage.
+- ab289d4: Add opt-in `autoscaleMaxThroughput` for Cosmos containers created on demand (`StorageConfig`, `ClusterCosmosConfig`, `WorkflowEngineCosmosConfig`). When set, a missing container is created with autoscale at that max RU/s, unless its database has shared throughput (then it keeps sharing the database pool). Existing containers are untouched; unset keeps the Cosmos default of manual 400 RU/s per container.
+- 48f1457: Add storage namespace support to CosmosDB adapter via partition key prefixing. When `allowNamespace` is configured, the namespace from `storeId` is prepended to partition key values (e.g., `test-ns::primary`), isolating data per namespace within the same container.
+- 0520dd4: Add Cosmos DB backed `WorkflowEngine` adapter (`layerCosmos` in `WorkflowEngineCosmos.ts`). Persists workflow state in a single container partitioned by `executionId` so per-execution writes share a partition key (TransactionalBatch-eligible). Optimistic concurrency via `_etag` + `IfMatch` on Replace; first-writer-wins via create-only batch ops for activity results and durable-deferred completions; a persisted _suspended_ activity is overwritten via upsert on resume. Values crossing the storage boundary round-trip through `Schema` codecs (`S.fromJsonString(S.toCodecJson(...))`) using the workflow's own `payloadSchema` / `successSchema` / `errorSchema` for typed values, and the cluster engine's opaque `AnyOrVoid` codec for activity / deferred payloads. Includes time-bound lease + heartbeat fiber, scope-bound recovery poller for crashed-driver takeover, and cross-partition clock poller for restart-survivable durable timers.
+- 2ebf8ae: `jitM` runs at the store boundary as JSON → JSON, before the `toCodecJson(toEncoded(schema))` decode; repositories decode the Encoded shape only.
+
+  `jitM` used to be applied by the repository _after_ the store had already decoded the document, and was typed `(pm: Encoded) => Encoded` - a lie, since jitMs are written against the stored JSON and `Encoded` holds native `Date`/`Map`/`Set` values.
+
+  The read pipeline is now: raw JSON document → merge `defaultValues` (unchanged: they only fill _absent_ keys, so an explicitly stored `null` reaches `jitM`) → `jitM` (JSON → JSON) → decode `Schema.toCodecJson(Schema.toEncoded(schema))` → Encoded. The repository then decodes Encoded → the domain type with `schema` and no longer applies `jitM` at all. Because `jitM` now runs before any schema decode sees the document, it can repair legacy shapes including explicit `null`s.
+
+  - `StoreConfig.jitM?: (json: JsonRecord) => JsonRecord` is new, where `JsonRecord` (exported from `effect-app/Store`) is `{ readonly [key: string]: Schema.Json }`. It is not applied on the write/encode path, and never receives `_etag`.
+  - `RepositoryOptions.jitM` changes type from `(pm: Encoded) => Encoded` to `(json: JsonRecord) => JsonRecord` and is forwarded into the store config.
+  - **Migrating a jitM:** it now receives and must return JSON. A `Date` field arrives as an ISO string (return a string, not a `Date`), a `ReadonlySet` as an array, a `ReadonlyMap` as an array of `[key, value]` pairs. Field access is index-signature based (`json["x"]`) rather than typed property access.
+  - The JSON→Encoded decode stays strict: a document `jitM` does not repair fails at the store boundary instead of being read back half-decoded.
+  - `ValidationError.jitMResult` is deprecated: `validateSample` only ever sees the store's output, so it is identical to `rawData`.
+
+- 186de3a: Stop forcing Date/Map/Set Encoded shapes to JSON.
+
+  `Schema.Date` / `ReadonlySet` / `ReadonlyMap` now keep native Encoded types (`Date`, `Set`, `Map`). Use `DateFromString`, `ReadonlySetFromArray`, and `ReadonlyMapFromArray` when the Encoded form must be JSON. The query DSL accepts those native values, including array ops (`includes` / `in` / `includes-any`) on `Date[]` and `ReadonlySet` fields. Memory, Disk, SQL, and Cosmos convert Encoded Date/Map/Set through `Schema.toCodecJson` on write/read; query parameters and defaults lower the same way from the store schema. App types such as DateOnly stay native Encoded and JSON-lower via that schema — not a type registry.
+
+- 3a588e4: Standardize span attributes on OpenTelemetry semantic conventions.
+
+  All Store adapters (Cosmos, PostgreSQL, SQLite, Memory, Disk) and Queue adapters
+  (Service Bus, SQL, Memory) now emit OTel-compliant span names and attributes via
+  the new `@effect-app/infra/otel` helper module.
+
+  Span name convention: `<operation> <collection|destination>` (low cardinality).
+
+  Attribute key migration:
+
+  | Old                                                 | New                                                                               |
+  | --------------------------------------------------- | --------------------------------------------------------------------------------- |
+  | `repository.table_name` / `repository.container_id` | `db.collection.name`                                                              |
+  | `repository.namespace`                              | `db.namespace`                                                                    |
+  | `repository.model_name` / `itemType`                | `app.entity`                                                                      |
+  | `id` / `itemId` (entity span attr)                  | `app.entity.id`                                                                   |
+  | `itemIds`                                           | `app.entity.ids`                                                                  |
+  | `db.cosmos.request_charge`                          | `azure.cosmosdb.operation.request_charge`                                         |
+  | `db.cosmos.resource_count`                          | `db.response.returned_rows`                                                       |
+  | `db.cosmos.response_bytes`                          | `db.response.body.size`                                                           |
+  | `disk.file` / `disk.file_size`                      | `disk.file.path` / `disk.file.size`                                               |
+  | `queue.name`                                        | `messaging.destination.name`                                                      |
+  | `queue.sessionId`                                   | `messaging.message.conversation_id`                                               |
+  | `queue.type`                                        | `messaging.system`                                                                |
+  | `queue.input` (full body)                           | `messaging.message.body` (+ `messaging.message.id`, `messaging.message.type`)     |
+  | `message_tags`                                      | `messaging.message.types` + `messaging.batch.message_count`                       |
+  | `request.name`                                      | `code.function.name` (from `spanAttributes`) / `rpc.method` (middleware)          |
+  | `request.locale`                                    | `app.locale`                                                                      |
+  | `request.namespace`                                 | `app.tenant.id`                                                                   |
+  | `request.source.id`                                 | `client.id`                                                                       |
+  | `request.user.sub` / `.roles`                       | `user.id` / `user.roles`                                                          |
+  | `requestInput`                                      | `rpc.request.payload`                                                             |
+  | `connectionId`                                      | `network.connection.id`                                                           |
+  | Span `Request.<module>.<method>`                    | Span `<module>/<method>` + `rpc.system`/`rpc.service`/`rpc.method` (kind: server) |
+  | `<spanPrefix>.<op>` (SQL/Model)                     | OTel db span via `withDbSpan`, with `dbSystem?` option                            |
+
+  New attributes added:
+
+  - `db.system.name` — e.g. `postgresql`, `sqlite`, `cosmosdb`, `memory`, `disk`
+  - `db.operation.name` — e.g. `find`, `all`, `filter`, `set`
+  - `db.query.text` — sanitized / parameterized SQL or Cosmos query (no bound values)
+  - `messaging.operation.name` — `publish`, `process`, `receive`
+
+  Breaking: dashboards/alerts keying on the previous attribute names must be
+  updated. Queue consumer spans no longer log raw message bodies — use
+  `messaging.message.id` and `messaging.message.type` instead.
+
+- 1cee480: Add aggregate query support: `Q.aggregate(schema, aggregateMap)` performs GROUP BY + aggregate functions at the database level (Memory, SQL, Cosmos).
+
+  - New `agg` DSL namespace: `agg.field(path)` (group-by), `agg.count()`, `agg.countWhen(op)`, `agg.sum(field)`, `agg.min(field)`, `agg.max(field)`
+  - New `aggregate(schema, aggregateMap)` query operator replaces in-memory grouping with a single DB-level query
+  - Memory store: pure JS group-by + aggregation
+  - SQL store: `GROUP BY` + `COUNT(CASE WHEN ...)` / `SUM` / `MIN` / `MAX`
+  - Cosmos store: `GROUP BY` + `SUM(IIF(...))` for conditional counts
+
+- 186de3a: Query maps as JSON arrays of `[key, value]` tuples.
+
+  `where("meta", "hasKey" | "hasValue" | "hasKeyValue", ...)` (and `not*` / `*-any` / `*-all` variants) filter `ReadonlyMap` fields. Memory, Disk, SQLite, Postgres, and Cosmos compile those ops against the encoded tuple array.
+
+- 95995d5: Add `collectFields`/`collectDistinctFields` to `relation()` DSL for collecting values from multiple fields of relation items into a single flattened array.
+
+  Example: given `T = { a: boolean, items: { x: string, y: string, z: number }[] }[]`, you can now collect all distinct `x` and `y` values into a single `string[]`:
+
+  ```ts
+  relation("items").collectDistinctFields(["x", "y"]);
+  ```
+
+- 0054611: Derive query invalidation from repository read/write dependencies and propagate dependency metadata through RPC clients.
+- ddc5492: Add RepositoryRegistry service that tracks all repositories by modelName, with `seedNamespace` to seed all registered repos in parallel and `entries` to inspect the registry.
+
+  Make non-primary namespace seeding explicit: Store and Repository now expose `seedNamespace` instead of auto-seeding on access. Primary namespace is still seeded eagerly on initialization.
+
+  SQL stores: table creation (`CREATE TABLE IF NOT EXISTS`) is now part of `seedNamespace` instead of running eagerly at store construction, ensuring tables for non-primary namespaces are only created when explicitly seeded.
+
+- 3d732b1: Rewrite `withRequestResolverCache` to use official `RequestResolver.withCache`, creating a cached resolver per ContextMap via `getOrCreateStoreEffect` with semaphore-guarded initialization.
+- 818e047: Router `matchFor` no longer requires `meta` property on resource when requests carry `moduleName` from `TaggedRequestFor`
+- 89d8b3a: Add Effect RPC `Stream` support to the wrapper.
+
+  - New `Stream` request constructor on `TaggedRequestFor` parallel to `Query`/`Command`. Emits resources with `type: "stream"`.
+  - Server router (`@effect-app/infra` `routing.ts`) accepts stream resources whose handlers return a `Stream.Stream<A, E, R>` (or a function from input to one). Forwards `stream: true` to `Rpc.make` so `RpcSchema.Stream` wrapping is applied. Streams bypass `applyRequestTypeInterruptibility` and the `Effect.withSpan` wrapping (the RPC server adds its own span).
+  - Client (`apiClientFactory.ts`) detects stream resources, forwards `stream: true` when constructing `RpcGroup`, and exposes the per-request `handler` as a `Stream.Stream` (via `Stream.unwrap` over the `ManagedRuntime` context) instead of an `Effect`. `Invalidation.CommandResponseWithMetaData` continues to apply only to commands.
+  - New `RequestStreamHandler` / `RequestStreamHandlerWithInput` shapes in `clientFor.ts`; `RequestHandlers` dispatches on `type: "stream"`.
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+- 48f1457: Add storage namespace support to SQL adapters (SQLite and Postgres) via a `_namespace` column. When `allowNamespace` is configured, a `_namespace` column with composite primary key `(id, _namespace)` isolates data per namespace within the same table. New tables get the schema automatically; existing tables require manual migration.
+- 48f1457: Add SQL Store adapter for Effect SQL (SQLite + PostgreSQL). Table-per-repo with id/etag/data JSON columns, query DSL translation to SQL WHERE clauses, optimistic concurrency via etag.
+- 48f1457: Make `withSqlTransaction` in `setupRequest` configurable via `withTransaction` option (defaults to `false`). Add `requiresTransactionConfig` and `makeSqlTransactionMiddleware` for per-RPC transaction control as a dynamic middleware that requires `SqlClient` directly. Transactions are disabled by default; opt in with `withTransaction: true` or `requiresTransaction: true`.
+- c313c07: Add per-namespace in-memory SQLite adapter via LayerMap. When `makeSqlClientLayer` option is provided to `SQLiteStoreLayer`, each namespace gets its own SQLite database instance managed by a `LayerMap`. Introduces `WithNsTransaction` service for namespace-aware SQL transactions, used by `makeSqlTransactionMiddleware`.
+- 0ddda6f: Add SQLite backed `WorkflowEngine` adapter (`layerSqlite` in `WorkflowEngineSqlite.ts`). Persists workflow state across `workflow_exec` / `workflow_activity` / `workflow_deferred` / `workflow_clock` tables via `SqlClient`. Uses `sql.withTransaction` for atomicity, etag-based optimistic concurrency (`UPDATE ... WHERE etag = ? RETURNING etag`), and `INSERT ... ON CONFLICT DO NOTHING RETURNING` for first-writer-wins on activity / deferred / clock writes. Values crossing the storage boundary round-trip through `Schema` codecs (`S.fromJsonString(S.toCodecJson(...))`) using the workflow's own `payloadSchema` / `successSchema` / `errorSchema` for typed values, and the cluster engine's opaque `AnyOrVoid` codec for activity / deferred payloads. Includes time-bound lease + heartbeat fiber, scope-bound recovery poller for crashed-driver takeover, and cross-partition clock poller for restart-survivable durable timers.
+- 3a8c710: Store document decode fails as a typed `SchemaError` instead of a defect; repositories keep their public error channels by dying at the boundary; `validateSample` reports documents that fail at the store boundary.
+- 186de3a: JSON stores lower native Encoded values (Date, Map, Set, and app types such as DateOnly) through the store's document schema.
+
+  `makeRepo` already passes that schema. Adapters encode documents, query parameters, and defaults with `Schema.toCodecJson(toEncoded(schema))` at the field path. No type registry. Schemaless stores still lower Date/Map/Set structurally.
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+- 23a7167: Add a typed, serializable `DatabaseError { message, transient, cause }` for store adapter failures.
+
+  Store adapters wrapped DB calls in bare `Effect.promise` / `.orDie`, so a transient infra failure (request timeout, throttle, 5xx, dropped socket) became a raw-`Error` defect — which `Effect.retry` can't retry and which breaks JSON encoding of a workflow exit cause ("Expected JSON value, got Error"). `DatabaseError` is now exposed on all `Store` and `Repository` method error channels (writes: `OptimisticConcurrencyException | DatabaseError`) and added to `SupportedErrors` so the api/client/FE treat it as a 500-class error. Each adapter wraps its db-call failures into `DatabaseError` with a `transient` flag (timeout/throttle/5xx ⇒ retryable); the `cause` serializes via `Schema.Defect`. Construction/seed/DDL paths stay `orDie`.
+
+### Patch Changes
+
+- 439cbeb: Adopt module system from effect-smol: replace barrel imports with specific submodule imports (`import * as X from "effect-app/X"` / `import * as X from "effect/X"`).
+- b2df3fa: Align `Schema.Void` with TypeScript `void` return-value semantics (effect-smol PR #2475 / `b7d46ab`).
+
+  `S.Void` now accepts **any present value** at runtime and discards it to `undefined`, while keeping the decoded/encoded type as `void` — matching a `void` return whose result callers never observe. This is implemented as an override of the AST node in a new `effect-app/SchemaAST` module (`export * from "effect/SchemaAST"` plus a `Void` subclass whose parser mirrors the PR's `fromAnyToConst(undefined)`), so there is a single canonical `Void` used everywhere, including RPC success schemas.
+
+  - New `effect-app/SchemaAST` module; internal `SchemaAST` imports across the libs now route through it.
+  - Removed `ForceVoid` from `effect-app/client/makeClient` — use `S.Void` directly, which now carries this behaviour.
+  - `S.Void_` remains available as effect's original (`undefined`-only) Void.
+
+- abb9c99: Batch Cosmos ack message processing updates.
+- 71a0719: Merge `batchPar` into `batch`, expose `concurrency` via an optional `BatchOptions` argument, and make `batch` dual (data-first + data-last).
+- aa436d3: fix bs span
+- 52b0b01: fix lock
+- eaf0115: enforce local
+- f4b58cd: Add `cachedPerRequest` helper to `ContextMapContainer`. Runs a given Effect at most once per ContextMap (i.e. per request) and stores the result in the ContextMap under a fresh symbol, using the ContextMap's shared semaphore for safe single initialization. Use as a building block for any per-request memoized value (request resolver caches, per-request `Cache.make` instances, etc.).
+- 33b0544: Replace repository codec child spans with parent-span timing attributes and bounded metrics, and record database operation timing for instrumented stores.
+- 6821fc5: Add Cosmos DB backed storage layers for Effect Cluster message and runner state.
+- 38289e0: Break the circular dependency between the memory store and code filter modules.
+- 1f9d7da: fix missing toCodecJson usages
+- d1fc90a: Strip `_etag` and `id` from the `data` JSON column in SQL store adapters (SQLite + PostgreSQL). These fields are already stored as dedicated columns and were redundantly duplicated inside the JSON blob. On read, `parseRow` now re-injects `id` from the row column. Backward compatible: existing rows with `_etag`/`id` in `data` continue to work as the column values take precedence.
+- 32f05c8: Remove unused dependency declarations from package manifests.
+- 6cfd83d: update effect to latest beta
+- 1c858d3: fix request scope problems
+- 52b0b01: fix bs
+- 82f66f1: use uninterruptiple
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- c31c673: Tighten Cosmos cluster OCC handling for concurrent node polling.
+- bac9f1a: Fix Cosmos `projectComputed` parameter index shift when `relation(...).every(...)` is present. The shared filter `print` was invoked twice per `relation-every` (once eagerly for the `where` variable, again inside the `NOT EXISTS(... WHERE NOT (...))` branch), bumping the outer `@v` counter beyond the bound parameter array and producing SQL that referenced unbound placeholders — queries returned 0 rows on Cosmos while SQLite/Memory adapters were unaffected.
+- 3eb66e9: Fix CosmosDB store `filter` to trigger namespace seeding on first access. Previously, if `filter` was the first operation called on a namespace, seed data was never created.
+- 5aed2e3: Add span to Cosmos `batchRemove` and include `namespace` attribute on all Cosmos store spans.
+- de9fb83: Annotate Cosmos read spans with response size, resource count, and request charge.
+
+  `Cosmos.queryRaw`, `Cosmos.all`, `Cosmos.filter`, and `Cosmos.find` now set `db.cosmos.request_charge`, `db.cosmos.response_bytes`, and (where applicable) `db.cosmos.resource_count` on the active span. Bytes are sourced from `diagnostics.clientSideRequestStatistics.totalResponsePayloadLengthInBytes` — no payload stringification.
+
+- 13c2fd9: doc span
+- 52b0b01: Beta25
+- fdb9cb3: cleanup
+- c5e348f: Fix `provideOnRequestScope` leaking a single `ContextMap` across concurrent requests.
+
+  `Layer.buildWithScope(layer, requestScope)` resolves its `MemoMap` from the
+  ambient fiber context, which lives on the HTTP server fiber and is therefore
+  shared by every request that server handles. With the resulting memoization,
+  the first request to land on a freshly-started server built
+  `ContextMapContainer.layer` once; every subsequent overlapping request received
+  the same `ContextMap` instance — etags written by one request were observed
+  (or overwritten) by another, and the finalizer was anchored to the first
+  request's scope.
+
+  `provideOnRequestScope` now allocates a fresh `MemoMap` per call via
+  `Layer.makeMemoMap` and builds with `Layer.buildWithMemoMap(layer, memoMap,
+requestScope)`. Each request gets its own `ContextMap`, the request-scope
+  binding from the earlier SSE fix is preserved, and the finalizer still only
+  fires once the response body has fully drained.
+
+  Adds regression coverage in `rpc-context-map-streaming.test.ts` for three
+  properties: mid-stream survival of ContextMap state, a fresh map on each
+  succeeding request, and isolation between overlapping concurrent requests.
+
+- 8eb6737: Wrap `CUPS` exec failures in tagged `CUPSError` instead of `UnknownException`.
+
+  Retains `command`, `message`, exit `code`, `signal`, `killed`, `stdout`,
+  `stderr`, and original `cause` from the underlying `child_process.exec`
+  rejection so callers can branch on real failure detail.
+
+- 4a7d95a: Use request-type RPC annotations to drive interruptibility and retry behavior, apply command uninterruptibility through the router wrapper path, and add an in-memory E2E test covering command vs query interruption behavior.
+- 27bf9b6: Fix `Repository.query` environment typing to exclude schema context provided through `makeRepo` options.
+- 32dbc54: fix stream type when no success specified
+- 6613f3d: Document `Q.project` modes (`transform` / `project` / `collect`): how `select` is derived from the schema AST, the PM reverse-mapping behaviour per mode, and which decode errors surface vs `orDie`.
+- 10b55ff: update packages
+- 52b0b01: fix SSE event stream merge in pipe usage
+- 3cf0c42: Fix `ContextMap` memory leak: tie its lifecycle to the request scope.
+
+  `ContextMapContainer.layer` provides a fresh `ContextMap` per request via `Layer.effect`, but the inner `etags` and `store` maps were never released. Cached `RequestResolver` entries (and anything they closed over) stayed reachable as long as any fiber held a reference to the map, even after the request scope closed.
+
+  `ContextMap` is now built with `Effect.acquireRelease`, and `makeContextMap` exposes a `clear()` finalizer that empties both maps when the request scope closes. `Layer.effect` strips the `Scope` requirement automatically in Effect v4.
+
+- b6cb25b: Fix Cosmos cluster workflow resume after durable deferred completion.
+- fce6ee9: Fix machine-id allocation in the Cosmos cluster `RunnerStorage`. It derived the machine id from a 31-multiplier string hash of the runner address, so two distinct runners could hash to the same value mod 1024 — and since the machine id feeds the Snowflake generator mod 1024, those runners would emit colliding Snowflake ids (corrupting request/reply identity across the cluster).
+
+  Machine ids are now allocated from a single counter document via an atomic server-side `incr`, mirroring SQL's auto-increment `machine_id` primary key: unique across distinct runners and stable per address (a re-registering runner reuses its persisted id). Verified against a live Cosmos account.
+
+- 65835a6: Create missing Cosmos containers without throughput when the account is serverless (offer read/replace returns 400). Provisioned databases still get autoscale when configured.
+- be3300d: Fix correctness bugs in the Cosmos `WorkflowEngine`, found by running the adapter against a real Cosmos account. The Cosmos workflow engine now passes the same conformance suite as the in-memory and SQLite engines.
+
+  - **OCC conflicts were fatal.** `replaceExec` used `Effect.promise` + a `statusCode` check, but single-item Cosmos `replace` _throws_ on 409/412/404 (only `read` and batch ops surface the code), so every conflict became an unrecoverable defect and the `OptimisticConcurrencyException` catch was dead code. It now uses `Effect.tryPromise` and matches the thrown error (mirrors `ClusterCosmos`), so lease claims, completions, and interrupts lose gracefully under contention.
+  - **Illegal resource ids.** Activity/deferred/clock doc ids embedded workflow/deferred names containing `/`, which Cosmos rejects. Ids are now URI-encoded via `cosmosId` (mirrors `ClusterCosmos`).
+  - **Interrupt could be lost under Cosmos latency.** A concurrent `interrupt` racing a suspending driver's `onComplete` could have its `interrupted` flag swallowed (OCC) or downgraded, leaving the re-drive unable to collapse the suspension. `interrupt`/`interruptUnsafe` now persist the flag with OCC retry (`markInterrupted`), and `onComplete` never downgrades a persisted `interrupted: true`.
+  - **`execute` now drives unconditionally** (matching SQLite), letting `drive`'s own guard short-circuit a running/completed fiber and re-drive a suspended one, instead of skipping re-drive when a stale local entry existed.
+
+- eed57c6: Fix `R` inference in `OneDSL`, `OneDSLExt.modify` and `OneDSLExt.update`. The callback's effect type was annotated as `Effect<…, E, FixEnv<R, Evt, S1, S2>>`, which deadlocked inference of `R` (TS6 fell back to `never`, tsgo to `unknown`, leaking `unknown` into yielded effects in generator handlers). Now matches the existing `AllDSLExt` pattern: bare `R` in the callback, `FixEnv<R, …>` only in the return type.
+- 1015582: Fix `Q.project` field selection with `Schema.encodeKeys` by deriving selected fields from the encoded schema shape.
+- ebffba8: Stop re-encoding store `defaultValues` in Cosmos and SQL query builders.
+
+  Stores already JSON-lower `defaultValues` at construction. A second schema encode of an ISO `Date` string throws `Expected a valid Date`, which failed `filter({ select: [id] })` even when the select path never decoded a document.
+
+- 29c39d2: Fix repository `find` with transformed id fields in tagged union schemas
+- fbf47b8: Fix repository `find` with transformed id fields (e.g. composite ids using `decodeTo`)
+- 47e53f5: Fix `withRequestResolverCache` causing "RequestResolver did not complete request" errors by using the `preCheck` hook instead of handling cache in `runAll`. Cache hits for in-flight or completed requests are now handled before entries enter the batch, preventing uncompleted entries.
+- 70f1f27: Fix store seeding: break circular dependency where bulkSet re-entered seedNamespace, and add explicit seed markers to SQL/Pg stores using a dedicated `__seed__` namespace.
+- d786b91: Fix SQL `whereSome`/`whereEvery` array relation queries using `EXISTS` with `json_each` (SQLite) / `jsonb_array_elements` (Pg).
+- dfd5562: Fix SQL `IN`/`NOT IN` with null values to use `IS NULL`/`IS NOT NULL` instead of `IN (NULL, ...)`.
+- 2d85646: fix SQL includes-any/all double-quoting values for SQLite (JSON.stringify only needed for Postgres jsonb)
+- 2f862a4: Apply `toCodecJson` in `SQLModel.JsonFromString` so SQL JSON string fields use the proper JSON-safe codec at the encode/decode boundary (aligns with queue, event, and gist call sites).
+- c80e781: Fix SQLite store namespace parameter ordering in filter queries. The `_namespace` placeholder was prepended to the WHERE clause but its value was appended to the end of the positional params array, causing it to bind to the wrong placeholder. PostgreSQL was unaffected (uses indexed `$N` placeholders).
+- fe2caba: SQL and Pg stores: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+- 9a9e46c: Fix SQL select queries to read `_etag` from column instead of JSON data, preventing INSERT on update.
+- 5a709d1: Fix SQLite select query type coercion using `json_quote` and apply defaultValues in SQL WHERE clauses via `COALESCE`.
+- b4ffee0: fix SQL whereEvery double-negation bug causing wrong query when operators like notIn are used (especially with empty arrays)
+- 1ab3cf7: SQLite per-namespace adapter: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+- 3053760: fix: restore context map container behavior
+- f28fce5: fix sqlite
+- c9e0c44: cleanup auth
+- 55c6572: update packages
+- dd239fa: fix atom invalidation
+- c991be1: update packages
+- d738811: remove double prefix
+- 4b95009: use Finite instead of Number
+- e02a258: Add optional batching overloads for repository `save` and `remove` helpers.
+- f7290aa: Add `relation(...).length()` computed projection — emits `ARRAY_LENGTH` on Cosmos / `arrayLength` on SQL / native `.length` on Memory. Cheaper than `relation.count()` for unconditional array sizing (no subquery scan, just metadata read).
+
+  ```ts
+  projectComputed(
+    S.Struct({ id: S.String, packageCount: S.NonNegativeInt }),
+    computed({ packageCount: relation<OrderEnc>("packages").length() })
+  );
+  ```
+
+- 2871841: RequestContextMiddleware: set request name to `HTTP <method> <path>` (strip query string) for clearer span/trace names.
+- dc465e3: update to latest effect beta
+- b4d5f55: fix DatabaseError typing
+- a0075b8: `generateFromSchema` advances its seed on every call, so successive samples differ (deterministic across runs) instead of always returning the same value.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` and convert select multi-step `pipe` chains to `Effect.gen` across infra.
+- 186de3a: Declare `@sentry/node` as a runtime dependency of `@effect-app/infra`. `errorReporter.ts` imports it statically, so `pnpm install --prod` of linked source (Docker) must install it next to the package, not only as a peer of the app.
+- 8c645d5: update to latest effect
+- 52b0b01: adapt isObject change
+- a37aa38: Update to effect beta 43
+- c1e73de:
+- d867272: the return of `Context`
+- 24f5dd0: fix memory computation
+- 774a9b3: `MiddlewareMaker.makeMiddlewareBasic` now derives each middleware's effective error from both the static `error` field on the tag AND the `rcm` config entry referenced by `dynamic.key`, rather than relying on the static field alone.
+
+  Middlewares declared with `dynamic: RequestContextMap.get("foo")` (instead of an explicit static `error: ...`) end up with `tag.error = Schema.Never` at runtime — `RpcMiddleware.Tag` defaults the static error to `Never` when not provided. The composite `MiddlewareMaker.Tag(...).middleware(...)` walked `make[*].error` to build its own error union, collapsing to `Union<Never, ...> ≡ Never`.
+
+  `Rpc.exitSchema` walks `rpc.middlewares[*].error` when building the wire-level failure union for every rpc kind. Empty-union meant middleware-thrown errors (`NotLoggedInError`, `UnauthorizedError`, etc.) never reached the wire schema. Query/command happened to work because their wire `errorSchema = resource.error` already covered the merge from `makeRpcClient`. Stream rpcs have `errorSchema` force-set to `Schema.Never` by effect-rpc, so the resource-level merge never reached the wire — middleware errors decoded as "Expected never, got X".
+
+  Per middleware, the new logic pushes both the static `_.error` (if non-`Never`) and `rcm[_.dynamic.key].error` (if non-`Never`) into the composite's failure union.
+
+- d67d17a: Source middleware errors exclusively from the rpc middleware tag, and move command/stream invalidation wrap/unwrap entirely into the routing layer (server) and `apiClientFactory` (client). `InvalidationMiddleware` and `InvalidationMiddlewareLive` are removed.
+
+  ### Resource error schemas
+
+  Three sites that used to fold `RequestContextMap[*].error` into a request's own error schema now stop doing so:
+
+  - `makeRpcClient` / `makeRequestClass` — `failureSchema` is just `config.error` (still merged with the optional `generalErrors` parameter, which is the only remaining error mix on both type and runtime levels).
+  - `MiddlewareMaker.rpc()` — `error: options.error` only; the previous union with `rcm.config[*].error` is gone.
+  - Routing and `apiClientFactory.makeRpcGroupFromRequestsAndModuleName` — `Invalidation.makeCommandRpc` is called with `error: resource.error` (no widening with the composite middleware error union).
+
+  Middleware errors reach the client through the rpc's `middlewares[*].error` failure-union channel of `Rpc.exitSchema`, exposed by attaching the middleware tag to the rpc on both sides:
+
+  - **Server**: `makeRouter(middleware)` attaches the live composite tag (existing behavior).
+  - **Client**: new `middleware` option on `ClientForOptions` / `ApiClientFactory.makeFor(layer, { middleware })` attaches the same tag schema-only (no Live invoked). Threaded through `makeRpcGroupFromRequestsAndModuleName` to `RpcGroup.middleware(tag)`. Without it, stream rpcs (whose top-level `errorSchema` is forced to `Never` by effect-rpc) hit `SchemaError: Expected never | { _tag: "error", ... }` decoding middleware-thrown errors that bypass the in-stream `Stream.catch` wrap.
+
+  **Migration**: handlers that yield errors previously sourced from rcm (e.g. `yield* new UnauthorizedError()`) now require those errors to be declared explicitly on the resource — `Req.Query<T>()("...", fields, { success, error: UnauthorizedError })`. The handler error type no longer auto-includes the rcm union.
+
+  ### Invalidation wrap/unwrap
+
+  - `routing.ts` (server) provides a per-request `InvalidationSet` for commands, wraps the success value as `CommandResponseWithMetaData`, and converts handler-thrown failures into `CommandFailureWithMetaData` so accumulated invalidation keys reach the client on either path. Stream wrap (per-chunk envelope + final `done` chunk) was already in routing and is unchanged.
+  - `apiClientFactory.ts` (client) `unwrapCommand` strips both envelopes and forwards keys to `InvalidationKeysFromServer`.
+  - `InvalidationMiddleware` (the tag) and `InvalidationMiddlewareLive` (the layer) are **removed**. The middleware was the previous home of the wrap; with the wrap moved to routing/apiClientFactory, the middleware became a thin pass-through and is no longer needed. `DefaultGenericMiddlewares` and `DefaultGenericMiddlewaresLive` shrink accordingly — no migration needed for callers that used the defaults; callers that referenced `InvalidationMiddleware` / `InvalidationMiddlewareLive` directly should drop those imports.
+
+  Middleware-thrown errors are never wrapped: by definition the handler never ran, so there is nothing to invalidate. They flow raw on the Cause and the client decodes them via the middleware-tag failure-union channel described above.
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- e3ceaba: Add computed projection expression sums with grouped and normalized variants for projectComputed relation aggregations.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- 6fff09c: unify encoded function for when you use encodedKeys
+- dab6992: no need for .lock.lock
+- eb28ea5: bogus
+- 7d5cefc: SQL and Pg stores now scope seed migration records by namespace and table name in shared databases to avoid cross-namespace seed collisions.
+- 848d26d: Capture more of the rpc request payload in the `rpc.request.payload` span
+  attribute.
+
+  The summarizer was one level deep: top-level scalars were kept, but any nested
+  object collapsed to `Object[N]` and any array to `Array[N]`, hiding useful
+  inputs (carrier, packageType, dimensions, ids, per-item amounts, …).
+
+  It now recurses into nested objects up to `PAYLOAD_MAX_DEPTH` (4) and samples
+  arrays to their first `PAYLOAD_ARRAY_HEAD` (20) elements, appending a `…N more`
+  marker when longer — so item arrays stay diagnosable without dumping the whole
+  tail on high-frequency commands. Long strings are still snipped at 256 chars,
+  and `password`/`secret`/`token` keys are redacted at any depth (previously only
+  a top-level `password`).
+
+- db285e9: Add per-namespace seeding to SQL (SQLite/PostgreSQL) and CosmosDB store adapters. Previously only the `primary` namespace was seeded at initialization; now each namespace is lazily seeded on first access using `Effect.cached` to guarantee at-most-once execution. Primary namespace continues to seed eagerly on initialization. CosmosDB uses namespace-specific marker documents for backward compatibility.
+- ca94edf: fix typo
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- 48d9f36: Memory, SQLite, and Postgres `Store.queryRaw` now run over stored JSON documents, not Encoded rows. `Repository.queryRaw` already applies `toCodecJson` to the projector output, so native Encoded `Date` / `Map` / `Set` values no longer fail `Expected JSON value`. Cosmos was already JSON and is unchanged.
+
+  Memory projectors that assumed native Encoded `Date` / `Map` / `Set` values now see the stored JSON form (ISO strings, arrays).
+
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+- cec026d: update packages
+- 902ca1b: fix
+- 925214b: update packages
+- 7191fc1: `removeById` now takes `id | NonEmptyReadonlyArray<id>` instead of a variadic rest, and the extended repo's `removeById` accepts a `batch` option to chunk large deletes — consistent with `save` and `remove`.
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+- b2e438f: Remove Operations service and repo
+- f150cf9: Remove obsolete queue machinery left unused after the move to cluster entities: the SB/SQLite/mem `QueueMaker` implementations (`QueueMaker/{SQLQueue,memQueue,sbqueue}.ts`), their `ServiceBus.ts`/`memQueue.ts` transports, and `RequestFiberSet.ts` (its `setRootParentSpan` helper is inlined into `MainFiberSet`). `effect-app/QueueMaker` keeps only `QueueMeta`; the `QueueBase` interface and empty `QueueMaker` ops object are dropped.
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- 4bc3d05: Repository `save`, `remove`, and `removeById` now accept plain `ReadonlyArray` instead of `NonEmptyReadonlyArray`. Callers no longer need to narrow or guard for non-emptiness before invoking — empty inputs short-circuit to a no-op, making it ergonomic to pass through query results directly.
+- ebbb799: Repository owns OTel span topology; store adapters annotate db._ semconv attrs on the current span instead of opening their own child spans. Eliminates 1-1 nested span chains (e.g. `Repository.query` → `Cosmos.filter`). Adds `annotateDb` helper alongside `withDbSpan` in `otel.ts`. Repo public ops (`find`, `all`, `query`, `queryRaw`, `mapped._`) get explicit `Repository.<op>` spans; internal codec steps (`encodeMany`, `parseMany`, `parseMany2`) keep bare names. `validateSample`opens per-iteration sub-spans to prevent attribute clobber. Adds WeakMap decoder cache for`parseMany2` schemas.
+- 5773159: Add `itemType` annotation to all repository spans
+- 7bd8234: Use set-backed data dependencies and provide request-scoped dependency services through a shared root-checked helper.
+- 54bfc59: Require middleware to flow through `makeRpcClient` and the live layer through `makeRouter`.
+
+  ### `makeRpcClient(middleware, generalErrors?)`
+
+  Signature drops the `rcs` (request-context map wrapper) parameter. `rcs` was only load-bearing on the type side for `RequestConfig` inference; that information is now derived from `middleware.requestContextMap`. `middleware` is required — the previous "rcs + optional middleware" overload is gone.
+
+  **Migration**:
+
+  ```diff
+  -makeRpcClient(RequestContextMap, undefined, AppMiddleware)
+  +makeRpcClient(AppMiddleware)
+  ```
+
+  For tests/clients without a real middleware, build a minimal stub (`{ requestContextMap, requestContext }`) or pass any value satisfying `ClientMiddleware<RCM>`.
+
+  ### `makeRouter(middlewareLive)`
+
+  `makeRouter()` no longer infers the live middleware layer from `meta.middleware.Default`. The Live layer is now passed explicitly to `makeRouter`, and the request classes only carry the middleware tag (schema-only). This decouples the router from any assumption that the middleware tag exposes a `Default` static.
+
+  **Migration**:
+
+  ```diff
+  -export const { Router, matchAll } = makeRouter()
+  +export const { Router, matchAll } = makeRouter(AppMiddleware.Default)
+  ```
+
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+- 1576688: Add configurable `fakeMailAddress` to `SendgridConfig`. Supports `{i}` placeholder for unique addresses, e.g. `"test+{i}@example.com"`.
+- e33f1eb: Drop OTel spans from ServiceBus client/sender/receiver/subscription lifecycle wrappers; keep `withLogSpan` + info logs only. Removes high-cardinality `sessionId` from log span names; promotes it to `messaging.session.id` log attribute via `Effect.annotateLogs`.
+- 0cff7c1: workaround middleware error issue
+- 62627e9: Fix boolean handling in SQL SELECT and WHERE
+- eb06b32: improve root union select
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- 52b0b01: switch to NdJson
+- 8a4a6d2: fup
+- dba5779: namespaces
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+- bb3f51d: Fix ContextMap finalizer running mid-stream on SSE responses. SSE handler now binds ContextMapContainer to the request scope via a shared `provideOnRequestScope` helper (also used by `RequestContextMiddleware`), so finalizers only run after the response body is fully drained. Adds `setupStreamingRequestContextFromCurrent` for use by streaming HTTP handlers.
+- db7ba34: Filter SSE events stream by storeId namespace
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- f22a026: Use `Effect.cached` in `getOrCreateStoreEffect` for proper memoization of the resolver effect.
+- 1d85785: Wrap store seed effects with `Effect.uninterruptible` to prevent interruption during seeding
+- 0054611: Stream RPC: drain read/write data-dependencies per emitted value chunk instead of sending the
+  cumulative set on every metadata chunk. Each metadata chunk now carries only the delta recorded
+  since the last chunk, the bucket is cleared for the next segment, and the terminal "done"/"error"
+  chunks drain the remainder. The emit condition also broadens to include non-empty reads, so stream
+  queries forward their read-dependencies mid-stream too. The client already accumulates deltas into
+  its per-call recorder, so no FE change is required.
+- 9569911: Stream resources accept `Effect.fail(...)` (and `Effect<Stream>`) from controller handlers — previously only `Stream.fail(...)` / a returned `Stream` worked. The router now lifts an Effect result to a Stream via `Stream.unwrap`, so failures from an `Effect` propagate as a failing Stream on the client, matching `Stream.fail(...)` behavior. Also removes the need for manual `.pipe(Stream.unwrap)` on generator handlers that return a `Stream`.
+- b0db40f: Router handlers are now discriminated by `Resource[K]["stream"]`:
+
+  - Stream resources (`stream: true`) accept only `(req) => Stream<...>` handlers.
+  - Non-stream resources accept only `(req) => Effect<...>` (or generator yielding `Yieldable`).
+
+  Mixing — e.g. returning `Effect.fail(...)` or `Effect<Stream<...>>` from a stream handler — no longer type-checks.
+
+  The runtime `Stream.unwrap` branch that lifted `Effect`/`Effect<Stream>` returns into a `Stream` is removed; handlers for stream resources must return a `Stream` directly. Migrate `Effect.gen(...).pipe(Stream.unwrap)` patterns by returning the `Stream` directly, and convert `Effect.fail(err)` in stream handlers to `Stream.fail(err)`.
+
+- 459697f: Restore native Arbitrary for the schemas that lost custom fast-check `toArbitrary`. `StringId` uses `toCodecArbitrary` (the native replacement): generate a 210-byte `Uint8Array` and run `customRandom(urlAlphabet, 21, …)` — same as the old `StringIdArb`. JSON stays a branded string via `toCodec`. `Url` is `https://…`. `RequestId` samples unique nanoid-shaped ids. `Finite` generation is capped at ±1e6. `generateFromSchema` jumps its master seed per call so successive `count: 1` draws do not collide on attempt-0 edge strings.
+- b53c59e: fix signature
+- b8b9080: update packages
+- ffbff5d: improve sentry
+- b63f10f: fix: nasty request scope bug
+- 52b0b01: Configure Changesets fixed versioning for public packages.
+- 6a0e008: remove artificial Cosmos bulkSet delays
+- 9992e70: pass options
+- 43611c7: enable cosmosdb large partition key hashes
+- 256ae85: cleanup
+- 1587bfc: Batch more Cosmos cluster storage updates.
+- 8bd9a11: Support ID-scoped signal dependencies and additive repository dependencies derived from previous and current entities.
+- 52b0b01: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- fac725d: update effect to latest beta
+- 52b0b01: Fix `TaggedRequest` no-config error type inference so requests without a third argument infer the same default error schema as requests with explicit success config.
+- 2a86a17: improve tsgo compat: avoid deferred `Schema.Type`/`Codec.Encoded`/`Codec.DecodingServices`/`Codec.EncodingServices` conditional helpers in generic positions where the type parameter is already constrained to `Schema.Top`. Index the property directly (`X["Type"]`, `X["Encoded"]`, `X["DecodingServices"]`, …) so tsgo doesn't leak `unknown` into `Effect` channels (notably `R`).
+
+  Sites: `client/clientFor.ts` (`RequestHandlerFor`, `FinalTypeOf`, `ExtractResponse`, `ExtractEResponse`), `client/makeClient.ts` (`InputFromPayload`, `OutputFromSuccess`, `InvalidationConfigForCommand`, `TaggedRequestWithMeta` overloads), `rpc/MiddlewareMaker.ts` (`Errors`), `rpc/RpcMiddleware.ts` (`Failure`, `FailureContext`), `Schema/ext.ts` (`ReadonlySetFromArray`, `ReadonlyMapFromArray`), `infra/routing.ts` (`GetSuccessShape`, handlers, route matcher), `vue/makeClient.ts` (`MutationExt.project`, `MutationWithExtensions`, `QueryProjection`), `vue/routeParams.ts` (`parseRouteParams*`).
+
+- c3299f7: update packages
+- 8062ad3: Unify Emailer `sendMail` spans across implementations. `Fake.sendMail` and `Sendgrid.sendMail` now both emit as `Emailer.sendMail` with OTel-standard `messaging.system` attribute (`"fake"` / `"sendgrid"`).
+- 39996f7: Unify `parseMany` span variants under a single span name. The four prior spans (`parseMany`, `parseMany2`, `parseManyProject`, `parseManyCollect`) now all emit as `parseMany` with `app.entity` and `app.query.mode` attributes (`"transform" | "project" | "collect"`). Reuses the same attribute key already set on the parent `Repository.query` span for consistency. `parseManyProject`/`parseManyCollect` previously lacked `app.entity` — now included.
+- 547e2e1: Update effect packages to `4.0.0-beta.107` (from `beta.90`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`, and `fast-check` to `^4.9.0`. Sync `repos/effect` subtree from `Effect-TS/effect` (effect-smol stopped publishing tags after beta.98).
+
+  API adaptations for beta.107:
+
+  - `concurrency: "inherit"` → `"unbounded"`
+  - `Schema.ErrorClass` / `TaggedErrorClass` → `Schema.Error` / `TaggedError`
+  - `Schema.LazyArbitrary` → `Schema.Arbitrary`
+  - `Schema.DateValid` / `isDateValid` removed (`Schema.Date` rejects invalid dates)
+  - `SchemaIssue` constructors no longer take `Option` (annotations + input)
+  - filter meta via `annotations.representation` instead of `annotations.meta`
+  - `context.defaultValue` → `context.constructorDefault` (single Link)
+  - Class detection via `~constructor` + static `identifier`
+  - Redacted detection via `representation.id`
+  - localized StandardSchema hooks updated for new issue/input model
+  - provide `NodeCrypto.layer` for cluster sqlite tests
+  - default `sync-effect` subtree URL → `Effect-TS/effect`
+
+- 52b0b01: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Update effect packages to 4.0.0-beta.52
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+- 7ca66ce: Update to effect 4.0.0-beta.66. Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 57a1862: Update to effect 4.0.0-beta.67. Switch deps from `pkg.pr.new` snapshot back to npm beta tag.
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- b6dda09: Update effect packages to `4.0.0-beta.90` (from `beta.88`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- 0263827: Update to effect `pkg.pr.new` snapshot at `a42ef66` (4.0.0-beta.66). Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 8bd5bfe: Update effect packages to `4.0.0-rc.112` (from `beta.107`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Sync `repos/effect` subtree from `Effect-TS/effect` at `effect@4.0.0-rc.112`.
+
+  API adaptations for rc.112:
+
+  - cluster encoded driver `resetAddress` → batched `resetAddresses`
+  - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
+  - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
+  - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+  - JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)
+
+- 724da29: replace useless span
+- Updated dependencies [439cbeb]
+- Updated dependencies [da83c1f]
+- Updated dependencies [b2df3fa]
+- Updated dependencies [199e9a5]
+- Updated dependencies [b035b1c]
+- Updated dependencies [664e83d]
+- Updated dependencies [a4dff57]
+- Updated dependencies [ba4bdc3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [9d3495e]
+- Updated dependencies [3436d44]
+- Updated dependencies [52b0b01]
+- Updated dependencies [f317c5e]
+- Updated dependencies [e585c9c]
+- Updated dependencies [e4ff9a6]
+- Updated dependencies [33b0544]
+- Updated dependencies [99c43c4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d092c]
+- Updated dependencies [947fe20]
+- Updated dependencies [21ac90a]
+- Updated dependencies [32f05c8]
+- Updated dependencies [6cfd83d]
+- Updated dependencies [1c858d3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [992d9fa]
+- Updated dependencies [505bfa9]
+- Updated dependencies [939bebc]
+- Updated dependencies [ba789a2]
+- Updated dependencies [ab289d4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [e0c4835]
+- Updated dependencies [32dbc54]
+- Updated dependencies [0a0030f]
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+- Updated dependencies [aeb17bc]
+- Updated dependencies [c0e5a1b]
+- Updated dependencies [10b55ff]
+- Updated dependencies [14aba14]
+- Updated dependencies [a0075b8]
+- Updated dependencies [f052d38]
+- Updated dependencies [f233f3d]
+- Updated dependencies [18bae5b]
+- Updated dependencies [f313973]
+- Updated dependencies [edc52e4]
+- Updated dependencies [ea1bd46]
+- Updated dependencies [85a8275]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [47e3742]
+- Updated dependencies [458bb1b]
+- Updated dependencies [3365758]
+- Updated dependencies [54ec1ef]
+- Updated dependencies [f21190c]
+- Updated dependencies [0d4e0b8]
+- Updated dependencies [31739d7]
+- Updated dependencies [0b21a02]
+- Updated dependencies [bbaa67e]
+- Updated dependencies [a211c12]
+- Updated dependencies [347af48]
+- Updated dependencies [bd26832]
+- Updated dependencies [3053760]
+- Updated dependencies [52b0b01]
+- Updated dependencies [55c6572]
+- Updated dependencies [f88ea34]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c991be1]
+- Updated dependencies [d738811]
+- Updated dependencies [8fffc3c]
+- Updated dependencies [52b0b01]
+- Updated dependencies [a788432]
+- Updated dependencies [10e90d5]
+- Updated dependencies [4b95009]
+- Updated dependencies [52b0b01]
+- Updated dependencies [178480a]
+- Updated dependencies [985176b]
+- Updated dependencies [dc465e3]
+- Updated dependencies [21017d5]
+- Updated dependencies [0541f0d]
+- Updated dependencies [2ebf8ae]
+- Updated dependencies [8c645d5]
+- Updated dependencies [8cb3de4]
+- Updated dependencies [30c512d]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [b952f19]
+- Updated dependencies [a37aa38]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c1e73de]
+- Updated dependencies [d867272]
+- Updated dependencies [774a9b3]
+- Updated dependencies [d67d17a]
+- Updated dependencies [8f09f77]
+- Updated dependencies [50ce7e6]
+- Updated dependencies [d71d976]
+- Updated dependencies [2aa8e5e]
+- Updated dependencies [29a1e57]
+- Updated dependencies [186de3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [6fff09c]
+- Updated dependencies [11422f8]
+- Updated dependencies [eb28ea5]
+- Updated dependencies [52b0b01]
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [ee9694e]
+- Updated dependencies [52a31dd]
+- Updated dependencies [52b0b01]
+- Updated dependencies [ca94edf]
+- Updated dependencies [d1c15d3]
+- Updated dependencies [a1b59bc]
+- Updated dependencies [dc07df5]
+- Updated dependencies [0fe925d]
+- Updated dependencies [40585ca]
+- Updated dependencies [5ac46cb]
+- Updated dependencies [a354345]
+- Updated dependencies [52b0b01]
+- Updated dependencies [186de3a]
+- Updated dependencies [48d9f36]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [d31253f]
+- Updated dependencies [5615e47]
+- Updated dependencies [3e46e7b]
+- Updated dependencies [cec026d]
+- Updated dependencies [88838fb]
+- Updated dependencies [3bae238]
+- Updated dependencies [b2e438f]
+- Updated dependencies [f150cf9]
+- Updated dependencies [0c88f78]
+- Updated dependencies [d16845e]
+- Updated dependencies [261470f]
+- Updated dependencies [beae3a0]
+- Updated dependencies [8792221]
+- Updated dependencies [1f103b2]
+- Updated dependencies [0054611]
+- Updated dependencies [7bd8234]
+- Updated dependencies [54bfc59]
+- Updated dependencies [ad0ede6]
+- Updated dependencies [89d8b3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d2e70]
+- Updated dependencies [9ea024d]
+- Updated dependencies [5f9cd6a]
+- Updated dependencies [6252808]
+- Updated dependencies [e6f2341]
+- Updated dependencies [821468d]
+- Updated dependencies [2495ace]
+- Updated dependencies [0b3e00e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c215db8]
+- Updated dependencies [12abb55]
+- Updated dependencies [0cff7c1]
+- Updated dependencies [c1a6fdc]
+- Updated dependencies [8ae8b53]
+- Updated dependencies [a5248a9]
+- Updated dependencies [0e824ef]
+- Updated dependencies [52b0b01]
+- Updated dependencies [eb06b32]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [025de47]
+- Updated dependencies [acfdc9e]
+- Updated dependencies [1186b09]
+- Updated dependencies [a69da09]
+- Updated dependencies [3c1f52d]
+- Updated dependencies [3a8c710]
+- Updated dependencies [186de3a]
+- Updated dependencies [0054611]
+- Updated dependencies [583393f]
+- Updated dependencies [828d264]
+- Updated dependencies [7fa3045]
+- Updated dependencies [3dc0d2a]
+- Updated dependencies [459697f]
+- Updated dependencies [738b482]
+- Updated dependencies [3eda52e]
+- Updated dependencies [b52b424]
+- Updated dependencies [7c25dbb]
+- Updated dependencies [b8b9080]
+- Updated dependencies [b90fa30]
+- Updated dependencies [57db551]
+- Updated dependencies [3613e87]
+- Updated dependencies [52b0b01]
+- Updated dependencies [7119320]
+- Updated dependencies [e944bca]
+- Updated dependencies [dbcc53b]
+- Updated dependencies [52b0b01]
+- Updated dependencies [140e192]
+- Updated dependencies [9992e70]
+- Updated dependencies [24f0a5a]
+- Updated dependencies [256ae85]
+- Updated dependencies [8bd9a11]
+- Updated dependencies [52b0b01]
+- Updated dependencies [fac725d]
+- Updated dependencies [412f08b]
+- Updated dependencies [79eb019]
+- Updated dependencies [6ae3050]
+- Updated dependencies [f353d48]
+- Updated dependencies [52b0b01]
+- Updated dependencies [01bab22]
+- Updated dependencies [2a86a17]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c3299f7]
+- Updated dependencies [23a7167]
+- Updated dependencies [e71eb78]
+- Updated dependencies [6b57330]
+- Updated dependencies [e2d00b5]
+- Updated dependencies [547e2e1]
+- Updated dependencies [52b0b01]
+- Updated dependencies
+- Updated dependencies [ea32222]
+- Updated dependencies [7ca66ce]
+- Updated dependencies [57a1862]
+- Updated dependencies [3e855bc]
+- Updated dependencies [78d076a]
+- Updated dependencies [ffd140f]
+- Updated dependencies [e8842aa]
+- Updated dependencies [b6dda09]
+- Updated dependencies [0263827]
+- Updated dependencies [8bd5bfe]
+- Updated dependencies [2231ef8]
+- Updated dependencies [c7bbc41]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+  - effect-app@4.0.0
+
 ## 4.0.0-beta.333
 
 ### Patch Changes

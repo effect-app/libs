@@ -1,5 +1,129 @@
 # @effect-app/cli
 
+## 2.1.0
+
+### Minor Changes
+
+- 07dcd75: Add `effa sync` / `effa sync-diff` / `effa sync-push` subcommands for syncing content (architecture docs, e2e helpers, ts-plugins) from `effect-app/shared` into consuming projects per a project-side `.shared.json` lockfile.
+
+  - `effa sync` — clone/checkout the shared repo at the pinned ref into `~/.cache/effa/shared/<slug>`, then copy the artifact map's files into the project (honoring `exclude`).
+  - `effa sync-diff` — sha256 compare each tracked file against the cache copy; reports `M` (modified locally), `D` (missing from project), `E` (excluded).
+  - `effa sync-push [--pr] [-m msg] [--branch name]` — branch in the cache off the pinned ref, copy modified project files in, commit, push. Optional `--pr` opens a PR via `gh pr create`.
+
+  Lockfile shape:
+
+  ```json
+  {
+    "repo": "github.com/effect-app/shared",
+    "ref": "<sha>",
+    "artifacts": { "<src-in-shared>": "<dest-in-project>" },
+    "exclude": ["<src-path>"]
+  }
+  ```
+
+- 97207c0: Add `sync-effect` CLI command to sync the Effect git subtree to the version pinned in package.json manifests.
+
+### Patch Changes
+
+- 1f9d7da: fix missing toCodecJson usages
+- 32f05c8: Remove unused dependency declarations from package manifests.
+- 6cfd83d: update effect to latest beta
+- 8434b5f: preserve trailing newline when writing package.json files
+- b9312df: Prevent subtree sync commands from importing upstream git tags.
+- 68f1b39: Make `effa ue` update Effect and Effect App packages to the highest versions allowed by their existing semver ranges, including compatible prerelease updates.
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- 52b0b01: Beta25
+- 10b55ff: update packages
+- 7b28548: Add `effa sync --update [--ref <branch|tag|sha>]` to bump the pinned `ref` in `.shared.json` to the latest sha before syncing. Without `--ref` it resolves the shared repo's default branch HEAD; with `--ref` it resolves that ref (branches resolved against `origin/` so you get the latest remote commit). The resolved sha is written back to the lockfile. Omitting `--update` keeps the existing pin-and-sync behaviour.
+- 18bae5b: Upgrade Effect packages to `4.0.0-rc.114` (core `effect` via pkg.pr.new at `cdb3ac91` until npm publishes that version). Also bump independently versioned `@effect/language-service` to `0.87.2` and `@effect/tsgo` to `0.45.0` (requires `oxlint` `1.82.0`).
+
+  Breaking API updates from this RC:
+
+  - PascalCase Config/CLI constructors (`Config.String`, `Flag.File`, `Config.NonEmptyString`, `Config.Redacted`, `Config.Literal`)
+  - `Config.Record` now returns a Config
+  - Schema `toArbitrary` (fast-check) replaced by native `effect/unstable/arbitrary`
+  - `SchemaTransformation.transformOrFail` renamed to `transformEffect`
+  - `Fiber.currentSpan` moved to `fiber.cache.span`
+  - HTTP server addresses are `InetAddressV4`/`InetAddressV6` instead of `TcpAddress`
+  - Object JSON Schema now emits `additionalProperties: true`
+  - Schema `Union` AST stores matching as `options.mode` instead of `mode`
+
+- e2c9ebd: Require an explicit `EFFA_GIST_CACHE_ID`, remove cache Gist discovery and automatic creation, and initialize missing company pointer files once.
+- 55c6572: update packages
+- c991be1: update packages
+- 8c645d5: update to latest effect
+- a37aa38: Update to effect beta 43
+- c1e73de:
+- d867272: the return of `Context`
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- eb28ea5: bogus
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+- cec026d: update packages
+- 8267e7d: update to latest effect
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- b8b9080: update packages
+- e7ad78c: Add `sync-effect-app` to sync vendored Effect App libs by pinned package version.
+  The command prefers package-version git tags and supports `--ref latest` for main.
+- e7ad78c: Sync Effect subtrees from a repository URL without requiring a local git remote.
+- 6138bc7: `effa sync-push`: propagate locally-deleted synced files. Previously, files removed from the consuming project were silently skipped (the loop bailed when `destAbs` didn't exist). Now they're recorded as deletions, `git rm`'d in the cache branch, and listed in the PR body alongside modifications.
+- 52b0b01: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- fac725d: update effect to latest beta
+- 52b0b01: update all teh tings
+- c3299f7: update packages
+- 6b57330: Upgrade Effect packages to npm `4.0.0`.
+- e2d00b5: Upgrade Effect packages to npm `4.0.1`.
+- 547e2e1: Update effect packages to `4.0.0-beta.107` (from `beta.90`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`, and `fast-check` to `^4.9.0`. Sync `repos/effect` subtree from `Effect-TS/effect` (effect-smol stopped publishing tags after beta.98).
+
+  API adaptations for beta.107:
+
+  - `concurrency: "inherit"` → `"unbounded"`
+  - `Schema.ErrorClass` / `TaggedErrorClass` → `Schema.Error` / `TaggedError`
+  - `Schema.LazyArbitrary` → `Schema.Arbitrary`
+  - `Schema.DateValid` / `isDateValid` removed (`Schema.Date` rejects invalid dates)
+  - `SchemaIssue` constructors no longer take `Option` (annotations + input)
+  - filter meta via `annotations.representation` instead of `annotations.meta`
+  - `context.defaultValue` → `context.constructorDefault` (single Link)
+  - Class detection via `~constructor` + static `identifier`
+  - Redacted detection via `representation.id`
+  - localized StandardSchema hooks updated for new issue/input model
+  - provide `NodeCrypto.layer` for cluster sqlite tests
+  - default `sync-effect` subtree URL → `Effect-TS/effect`
+
+- 52b0b01: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Update effect packages to 4.0.0-beta.52
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- b6dda09: Update effect packages to `4.0.0-beta.90` (from `beta.88`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- 8bd5bfe: Update effect packages to `4.0.0-rc.112` (from `beta.107`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Sync `repos/effect` subtree from `Effect-TS/effect` at `effect@4.0.0-rc.112`.
+
+  API adaptations for rc.112:
+
+  - cluster encoded driver `resetAddress` → batched `resetAddresses`
+  - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
+  - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
+  - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+  - JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)
+
+- 2231ef8: Upgrade Effect packages to npm `4.0.0-rc.115`. Drop the pkg.pr.new pin used while `effect@4.0.0-rc.114` was unpublished.
+
 ## 2.1.0-beta.45
 
 ### Patch Changes

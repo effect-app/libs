@@ -1,5 +1,646 @@
 # @effect-app/prelude
 
+## 4.0.0
+
+### Major Changes
+
+- 52b0b01: Fix Schema->Codec
+- 52b0b01: Effect v4 beta
+
+### Minor Changes
+
+- b2df3fa: Align `Schema.Void` with TypeScript `void` return-value semantics (effect-smol PR #2475 / `b7d46ab`).
+
+  `S.Void` now accepts **any present value** at runtime and discards it to `undefined`, while keeping the decoded/encoded type as `void` — matching a `void` return whose result callers never observe. This is implemented as an override of the AST node in a new `effect-app/SchemaAST` module (`export * from "effect/SchemaAST"` plus a `Void` subclass whose parser mirrors the PR's `fromAnyToConst(undefined)`), so there is a single canonical `Void` used everywhere, including RPC success schemas.
+
+  - New `effect-app/SchemaAST` module; internal `SchemaAST` imports across the libs now route through it.
+  - Removed `ForceVoid` from `effect-app/client/makeClient` — use `S.Void` directly, which now carries this behaviour.
+  - `S.Void_` remains available as effect's original (`undefined`-only) Void.
+
+- ba789a2: Move core service contracts and runtime-agnostic modules into `effect-app`, keep `infra` and `vue` focused on adapters, and drop the temporary `infra` compatibility re-export paths in favor of the new canonical imports.
+
+  `@effect-app/infra` no longer re-exports moved core modules such as `./Model`, `./Emailer/service`, `./QueueMaker/service`, `./Store/service`, `./adapters/*`, or `./api/*` entrypoints.
+
+- ab289d4: Add opt-in `autoscaleMaxThroughput` for Cosmos containers created on demand (`StorageConfig`, `ClusterCosmosConfig`, `WorkflowEngineCosmosConfig`). When set, a missing container is created with autoscale at that max RU/s, unless its database has shared throughput (then it keeps sharing the database pool). Existing containers are untouched; unset keeps the Cosmos default of manual 400 RU/s per container.
+- aeb17bc: Add `disableQueryInvalidation` flag to Command config for background saves.
+
+  Set `disableQueryInvalidation: true` in a `Req.Command` config (3rd argument)
+  to suppress all client-side query invalidation for that command — client
+  `invalidatesQueries` callbacks, server-returned `metadata.invalidateQueries`,
+  and repository-derived write-dependency matching are all skipped. Use for
+  background saves (e.g. debounced auto-save) whose writes should not trigger
+  query refetches.
+
+  - `InvalidationConfig` gains `disableQueryInvalidation?: boolean`.
+  - `RequestHandlerWithInput` gains `disableQueryInvalidation?: boolean`,
+    propagated from `Request.config` by `ApiClientFactory.makeFor`.
+  - `invalidateCache` early-returns `Effect.void` when the flag is set,
+    applying to both regular and stream mutations.
+
+- f21190c: Add `copy` property to `Class` and `TaggedClass` for creating modified instances with updated fields. The `copy` method is cached per-class and supports both object and function-based updates, with pipeline support.
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+- 2ebf8ae: `jitM` runs at the store boundary as JSON → JSON, before the `toCodecJson(toEncoded(schema))` decode; repositories decode the Encoded shape only.
+
+  `jitM` used to be applied by the repository _after_ the store had already decoded the document, and was typed `(pm: Encoded) => Encoded` - a lie, since jitMs are written against the stored JSON and `Encoded` holds native `Date`/`Map`/`Set` values.
+
+  The read pipeline is now: raw JSON document → merge `defaultValues` (unchanged: they only fill _absent_ keys, so an explicitly stored `null` reaches `jitM`) → `jitM` (JSON → JSON) → decode `Schema.toCodecJson(Schema.toEncoded(schema))` → Encoded. The repository then decodes Encoded → the domain type with `schema` and no longer applies `jitM` at all. Because `jitM` now runs before any schema decode sees the document, it can repair legacy shapes including explicit `null`s.
+
+  - `StoreConfig.jitM?: (json: JsonRecord) => JsonRecord` is new, where `JsonRecord` (exported from `effect-app/Store`) is `{ readonly [key: string]: Schema.Json }`. It is not applied on the write/encode path, and never receives `_etag`.
+  - `RepositoryOptions.jitM` changes type from `(pm: Encoded) => Encoded` to `(json: JsonRecord) => JsonRecord` and is forwarded into the store config.
+  - **Migrating a jitM:** it now receives and must return JSON. A `Date` field arrives as an ISO string (return a string, not a `Date`), a `ReadonlySet` as an array, a `ReadonlyMap` as an array of `[key, value]` pairs. Field access is index-signature based (`json["x"]`) rather than typed property access.
+  - The JSON→Encoded decode stays strict: a document `jitM` does not repair fails at the store boundary instead of being read back half-decoded.
+  - `ValidationError.jitMResult` is deprecated: `validateSample` only ever sees the store's output, so it is identical to `rawData`.
+
+- 8cb3de4: Add command invalidation helpers that preserve query-only resource types and pass mutation input and `Exit` results into invalidation callbacks. Update Vue `clientFor` to merge request-level invalidation config with call-site invalidation and require matching invalidation resources.
+- 186de3a: Stop forcing Date/Map/Set Encoded shapes to JSON.
+
+  `Schema.Date` / `ReadonlySet` / `ReadonlyMap` now keep native Encoded types (`Date`, `Set`, `Map`). Use `DateFromString`, `ReadonlySetFromArray`, and `ReadonlyMapFromArray` when the Encoded form must be JSON. The query DSL accepts those native values, including array ops (`includes` / `in` / `includes-any`) on `Date[]` and `ReadonlySet` fields. Memory, Disk, SQL, and Cosmos convert Encoded Date/Map/Set through `Schema.toCodecJson` on write/read; query parameters and defaults lower the same way from the store schema. App types such as DateOnly stay native Encoded and JSON-lower via that schema — not a type registry.
+
+- 186de3a: Query maps as JSON arrays of `[key, value]` tuples.
+
+  `where("meta", "hasKey" | "hasValue" | "hasKeyValue", ...)` (and `not*` / `*-any` / `*-all` variants) filter `ReadonlyMap` fields. Memory, Disk, SQLite, Postgres, and Cosmos compile those ops against the encoded tuple array.
+
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- 1f103b2: Replace `proxify` with explicit service accessor helpers: `accessFn`, `accessEffectFn`, `accessCn`, `accessEffectCn`.
+- 0054611: Derive query invalidation from repository read/write dependencies and propagate dependency metadata through RPC clients.
+- 89d8b3a: Add Effect RPC `Stream` support to the wrapper.
+
+  - New `Stream` request constructor on `TaggedRequestFor` parallel to `Query`/`Command`. Emits resources with `type: "stream"`.
+  - Server router (`@effect-app/infra` `routing.ts`) accepts stream resources whose handlers return a `Stream.Stream<A, E, R>` (or a function from input to one). Forwards `stream: true` to `Rpc.make` so `RpcSchema.Stream` wrapping is applied. Streams bypass `applyRequestTypeInterruptibility` and the `Effect.withSpan` wrapping (the RPC server adds its own span).
+  - Client (`apiClientFactory.ts`) detects stream resources, forwards `stream: true` when constructing `RpcGroup`, and exposes the per-request `handler` as a `Stream.Stream` (via `Stream.unwrap` over the `ManagedRuntime` context) instead of an `Effect`. `Invalidation.CommandResponseWithMetaData` continues to apply only to commands.
+  - New `RequestStreamHandler` / `RequestStreamHandlerWithInput` shapes in `clientFor.ts`; `RequestHandlers` dispatches on `type: "stream"`.
+
+- 08d2e70: Add `concurrency: "unbounded"` parseOptions annotation to Schema constructors (Struct, Array, NonEmptyArray, Record, TaggedStruct, ReadonlySet, ReadonlyMap, Class, TaggedClass) so all encode/decode operations automatically run with unbounded concurrency. Also override `mapFields` on Struct and Class/TaggedClass to preserve the annotation.
+- 5f9cd6a: Schema/Class facades: add `StructFacade` and carry `identifier` on the class facades.
+
+  - Add `StructFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Fields>` = `Omit<S.Struct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices"> & { pinned type-level members }`. A top-level `const X = S.Struct(...)` / `S.TaggedStruct(...)` model faceted by the `.d.ts`-emit compiler is retyped to it: still a real `S.Struct<Fields>` (so `Workflow.AnyStructSchema`, the `Struct<Fields & Context>` reconstruction, `Union`, `.fields.x` keep working) while `Type`/`Encoded`/make/services resolve to the named namespace interfaces.
+  - Add `readonly identifier: string` to `OpaqueClassFacade` and `OpaqueErrorFacadeClass` (an `S.Class` static lost from the bare emitted interface, which the compiler otherwise had to hand-emit per model). `OpaqueFacade` is intentionally left untouched — `S.Opaque` and requests build on `S.Bottom`, not `S.Class`, so they have no `identifier`.
+
+- 6252808: Add `ReadonlySetFromArray` and `ReadonlyMapFromArray` schema transformations that decode from annotated arrays to Set/Map. Update `ReadonlySet` and `ReadonlyMap` to use these internally.
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+- 025de47: Fold the encoded-override support from `ExtendedClass` and `ExtendedTaggedClass` into `Class`, `TaggedClass`, `ErrorClass`, and `TaggedErrorClass`, and update model codegen to detect the new second-generic form.
+- 3a8c710: Store document decode fails as a typed `SchemaError` instead of a defect; repositories keep their public error channels by dying at the boundary; `validateSample` reports documents that fail at the store boundary.
+- 186de3a: JSON stores lower native Encoded values (Date, Map, Set, and app types such as DateOnly) through the store's document schema.
+
+  `makeRepo` already passes that schema. Adapters encode documents, query parameters, and defaults with `Schema.toCodecJson(toEncoded(schema))` at the field path. No type registry. Schemaless stores still lower Date/Map/Set structurally.
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+- 738b482: Add pick/omit to Struct and TaggedStruct
+- 3613e87: Add `TaggedRequestFor` helper to `makeRpcClient` that curries a `moduleName`, producing request classes with static `id` and `moduleName` properties. This enables passing request classes directly to `makeQueryKey` without going through `clientFor` first. The `clientFor` function no longer requires a `meta` property on the module when requests carry `moduleName`. The meta codegen preset now generates `Req = TaggedRequestFor(moduleName)`. Original `TaggedRequest` remains for backwards compatibility.
+- 7119320: Add `generateGuards` and `generateGuardsFor` to `TaggedUnion` / `ExtendTaggedUnion` for property-scoped type guards.
+
+  - `generateGuards("key")` — generic per-guard, no need to specify the container type
+  - `generateGuardsFor<A>()("key")` — curried, fixes `A` for concrete guard signatures
+
+  Both return `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
+- e944bca: Add `generateGuards` and `generateGuardsFor` to `TaggedUnion` / `ExtendTaggedUnion` for property-scoped type guards.
+
+  - `generateGuards("key")` — generic per-guard, no need to specify the container type
+  - `generateGuardsFor<A>()("key")` — curried, fixes `A` for concrete guard signatures
+
+  Both return `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
+- 8bd9a11: Support ID-scoped signal dependencies and additive repository dependencies derived from previous and current entities.
+- 23a7167: Add a typed, serializable `DatabaseError { message, transient, cause }` for store adapter failures.
+
+  Store adapters wrapped DB calls in bare `Effect.promise` / `.orDie`, so a transient infra failure (request timeout, throttle, 5xx, dropped socket) became a raw-`Error` defect — which `Effect.retry` can't retry and which breaks JSON encoding of a workflow exit cause ("Expected JSON value, got Error"). `DatabaseError` is now exposed on all `Store` and `Repository` method error channels (writes: `OptimisticConcurrencyException | DatabaseError`) and added to `SupportedErrors` so the api/client/FE treat it as a 500-class error. Each adapter wraps its db-call failures into `DatabaseError` with a `transient` flag (timeout/throttle/5xx ⇒ retryable); the `cause` serializes via `Schema.Defect`. Construction/seed/DDL paths stay `orDie`.
+
+- e71eb78: Tighten typing of query DSL builders so field/path parameters are constrained to actual field paths instead of bare `string`:
+
+  - `relation(path)` now infers the relation's element type and constrains `distinctCount`/`sum`/`collect`/`collectDistinct`/`collectFields`/`collectDistinctFields` and the `unit` of `sumExprBy`/`sumExprNormalized` to `FieldPath<Element>`.
+  - `relation(path).expr` exposes a scope-bound math-expression builder so `expr.field(...)` inside `sumExpr`/`sumExprBy`/`sumExprNormalized` is typed against the relation element.
+  - Top-level `expr.field` accepts an optional generic for opt-in tightening (`expr.field<E>("x")`).
+  - `aggregate(schema, build)` accepts a builder callback whose `agg` argument is bound to the source row inferred from the pipe — paths are checked without any explicit generic: `make<Row>().pipe(aggregate(schema, ($) => ({ city: $.field("address.city") })))`. Plain `AggregateMap` form still accepted.
+  - `projectComputed(schema, build, mode?)` accepts a builder callback whose `{ relation }` argument is bound to the source row inferred from the pipe: `make<Row>().pipe(projectComputed(out, ({ relation }) => ({ total: relation("items").sum("qty") })))`. Plain `ComputedProjectionMap` form still accepted.
+  - `agg<Row>()` factory remains as an escape hatch when the builder is built outside a pipe.
+
+### Patch Changes
+
+- 439cbeb: Adopt module system from effect-smol: replace barrel imports with specific submodule imports (`import * as X from "effect-app/X"` / `import * as X from "effect/X"`).
+- da83c1f: Align `InvalidationEntry` (vue) with `InvalidateQueryInstruction` (effect-app).
+
+  `InvalidateQueryInstruction` is now parametrized over `Filters` / `Options`
+  (defaulting to `Record<string, unknown>` so the core stays framework-agnostic).
+  `@effect-app/vue` exposes `InvalidationEntry` as a narrowed alias substituting
+  `@tanstack/vue-query`'s `InvalidateQueryFilters` and `InvalidateOptions`. Single
+  source of truth for the union shape across both packages.
+
+- 199e9a5: Allow Struct and TaggedStruct make helpers to omit input when every constructor field is optional or defaulted, and preserve widening copy typings through a lighter named public type to improve TypeScript editor responsiveness.
+- b035b1c: Isolate per-call `Effect.provide(layers)` / `Stream.provide(layers)` in the
+  RPC api client factory via `{ local: true }`.
+
+  `layers` here is built per RPC invocation from a caller-supplied
+  `requestLevelLayers` plus a fresh `RequestName` layer. Today both pieces are
+  stateless, so no observable bug — but `Effect.provide(layer)` without
+  `local: true` resolves its `MemoMap` from the ambient fiber context, and on a
+  long-lived runtime (browser app, server fiber) any stateful layer slipped into
+  `requestLevelLayers` by a caller would be memoized and shared across every
+  subsequent RPC call. `{ local: true }` builds the layer fresh per call and
+  skips the ambient MemoMap entirely.
+
+  Also documents the rule in `AGENTS.md` ("Per-request `Effect.provide(layer)`
+  must isolate its MemoMap") so the pattern is enforceable in code review and
+  caught early. Companion to the `provideOnRequestScope` MemoMap fix in
+  `@effect-app/infra`.
+
+- 664e83d: Add Atom-native Vue query APIs, stream query pull atoms, and a TanStack-backed legacy query engine toggle.
+- a4dff57: Adjust Struct and TaggedStruct copy typing to follow class-style widening constraints while keeping structural copy runtime behavior.
+- ba4bdc3: improve: support .ts extension
+- 52b0b01: remove hopefully obsolete Struct overrides
+- 9d3495e: Preserve field-level schema decode errors for relaxed Class and TaggedClass declarations so decode failures report nested constraints (for example min-length violations) instead of only a generic class-type mismatch.
+- 3436d44: Extend `Schema.Opaque` in `effect-app/Schema` to support an optional encoded-type generic while preserving the original single-generic behavior.
+- 52b0b01: Update `Effect.allLower` to call `svc.asEffect()` when available, ensuring service entries are normalized before `Effect.all` evaluation.
+- f317c5e: Preserve omitted-input make helpers through Schema.Opaque when the wrapped schema allows optional or default-only constructor input.
+- e585c9c: fix config nested
+- e4ff9a6: Fix the global `Array`/`ReadonlyArray.map` override breaking union-of-array receivers. The previous `this: NonEmptyArray`/`NonEmptyReadonlyArray` overload was selected-then-rejected on a union receiver (e.g. `(readonly A[] | readonly B[]).map(...)`), raising TS2684. Replaced with a single conditional-return signature (`this extends NonEmpty… ? NonEmpty<U> : U[]`) that preserves NonEmpty refinement without a `this` parameter, so union-array `.map` calls type-check again.
+- 33b0544: Replace repository codec child spans with parent-span timing attributes and bounded metrics, and record database operation timing for instrumented stores.
+- 99c43c4: Derive scoped dependency reads and writes from typed query filters and annotated model relationships, including previous aliases.
+- 52b0b01: Fix `Schema.TaggedUnion(...).tags` extraction for class-based members (for example `TaggedClass`) by using a local AST sentinel walker instead of relying on internal effect APIs.
+
+  Add tests covering:
+
+  - `TaggedUnion` with `encodeKeys`-wrapped members
+  - `TaggedUnion` with `TaggedClass` members
+
+- 08d092c: Update Atom query caches in memory and accumulate stream invalidations so live events do not cause repeated RPC refetches.
+- 947fe20: fix input date
+- 21ac90a: Unify generated model facades on `OpaqueFacade` and support class facades through encoded-key schema transforms.
+- 32f05c8: Remove unused dependency declarations from package manifests.
+- 6cfd83d: update effect to latest beta
+- 1c858d3: fix request scope problems
+- 52b0b01: fix bs
+- 992d9fa: fix more branded types
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- 939bebc: Remove the local `Config.nested` / `ConfigProvider.nested` overrides. They worked around an effect v3 bug where the nested namespace segment bypassed the provider's `mapInput`/`constantCase` transform. effect `4.0.0-beta.84` fixes this upstream (its transformation-compose refactor threads the nested prefix through the provider's lookup transform), and the old overrides relied on internals (`Config.make`, `provider.get`/`mapInput`/`prefix`) that no longer exist. Both modules now re-export effect directly; behaviour for consumers (e.g. `Config.nested("cups")` against a `constantCase` env provider) is unchanged and correct.
+- 52b0b01: Beta25
+- e0c4835: revert bs
+- 32dbc54: fix stream type when no success specified
+- 0a0030f: fix missing overloads
+- 0263827: Fix `Date` / `DateValid` default helpers to pipe from their own schema.
+
+  `withConstructorDefault` and `withDecodingDefaultType` on `DateValid` previously piped from `DateFromString`, dropping the `isDateValid()` check (and, after the recent identifier split, the `DateValid` annotations) from the resulting defaulted schema. Both `Date` and `DateValid` now use `extendM` so the helpers attach to the underlying schema (`DateFromString` / `DateValidFromString`).
+
+- 0263827: Distinguish `Date` and `DateValid` in JSON Schema output.
+
+  - `Date` now emits identifier `DateOrInvalid` with description noting the value may be invalid.
+  - `DateValid` now emits its own annotated string (identifier `Date`) with description stating a valid ISO 8601 date is required.
+
+- c0e5a1b: Add `Schema.dropConstructorDefault`, a `Struct.Lambda` that clears a field's `withConstructorDefault`. Compose it with `Struct.omit`/`Struct.map` when deriving a partial-update schema from a "create" schema, so omitted fields' constructor defaults don't resurrect themselves in `.make(...)` output.
+
+  Also, `makeExactOptional` now drops constructor defaults automatically, matching this behavior.
+
+- 10b55ff: update packages
+- 14aba14: fix: clientFor
+- a0075b8: `Email` and `PhoneNumber` carry native `arbitraryConstraint` patterns, so `effect/unstable/arbitrary` (and `generateFromSchema`) can sample them instead of exhausting rejection sampling on their `refine` guards.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` in `apiClientFactory`.
+- f233f3d: `PositiveNumber` and `NonNegativeNumber` bound native Arbitrary generation to at most 1,000,000 (`arbitraryConstraint` on their existing checks), so generated fixtures no longer overflow derived totals to `Infinity`. Validation and JSON Schema output are unchanged.
+- 18bae5b: Upgrade Effect packages to `4.0.0-rc.114` (core `effect` via pkg.pr.new at `cdb3ac91` until npm publishes that version). Also bump independently versioned `@effect/language-service` to `0.87.2` and `@effect/tsgo` to `0.45.0` (requires `oxlint` `1.82.0`).
+
+  Breaking API updates from this RC:
+
+  - PascalCase Config/CLI constructors (`Config.String`, `Flag.File`, `Config.NonEmptyString`, `Config.Redacted`, `Config.Literal`)
+  - `Config.Record` now returns a Config
+  - Schema `toArbitrary` (fast-check) replaced by native `effect/unstable/arbitrary`
+  - `SchemaTransformation.transformOrFail` renamed to `transformEffect`
+  - `Fiber.currentSpan` moved to `fiber.cache.span`
+  - HTTP server addresses are `InetAddressV4`/`InetAddressV6` instead of `TcpAddress`
+  - Object JSON Schema now emits `additionalProperties: true`
+  - Schema `Union` AST stores matching as `options.mode` instead of `mode`
+
+- f313973: fix type make interface
+- edc52e4: update
+- ea1bd46: fix: prevent expansion of nominal brands
+- 85a8275: Expose `make`, `makeOption`, and `makeEffect` static helpers on request classes created via `Query`/`Command`.
+- 50b022e: Harden model facades and add `OpaqueErrorFacadeClass`.
+
+  - `OpaqueErrorFacadeClass`: facade `TaggedErrorClass`/`ErrorClass` while keeping
+    `Cause.YieldableError` on the constructed instance (so `yield* new Err()`,
+    `Effect.fail`, and `instanceof` keep working through the facade).
+  - `OpaqueFacadeInput` relaxed to require only the codec service channels, so
+    transformed schemas (`.pipe(encodeKeys/annotate/filter/...)`) can be facaded;
+    `fields`/`copy`/`mapFields` flow through `OpaqueFacadeStatics` when present, and
+    `to` is carried so models that compose via `X.to.fields` keep working.
+  - Dropped the wide `fields`/`mapFields` overrides on the facade interfaces so the
+    precise statics win (keeps `Q.project(X.mapFields(...))` typed).
+  - Codegen (`eslint-codegen-model`): resolver prefers the private `_X` over the
+    self-referential facade; converges static service types in one run; per-model
+    classification (facade Opaque models, leave `Class` standard in mixed files);
+    `Make` emitted as `type X = {...} | void` when the make-input is voidable;
+    `readonly`-prefixed array/tuple elements parenthesized; value self-references in
+    the moved `_X` body rewritten to `_X`; instance getters surface on `Self`.
+
+- 52b0b01: Migrate schema arbitrary annotations to Effect v4 `toArbitrary` and cover `StringId` generation with a fast-check test.
+- 47e3742: Preserve Struct.copy through `annotate`, `annotateKey`, and `mapFields` chains, and add tests covering chained copy behavior on Struct schemas.
+- 458bb1b: fix type
+- 3365758: workaround effect error messages
+- 54ec1ef: fix bs
+- 0d4e0b8: Fix `isGeneratorFunction` using `isObject` instead of `isFunction`: generator functions have `typeof === "function"`, not `"object"`, so the check always returned `false`. This caused `Command.streamFn` generator-form handlers to silently pass a raw `Generator` object rather than an `Effect<Stream>`, meaning the mutation was never executed.
+- 31739d7: Fix JSON schema output for Email, Date, PhoneNumber, and Url schemas. The `jsonSchema` annotation key is not recognized by Effect v4's JSON schema generator — use proper v4 annotations (`format`, `description`) and built-in checks (`isMinLength`, `isMaxLength`) instead.
+- 0b21a02: fix: flatten simple allOf constraints in JSON Schema output for better codegen compatibility
+- bbaa67e: Fix `TS2589: Type instantiation is excessively deep and possibly infinite` when querying models that embed `Schema.Defect()` (or any field encoded as `Json`).
+
+  The query path type `Path<T>` (used by `Q.where`/`Q.and`/`Q.order` to type dotted field paths) recursed through object types with no termination for self-referential ones. Under effect `4.0.0-beta.83`, `Schema.Defect()` encodes as `Json`, whose `JsonObject = { readonly [x: string]: Json }` index signature made `Path` descend forever, blowing past TypeScript's instantiation limit on any model with such a field (e.g. carrier-error states carrying `raw: Schema.Defect()`).
+
+  `Path` now threads a `Seen` set of already-entered object types and stops before re-entering one, so self-referential types terminate (the field itself stays a valid leaf path; only the unbounded descent is cut). Finite models are unaffected.
+
+- a211c12: Fix projection schema typing for union members and computed projections.
+- 347af48: Fix schema interface widening regression introduced in 4.0.0-beta.255 (changeset `olive-onions-lose`).
+
+  The original refactor annotated branded schema constants with interfaces extending `S.Codec<A, primitive> & WithDefaults<...>`. That widened the underlying `BrandedSchema<...>` chain and dropped phantom slots (`Iso`, `~type.make.in`, `~type.parameters`, `Rebuild`, etc.) that downstream combinators read. In consumer projects this surfaced as `DecodingServices` / `EncodingServices` leaking as `unknown` — for example `Q.project(schema, "project")` failing with `Type 'unknown' is not assignable to type 'never'`, and RPC handler / generator-return shape mismatches against `Effect<any, ..., CurrentSettings | ...>`.
+
+  Each `*Schema` interface now extends the concrete underlying chain (e.g. `BrandedSchema<S.NonEmptyString, NonEmptyString64>`) and adds a call signature for `withDefaultMake` (and an explicit `withConstructorDefault` field for the numeric and `StringId` schemas). The runtime values are unchanged and the type-display improvement is preserved.
+
+  Affected: `NonEmptyString*`, `Min3String255`, `StringId`, `Url`, `PositiveInt`, `NonNegativeInt`, `Int`, `PositiveNumber`, `NonNegativeNumber`, and `brandedStringId`.
+
+- bd26832: Add nested anyOf flattening to JSON Schema post-processing
+- 3053760: fix: restore context map container behavior
+- 52b0b01: fix TaggedUnion
+- 55c6572: update packages
+- 52b0b01: Tighten schema helper generics in `Schema/ext.ts` so default-related helpers accept properly named schema type parameters instead of bare `S.Top` inputs.
+- c991be1: update packages
+- d738811: remove double prefix
+- 8fffc3c: cleanup
+- 52b0b01: Migrate `Schema/ext` context helpers to Effect v4 by implementing `provide` and `contextFromServices` with proper service subtraction across decoding and encoding requirements.
+- a788432: fix circular
+- 10e90d5: fix: TaggedRequest should be an Opaque Schema Class
+- 4b95009: use Finite instead of Number
+- 52b0b01: Replace `ForceVoid` in `makeClient` with a typed codec transformation instead of an unsafe cast.
+- 178480a: Fix request handler input classification to use request schema fields instead of `make` parameters, preventing defaulted/nullable input fields from being treated as no-input handlers.
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+- dc465e3: update to latest effect beta
+- 21017d5: `InvalidationSet.add` accepts arrays and is exposed as a static shortcut.
+
+  - Single item: `yield* InvalidationSet.add(UserRsc.GetMe)`
+  - Batch: `yield* InvalidationSet.add([UserRsc.GetMe, ["custom", "key"]])`
+  - Skips the `.use(_ => _.add(...))` boilerplate.
+
+  Existing `InvalidationSet.use(_ => _.add(...))` form still works; the service
+  identity is preserved via `Object.assign` so `Effect.provideService` and
+  `.use` / `.useSync` continue to operate on the same `Context.Reference`.
+
+- 0541f0d: fix withDefault types
+- 8c645d5: update to latest effect
+- 30c512d: fix rpc middleware context type issue
+- 50b022e: Add generated opaque model facades that expose static Type, Encoded, Make, and Schema declarations without leaking the private struct schema type to downstream project references.
+- 52b0b01: adapt isObject change
+- b952f19: bye cruft
+- a37aa38: Update to effect beta 43
+- 52b0b01: again
+- c1e73de:
+- d867272: the return of `Context`
+- 774a9b3: `MiddlewareMaker.makeMiddlewareBasic` now derives each middleware's effective error from both the static `error` field on the tag AND the `rcm` config entry referenced by `dynamic.key`, rather than relying on the static field alone.
+
+  Middlewares declared with `dynamic: RequestContextMap.get("foo")` (instead of an explicit static `error: ...`) end up with `tag.error = Schema.Never` at runtime — `RpcMiddleware.Tag` defaults the static error to `Never` when not provided. The composite `MiddlewareMaker.Tag(...).middleware(...)` walked `make[*].error` to build its own error union, collapsing to `Union<Never, ...> ≡ Never`.
+
+  `Rpc.exitSchema` walks `rpc.middlewares[*].error` when building the wire-level failure union for every rpc kind. Empty-union meant middleware-thrown errors (`NotLoggedInError`, `UnauthorizedError`, etc.) never reached the wire schema. Query/command happened to work because their wire `errorSchema = resource.error` already covered the merge from `makeRpcClient`. Stream rpcs have `errorSchema` force-set to `Schema.Never` by effect-rpc, so the resource-level merge never reached the wire — middleware errors decoded as "Expected never, got X".
+
+  Per middleware, the new logic pushes both the static `_.error` (if non-`Never`) and `rcm[_.dynamic.key].error` (if non-`Never`) into the composite's failure union.
+
+- d67d17a: Source middleware errors exclusively from the rpc middleware tag, and move command/stream invalidation wrap/unwrap entirely into the routing layer (server) and `apiClientFactory` (client). `InvalidationMiddleware` and `InvalidationMiddlewareLive` are removed.
+
+  ### Resource error schemas
+
+  Three sites that used to fold `RequestContextMap[*].error` into a request's own error schema now stop doing so:
+
+  - `makeRpcClient` / `makeRequestClass` — `failureSchema` is just `config.error` (still merged with the optional `generalErrors` parameter, which is the only remaining error mix on both type and runtime levels).
+  - `MiddlewareMaker.rpc()` — `error: options.error` only; the previous union with `rcm.config[*].error` is gone.
+  - Routing and `apiClientFactory.makeRpcGroupFromRequestsAndModuleName` — `Invalidation.makeCommandRpc` is called with `error: resource.error` (no widening with the composite middleware error union).
+
+  Middleware errors reach the client through the rpc's `middlewares[*].error` failure-union channel of `Rpc.exitSchema`, exposed by attaching the middleware tag to the rpc on both sides:
+
+  - **Server**: `makeRouter(middleware)` attaches the live composite tag (existing behavior).
+  - **Client**: new `middleware` option on `ClientForOptions` / `ApiClientFactory.makeFor(layer, { middleware })` attaches the same tag schema-only (no Live invoked). Threaded through `makeRpcGroupFromRequestsAndModuleName` to `RpcGroup.middleware(tag)`. Without it, stream rpcs (whose top-level `errorSchema` is forced to `Never` by effect-rpc) hit `SchemaError: Expected never | { _tag: "error", ... }` decoding middleware-thrown errors that bypass the in-stream `Stream.catch` wrap.
+
+  **Migration**: handlers that yield errors previously sourced from rcm (e.g. `yield* new UnauthorizedError()`) now require those errors to be declared explicitly on the resource — `Req.Query<T>()("...", fields, { success, error: UnauthorizedError })`. The handler error type no longer auto-includes the rcm union.
+
+  ### Invalidation wrap/unwrap
+
+  - `routing.ts` (server) provides a per-request `InvalidationSet` for commands, wraps the success value as `CommandResponseWithMetaData`, and converts handler-thrown failures into `CommandFailureWithMetaData` so accumulated invalidation keys reach the client on either path. Stream wrap (per-chunk envelope + final `done` chunk) was already in routing and is unchanged.
+  - `apiClientFactory.ts` (client) `unwrapCommand` strips both envelopes and forwards keys to `InvalidationKeysFromServer`.
+  - `InvalidationMiddleware` (the tag) and `InvalidationMiddlewareLive` (the layer) are **removed**. The middleware was the previous home of the wrap; with the wrap moved to routing/apiClientFactory, the middleware became a thin pass-through and is no longer needed. `DefaultGenericMiddlewares` and `DefaultGenericMiddlewaresLive` shrink accordingly — no migration needed for callers that used the defaults; callers that referenced `InvalidationMiddleware` / `InvalidationMiddlewareLive` directly should drop those imports.
+
+  Middleware-thrown errors are never wrapped: by definition the handler never ran, so there is nothing to invalidate. They flow raw on the Cause and the client decodes them via the middleware-tag failure-union channel described above.
+
+- 8f09f77: fix
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- d71d976: fix
+- 2aa8e5e: `queryInvalidation` / `invalidatesQueries` accept shorthand entries (per-mutation, Command, client-level `QueryInvalidation<M>` maps, and server-side `Req.Command` `invalidatesQueries` callbacks).
+
+  Each entry returned may now be:
+
+  - a raw query key (`string[]`)
+  - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`
+  - the existing `{ filters, options }` raw tanstack-query invalidation
+
+  ```ts
+  queryInvalidation: (queryKey) => [queryKey, GetMe, PackListIndex];
+  ```
+
+  equivalent to:
+
+  ```ts
+  queryInvalidation: (queryKey) => [
+    { filters: { queryKey } },
+    { filters: { queryKey: makeQueryKey(GetMe) } },
+    { filters: { queryKey: makeQueryKey(PackListIndex) } },
+  ];
+  ```
+
+- 29a1e57: Repository `changeFeed` is now namespace-aware. Events carry the `storeId` namespace as a third tuple element (`ChangeFeedEvent<T> = [items, op, namespace]`). `subscribe` accepts `options.namespace` to register a per-namespace handler; omitting it registers a wildcard handler that receives events from every namespace. Per-namespace handler buckets eliminate cross-namespace fan-out and avoid waking handlers for irrelevant tenants.
+- 52b0b01: Align effect-app tagged union helpers with Effect v4 by delegating to the native tagged union utilities, exposing v4-style `cases` and `guards`, and preserving the local `tags` helper.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- 6fff09c: unify encoded function for when you use encodedKeys
+- 11422f8: Update request helper typing and runtime invocation to rely on schema `.make` instead of class constructors, avoiding `new`-based assumptions for request schemas.
+- eb28ea5: bogus
+- 52b0b01: Change `Schema.Class` and `Schema.TaggedClass` wrappers to default constructor options to `{ disableValidation: true }`.
+
+  This avoids strict class identifier validation by default when constructing wrapper classes (for example passing a compatible view class), while keeping existing behavior when explicit options are provided.
+
+- 8f1cf6a: able to configure schema concurrency
+- ee9694e: fix type issue?
+- 52a31dd: Reduce schema type complexity by exposing explicit interfaces for branded string and number schemas.
+
+  Each branded constant in `Schema/strings.ts`, `Schema/moreStrings.ts`, and `Schema/numbers.ts` now has a named interface (e.g. `NonEmptyStringSchema`, `StringIdSchema`, `PositiveIntSchema`, `UrlSchema`) annotating its `export const`. Mirrors the pattern used in `effect/Schema` itself — TypeScript reports the interface name instead of expanding the full pipe/brand/extension chain, which shrinks inferred types in consumer code and speeds up type display.
+
+  No runtime or API surface changes; `brandedStringId` now returns `BrandedStringIdSchema<Id>` (same shape as before, just named).
+
+- 52b0b01: fix withDefault
+- ca94edf: fix typo
+- d1c15d3: Tighten projectComputed projection schema typing against encoded repo fields and computed output types.
+- a1b59bc: Allow query projections to use a repository's full union schema.
+- dc07df5: Fix nested DTO subset projection inference for tagged unions.
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- 5ac46cb: Make `Schema.provide` dual (pipeable)
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- 52b0b01: Refactor `Pure` helpers to use typed `useSync` calls instead of unsafe casts.
+- 48d9f36: Memory, SQLite, and Postgres `Store.queryRaw` now run over stored JSON documents, not Encoded rows. `Repository.queryRaw` already applies `toCodecJson` to the projector output, so native Encoded `Date` / `Map` / `Set` values no longer fail `Expected JSON value`. Cosmos was already JSON and is unchanged.
+
+  Memory projectors that assumed native Encoded `Date` / `Map` / `Set` values now see the stored JSON form (ISO strings, arrays).
+
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 52b0b01: fix: isA
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+- 5615e47: bs
+- 3e46e7b: allow excess props in openapi schemas
+- cec026d: update packages
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+- 3bae238: Remove lodash type imports from utils.ts, replacing with native TypeScript equivalents.
+- b2e438f: Remove Operations service and repo
+- f150cf9: Remove obsolete queue machinery left unused after the move to cluster entities: the SB/SQLite/mem `QueueMaker` implementations (`QueueMaker/{SQLQueue,memQueue,sbqueue}.ts`), their `ServiceBus.ts`/`memQueue.ts` transports, and `RequestFiberSet.ts` (its `setRootParentSpan` helper is inlined into `MainFiberSet`). `effect-app/QueueMaker` keeps only `QueueMeta`; the `QueueBase` interface and empty `QueueMaker` ops object are dropped.
+- 0c88f78: Remove `TaggedError` compatibility re-export, use `TaggedErrorClass` directly
+- 261470f: Remove the local `Schema.Void` / `SchemaAST.Void` override. effect `4.0.0-beta.90` ships the TypeScript `void` parser semantics upstream (`SchemaAST.Void.getParser()` → `fromAnyToConst(undefined)`, the effect-smol PR #2475 behavior), so `S.Void` already accepts any present value and discards it to `undefined`. `Schema.Void` now re-uses effect's `S.Void` and `SchemaAST` is a plain re-export of `effect/SchemaAST`. The unused `Void_` alias is dropped. No behavior change.
+- 8792221: Rename `withDefault` schema extensions to `withConstructorDefault` for clarity.
+
+  Document that `.withConstructorDefault` is **construction-only** (applied during `.make(...)` when a field is omitted) and is **not** applied during decode — it cannot be used to JIT-migrate database fields. Per-property JSDoc on every `.withConstructorDefault` / `.withDecodingDefaultType` exposed by `Schema/ext.ts`, `Schema/numbers.ts`, `Schema/moreStrings.ts`, and `ids.ts` so the caveat is visible on hover.
+
+  Re-export `withConstructorDefault`, `withDecodingDefault`, `withDecodingDefaultKey`, `withDecodingDefaultType`, and `withDecodingDefaultTypeKey` from `effect-app/Schema` with explicit JSDoc. `withDecodingDefault*` is discouraged for persisted data: a missing field may be data corruption rather than an old-shape document, and silently substituting a default hides the problem. Prefer an explicit, preferably versioned migration of database data over decode-time fallbacks.
+
+- 7bd8234: Use set-backed data dependencies and provide request-scoped dependency services through a shared root-checked helper.
+- 54bfc59: Require middleware to flow through `makeRpcClient` and the live layer through `makeRouter`.
+
+  ### `makeRpcClient(middleware, generalErrors?)`
+
+  Signature drops the `rcs` (request-context map wrapper) parameter. `rcs` was only load-bearing on the type side for `RequestConfig` inference; that information is now derived from `middleware.requestContextMap`. `middleware` is required — the previous "rcs + optional middleware" overload is gone.
+
+  **Migration**:
+
+  ```diff
+  -makeRpcClient(RequestContextMap, undefined, AppMiddleware)
+  +makeRpcClient(AppMiddleware)
+  ```
+
+  For tests/clients without a real middleware, build a minimal stub (`{ requestContextMap, requestContext }`) or pass any value satisfying `ClientMiddleware<RCM>`.
+
+  ### `makeRouter(middlewareLive)`
+
+  `makeRouter()` no longer infers the live middleware layer from `meta.middleware.Default`. The Live layer is now passed explicitly to `makeRouter`, and the request classes only carry the middleware tag (schema-only). This decouples the router from any assumption that the middleware tag exposes a `Default` static.
+
+  **Migration**:
+
+  ```diff
+  -export const { Router, matchAll } = makeRouter()
+  +export const { Router, matchAll } = makeRouter(AppMiddleware.Default)
+  ```
+
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+- 52b0b01: fix request attr
+- 9ea024d: Improve repository schema encode/decode telemetry for event-loop tail analysis.
+
+  - widen `app.schema.{encode,decode}.duration` histogram buckets into multi-second stalls
+  - count `app.schema.slow` (duration ≥ 100ms) with `app.entity` / operation attributes for alertable rates
+  - annotate spans with `app.schema.slow` and, on encode, `app.entity.state` from the first item's `_tag`
+
+- e6f2341: Add SecretURL tests and switch secretURL config to use Config.nonEmptyString
+- 2495ace: `InvalidationSet.add` accepts RPC handler shorthand.
+
+  Server-side handlers may now pass an RPC handler object directly to
+  `InvalidationSet.add`; its query key is derived via `makeQueryKey`. Raw
+  `InvalidationKey` arrays continue to work.
+
+  ```ts
+  // before
+  yield *
+    Invalidation.InvalidationSet.use((_) => _.add(makeQueryKey(UserRsc.GetMe)));
+
+  // after
+  yield * Invalidation.InvalidationSet.use((_) => _.add(UserRsc.GetMe));
+  ```
+
+- 0b3e00e: fix bug
+- 52b0b01: fix Req
+- c215db8: align TaggedUnion with array arg
+- 12abb55: Refine schema copy behavior by keeping class copy constructor-based while using structural copy for Struct and TaggedStruct helpers.
+- 0cff7c1: workaround middleware error issue
+- c1a6fdc: fix proxify
+- 8ae8b53: input mess
+- a5248a9: use new schema features
+- 0e824ef: add missing Brand
+- 52b0b01: fix RequestName
+- eb06b32: improve root union select
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- 52b0b01: switch to NdJson
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+- 1186b09: improve branded types, keep types through Rebuild
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- 3c1f52d: improve: class strictness enabled by default again, allow `strict: false` as opt out for now.
+- 0054611: Stream RPC: drain read/write data-dependencies per emitted value chunk instead of sending the
+  cumulative set on every metadata chunk. Each metadata chunk now carries only the delta recorded
+  since the last chunk, the bucket is cleared for the next segment, and the terminal "done"/"error"
+  chunks drain the remainder. The emit condition also broadens to include non-empty reads, so stream
+  queries forward their read-dependencies mid-stream too. The client already accumulates deltas into
+  its per-call recorder, so no FE change is required.
+- 583393f: Default the stream `mutateStream` execute resolved value to the request's success type when no `final` schema is declared.
+
+  Previously the type defaulted to `void`, but the runtime already resolves with the last emitted value. Types now match runtime behaviour: `execute` returns `Final` if a `final` schema is set, otherwise the success type.
+
+- 459697f: Restore native Arbitrary for the schemas that lost custom fast-check `toArbitrary`. `StringId` uses `toCodecArbitrary` (the native replacement): generate a 210-byte `Uint8Array` and run `customRandom(urlAlphabet, 21, …)` — same as the old `StringIdArb`. JSON stays a branded string via `toCodec`. `Url` is `https://…`. `RequestId` samples unique nanoid-shaped ids. `Finite` generation is capped at ±1e6. `generateFromSchema` jumps its master seed per call so successive `count: 1` draws do not collide on attempt-0 edge strings.
+- 3eda52e: Fix `StructFacade` to extend effect-app's own `Struct`, not `effect/Schema`'s.
+
+  `StructFacade` was built on `Omit<S.Struct<Fields>, ...>` where `S` is `effect/Schema` (core). Scanner / consumer models are effect-app `S.Struct`, which is a distinct type from effect core's `Struct`, so a facade built on the core `Struct` is not assignable where an effect-app struct is expected — e.g. workflow payloads (`Workflow<…, Struct<Fields & Context>>`) and other effect-app `Struct`-shaped positions failed to type-check. Switch the `Omit` base to effect-app's `Struct` (the `Fields extends S.Struct.Fields` constraint stays effect core, matching effect-app's own `Struct`).
+
+- b52b424: restore annotations for now
+- 7c25dbb: Add relaxed wrapper support for `ErrorClass` and `TaggedErrorClass` in `effect-app/Schema`, matching the existing class wrapper behavior (`copy`, cached `ast`, and unbounded parse concurrency).
+- b8b9080: update packages
+- b90fa30: Repository `changeFeed` now broadcasts synchronously: `publish` awaits every subscribed handler before resolving. Replaces `PubSub.PubSub` with a `ChangeFeed<T>` interface (`publish` + scoped `subscribe`). Handlers are auto-removed when the subscriber's scope closes, and the full handler set is cleared when the repository's scope closes. Repository construction now requires `Scope` — wire `makeRepo` through `Layer.scoped` / `Effect.scoped`.
+- 57db551: Split `TaggedRequestFor` into `Query` and `Command` factories, and mark generated request classes with `type: "query" | "command"`.
+
+  Vue client helpers now expose query-only helpers (`query`, `suspense`, `fetch`) for query requests and mutation-only helpers (`mutate`, `fetch`) for command requests.
+
+- 52b0b01: remove `fields` constraint from TaggedUnion/tags helpers, extract `_tag` via AST walk instead
+- dbcc53b: Refactor command invalidation typing: declare resources via `Command<Self, Resources>()`, pass `invalidatesQueries` as the optional 4th argument, and enforce exact `clientFor` invalidation resources when required.
+- 52b0b01: Configure Changesets fixed versioning for public packages.
+- 140e192: Relax invalidation resource value constraints to allow arbitrary values while preserving query-only filtering in invalidation handling.
+- 9992e70: pass options
+- 24f0a5a: rename Literal to Literals, no longer hiding Schema's singular Literal.
+- 256ae85: cleanup
+- 52b0b01: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- fac725d: update effect to latest beta
+- 412f08b: Include changed entity IDs in repository data dependencies, with explicit query scopes and configurable write aliases, while retaining coarse collection dependencies.
+- 79eb019: Remove redundant schema `title` annotations when they duplicate the schema `identifier`.
+- 6ae3050: Preserve class annotation parseOptions in relaxed declaration struct decoding so custom parse options (including concurrency defaults) are applied consistently.
+- f353d48: Rename the Class/TaggedClass relaxed declaration option to `strict` (default `false`) and apply it to `Class`, `TaggedClass`, `ExtendedClass`, and `ExtendedTaggedClass`.
+
+  When `strict: true`, class decoding keeps strict class-level declaration behavior; by default, decoding remains relaxed and preserves field-level schema errors.
+
+- 52b0b01: Fix `TaggedRequest` no-config error type inference so requests without a third argument infer the same default error schema as requests with explicit success config.
+- 01bab22: Work around tsgo failing to reduce `S.Codec.DecodingServices<X>` (`X extends Top ? X["DecodingServices"] : never`) in generic positions, which left `unknown` and polluted the `R` channel of client handlers and RPC middleware failure context. Since the schemas involved are already constrained to `S.Top`, read `["DecodingServices"]` directly in `RequestHandlerFor`, `TagClass.FailureContext`, and the Vue `MutationExt` / `QueryProjection` types.
+- 2a86a17: improve tsgo compat: avoid deferred `Schema.Type`/`Codec.Encoded`/`Codec.DecodingServices`/`Codec.EncodingServices` conditional helpers in generic positions where the type parameter is already constrained to `Schema.Top`. Index the property directly (`X["Type"]`, `X["Encoded"]`, `X["DecodingServices"]`, …) so tsgo doesn't leak `unknown` into `Effect` channels (notably `R`).
+
+  Sites: `client/clientFor.ts` (`RequestHandlerFor`, `FinalTypeOf`, `ExtractResponse`, `ExtractEResponse`), `client/makeClient.ts` (`InputFromPayload`, `OutputFromSuccess`, `InvalidationConfigForCommand`, `TaggedRequestWithMeta` overloads), `rpc/MiddlewareMaker.ts` (`Errors`), `rpc/RpcMiddleware.ts` (`Failure`, `FailureContext`), `Schema/ext.ts` (`ReadonlySetFromArray`, `ReadonlyMapFromArray`), `infra/routing.ts` (`GetSuccessShape`, handlers, route matcher), `vue/makeClient.ts` (`MutationExt.project`, `MutationWithExtensions`, `QueryProjection`), `vue/routeParams.ts` (`parseRouteParams*`).
+
+- 52b0b01: update all teh tings
+- c3299f7: update packages
+- 6b57330: Upgrade Effect packages to npm `4.0.0`.
+- e2d00b5: Upgrade Effect packages to npm `4.0.1`.
+- 547e2e1: Update effect packages to `4.0.0-beta.107` (from `beta.90`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`, and `fast-check` to `^4.9.0`. Sync `repos/effect` subtree from `Effect-TS/effect` (effect-smol stopped publishing tags after beta.98).
+
+  API adaptations for beta.107:
+
+  - `concurrency: "inherit"` → `"unbounded"`
+  - `Schema.ErrorClass` / `TaggedErrorClass` → `Schema.Error` / `TaggedError`
+  - `Schema.LazyArbitrary` → `Schema.Arbitrary`
+  - `Schema.DateValid` / `isDateValid` removed (`Schema.Date` rejects invalid dates)
+  - `SchemaIssue` constructors no longer take `Option` (annotations + input)
+  - filter meta via `annotations.representation` instead of `annotations.meta`
+  - `context.defaultValue` → `context.constructorDefault` (single Link)
+  - Class detection via `~constructor` + static `identifier`
+  - Redacted detection via `representation.id`
+  - localized StandardSchema hooks updated for new issue/input model
+  - provide `NodeCrypto.layer` for cluster sqlite tests
+  - default `sync-effect` subtree URL → `Effect-TS/effect`
+
+- 52b0b01: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Update effect packages to 4.0.0-beta.52
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+- 7ca66ce: Update to effect 4.0.0-beta.66. Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 57a1862: Update to effect 4.0.0-beta.67. Switch deps from `pkg.pr.new` snapshot back to npm beta tag.
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- b6dda09: Update effect packages to `4.0.0-beta.90` (from `beta.88`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- 0263827: Update to effect `pkg.pr.new` snapshot at `a42ef66` (4.0.0-beta.66). Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 8bd5bfe: Update effect packages to `4.0.0-rc.112` (from `beta.107`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Sync `repos/effect` subtree from `Effect-TS/effect` at `effect@4.0.0-rc.112`.
+
+  API adaptations for rc.112:
+
+  - cluster encoded driver `resetAddress` → batched `resetAddresses`
+  - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
+  - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
+  - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+  - JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)
+
+- 2231ef8: Upgrade Effect packages to npm `4.0.0-rc.115`. Drop the pkg.pr.new pin used while `effect@4.0.0-rc.114` was unpublished.
+- c7bbc41: fix - class should check type side
+- 52b0b01: fix ForceVOid
+- 52b0b01: fix ForceVoid for real
+
 ## 4.0.0-beta.333
 
 ### Patch Changes

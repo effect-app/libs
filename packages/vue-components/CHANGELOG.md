@@ -1,5 +1,496 @@
 # @effect-app/vue-components
 
+## 4.0.0
+
+### Major Changes
+
+- 52b0b01: Fix Schema->Codec
+- 52b0b01: Effect v4 beta
+
+### Minor Changes
+
+- 07dd7b9: Add stream mutation support throughout the Vue commander pipeline.
+
+  - `asStreamResult` utility (mirrors `asResult`, accepts `Stream<A, E, R>` or a factory). Reactive ref updates with each emitted value (`waiting: true`) and finalises once the stream ends (`waiting: false`); errors surface as `AsyncResult.failure`.
+  - `clientFor` now exposes `mutateStream` for stream-type requests as a factory `(options?) => [resultRef, execute] & { id, running?, progress? }`. Always invoke `()` (optionally with `{ progress }`) to obtain a fresh ref+execute pair — independent invocations don't share state. Helpers expose the same shape under `xxxStream`.
+  - `Command.wrapStream(client.x)` and `Command.wrap(client.x)` build a CommanderWrap from a stream entry; the factory is called per command build.
+  - `Command.fn(client.x.mutateStream)` and `Command.fn(client.x.mutateStream({ progress }))` accept a stream factory or already-called tuple-with-id; the resulting command exposes `running` (live `AsyncResult`) and `progress` (formatted loading info) only when the factory was called with a `progress: (result) => Progress | undefined` formatter, where `Progress = string | { text: string; percentage: number }`.
+  - `CommandBase` adds `progress?: Progress` so the `CommandButton` component overrides the Vuetify `loader` slot with a `v-progress-circular` (using `model-value` for percentage when available, otherwise indeterminate) and the formatted text alongside.
+  - New example `examples/streamMutation.ts` shows modelling a long-running export operation that streams `OperationProgress | ExportComplete` events.
+
+- a03a248: `CommandButton`: add `optionalInput` prop accepting `Option<I>`. `Some` enables button and fires click with value; `None` disables. Use when input is gated by a `computed` rather than a `v-if` on the button. Also bind `:disabled` on the `<v-btn>` (previously only `aria-disabled`).
+- 5b507ae: chore: update @tanstack/vue-form to version 1.32.0 and refactor OmegaTaggedUnion component to use 'tag' instead of 'state'
+- ed07e7a: Restore OmegaForm input reactivity broken by the @tanstack/vue-form 1.32 bump — the Field slot's state prop became a stale snapshot, so bind inputs to the reactive field.state instead.
+- 186de3a: Stop forcing Date/Map/Set Encoded shapes to JSON.
+
+  `Schema.Date` / `ReadonlySet` / `ReadonlyMap` now keep native Encoded types (`Date`, `Set`, `Map`). Use `DateFromString`, `ReadonlySetFromArray`, and `ReadonlyMapFromArray` when the Encoded form must be JSON. The query DSL accepts those native values, including array ops (`includes` / `in` / `includes-any`) on `Date[]` and `ReadonlySet` fields. Memory, Disk, SQL, and Cosmos convert Encoded Date/Map/Set through `Schema.toCodecJson` on write/read; query parameters and defaults lower the same way from the store schema. App types such as DateOnly stay native Encoded and JSON-lower via that schema — not a type registry.
+
+- 07b9661: OmegaForm number fields now render Vuetify 4's `v-number-input` instead of `v-text-field type="number"` (`range` keeps its `v-slider`). Precision is schema-driven (`S.Int` → 0, plain numbers → free decimals), controls default to the stacked variant, and any `VNumberInput` prop (`precision`, `step`, `control-variant`, `decimal-separator`, ...) can be overridden per field via attrs. Schema `min`/`max` are exposed to assistive tech as spinbutton ARIA bounds but are deliberately not passed as component props, so out-of-range values keep reaching schema validation and show its localized error instead of being silently clamped.
+- b9586f8: Refine `mutateStream` shape and progress reporting.
+
+  - `mutateStream(options?)` now returns the `execute` callable directly, with `id`, `running?`, and `progress?` attached as properties. Tuple form `[ref, execute]` is gone — invoke the callable to run the stream, or pass it (or the factory) to `Command.fn` / `Command.wrap` / `Command.wrapStream`.
+  - `progress` formatter return type widened from `string | undefined` to `Progress | undefined`, where `Progress = string | { text: string; percentage: number }`.
+  - Stream failures now bubble through the execute effect's typed error channel `E` instead of being swallowed. The reactive `AsyncResult` ref still mirrors the failure for live progress UI.
+  - `CommandBase.progress?: Progress` replaces `progressText?: string`. `CommandButton` overrides the Vuetify `loader` slot when `progress` is set, rendering a `v-progress-circular` (bound to `model-value` when a `percentage` is supplied, otherwise `indeterminate`) alongside the formatted text.
+  - Factories and callables are branded with `_streamFactory` / `_streamCallable` so `Command.fn` / `Command.wrap` can disambiguate them from plain mutate functions.
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+
+### Patch Changes
+
+- 439cbeb: Adopt module system from effect-smol: replace barrel imports with specific submodule imports (`import * as X from "effect-app/X"` / `import * as X from "effect/X"`).
+- a53cdcd: temp revert
+- f37889d: Fixes optionalKey input in OmegaForm
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+
+- 6cfd83d: update effect to latest beta
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- 52b0b01: Beta25
+- e091134: OmegaForm now runs field validation in ordered composition: OmegaForm-generated field rules first, then original schema checks. This makes custom schema filters (for example `S.makeFilter` checks) show during `onChange`/`onBlur` while preserving existing OmegaForm validation behavior and messages.
+- 10b55ff: update packages
+- 52b0b01: fix conversion
+- c1e71a6: remove unnecessary span?
+- b4ea50f: Add `FixedNuxtErrorBoundary`, extracted from duplicated per-project copies. Wraps Nuxt's error boundary with injectable `captureException`/`toastError`/`debug` props, distinguishes supported errors (setup/template) from unsupported ones (native event handlers, reported but not rendered), ignores interrupts-only Effect `CauseException` failures, and clears itself on route change.
+- 2d24b25: Fixes Redacted casting
+- 16fa809: Fix defaultsValueFromSchema for transformed struct schemas (e.g. decodeTo) in unions. Walk the AST properly instead of relying on schema-level .fields/.from chains.
+- 23f14da: bump
+- 55c6572: update packages
+- cbf7488: Render indexed OmegaForm inputs outside form.Array and avoid duplicate error entries for registered array fields.
+- c991be1: update packages
+- 22e979c: wrap vuetify reset
+- 4b95009: use Finite instead of Number
+- dc465e3: update to latest effect beta
+- 297331a: bogus
+- 7fe9d97: omegaform: validate all fields on submit before delegating to tanstack handleSubmit, ensuring submit reveals all validation errors.
+- 8c645d5: update to latest effect
+- 04fc985: bump to release
+- a37aa38: Update to effect beta 43
+- c1e73de:
+- d867272: the return of `Context`
+- 0c42d67: move out Commander and friends from experimental
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- 4d41107: Uses onBlur instead of intrusive onChange
+- eb28ea5: bogus
+- 9d015d8: OmegaForm number fields accept both "." and "," while typing: the wrong separator is translated to the active one (locale or explicit decimal-separator). Int fields no longer silently block decimals (precision null): invalid values go through and the schema error shows.
+- 635038a: OmegaForm: expose native input types `tel`, `url`, `color`, `time`, `search` (already supported by `getInputType`), and render an editable text input with a dev `console.warn` for any input type no renderer branch handles (e.g. an unrecognized `"unknown"` schema type or a custom `type`) instead of rendering nothing.
+- ffc27b4: OmegaForm: deep-fill defaults for nullable nested structs. When a `S.NullOr(S.Struct(...))` field materialises because one child was filled, its untouched nullable siblings are now normalized to `null` (or their schema default) — in the live form state, and during validation and decoding — instead of being rejected as "field must not be empty".
+- 07b9661: Localize `S.isBetween` validation failures: the violated side now maps to the `validation.number.min` / `validation.number.max` messages instead of falling back to the English default formatter. Also fixes the inverted `isExclusive` flag on the min/max messages for `isGreaterThan[OrEqualTo]` / `isLessThan[OrEqualTo]` (inclusive checks now say "at least/at most", strict ones "greater/less than").
+- ff432eb: OmegaForm: meta extraction now walks the encoded (source) side of struct-level `decodeTo` transformations, so the outer schema drives field-level validation. Example: `S.Struct({ amount: S.NonNegativeInt }).pipe(S.decodeTo(S.Struct({ amount: S.PositiveInt }), ...))` now lets users enter `0` without a field error and the decode fallback can rewrite it before submit.
+- 7695621: Fix OmegaForm default inputs leaking the internal form object as a native `form="[object Object]"` attribute, restoring browser implicit Enter-key submission. Adds a Storybook repro for the default Vuetify input renderer.
+- 45951a0: OmegaForm: register custom input components per `type` via `omegaConfig.inputs`. Registered components receive the `OmegaRendererProps` contract (`{ inputProps, field, state }`) and a registered key makes `<form.Input type="...">` type-valid. Resolution order: per-instance `#default` slot → `inputs[type]` → built-in renderer. `createUseFormWithCustomInput` also honors `omegaConfig.inputs`: per-`type` registrations override the universal custom input, with the same typed `type` inference. Also drops the redundant `validators` forwarding to the internal input.
+- 6eb0e52: Refactor `OmegaForm` into focused modules and switch validation to a form-level `onDynamic` validator with `revalidateLogic()` so cross-field checks re-validate on every input change. `OmegaFormStuff.ts` is gone, split into `meta/{types,checks,createMeta,walker,defaults,redacted}.ts`, `validation/localized.ts`, `errors.ts`, `hocs.ts`, `inputs.ts`, `submit.ts`, `persistency.ts`, and `types.ts`; `useOmegaForm.ts` is orchestration-only.
+
+  Restored localization parity for `S.Email` (matched via the refine's `identifier` annotation) and for `S.Literals` / `S.Array(S.Literals(...))` (via an AST pre-pass that stamps `validation.not_a_valid` so Effect's formatter — which bypasses both hooks for `AnyOf` issues — picks them up through `findMessage`).
+
+  Behavior tweaks worth noting: per-field standard-schema validators are removed in favor of one form-level dynamic validator; `OmegaInput`'s `:key="fieldKey"` re-mount is gone; the post-change `errorMap.onSubmit` reset is gone (relies on TanStack revalidation); JSON-schema-derived annotations are no longer merged into `FieldMeta`. Public exports are preserved.
+
+- 635038a: Typecheck the OmegaForm Storybook stories (previously outside `tsconfig` scope) and migrate them off removed/renamed Schema APIs surfaced by it: `.withDefault` → `.withConstructorDefault`, error-filter `{ path, message }` → `{ path, issue }`, dropped deprecated `overrideDefaultValues`, and an `OmegaAutoGenMeta` type argument. Internal only — no change to the published API.
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- dead0a9: Fix OmegaForm required override handling so omitted boolean props fall back to schema metadata.
+- cec026d: update packages
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+- 61e93d8: bump
+- 79074cf: Fixes optionalKey in OmegaForm handling
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- 52b0b01: update vue-components with more effect v4
+- b53382e: fix: vue components were bundling effect modules
+- d2b265f: Make OmegaInput's built-in input configuration props explicit so renderer attrs remain reserved for UI-library extensions.
+- 6ffa729: Fixes useOmegaFormErrorStale stale errorMap
+- 13a048d: Handles blur in veutify
+- e176e49: Fixes Redacted Meta in Omega Form
+- d4bf24a: Add `Command.withDefaultToastStream` — a stream-aware combinator for `streamFn` that properly handles the full stream lifecycle (waiting/success/failure toasts). Unlike `withDefaultToast`, it waits for the stream to drain before showing the success toast and correctly handles stream errors.
+
+  Strongly type `CommandBase` with `RA`/`RE` type params for `result`, and update `CommandButton`'s `mapProgress` prop to be typed as `(result: AsyncResult<RA, RE>) => Progress | undefined`.
+
+- 52b0b01: fix union default value
+- b8b9080: update packages
+- 52b0b01: Configure Changesets fixed versioning for public packages.
+- 9992e70: pass options
+- ab2fd8d: Fix `FixedNuxtErrorBoundary` losing the app's router: `vue-router` was missing from `vite.config.mts`'s Rollup `external` list, so it got bundled into the library output with its own `Symbol("router")` injection key a different instance from the host app's real `routerKey`. `useRouter()` inside the component therefore always returned `undefined`, crashing on `.afterEach` (500 in SSR). `vue-router` is now external like `vue`, so the component resolves the host app's actual router instance.
+- 2476064: Handle string form validation errors in OmegaForm.Errors without crashing, and safely ignore unsupported error values.
+- 52b0b01: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- fac725d: update effect to latest beta
+- 3200fa8: apply the remaining formatting and autofix cleanup across the vue packages
+- c3299f7: update packages
+- 547e2e1: Update effect packages to `4.0.0-beta.107` (from `beta.90`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`, and `fast-check` to `^4.9.0`. Sync `repos/effect` subtree from `Effect-TS/effect` (effect-smol stopped publishing tags after beta.98).
+
+  API adaptations for beta.107:
+
+  - `concurrency: "inherit"` → `"unbounded"`
+  - `Schema.ErrorClass` / `TaggedErrorClass` → `Schema.Error` / `TaggedError`
+  - `Schema.LazyArbitrary` → `Schema.Arbitrary`
+  - `Schema.DateValid` / `isDateValid` removed (`Schema.Date` rejects invalid dates)
+  - `SchemaIssue` constructors no longer take `Option` (annotations + input)
+  - filter meta via `annotations.representation` instead of `annotations.meta`
+  - `context.defaultValue` → `context.constructorDefault` (single Link)
+  - Class detection via `~constructor` + static `identifier`
+  - Redacted detection via `representation.id`
+  - localized StandardSchema hooks updated for new issue/input model
+  - provide `NodeCrypto.layer` for cluster sqlite tests
+  - default `sync-effect` subtree URL → `Effect-TS/effect`
+
+- 52b0b01: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Update effect packages to 4.0.0-beta.52
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- b6dda09: Update effect packages to `4.0.0-beta.90` (from `beta.88`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- 8bd5bfe: Update effect packages to `4.0.0-rc.112` (from `beta.107`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Sync `repos/effect` subtree from `Effect-TS/effect` at `effect@4.0.0-rc.112`.
+
+  API adaptations for rc.112:
+
+  - cluster encoded driver `resetAddress` → batched `resetAddresses`
+  - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
+  - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
+  - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+  - JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)
+
+- 3bb6770: Point the package `exports` at `src` (`.vue`/`.ts`) for workspace/source consumption, matching `effect-app` and `@effect-app/vue`. The published package is unchanged — `publishConfig.exports` still ships the built `dist` artifacts, so registry consumers keep getting compiled output. This lets linked/source consumers (e.g. via embedded-source mode) load the components from `src` without a build step; runtime `.vue` is compiled by the consumer's bundler and types resolve via `vue-tsc`.
+- ae1f4c0: OmegaForm/Vuetify: fix `@update:model-value` handler type mismatches on `v-text-field`, `v-textarea` and `v-radio-group` (wrap `field.handleChange` so Vuetify's concrete event value is accepted), and type the `v-radio` `:key`. Drop the stale `@vue-skip` on `Dialog` slot pass-through.
+
+  Tooling: bind Vuetify component types during type-checking via a typecheck-only `types/vuetify-shims.d.ts` so `<v-text-field>` etc. resolve in the editor and `pnpm check`, with declaration emit isolated in `tsconfig.build.json` (no Vuetify global augmentation leaks into published types, no runtime bundle). Enable `noUnusedLocals`/`noUnusedParameters` in the check config.
+
+- bfeaef0: fix forms
+- 92b52d0: Bump
+- Updated dependencies [eddda2e]
+- Updated dependencies [07dd7b9]
+- Updated dependencies [439cbeb]
+- Updated dependencies [da83c1f]
+- Updated dependencies [b2df3fa]
+- Updated dependencies [199e9a5]
+- Updated dependencies [b035b1c]
+- Updated dependencies [664e83d]
+- Updated dependencies [a4dff57]
+- Updated dependencies [ba4bdc3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [eceb3a3]
+- Updated dependencies [9d3495e]
+- Updated dependencies [3436d44]
+- Updated dependencies [52b0b01]
+- Updated dependencies [f317c5e]
+- Updated dependencies [e585c9c]
+- Updated dependencies [e4ff9a6]
+- Updated dependencies [33b0544]
+- Updated dependencies [99c43c4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d092c]
+- Updated dependencies [947fe20]
+- Updated dependencies [21ac90a]
+- Updated dependencies [a74a894]
+- Updated dependencies [32f05c8]
+- Updated dependencies [50ce7e6]
+- Updated dependencies [6cfd83d]
+- Updated dependencies [1c858d3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [6a3d364]
+- Updated dependencies [aa5ef5c]
+- Updated dependencies [08d30af]
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [992d9fa]
+- Updated dependencies [505bfa9]
+- Updated dependencies [939bebc]
+- Updated dependencies [2b4c324]
+- Updated dependencies [ba789a2]
+- Updated dependencies [ab289d4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [99a2e9b]
+- Updated dependencies [e0c4835]
+- Updated dependencies [8753c52]
+- Updated dependencies [32dbc54]
+- Updated dependencies [0a0030f]
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+- Updated dependencies [d23e3f6]
+- Updated dependencies [aeb17bc]
+- Updated dependencies [c0e5a1b]
+- Updated dependencies [10b55ff]
+- Updated dependencies [14aba14]
+- Updated dependencies [a0075b8]
+- Updated dependencies [f052d38]
+- Updated dependencies [f233f3d]
+- Updated dependencies [18bae5b]
+- Updated dependencies [f313973]
+- Updated dependencies [edc52e4]
+- Updated dependencies [ea1bd46]
+- Updated dependencies [85a8275]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [47e3742]
+- Updated dependencies [4149577]
+- Updated dependencies [04fc985]
+- Updated dependencies [458bb1b]
+- Updated dependencies [3365758]
+- Updated dependencies [54ec1ef]
+- Updated dependencies [f21190c]
+- Updated dependencies [1176240]
+- Updated dependencies [0d4e0b8]
+- Updated dependencies [31739d7]
+- Updated dependencies [0b21a02]
+- Updated dependencies [bbaa67e]
+- Updated dependencies [a211c12]
+- Updated dependencies [347af48]
+- Updated dependencies [d195003]
+- Updated dependencies [7519318]
+- Updated dependencies [1b38043]
+- Updated dependencies [07a57b6]
+- Updated dependencies [bd26832]
+- Updated dependencies [3053760]
+- Updated dependencies [52b0b01]
+- Updated dependencies [55c6572]
+- Updated dependencies [f88ea34]
+- Updated dependencies [dd239fa]
+- Updated dependencies [66fd718]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c991be1]
+- Updated dependencies [d738811]
+- Updated dependencies [702d51c]
+- Updated dependencies [fc41dcf]
+- Updated dependencies [8fffc3c]
+- Updated dependencies [52b0b01]
+- Updated dependencies [34f6a97]
+- Updated dependencies [a788432]
+- Updated dependencies [10e90d5]
+- Updated dependencies [4b95009]
+- Updated dependencies [52b0b01]
+- Updated dependencies [178480a]
+- Updated dependencies [2e4c018]
+- Updated dependencies [c7fbd58]
+- Updated dependencies [985176b]
+- Updated dependencies [50d7fc1]
+- Updated dependencies [dc465e3]
+- Updated dependencies [f44800c]
+- Updated dependencies [21017d5]
+- Updated dependencies [0541f0d]
+- Updated dependencies [2ebf8ae]
+- Updated dependencies [8c645d5]
+- Updated dependencies [8cb3de4]
+- Updated dependencies [30c512d]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [b952f19]
+- Updated dependencies [a37aa38]
+- Updated dependencies [99c43c4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [28a0b29]
+- Updated dependencies [c1e73de]
+- Updated dependencies [d867272]
+- Updated dependencies [1b57aa4]
+- Updated dependencies [0c42d67]
+- Updated dependencies [774a9b3]
+- Updated dependencies [d67d17a]
+- Updated dependencies [8f09f77]
+- Updated dependencies [50ce7e6]
+- Updated dependencies [d71d976]
+- Updated dependencies [2aa8e5e]
+- Updated dependencies [ed1b8a9]
+- Updated dependencies [29a1e57]
+- Updated dependencies [186de3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [6fff09c]
+- Updated dependencies [11422f8]
+- Updated dependencies [eb28ea5]
+- Updated dependencies [52b0b01]
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [ee9694e]
+- Updated dependencies [52a31dd]
+- Updated dependencies [52b0b01]
+- Updated dependencies [ca94edf]
+- Updated dependencies [d1c15d3]
+- Updated dependencies [4bc4a27]
+- Updated dependencies [a1b59bc]
+- Updated dependencies [dc07df5]
+- Updated dependencies [0fe925d]
+- Updated dependencies [40585ca]
+- Updated dependencies [5ac46cb]
+- Updated dependencies [a354345]
+- Updated dependencies [52b0b01]
+- Updated dependencies [186de3a]
+- Updated dependencies [1e4c989]
+- Updated dependencies [aeb17bc]
+- Updated dependencies [48d9f36]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [d31253f]
+- Updated dependencies [5615e47]
+- Updated dependencies [3e46e7b]
+- Updated dependencies [18fd1df]
+- Updated dependencies [cec026d]
+- Updated dependencies [4622a75]
+- Updated dependencies [88838fb]
+- Updated dependencies [b3ed68a]
+- Updated dependencies [f16e766]
+- Updated dependencies [3bae238]
+- Updated dependencies [b2e438f]
+- Updated dependencies [f150cf9]
+- Updated dependencies [0c88f78]
+- Updated dependencies [d16845e]
+- Updated dependencies [261470f]
+- Updated dependencies [beae3a0]
+- Updated dependencies [ddd9505]
+- Updated dependencies [8792221]
+- Updated dependencies [1f103b2]
+- Updated dependencies [0054611]
+- Updated dependencies [7bd8234]
+- Updated dependencies [54bfc59]
+- Updated dependencies [ad0ede6]
+- Updated dependencies [89d8b3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d2e70]
+- Updated dependencies [9ea024d]
+- Updated dependencies [5f9cd6a]
+- Updated dependencies [6252808]
+- Updated dependencies [e6f2341]
+- Updated dependencies [28777c1]
+- Updated dependencies [821468d]
+- Updated dependencies [2495ace]
+- Updated dependencies [0b3e00e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c215db8]
+- Updated dependencies [12abb55]
+- Updated dependencies [0cff7c1]
+- Updated dependencies [ba61aad]
+- Updated dependencies [c1a6fdc]
+- Updated dependencies [8ae8b53]
+- Updated dependencies [a5248a9]
+- Updated dependencies [37089ea]
+- Updated dependencies [0e824ef]
+- Updated dependencies [52b0b01]
+- Updated dependencies [eb06b32]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [dd73a4a]
+- Updated dependencies [025de47]
+- Updated dependencies [0fa0e80]
+- Updated dependencies [acfdc9e]
+- Updated dependencies [1186b09]
+- Updated dependencies [9be71e1]
+- Updated dependencies [a69da09]
+- Updated dependencies [3c1f52d]
+- Updated dependencies [3a8c710]
+- Updated dependencies [186de3a]
+- Updated dependencies [b9586f8]
+- Updated dependencies [0054611]
+- Updated dependencies [583393f]
+- Updated dependencies [828d264]
+- Updated dependencies [61a3931]
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [7fa3045]
+- Updated dependencies [3dc0d2a]
+- Updated dependencies [d4bf24a]
+- Updated dependencies [459697f]
+- Updated dependencies [738b482]
+- Updated dependencies [3eda52e]
+- Updated dependencies [fa3533e]
+- Updated dependencies [b52b424]
+- Updated dependencies [7c25dbb]
+- Updated dependencies [b8b9080]
+- Updated dependencies [b90fa30]
+- Updated dependencies [57db551]
+- Updated dependencies [3613e87]
+- Updated dependencies [52b0b01]
+- Updated dependencies [7119320]
+- Updated dependencies [e944bca]
+- Updated dependencies [dbcc53b]
+- Updated dependencies [18b915f]
+- Updated dependencies [74e6d40]
+- Updated dependencies [52b0b01]
+- Updated dependencies [140e192]
+- Updated dependencies [9992e70]
+- Updated dependencies [24f0a5a]
+- Updated dependencies [256ae85]
+- Updated dependencies [ac62e48]
+- Updated dependencies [8bd9a11]
+- Updated dependencies [52b0b01]
+- Updated dependencies [fac725d]
+- Updated dependencies [3200fa8]
+- Updated dependencies [412f08b]
+- Updated dependencies [79eb019]
+- Updated dependencies [6ae3050]
+- Updated dependencies [f353d48]
+- Updated dependencies [0d7d197]
+- Updated dependencies [52b0b01]
+- Updated dependencies [01bab22]
+- Updated dependencies [2a86a17]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c3299f7]
+- Updated dependencies [23a7167]
+- Updated dependencies [e71eb78]
+- Updated dependencies [6b57330]
+- Updated dependencies [e2d00b5]
+- Updated dependencies [547e2e1]
+- Updated dependencies [52b0b01]
+- Updated dependencies
+- Updated dependencies [ea32222]
+- Updated dependencies [7ca66ce]
+- Updated dependencies [57a1862]
+- Updated dependencies [3e855bc]
+- Updated dependencies [78d076a]
+- Updated dependencies [ffd140f]
+- Updated dependencies [e8842aa]
+- Updated dependencies [b6dda09]
+- Updated dependencies [0263827]
+- Updated dependencies [8bd5bfe]
+- Updated dependencies [2231ef8]
+- Updated dependencies [413022d]
+- Updated dependencies [f052d38]
+- Updated dependencies [fc98fb7]
+- Updated dependencies [1df5cf5]
+- Updated dependencies [b241ae5]
+- Updated dependencies [677821a]
+- Updated dependencies [c7bbc41]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [7328c76]
+- Updated dependencies [52b0b01]
+- Updated dependencies [7fd35e4]
+- Updated dependencies [89b7d2f]
+- Updated dependencies [52b0b01]
+- Updated dependencies [4bbeb19]
+  - @effect-app/vue@4.0.0
+  - effect-app@4.0.0
+
 ## 4.0.0-beta.333
 
 ### Patch Changes

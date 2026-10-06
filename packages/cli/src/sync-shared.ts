@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Path from "effect/Path"
-import { RunCommandService } from "./os-command.js"
+import { RunCommandService } from "./os-command.ts"
 
 /**
  * Project-side lockfile shape (`.shared.json`).

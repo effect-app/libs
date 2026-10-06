@@ -20,7 +20,7 @@ import * as SynchronizedRef from "effect/SynchronizedRef"
 
 import * as yaml from "js-yaml"
 import path from "path"
-import { RunCommandService } from "./os-command.js"
+import { RunCommandService } from "./os-command.ts"
 
 export class GistError extends Data.TaggedError("GistError")<{ message: string }> {}
 

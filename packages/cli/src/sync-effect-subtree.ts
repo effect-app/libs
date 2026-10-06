@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Option from "effect/Option"
-import { RunCommandService } from "./os-command.js"
+import { RunCommandService } from "./os-command.ts"
 
 export interface SyncEffectConfig {
   readonly manifestPaths: ReadonlyArray<string>

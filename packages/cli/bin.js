@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-import "@effect-app/cli"
+import "./src/index.ts"

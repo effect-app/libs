@@ -1,5 +1,85 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0
+
+### Major Changes
+
+- 52b0b01: Effect v4 beta
+
+### Minor Changes
+
+- 34ab818: Add `importExtension` option to the `barrel` preset to control the file extension emitted on generated imports/exports (defaults to `.js`). Configurable per block, globally via the oxlint rule option `["error", { barrel: { importExtension: ".ts" } }]`, or via `codegen.config.json` (CLI also accepts `--config <path>`). Resolution order: preset default → global defaults → per-block options.
+- 82655fa: feat: add native fork
+- 3613e87: Add `TaggedRequestFor` helper to `makeRpcClient` that curries a `moduleName`, producing request classes with static `id` and `moduleName` properties. This enables passing request classes directly to `makeQueryKey` without going through `clientFor` first. The `clientFor` function no longer requires a `meta` property on the module when requests carry `moduleName`. The meta codegen preset now generates `Req = TaggedRequestFor(moduleName)`. Original `TaggedRequest` remains for backwards compatibility.
+
+### Patch Changes
+
+- 21ac90a: Unify generated model facades on `OpaqueFacade` and support class facades through encoded-key schema transforms.
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+
+- b2e0f62: Allow oxlint codegen rule options so shared preset defaults can be configured.
+- 52b0b01: Beta25
+- 10b55ff: update packages
+- d605f3d: Migrate `glob` 8 → 11. Use the named `globSync` export (glob 11 dropped the default export, which broke loading the package as an ESM oxlint plugin), and drop the stale `@types/glob` (glob 11 ships its own types). Also clears the package's pre-existing implicit-`any` typecheck errors.
+- 50b022e: Harden model facades and add `OpaqueErrorFacadeClass`.
+
+  - `OpaqueErrorFacadeClass`: facade `TaggedErrorClass`/`ErrorClass` while keeping
+    `Cause.YieldableError` on the constructed instance (so `yield* new Err()`,
+    `Effect.fail`, and `instanceof` keep working through the facade).
+  - `OpaqueFacadeInput` relaxed to require only the codec service channels, so
+    transformed schemas (`.pipe(encodeKeys/annotate/filter/...)`) can be facaded;
+    `fields`/`copy`/`mapFields` flow through `OpaqueFacadeStatics` when present, and
+    `to` is carried so models that compose via `X.to.fields` keep working.
+  - Dropped the wide `fields`/`mapFields` overrides on the facade interfaces so the
+    precise statics win (keeps `Q.project(X.mapFields(...))` typed).
+  - Codegen (`eslint-codegen-model`): resolver prefers the private `_X` over the
+    self-referential facade; converges static service types in one run; per-model
+    classification (facade Opaque models, leave `Class` standard in mixed files);
+    `Make` emitted as `type X = {...} | void` when the make-input is voidable;
+    `readonly`-prefixed array/tuple elements parenthesized; value self-references in
+    the moved `_X` body rewritten to `_X`; instance getters surface on `Self`.
+
+- f04327a: Fix `toCamelCase`/`toPascalCase` in barrel preset to preserve case boundaries. Mixed-case input like `AnCamelCase` was collapsed to `Ancamelcase` because the word splitter only matched contiguous alphanumerics. Now splits on case transitions (matching prior `lodash.camelCase` + `startCase` behavior).
+- 55c6572: update packages
+- c991be1: update packages
+- 50b022e: Add generated opaque model facades that expose static Type, Encoded, Make, and Schema declarations without leaking the private struct schema type to downstream project references.
+- c1e73de:
+- e71b67a: run codegen model from src locally
+- 3b27909: Don't export `Req` in meta codegen preset
+- 22be885: Add `stripSuffixes` option to the meta codegen preset and configure `.Queries` stripping in the shared oxlint config.
+- 25008fb: Ignore commented-out exported classes when detecting model schemas for generated `Encoded` namespaces.
+- 6fff09c: unify encoded function for when you use encodedKeys
+- eb28ea5: bogus
+- 830e1ce: Optimize codegen barrel and model plugins:
+
+  - Drop `io-ts-extra`, `io-ts`, and `lodash` dependencies; replace with native JS helpers
+  - Add fast string comparison (skip AST parse) for barrel and model equality checks
+  - Avoid triple file reads in the CLI path: pass already-read source into `model` via context
+  - Eliminate double read in `run()`: pass source string into `updateFile`
+  - Extract shared logic (`blockRe`, helpers, `renderPreset`) into `src/shared/codegen-block.ts`
+  - Remove dead `fs.existsSync`/`fs.statSync` checks in `model` preset
+  - Use `Set` for O(1) dedup in `model` preset
+  - Move `last` helper to module scope in `barrel` preset
+  - Pre-compile all regex constants at module scope; use fresh `RegExp` copy per oxlint `Program` visit to avoid shared `lastIndex` mutations
+
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- cec026d: update packages
+- 77efa95: Detect `Schema.Opaque<Self, Encoded>()` model classes in the model preset while excluding `Context.Opaque` service tags.
+- 025de47: Fold the encoded-override support from `ExtendedClass` and `ExtendedTaggedClass` into `Class`, `TaggedClass`, `ErrorClass`, and `TaggedErrorClass`, and update model codegen to detect the new second-generic form.
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- b8b9080: update packages
+- 8c753cb: align with earlier updates
+- 52b0b01: update all teh tings
+- c3299f7: update packages
+- ccd4845: set default barrel ext to .ts
+
 ## 2.0.0-beta.27
 
 ### Patch Changes

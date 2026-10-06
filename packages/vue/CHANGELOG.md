@@ -1,5 +1,685 @@
 # @effect-app/vue
 
+## 4.0.0
+
+### Major Changes
+
+- 52b0b01: Fix Schema->Codec
+- 52b0b01: Effect v4 beta
+
+### Minor Changes
+
+- eddda2e: Invalidate only mounted queries (TanStack `refetchType: "active"`). Idle `gcTime` entries are marked stale and refetch on remount. `invalidateAndAwait` still waits for observed refetches to finish.
+- 07dd7b9: Add stream mutation support throughout the Vue commander pipeline.
+
+  - `asStreamResult` utility (mirrors `asResult`, accepts `Stream<A, E, R>` or a factory). Reactive ref updates with each emitted value (`waiting: true`) and finalises once the stream ends (`waiting: false`); errors surface as `AsyncResult.failure`.
+  - `clientFor` now exposes `mutateStream` for stream-type requests as a factory `(options?) => [resultRef, execute] & { id, running?, progress? }`. Always invoke `()` (optionally with `{ progress }`) to obtain a fresh ref+execute pair — independent invocations don't share state. Helpers expose the same shape under `xxxStream`.
+  - `Command.wrapStream(client.x)` and `Command.wrap(client.x)` build a CommanderWrap from a stream entry; the factory is called per command build.
+  - `Command.fn(client.x.mutateStream)` and `Command.fn(client.x.mutateStream({ progress }))` accept a stream factory or already-called tuple-with-id; the resulting command exposes `running` (live `AsyncResult`) and `progress` (formatted loading info) only when the factory was called with a `progress: (result) => Progress | undefined` formatter, where `Progress = string | { text: string; percentage: number }`.
+  - `CommandBase` adds `progress?: Progress` so the `CommandButton` component overrides the Vuetify `loader` slot with a `v-progress-circular` (using `model-value` for percentage when available, otherwise indeterminate) and the formatted text alongside.
+  - New example `examples/streamMutation.ts` shows modelling a long-running export operation that streams `OperationProgress | ExportComplete` events.
+
+- 6a3d364: Client entries are now plain objects; use `.fetch` to invoke the request.
+
+  `client.Xxx` no longer is callable or an `Effect` itself. Call `client.Xxx.fetch(input)` (or `client.Xxx.fetch` for input-less requests) instead. `.mutate`, `.query`, `.suspense`, `.wrap`, and `.fn` are unchanged.
+
+- 8ff0bf9: Add `Command.streamFn` — a stream-backed variant of `Command.fn`.
+
+  The body generator (or plain function) returns a `Stream` instead of an `Effect`. The command's `waiting` state stays `true` while the stream is running and updates the reactive `result` ref for every emitted value.
+
+  Three handler shapes are accepted:
+
+  1. **Generator returning a Stream** (primary):
+     ```ts
+     Command.streamFn("exportData")(function* (arg, ctx) {
+       const token = yield* getAuthToken;
+       return Stream.fromEffect(startExport(token, arg.id)).pipe(
+         Stream.flatMap((job) => pollProgress(job.id))
+       );
+     });
+     ```
+  2. Function returning a `Stream` directly.
+  3. Function returning `Effect<Stream>` (unwrapped automatically).
+
+- 2b4c324: Make the default mutation invalidation heuristic configurable.
+
+  The built-in default is unchanged (collapse one namespace level: `Foo/Bar.x` invalidates `["$Foo"]`, `Foo/Bar/Baz.x` invalidates `["$Foo","$Bar"]`). Client projects can now override it globally:
+
+  ```ts
+  import { makeQueryKey, setDefaultGetQueryKey } from "@effect-app/vue";
+
+  // invalidate the full namespace of the action (no parent collapse)
+  setDefaultGetQueryKey((h) => {
+    const key = makeQueryKey(h);
+    const ns = key.filter((_) => _.startsWith("$"));
+    if (!ns.length) throw new Error("empty query key for: " + h.id);
+    return ns;
+  });
+  ```
+
+  Call at app bootstrap. Pass `undefined` to restore the built-in default. Per-mutation overrides via the existing `queryInvalidation` option still take precedence.
+
+- ba789a2: Move core service contracts and runtime-agnostic modules into `effect-app`, keep `infra` and `vue` focused on adapters, and drop the temporary `infra` compatibility re-export paths in favor of the new canonical imports.
+
+  `@effect-app/infra` no longer re-exports moved core modules such as `./Model`, `./Emailer/service`, `./QueueMaker/service`, `./Store/service`, `./adapters/*`, or `./api/*` entrypoints.
+
+- aeb17bc: Add `disableQueryInvalidation` flag to Command config for background saves.
+
+  Set `disableQueryInvalidation: true` in a `Req.Command` config (3rd argument)
+  to suppress all client-side query invalidation for that command — client
+  `invalidatesQueries` callbacks, server-returned `metadata.invalidateQueries`,
+  and repository-derived write-dependency matching are all skipped. Use for
+  background saves (e.g. debounced auto-save) whose writes should not trigger
+  query refetches.
+
+  - `InvalidationConfig` gains `disableQueryInvalidation?: boolean`.
+  - `RequestHandlerWithInput` gains `disableQueryInvalidation?: boolean`,
+    propagated from `Request.config` by `ApiClientFactory.makeFor`.
+  - `invalidateCache` early-returns `Effect.void` when the flag is set,
+    applying to both regular and stream mutations.
+
+- 8cb3de4: Add command invalidation helpers that preserve query-only resource types and pass mutation input and `Exit` results into invalidation callbacks. Update Vue `clientFor` to merge request-level invalidation config with call-site invalidation and require matching invalidation resources.
+- 99c43c4: Add query-owned live invalidation with recorded dependency filtering, connect-before-fetch coordination, race buffering, and configurable client-side coalescing.
+- 1e4c989: Add `mode: "optional"` overload for queries. When `mode: "optional"` is set, the `arg` must be a `WatchSource<Option<I>>`. The query is disabled (`enabled: false`) when the option is `None`, and enabled with the unwrapped value when `Some`.
+- b3ed68a: Remove `legacy` from `makeClient` return and clean up `LegacyMutation`, `LegacyMutationImpl`, and related types.
+- f16e766: Remove legacy `mutateToResult` stream mutation factory, `wrapStream` command builder, and standard command progress reporting (`running`/`progress` from the old stream factory path). Keep only the `mutate` path for use with `streamFn` combinators. Remove obsolete types (`StreamMutationWithExtensions`, `StreamCommandWithExtensions`, `StreamFnExtension`, `MutateStreamCallOptions`) and the internal `makeStreamMutation` function. Rename `mutate.wrapStream` shorthand to `mutate.wrap` to match the non-stream convention.
+- 1f103b2: Replace `proxify` with explicit service accessor helpers: `accessFn`, `accessEffectFn`, `accessCn`, `accessEffectCn`.
+- 0054611: Derive query invalidation from repository read/write dependencies and propagate dependency metadata through RPC clients.
+- 28777c1: Add `select` option to `MutationOptionsBase` for a second cache invalidation after long-running operations.
+
+  When `select` is provided, cache invalidation fires twice:
+
+  1. Immediately when the mutation completes (existing behaviour).
+  2. Again after the `select` effect finishes — useful for polling or waiting for a background job before refreshing data.
+
+  ```ts
+  useMutation(startExportCommand, {
+    select: (result) => pollUntilDone(result.jobId),
+  });
+  ```
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+- b9586f8: Refine `mutateStream` shape and progress reporting.
+
+  - `mutateStream(options?)` now returns the `execute` callable directly, with `id`, `running?`, and `progress?` attached as properties. Tuple form `[ref, execute]` is gone — invoke the callable to run the stream, or pass it (or the factory) to `Command.fn` / `Command.wrap` / `Command.wrapStream`.
+  - `progress` formatter return type widened from `string | undefined` to `Progress | undefined`, where `Progress = string | { text: string; percentage: number }`.
+  - Stream failures now bubble through the execute effect's typed error channel `E` instead of being swallowed. The reactive `AsyncResult` ref still mirrors the failure for live progress UI.
+  - `CommandBase.progress?: Progress` replaces `progressText?: string`. `CommandButton` overrides the Vuetify `loader` slot when `progress` is set, rendering a `v-progress-circular` (bound to `model-value` when a `percentage` is supplied, otherwise `indeterminate`) alongside the formatted text.
+  - Factories and callables are branded with `_streamFactory` / `_streamCallable` so `Command.fn` / `Command.wrap` can disambiguate them from plain mutate functions.
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+- d4bf24a: Add `Command.withDefaultToastStream` — a stream-aware combinator for `streamFn` that properly handles the full stream lifecycle (waiting/success/failure toasts). Unlike `withDefaultToast`, it waits for the stream to drain before showing the success toast and correctly handles stream errors.
+
+  Strongly type `CommandBase` with `RA`/`RE` type params for `result`, and update `CommandButton`'s `mapProgress` prop to be typed as `(result: AsyncResult<RA, RE>) => Progress | undefined`.
+
+- 0d7d197: Add optional `groupId` and `requestId` to toast options.
+
+  - `ToastOpts` / `ToastOptsInternal` now accept `groupId?: string` and `requestId?: string`; values pass through the toast wrapper unchanged.
+  - `WithToast` / `withToast` accept `groupId` and auto-derive `requestId` once per invocation (current Effect span `traceId`, fallback `S.StringId.make()`); both are attached to every emitted toast (waiting/success/warning/error).
+  - `Command.withDefaultToast` and `Command.withDefaultToastStream` set `groupId: cc.id` automatically; the stream variant also computes `requestId` once and threads it through progress, success, and failure toasts.
+
+- fc98fb7: Add `streamQuery` support for stream-type Rpc handlers. When an Rpc is of type `"stream"`, the client now exposes a `.streamQuery` property (and `...StreamQuery` in helpers) that uses `streamedQuery` from `@tanstack/query-core` to accumulate chunks reactively as an `AsyncResult<A[], E>`.
+- 4bbeb19: Add `wrapStream` support to `Command` with separate `result` and `running` props.
+
+  **Key design:**
+
+  - `result` is always the command's own execution outcome (from `asResult`)
+  - `running` holds the stream's live `AsyncResult` ref for progress tracking
+
+  **New behaviour:**
+
+  - `CommanderImpl.wrapStream(mutation)` returns a callable like `wrap` — `wrapStream(mutation)()` gives `CommandOut`.
+  - Accepts either `{ id, mutateStream: [...] }` or the augmented tuple directly (when `.id` is attached).
+  - `Command.wrap` now accepts `{ mutateStream, id }` and the augmented tuple — both delegate to `wrapStream`.
+  - `FnOptions.progress` — pass a `ComputedRef<AsyncResult>` to any `fn`-created command; surfaces as `running`.
+  - `StreamMutationWithExtensions` now includes `.id` on the tuple.
+  - Stream client entries expose `wrapStream` (callable), `fn`, and `mutateStream` (with `.id`).
+  - Stream mutation helpers also carry `.fn` and `.id`.
+
+  ```ts
+  // Via client entry:
+  const exportCmd = Command.wrapStream(client.myExport)();
+  // exportCmd.result = own execution result; exportCmd.running = live stream AsyncResult
+
+  // Via mutateStream tuple (id is attached):
+  const exportCmd = Command.wrapStream(client.myExport.mutateStream)();
+
+  // wrap also accepts the tuple:
+  const exportCmd = Command.wrap(client.myExport.mutateStream)();
+
+  // fn with external progress:
+  const cmd = Command.fn({
+    id: "myExport",
+    progress: client.myExport.mutateStream[0],
+  })(function* (arg) {
+    yield* client.myExport.mutateStream[1](arg);
+  });
+  // cmd.running === the stream AsyncResult ref
+  ```
+
+### Patch Changes
+
+- 439cbeb: Adopt module system from effect-smol: replace barrel imports with specific submodule imports (`import * as X from "effect-app/X"` / `import * as X from "effect/X"`).
+- da83c1f: Align `InvalidationEntry` (vue) with `InvalidateQueryInstruction` (effect-app).
+
+  `InvalidateQueryInstruction` is now parametrized over `Filters` / `Options`
+  (defaulting to `Record<string, unknown>` so the core stays framework-agnostic).
+  `@effect-app/vue` exposes `InvalidationEntry` as a narrowed alias substituting
+  `@tanstack/vue-query`'s `InvalidateQueryFilters` and `InvalidateOptions`. Single
+  source of truth for the union shape across both packages.
+
+- 664e83d: Add Atom-native Vue query APIs, stream query pull atoms, and a TanStack-backed legacy query engine toggle.
+- eceb3a3: align CauseException
+- 08d092c: Update Atom query caches in memory and accumulate stream invalidations so live events do not cause repeated RPC refetches.
+- a74a894: Fix atom-query suspense cleanup so per-observer wrappers unsubscribe on unmount while cached query atoms keep their idle TTL.
+- 32f05c8: Remove unused dependency declarations from package manifests.
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+
+- 6cfd83d: update effect to latest beta
+- aa5ef5c: Improve `deepToRaw` to support any root input type, correctly unwrap refs/computed values, and preserve collection/date shapes (`Array`, `Map`, `Set`, `Date`) while deeply removing Vue reactivity wrappers.
+- 08d30af: Fix Commander combinator type inference for void Arg and withDefaultToast callbacks
+
+  - Use `ArgForCombinator` helper to properly resolve `void` args to `undefined` in combinator positions, enabling correct type inference for `withDefaultToast` and other curried combinators
+  - Use explicit positional params in `withDefaultToast` options callbacks instead of rest spread, allowing users to omit trailing parameters
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- 52b0b01: Beta25
+- 99a2e9b: Use warning toasts for expected commander failures, while keeping unexpected errors as error toasts.
+- 8753c52: render
+- d23e3f6: Delay the in-progress (waiting) toast by 1 second in `withToast` and `withDefaultToastStream`. Fast operations that produce a success/failure (or, for streams, a progress event or terminal state) within the delay window never show a waiting toast at all. Any subsequent waiting/progress/success/failure toast aborts the pending delayed toast so it never flashes after the terminal state.
+- 10b55ff: update packages
+- 4149577: fix queryresources
+- 04fc985: Fixes error handling
+- 1176240: Fix `client[Key].Input` resolving to `never` for stream request handlers. The extractor only matched `RequestHandlerWithInput`, so any `RequestStreamHandlerWithInput` entry fell through to the `never` branch. Added a parallel `RequestStreamHandlerWithInput` extract so stream Inputs surface the handler's input type.
+- 0d4e0b8: Fix `isGeneratorFunction` using `isObject` instead of `isFunction`: generator functions have `typeof === "function"`, not `"object"`, so the check always returned `false`. This caused `Command.streamFn` generator-form handlers to silently pass a raw `Generator` object rather than an `Effect<Stream>`, meaning the mutation was never executed.
+- d195003: Fix numeric field type detection in `getMetadataFromSchema` for Effect v4 JSON schema output. `S.Number` now emits `anyOf` instead of a top-level `type: "number"`, causing fields to fall back to `"text"`. Detection now recurses through `anyOf`/`oneOf`/`allOf` to find the underlying numeric type.
+- 7519318: Fix interrupt repro tests to observe expected suspense interruption rejections.
+- 1b38043: Fix lint: use typescript ~6.0.3 instead of native-preview for ESLint compatibility; keep tsgo for compilation
+- 07a57b6: Limit `client.method.mutate` extensions to only expose the mutation call and `wrap`.
+- 55c6572: update packages
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+- dd239fa: fix atom invalidation
+- 66fd718: Require `clientFor` invalidation resources when any command in the client configures them.
+- c991be1: update packages
+- 702d51c: also make runSync version available\
+- fc41dcf: add trace id and span id to toasts
+- 34f6a97: fix missing fn
+- 4b95009: use Finite instead of Number
+- 2e4c018: feat: add client projection
+- c7fbd58: `handle`, `mutate`, and `request` are now always functions, never a raw Effect or Stream. For no-input handlers the first argument is omitted (`handle()`, `request()`, `mutate()`).
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+- 50d7fc1: refactor(vue): remove 1s waiting toast delay in withDefaultToastStream
+- dc465e3: update to latest effect beta
+- f44800c: In-progress toasts (`withToast` waiting toast and `withDefaultToastStream` waiting/progress toasts) now persist indefinitely (`timeout: Infinity`) until replaced by the success/failure toast or dismissed. Previously they used the underlying toast adapter's default duration and could disappear before the operation finished.
+- 8c645d5: update to latest effect
+- 52b0b01: adapt isObject change
+- b952f19: bye cruft
+- a37aa38: Update to effect beta 43
+- 28a0b29: expose Input
+- c1e73de:
+- d867272: the return of `Context`
+- 1b57aa4: Add a `Commander` error-renderer registry via `Context.Reference` and apply registered guarded renderers before default error formatting.
+- 0c42d67: move out Commander and friends from experimental
+- 8f09f77: fix
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- d71d976: fix
+- 2aa8e5e: `queryInvalidation` / `invalidatesQueries` accept shorthand entries (per-mutation, Command, client-level `QueryInvalidation<M>` maps, and server-side `Req.Command` `invalidatesQueries` callbacks).
+
+  Each entry returned may now be:
+
+  - a raw query key (`string[]`)
+  - an RPC handler (`{ id, options? }`) — its query key is derived via `makeQueryKey`
+  - the existing `{ filters, options }` raw tanstack-query invalidation
+
+  ```ts
+  queryInvalidation: (queryKey) => [queryKey, GetMe, PackListIndex];
+  ```
+
+  equivalent to:
+
+  ```ts
+  queryInvalidation: (queryKey) => [
+    { filters: { queryKey } },
+    { filters: { queryKey: makeQueryKey(GetMe) } },
+    { filters: { queryKey: makeQueryKey(PackListIndex) } },
+  ];
+  ```
+
+- ed1b8a9: `mutate.wrap` on stream handlers now works the same as on command/query handlers: it can be called without arguments or with only combinators, with the underlying stream handler pre-baked in.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- 11422f8: Update request helper typing and runtime invocation to rely on schema `.make` instead of class constructors, avoiding `new`-based assumptions for request schemas.
+- eb28ea5: bogus
+- 4bc4a27: Constrain `project` schema to require matching `Encoded` type with original success schema
+- 0fe925d: Tag-aware `ProjectableFromDomain` for `projectComputed`: projection Encoded fields must exist on the matching domain tagged state (or be computed). Prevents Overview.List SchemaErrors when cancel states omit workflow lock fields like `activeRequest`.
+- 40585ca: Keep tag-aware `ProjectableFromDomain` for `projectComputed` only; restore loose key-presence guard for `project()` so view DTOs with reshaped fields keep typechecking.
+- a354345: Move release tsconfig flattening from publish to pack lifecycle so package configs are restored before registry upload/auth can fail.
+- aeb17bc: Preserve Effect parent spans across query refetch and invalidation.
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 18fd1df: unify runPromise
+- cec026d: update packages
+- 4622a75: Recover interrupted queries and classify query-side suspense interrupts.
+
+  - A query fetch that is interrupted (a subscriber lost interest, a refresh superseded it, or the component navigated) can be left `waiting = true` with no fiber running — effect-core hides the interrupt by removing the result-observer before interrupting, so it is never written back. `isStaleResult`/swr short-circuit on `waiting`, so that state is never revalidated and becomes **terminal** (a cold suspense read throws → blank page; a warm one serves stale forever). `recoverStuckWaitingOnMount` now treats a `waiting` result with `inFlight === 0` as not-yet-fetched and refetches it on mount. Interrupts are **not** auto-retried — recovery only fires for a genuine (re)mounting observer, and a live in-flight fetch (`inFlight > 0`) is joined, not superseded. Concurrent mounts share a single recovery fetch. Exposes `queryFetchStates` / `QueryFetchState`.
+
+  - `useSuspenseQuery` / `useSuspenseQueryNew` now convert an interrupt-only failure that settles **while the component is still mounted** into a typed `SuspenseInterruptedError` (a `Data.TaggedError` carrying the original cause). Such an interrupt cannot be a navigation/unmount cancel — that path interrupts the suspense fiber itself and never yields a still-mounted `Failure` exit — so it is query-side (e.g. a server RPC interrupt `Exit` delivered over a 200). Error boundaries can render it ("the request was interrupted — reload?") instead of silencing it into a blank page, while continuing to silence genuine navigation interrupts. Adds `SuspenseInterruptedError` / `isSuspenseInterruptedError`.
+
+- b2e438f: Remove Operations service and repo
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+- 7bd8234: Use set-backed data dependencies and provide request-scoped dependency services through a shared root-checked helper.
+- ad0ede6: Keep tag-aware `ProjectableGuard` on both `project()` and `projectComputed` (no loose key-only paper-over).
+
+  Hardening:
+
+  - single-literal tags allow dual same-tag domain variants (KeysOfUnion of matched members)
+  - multi-tag / string tags still require keys on every matched member
+  - optional projection/domain keys checked by key presence only (not optional-assignability)
+
+  Call sites must project domain-owned fields per tagged state.
+
+- ba61aad: raw dog
+- 8ae8b53: input mess
+- 37089ea: Consolidate multiple `invalidateQueries` calls into a single call per group using a `predicate`, reducing the number of TanStack Query invalidation calls in the common case from N to 1.
+- 52b0b01: fix atom references
+- 52b0b01: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- dd73a4a: fix fn on stream semantics
+- 0fa0e80: Allow query consumers to opt into non-blocking invalidation refetches.
+- acfdc9e: Point development package exports at TypeScript sources while keeping published exports on compiled dist files.
+- 9be71e1: fix: double guard
+- a69da09: Publish from generated staging directories so release-only files are created outside the source package tree.
+- 583393f: Default the stream `mutateStream` execute resolved value to the request's success type when no `final` schema is declared.
+
+  Previously the type defaulted to `void`, but the runtime already resolves with the last emitted value. Types now match runtime behaviour: `execute` returns `Final` if a `final` schema is set, otherwise the success type.
+
+- 61a3931: Flush stream mutation write-deps once when the first write arrives, then again on settlement. Long-running streams can refresh queries like GetActiveJob without invalidating list queries on every subsequent item write.
+- fa3533e: Keep the previous suspense value across reactive-arg atom switches.
+
+  A reactive arg re-points a resolved suspense query at a different family atom; the fresh atom starts `Initial` (no `previousSuccess` carried over), so the always-defined `data` computed found `undefined` and threw `Internal Error: suspense resolved without a latest value` during the next render flush. The always-defined ref now serves the last defined value across that transition (TanStack's keepPreviousData — Vue cannot re-suspend after mount); waiting/failure of the new fetch stays observable on the `result` ref. Applied to `.suspense()`, `.suspenseNew()` and `useAtomSuspense` via a shared `latestDefined` helper. It only throws when there has never been a value, which is unreachable once the suspense await resolved.
+
+- b8b9080: update packages
+- 57db551: Split `TaggedRequestFor` into `Query` and `Command` factories, and mark generated request classes with `type: "query" | "command"`.
+
+  Vue client helpers now expose query-only helpers (`query`, `suspense`, `fetch`) for query requests and mutation-only helpers (`mutate`, `fetch`) for command requests.
+
+- dbcc53b: Refactor command invalidation typing: declare resources via `Command<Self, Resources>()`, pass `invalidatesQueries` as the optional 4th argument, and enforce exact `clientFor` invalidation resources when required.
+- 18b915f: Default legacy TanStack queries to Effect-Equal-aware structural sharing.
+- 74e6d40: Seed legacy TanStack suspense results into Vue query refs when the observer re-points mid-flight.
+- 52b0b01: Configure Changesets fixed versioning for public packages.
+- 140e192: Relax invalidation resource value constraints to allow arbitrary values while preserving query-only filtering in invalidation handling.
+- 9992e70: pass options
+- 256ae85: cleanup
+- ac62e48: Route `useUpdateQuery` through the configured query cache so TanStack-backed legacy queries receive manual cache updates.
+- 52b0b01: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- fac725d: update effect to latest beta
+- 3200fa8: apply the remaining formatting and autofix cleanup across the vue packages
+- 01bab22: Work around tsgo failing to reduce `S.Codec.DecodingServices<X>` (`X extends Top ? X["DecodingServices"] : never`) in generic positions, which left `unknown` and polluted the `R` channel of client handlers and RPC middleware failure context. Since the schemas involved are already constrained to `S.Top`, read `["DecodingServices"]` directly in `RequestHandlerFor`, `TagClass.FailureContext`, and the Vue `MutationExt` / `QueryProjection` types.
+- 2a86a17: improve tsgo compat: avoid deferred `Schema.Type`/`Codec.Encoded`/`Codec.DecodingServices`/`Codec.EncodingServices` conditional helpers in generic positions where the type parameter is already constrained to `Schema.Top`. Index the property directly (`X["Type"]`, `X["Encoded"]`, `X["DecodingServices"]`, …) so tsgo doesn't leak `unknown` into `Effect` channels (notably `R`).
+
+  Sites: `client/clientFor.ts` (`RequestHandlerFor`, `FinalTypeOf`, `ExtractResponse`, `ExtractEResponse`), `client/makeClient.ts` (`InputFromPayload`, `OutputFromSuccess`, `InvalidationConfigForCommand`, `TaggedRequestWithMeta` overloads), `rpc/MiddlewareMaker.ts` (`Errors`), `rpc/RpcMiddleware.ts` (`Failure`, `FailureContext`), `Schema/ext.ts` (`ReadonlySetFromArray`, `ReadonlyMapFromArray`), `infra/routing.ts` (`GetSuccessShape`, handlers, route matcher), `vue/makeClient.ts` (`MutationExt.project`, `MutationWithExtensions`, `QueryProjection`), `vue/routeParams.ts` (`parseRouteParams*`).
+
+- c3299f7: update packages
+- 547e2e1: Update effect packages to `4.0.0-beta.107` (from `beta.90`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`, and `fast-check` to `^4.9.0`. Sync `repos/effect` subtree from `Effect-TS/effect` (effect-smol stopped publishing tags after beta.98).
+
+  API adaptations for beta.107:
+
+  - `concurrency: "inherit"` → `"unbounded"`
+  - `Schema.ErrorClass` / `TaggedErrorClass` → `Schema.Error` / `TaggedError`
+  - `Schema.LazyArbitrary` → `Schema.Arbitrary`
+  - `Schema.DateValid` / `isDateValid` removed (`Schema.Date` rejects invalid dates)
+  - `SchemaIssue` constructors no longer take `Option` (annotations + input)
+  - filter meta via `annotations.representation` instead of `annotations.meta`
+  - `context.defaultValue` → `context.constructorDefault` (single Link)
+  - Class detection via `~constructor` + static `identifier`
+  - Redacted detection via `representation.id`
+  - localized StandardSchema hooks updated for new issue/input model
+  - provide `NodeCrypto.layer` for cluster sqlite tests
+  - default `sync-effect` subtree URL → `Effect-TS/effect`
+
+- 52b0b01: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Update effect packages to 4.0.0-beta.52
+- 7ca66ce: Update to effect 4.0.0-beta.66. Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 57a1862: Update to effect 4.0.0-beta.67. Switch deps from `pkg.pr.new` snapshot back to npm beta tag.
+- 3e855bc: Update Effect packages to `4.0.0-beta.83` (from `beta.74`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/sql-sqlite-node`, `@effect/atom-vue`, `@effect/vitest`.
+
+  Adapt the infra workflow engines to beta.83 API changes:
+
+  - `Schema.Defect` is now a constructor function — use `S.Defect()` when building the deferred-exit codec (the bare constant no longer produces a usable schema and crashed `toType`).
+  - `Workflow` exposes its name as `_tag` instead of `name`. `WorkflowEngineSqlite`/`WorkflowEngineCosmos` now key the registry, codec caches, and persisted `workflow_name` off `workflow._tag`, fixing crash-recovery (stale-lease re-drive previously registered under an `undefined` key and never matched).
+
+- 78d076a: Update effect packages to `4.0.0-beta.84` (`effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`).
+- ffd140f: Update effect packages to `4.0.0-beta.86` (from `beta.84`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- e8842aa: Update effect packages to `4.0.0-beta.88` (from `beta.86`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Also bump `@effect-app/cli` to `2.1.0-beta.35`. No source changes required — typecheck and tests pass unchanged.
+- b6dda09: Update effect packages to `4.0.0-beta.90` (from `beta.88`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. No source changes required — typecheck and tests pass unchanged.
+- 0263827: Update to effect `pkg.pr.new` snapshot at `a42ef66` (4.0.0-beta.66). Remove `Yieldable` and `asEffect()` (service tags are now `Effect` directly).
+- 8bd5bfe: Update effect packages to `4.0.0-rc.112` (from `beta.107`): `effect`, `@effect/platform-node`, `@effect/platform-browser`, `@effect/atom-vue`, `@effect/sql-sqlite-node`, `@effect/vitest`. Sync `repos/effect` subtree from `Effect-TS/effect` at `effect@4.0.0-rc.112`.
+
+  API adaptations for rc.112:
+
+  - cluster encoded driver `resetAddress` → batched `resetAddresses`
+  - Cosmos `unprocessedMessages` honors optional `limit` / `addresses` (only claimed rows are returned)
+  - Service Bus `Runners.make` supplies `codecFor` for schema-aware RPC serialization
+  - `pnpm subtree:effect` passes `--url https://github.com/Effect-TS/effect.git` (published CLI still defaults to effect-smol)
+  - JSON Schema check constraints are compacted onto the parent (`minLength`/`maxLength` instead of `allOf`)
+
+- 413022d: Restore TanStack `placeholderData` / `initialData` as a display-level fallback in query views. While pending with no cached value, `data` now returns the resolved placeholder (with `select` applied when set); neither option is written to the atom cache.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` in commander `withDefaultToast`.
+- 1df5cf5: Wait for Vue query result refs to settle after TanStack suspense resolves.
+- b241ae5: Merge client and server-driven cache invalidation keys into a single `Effect.forEach` pass so server keys always run regardless of whether client targets are empty or custom invalidation options are used.
+- 677821a: Run projected query decoders through Effect so schemas that require services can resolve during legacy TanStack query refetches.
+- 7328c76: add deprecation notices
+- 7fd35e4: update tanstack/query
+- 89b7d2f: `Command.withDefaultToastStream`: add `progress` option to update the waiting toast with progress text on each stream element
+- Updated dependencies [439cbeb]
+- Updated dependencies [da83c1f]
+- Updated dependencies [b2df3fa]
+- Updated dependencies [199e9a5]
+- Updated dependencies [b035b1c]
+- Updated dependencies [664e83d]
+- Updated dependencies [a4dff57]
+- Updated dependencies [ba4bdc3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [9d3495e]
+- Updated dependencies [3436d44]
+- Updated dependencies [52b0b01]
+- Updated dependencies [f317c5e]
+- Updated dependencies [e585c9c]
+- Updated dependencies [e4ff9a6]
+- Updated dependencies [33b0544]
+- Updated dependencies [99c43c4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d092c]
+- Updated dependencies [947fe20]
+- Updated dependencies [21ac90a]
+- Updated dependencies [32f05c8]
+- Updated dependencies [6cfd83d]
+- Updated dependencies [1c858d3]
+- Updated dependencies [52b0b01]
+- Updated dependencies [992d9fa]
+- Updated dependencies [505bfa9]
+- Updated dependencies [939bebc]
+- Updated dependencies [ba789a2]
+- Updated dependencies [ab289d4]
+- Updated dependencies [52b0b01]
+- Updated dependencies [e0c4835]
+- Updated dependencies [32dbc54]
+- Updated dependencies [0a0030f]
+- Updated dependencies [0263827]
+- Updated dependencies [0263827]
+- Updated dependencies [aeb17bc]
+- Updated dependencies [c0e5a1b]
+- Updated dependencies [10b55ff]
+- Updated dependencies [14aba14]
+- Updated dependencies [a0075b8]
+- Updated dependencies [f052d38]
+- Updated dependencies [f233f3d]
+- Updated dependencies [18bae5b]
+- Updated dependencies [f313973]
+- Updated dependencies [edc52e4]
+- Updated dependencies [ea1bd46]
+- Updated dependencies [85a8275]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [47e3742]
+- Updated dependencies [458bb1b]
+- Updated dependencies [3365758]
+- Updated dependencies [54ec1ef]
+- Updated dependencies [f21190c]
+- Updated dependencies [0d4e0b8]
+- Updated dependencies [31739d7]
+- Updated dependencies [0b21a02]
+- Updated dependencies [bbaa67e]
+- Updated dependencies [a211c12]
+- Updated dependencies [347af48]
+- Updated dependencies [bd26832]
+- Updated dependencies [3053760]
+- Updated dependencies [52b0b01]
+- Updated dependencies [55c6572]
+- Updated dependencies [f88ea34]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c991be1]
+- Updated dependencies [d738811]
+- Updated dependencies [8fffc3c]
+- Updated dependencies [52b0b01]
+- Updated dependencies [a788432]
+- Updated dependencies [10e90d5]
+- Updated dependencies [4b95009]
+- Updated dependencies [52b0b01]
+- Updated dependencies [178480a]
+- Updated dependencies [985176b]
+- Updated dependencies [dc465e3]
+- Updated dependencies [21017d5]
+- Updated dependencies [0541f0d]
+- Updated dependencies [2ebf8ae]
+- Updated dependencies [8c645d5]
+- Updated dependencies [8cb3de4]
+- Updated dependencies [30c512d]
+- Updated dependencies [50b022e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [b952f19]
+- Updated dependencies [a37aa38]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c1e73de]
+- Updated dependencies [d867272]
+- Updated dependencies [774a9b3]
+- Updated dependencies [d67d17a]
+- Updated dependencies [8f09f77]
+- Updated dependencies [50ce7e6]
+- Updated dependencies [d71d976]
+- Updated dependencies [2aa8e5e]
+- Updated dependencies [29a1e57]
+- Updated dependencies [186de3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [6fff09c]
+- Updated dependencies [11422f8]
+- Updated dependencies [eb28ea5]
+- Updated dependencies [52b0b01]
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [ee9694e]
+- Updated dependencies [52a31dd]
+- Updated dependencies [52b0b01]
+- Updated dependencies [ca94edf]
+- Updated dependencies [d1c15d3]
+- Updated dependencies [a1b59bc]
+- Updated dependencies [dc07df5]
+- Updated dependencies [0fe925d]
+- Updated dependencies [40585ca]
+- Updated dependencies [5ac46cb]
+- Updated dependencies [a354345]
+- Updated dependencies [52b0b01]
+- Updated dependencies [186de3a]
+- Updated dependencies [48d9f36]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [d31253f]
+- Updated dependencies [5615e47]
+- Updated dependencies [3e46e7b]
+- Updated dependencies [cec026d]
+- Updated dependencies [88838fb]
+- Updated dependencies [3bae238]
+- Updated dependencies [b2e438f]
+- Updated dependencies [f150cf9]
+- Updated dependencies [0c88f78]
+- Updated dependencies [d16845e]
+- Updated dependencies [261470f]
+- Updated dependencies [beae3a0]
+- Updated dependencies [8792221]
+- Updated dependencies [1f103b2]
+- Updated dependencies [0054611]
+- Updated dependencies [7bd8234]
+- Updated dependencies [54bfc59]
+- Updated dependencies [ad0ede6]
+- Updated dependencies [89d8b3a]
+- Updated dependencies [52b0b01]
+- Updated dependencies [08d2e70]
+- Updated dependencies [9ea024d]
+- Updated dependencies [5f9cd6a]
+- Updated dependencies [6252808]
+- Updated dependencies [e6f2341]
+- Updated dependencies [821468d]
+- Updated dependencies [2495ace]
+- Updated dependencies [0b3e00e]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c215db8]
+- Updated dependencies [12abb55]
+- Updated dependencies [0cff7c1]
+- Updated dependencies [c1a6fdc]
+- Updated dependencies [8ae8b53]
+- Updated dependencies [a5248a9]
+- Updated dependencies [0e824ef]
+- Updated dependencies [52b0b01]
+- Updated dependencies [eb06b32]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [025de47]
+- Updated dependencies [acfdc9e]
+- Updated dependencies [1186b09]
+- Updated dependencies [a69da09]
+- Updated dependencies [3c1f52d]
+- Updated dependencies [3a8c710]
+- Updated dependencies [186de3a]
+- Updated dependencies [0054611]
+- Updated dependencies [583393f]
+- Updated dependencies [828d264]
+- Updated dependencies [7fa3045]
+- Updated dependencies [3dc0d2a]
+- Updated dependencies [459697f]
+- Updated dependencies [738b482]
+- Updated dependencies [3eda52e]
+- Updated dependencies [b52b424]
+- Updated dependencies [7c25dbb]
+- Updated dependencies [b8b9080]
+- Updated dependencies [b90fa30]
+- Updated dependencies [57db551]
+- Updated dependencies [3613e87]
+- Updated dependencies [52b0b01]
+- Updated dependencies [7119320]
+- Updated dependencies [e944bca]
+- Updated dependencies [dbcc53b]
+- Updated dependencies [52b0b01]
+- Updated dependencies [140e192]
+- Updated dependencies [9992e70]
+- Updated dependencies [24f0a5a]
+- Updated dependencies [256ae85]
+- Updated dependencies [8bd9a11]
+- Updated dependencies [52b0b01]
+- Updated dependencies [fac725d]
+- Updated dependencies [412f08b]
+- Updated dependencies [79eb019]
+- Updated dependencies [6ae3050]
+- Updated dependencies [f353d48]
+- Updated dependencies [52b0b01]
+- Updated dependencies [01bab22]
+- Updated dependencies [2a86a17]
+- Updated dependencies [52b0b01]
+- Updated dependencies [c3299f7]
+- Updated dependencies [23a7167]
+- Updated dependencies [e71eb78]
+- Updated dependencies [6b57330]
+- Updated dependencies [e2d00b5]
+- Updated dependencies [547e2e1]
+- Updated dependencies [52b0b01]
+- Updated dependencies
+- Updated dependencies [ea32222]
+- Updated dependencies [7ca66ce]
+- Updated dependencies [57a1862]
+- Updated dependencies [3e855bc]
+- Updated dependencies [78d076a]
+- Updated dependencies [ffd140f]
+- Updated dependencies [e8842aa]
+- Updated dependencies [b6dda09]
+- Updated dependencies [0263827]
+- Updated dependencies [8bd5bfe]
+- Updated dependencies [2231ef8]
+- Updated dependencies [c7bbc41]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+- Updated dependencies [52b0b01]
+  - effect-app@4.0.0
+
 ## 4.0.0-beta.333
 
 ### Patch Changes

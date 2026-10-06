@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
-    "@effect-app/cli": "2.1.0-beta.35",
+    "@effect-app/cli": "workspace:*",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.87.3",

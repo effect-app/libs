@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.45
+
+### Patch Changes
+
+- e2d00b5: Upgrade Effect packages to npm `4.0.1`.
+
 ## 2.1.0-beta.44
 
 ### Patch Changes

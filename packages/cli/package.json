@@ -14,8 +14,8 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0",
-    "effect": "4.0.0",
+    "@effect/platform-node": "4.0.1",
+    "effect": "4.0.1",
     "js-yaml": "4.2.0"
   },
   "devDependencies": {

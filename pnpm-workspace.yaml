@@ -17,13 +17,13 @@ minimumReleaseAgeExclude:
   - "@effect/tsgo-win32-x64@0.47.2"
   - "@effect/tsgo@0.47.2"
   - "@effect/language-service@0.87.3"
-  - "@effect/atom-vue@4.0.0"
-  - "@effect/platform-browser@4.0.0"
-  - "@effect/platform-node-shared@4.0.0"
-  - "@effect/platform-node@4.0.0"
-  - "@effect/sql-sqlite-node@4.0.0"
-  - "@effect/vitest@4.0.0"
-  - effect@4.0.0
+  - "@effect/atom-vue@4.0.1"
+  - "@effect/platform-browser@4.0.1"
+  - "@effect/platform-node-shared@4.0.1"
+  - "@effect/platform-node@4.0.1"
+  - "@effect/sql-sqlite-node@4.0.1"
+  - "@effect/vitest@4.0.1"
+  - effect@4.0.1
 overrides:
   date-fns: ^4.4.0
   fast-check: ^4.9.0

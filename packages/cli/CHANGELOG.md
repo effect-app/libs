@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.1
+
+### Patch Changes
+
+- 7a99d1b: Upgrade Effect packages to npm `4.0.2`.
+
 ## 2.1.0
 
 ### Minor Changes

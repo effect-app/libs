@@ -71,7 +71,9 @@ export function logError<E>(name: string) {
   return Effect.fnUntraced(
     function*(cause: Cause.Cause<E>, extras?: Record<string, unknown>) {
       if (Cause.hasInterruptsOnly(cause)) {
-        yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
+        yield* Effect.logDebug("Interrupted").pipe(
+          Effect.annotateLogs(dropUndefined({ extras }))
+        )
         return
       }
       yield* Effect

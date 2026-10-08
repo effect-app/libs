@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type MessageDescriptor, type ResolvedIntlConfig } from "@formatjs/intl"
-import { typedKeysOf } from "effect-app/utils"
+import * as Struct from "effect/Struct"
 import { type FormatXMLElementFn, type Options as IntlMessageFormatOptions, type PrimitiveType } from "intl-messageformat"
 import { type Ref, watch } from "vue"
 import { translate } from "./form.ts"
@@ -20,7 +20,7 @@ export const makeIntl = <Locale extends string>(
 ) => {
   const intlCache = createIntlCache()
 
-  const intls = typedKeysOf(messages).reduce(
+  const intls = Struct.keys(messages).reduce(
     (acc, cur) => {
       acc[cur] = createIntl<Locale>(
         {

@@ -1,13 +1,6 @@
 export * from "effect/Function"
 export type { Predicate, Refinement } from "effect/Predicate"
 
-/**
- * Construct tuples
- */
-export function tuple<T extends ReadonlyArray<any>>(...t: T): Readonly<T> {
-  return t
-}
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export function tupledCurry<A, B, C>(f: (b: B) => (a: A) => C) {

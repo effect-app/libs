@@ -2,15 +2,13 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import * as Def from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
-import type { Scope } from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
+import * as Struct from "effect/Struct"
 import type * as Context from "./Context.ts"
 import { curry } from "./Function.ts"
-import { typedKeysOf } from "./utils.ts"
 
 export * from "effect/Effect"
 // v4: Effect interface not re-exported by `export *` due to local binding collision
@@ -94,9 +92,6 @@ export function ifDiff<I, R, E, A>(n: I, orig: I) {
   return (f: (i: I) => Effect.Effect<A, E, R>) => ifDiff_(n, orig, f)
 }
 
-// NOTE: await extension doesnt work via tsplus somehow
-export const await_ = Def.await
-
 /**
  * Ref has atomic modify support if synchronous, for Effect we need a Semaphore.
  */
@@ -151,9 +146,9 @@ export function allLower<T extends Record<string, Context.Service<any, any> | Ef
   services: T
 ) {
   return Effect.all(
-    typedKeysOf(services).reduce((prev, cur) => {
+    Struct.keys(services).reduce((prev, cur) => {
       const svc = services[cur]!
-      prev[((cur as string)[0]!.toLowerCase() + (cur as string).slice(1)) as unknown as LowerFirst<typeof cur>] = svc
+      prev[(cur[0]!.toLowerCase() + cur.slice(1)) as unknown as LowerFirst<typeof cur>] = svc
       return prev
     }, {} as any),
     { concurrency: "unbounded" }
@@ -185,18 +180,4 @@ export function allLowerWithEffect<
 export function catchAllMap<E, A2>(f: (e: E) => A2) {
   return <R, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A2 | A, never, R> =>
     Effect.catch(self, (err: E) => Effect.sync(() => f(err)))
-}
-
-/**
- * Annotates each log in this scope with the specified log annotation.
- */
-export function annotateLogscoped(key: string, value: string): Effect.Effect<void, never, Scope> {
-  return Effect.annotateLogsScoped(key, value)
-}
-
-/**
- * Annotates each log in this scope with the specified log annotations.
- */
-export function annotateLogsScoped(kvps: Record<string, string>): Effect.Effect<void, never, Scope> {
-  return Effect.annotateLogsScoped(kvps)
 }

@@ -14,12 +14,13 @@ import { Invalidation } from "effect-app/rpc"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import * as S from "effect-app/Schema"
 import { type TypeTestId } from "effect-app/TypeTest"
-import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import * as Predicate from "effect/Predicate"
+import * as Record from "effect/Record"
 import * as Ref from "effect/Ref"
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/rpc"
 import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
+import * as Struct from "effect/Struct"
 import { type LayerUtils } from "./layerUtils.ts"
 import { RequestType as RequestTypeAnnotation } from "./routing/middleware.ts"
 
@@ -321,14 +322,14 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
     const meta = getMeta(rsc)
 
     type RequestModules = FilterRequestModules<Resource>
-    const requestModules = typedKeysOf(rsc).reduce((acc, cur) => {
+    const requestModules = Struct.keys(rsc).reduce((acc, cur) => {
       if (Predicate.isObjectKeyword(rsc[cur]) && rsc[cur]["success"]) {
         acc[cur as keyof RequestModules] = rsc[cur]
       }
       return acc
     }, {} as RequestModules)
 
-    const routeMatcher = typedKeysOf(requestModules).reduce(
+    const routeMatcher = Struct.keys(requestModules).reduce(
       (prev, cur) => {
         ;(prev as any)[cur] = Object.assign((handlerImpl: any) => {
           // handlerImpl is the actual handler implementation
@@ -398,7 +399,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
         >
       >
     } = (impl: Record<keyof RequestModules, any>) =>
-      typedKeysOf(impl).reduce((acc, cur) => {
+      Struct.keys(impl).reduce((acc, cur) => {
         acc[cur] = "raw" in impl[cur] ? routeMatcher[cur].raw(impl[cur].raw) : routeMatcher[cur](impl[cur])
         return acc
       }, {} as any)
@@ -437,7 +438,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
           const mw = meta.middleware as any
 
           // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
-          const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
+          const mapped = Struct.keys(requestModules).reduce((acc, cur) => {
             const handler = controllers[cur as keyof typeof controllers]
             const resource = rsc[cur]
 
@@ -623,7 +624,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
 
           const rpcs = RpcGroup
             .make(
-              ...typedValuesOf(mapped).map(([resource]) => {
+              ...(Object.values(mapped) as Array<(typeof mapped)[keyof typeof mapped]>).map(([resource]) => {
                 const isStream = resource.stream
                 const isCommand = resource.type === "command"
                 return (isCommand
@@ -654,10 +655,13 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
 
           const rpc = rpcs
             .toLayer(Effect.gen(function*() {
-              return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
-                acc[`${meta.moduleName}.${resource._tag}`] = handler
-                return acc
-              }, {} as Record<string, any>) as any // TODO
+              return (Object.values(mapped) as Array<(typeof mapped)[keyof typeof mapped]>).reduce(
+                (acc, [resource, handler]) => {
+                  acc[`${meta.moduleName}.${resource._tag}`] = handler
+                  return acc
+                },
+                {} as Record<string, any>
+              ) as any // TODO
             })) as unknown as Layer.Layer<
               { [K in keyof RequestModules]: Rpc.Handler<K> },
               MakeE,
@@ -774,7 +778,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
   >(
     handlers: T
   ) {
-    const routers = typedValuesOf(handlers)
+    const routers = Record.values(handlers)
 
     return Layer.mergeAll(...routers as [any]) as unknown as Layer.Layer<
       never,

@@ -1,25 +1,8 @@
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 import * as Array from "effect/Array"
-import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import { dual, type Predicate } from "./Function.ts"
 import * as Option from "./Option.ts"
-
-export const toNonEmptyArray = Option.liftPredicate(Array.isReadonlyArrayNonEmpty)
-
-export const isArray: {
-  // uses ReadonlyArray here because otherwise the second overload don't work when ROA is involved.
-  (self: unknown): self is ReadonlyArray<unknown>
-  <T>(self: T): self is Extract<T, ReadonlyArray<any>>
-} = Array.isArray
-
-export function NEAFromArray<T>(ar: Array<T>) {
-  return ar.length ? Option.some(ar as NonEmptyArray<T>) : Option.none()
-}
-
-export function NEROArrayFromArray<T>(ar: ReadonlyArray<T>) {
-  return ar.length ? Option.some(ar as NonEmptyReadonlyArray<T>) : Option.none()
-}
 
 export const groupByT = dual<
   <A, Key>(
@@ -85,26 +68,11 @@ export function filterWith<A>(self: ReadonlyArray<A>, predicates: ReadonlyArray<
   return self.filter((_) => predicates.every((f) => f(_)))
 }
 
-/**
- * Split the `items` array into multiple, smaller chunks of the given `size`.
- */
-export function* _chunk_<T>(items_: Iterable<T>, size: number) {
-  const items = [...items_]
-
-  while (items.length) {
-    yield items.splice(0, size)
-  }
-}
-
-/**
- * Split the `items` array into multiple, smaller chunks of the given `size`.
- */
-export function chunk_<T>(items_: Iterable<T>, size: number) {
-  return Chunk.fromIterable(_chunk_(items_, size))
-}
-
 export function forEachEffectNA<A, R, E, B>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Effect.Effect<B, E, R>) {
-  return Effect.map(Effect.forEach(as, f), (_) => Option.getOrNull(toNonEmptyArray(_)))
+  return Effect.map(
+    Effect.forEach(as, f),
+    (_) => Option.getOrNull(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(_))
+  )
 }
 
 export * from "effect/Array"

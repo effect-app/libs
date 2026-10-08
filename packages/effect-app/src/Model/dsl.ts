@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { NonEmptyReadonlyArray } from "../Array.ts"
-import { toNonEmptyArray } from "../Array.ts"
+import { isReadonlyArrayNonEmpty, type NonEmptyReadonlyArray } from "../Array.ts"
 import * as Effect from "../Effect.ts"
+import * as Option from "../Option.ts"
 import { type FixEnv, get, logMany, type Pure, type PureEnvEnv, type PureLogT, set } from "../Pure.ts"
 
 export interface PureDSL<S, S2, W> {
@@ -118,12 +118,13 @@ export function makeDSL<S1, S2, Evt>() {
 export interface DSLExt<S1, S2, Evt> extends ReturnType<typeof makeDSL<S1, S2, Evt>> {}
 
 export function ifAny<T, R, E, A>(fn: (items: NonEmptyReadonlyArray<T>) => Effect.Effect<A, E, R>) {
-  return (items: Iterable<T>) => Effect.flatMapOption(Effect.sync(() => toNonEmptyArray([...items])), fn)
+  return (items: Iterable<T>) =>
+    Effect.flatMapOption(Effect.sync(() => Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])), fn)
 }
 
 export function ifAny_<T, R, E, A>(
   items: Iterable<T>,
   fn: (items: NonEmptyReadonlyArray<T>) => Effect.Effect<A, E, R>
 ) {
-  return Effect.flatMapOption(Effect.sync(() => toNonEmptyArray([...items])), fn)
+  return Effect.flatMapOption(Effect.sync(() => Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])), fn)
 }

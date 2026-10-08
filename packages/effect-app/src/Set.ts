@@ -6,7 +6,8 @@ import * as Option from "effect/Option"
 import type * as Order from "effect/Order"
 import { not } from "effect/Predicate"
 import type * as Result from "effect/Result"
-import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.ts"
+import * as Tuple from "effect/Tuple"
+import { identity, pipe, type Predicate, type Refinement } from "./Function.ts"
 
 export function find_<A, B extends A>(
   as: ReadonlySet<A>,
@@ -309,7 +310,7 @@ export function partition_<A>(
       left.add(value)
     }
   }
-  return tuple(left, right)
+  return Tuple.make(left, right)
 }
 
 /**
@@ -375,7 +376,7 @@ export function partitionMap_<B, C>(
           break
       }
     }
-    return tuple(left, right)
+    return Tuple.make(left, right)
   }
 }
 
@@ -552,7 +553,7 @@ export function separate<E, A>(
           break
       }
     })
-    return tuple(left, right)
+    return Tuple.make(left, right)
   }
 }
 

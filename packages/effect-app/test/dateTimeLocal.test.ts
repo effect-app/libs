@@ -24,4 +24,32 @@ describe("local Date helpers", () => {
     const result = pipeZonedLocal(start, DateTime.add({ days: 1 }), DateTime.add({ months: 1 }))
     expect(result.getTime()).toBe(expected.getTime())
   })
+
+  test("pipeZonedLocal accepts as many functions as pipe", () => {
+    const keep = <A extends DateTime.DateTime>(self: A) => self
+    const expected = new Date(start.getTime())
+    expected.setDate(expected.getDate() + 1)
+    const result = pipeZonedLocal(
+      start,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      keep,
+      DateTime.add({ days: 1 })
+    )
+    expect(result.getTime()).toBe(expected.getTime())
+  })
 })

@@ -1,36 +1,46 @@
 packages:
+  - ai-docs
+  - scratchpad
+  - scripts
   - packages/*
+  - packages/ai/*
+  - packages/atom/*
+  - packages/platform/*
+  - packages/sql/*
+  - packages/tools/*
+  - examples/*
+
+verifyDepsBeforeRun: error
+enableGlobalVirtualStore: false
+
 allowBuilds:
-  "@parcel/watcher": false
-  better-sqlite3: true
+  core-js: false
+  cpu-features: false
   dprint: false
   esbuild: false
-  msgpackr-extract: false
-  vue-demi: false
-minimumReleaseAgeExclude:
-  - "@effect/tsgo-darwin-arm64@0.47.2"
-  - "@effect/tsgo-darwin-x64@0.47.2"
-  - "@effect/tsgo-linux-arm64@0.47.2"
-  - "@effect/tsgo-linux-arm@0.47.2"
-  - "@effect/tsgo-linux-x64@0.47.2"
-  - "@effect/tsgo-win32-arm64@0.47.2"
-  - "@effect/tsgo-win32-x64@0.47.2"
-  - "@effect/tsgo@0.47.2"
-  - "@effect/language-service@0.87.3"
-  - "@effect/atom-vue@4.0.1"
-  - "@effect/platform-browser@4.0.1"
-  - "@effect/platform-node-shared@4.0.1"
-  - "@effect/platform-node@4.0.1"
-  - "@effect/sql-sqlite-node@4.0.1"
-  - "@effect/vitest@4.0.1"
-  - effect@4.0.1
-overrides:
-  date-fns: ^4.4.0
-  fast-check: ^4.9.0
-  vue: ^3.5.35
+  protobufjs: false
+  sharp: false
+  ssh2: false
+  tree-sitter: false
+  tree-sitter-javascript: false
+  tree-sitter-typescript: false
+  workerd: false
+
 patchedDependencies:
-  ts-plugin-sort-import-suggestions: patches/ts-plugin-sort-import-suggestions.patch
-  "@tanstack/query-core": patches/@tanstack__query-core.patch
-  typescript@6.0.3: patches/typescript.patch
-  "@sendgrid/mail": patches/@sendgrid__mail.patch
-  "@changesets/cli@2.31.0": patches/@changesets__cli@2.31.0.patch
+  '@changesets/get-github-info@1.0.1': patches/@changesets__get-github-info@1.0.1.patch
+
+overrides:
+  # jsdom 30.1.0 fails under Bun when Vitest installs its window error handler.
+  # Remove after a later jsdom release passes the Atom React and Solid suites under Bun.
+  # Upstream changes: https://github.com/jsdom/jsdom/compare/v30.0.1...v30.1.0
+  jsdom: ~30.0.1
+
+minimumReleaseAgeExclude:
+  - '@effect/tsgo-darwin-arm64@0.51.0'
+  - '@effect/tsgo-darwin-x64@0.51.0'
+  - '@effect/tsgo-linux-arm64@0.51.0'
+  - '@effect/tsgo-linux-arm@0.51.0'
+  - '@effect/tsgo-linux-x64@0.51.0'
+  - '@effect/tsgo-win32-arm64@0.51.0'
+  - '@effect/tsgo-win32-x64@0.51.0'
+  - '@effect/tsgo@0.51.0'

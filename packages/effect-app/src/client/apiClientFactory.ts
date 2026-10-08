@@ -4,6 +4,7 @@ import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
+import * as Record from "effect/Record"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
@@ -15,7 +16,6 @@ import * as Effect from "../Effect.ts"
 import { HttpClient, HttpClientRequest } from "../http.ts"
 import { Invalidation } from "../rpc.ts"
 import type * as S from "../Schema.ts"
-import { typedKeysOf, typedValuesOf } from "../utils.ts"
 import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.ts"
 import { InvalidationKeysFromServer } from "./InvalidationKeys.ts"
 
@@ -94,7 +94,7 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
     [K in keyof M as M[K] extends Req ? K : never]: M[K] extends Req ? M[K] : never
   }
   // TODO: Record.filter
-  const filtered = typedKeysOf(resource).reduce((acc, cur) => {
+  const filtered = Struct.keys(resource).reduce((acc, cur) => {
     if (
       Predicate.isObjectKeyword(resource[cur])
       && (resource[cur].success)
@@ -110,7 +110,7 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
 export const getMeta = <M extends RequestsAny>(
   resource: M
 ): { moduleName: ExtractModuleName<M>; middleware?: unknown } => {
-  const first = typedValuesOf(getFiltered(resource))[0]
+  const first = Record.values(getFiltered(resource))[0]
   if (first && "moduleName" in first) return { moduleName: first.moduleName, middleware: (first as any).middleware }
   throw new Error("No moduleName on requests!")
 }
@@ -125,7 +125,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
   type newM = typeof filtered
   const baseRpcs = RpcGroup
     .make(
-      ...typedValuesOf(filtered).map((_) => {
+      ...Record.values(filtered).map((_) => {
         const r = _ as any
         const isStream = r.stream
         const isCommand = r.type === "command"
@@ -262,13 +262,14 @@ const makeApiClientFactory = Effect
 
       return {
         mr,
-        client: typedKeysOf(filtered)
+        client: Struct
+          .keys(filtered)
           .reduce((prev, cur) => {
             const h = filtered[cur]!
 
             const Request = h
 
-            const id = `${meta.moduleName}.${cur as string}`
+            const id = `${meta.moduleName}.${cur}`
               .replaceAll(".js", "")
 
             const requestMeta = {
@@ -281,7 +282,7 @@ const makeApiClientFactory = Effect
             }
 
             const requestNameLayer = Layer.succeed(RequestName, {
-              requestName: cur as string,
+              requestName: cur,
               moduleName: meta.moduleName
             })
 

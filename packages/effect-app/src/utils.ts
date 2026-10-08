@@ -47,11 +47,6 @@ export function toString(v: unknown) {
   return `${v}`
 }
 
-export const typedKeysOf = <T extends {}>(obj: T) => Object.keys(obj) as (keyof T)[]
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-export const typedValuesOf = <T extends {}>(obj: T) => Object.values(obj) as ValueOf<T>[]
-type ValueOf<T> = T[keyof T]
-
 export type Constructor<T = any> = { new(...args: any[]): T }
 export type ThenArg<T> = T extends Promise<infer U> ? U
   : T extends (...args: any[]) => Promise<infer V> ? V
@@ -116,30 +111,8 @@ export function dropUndefinedRec<Desired extends Record<any, any>>() {
   }
 }
 
-export type Dictionary<T> = {
-  readonly [P in string]: T
-}
-
-export function dropUndefined<A>(
-  input: Dictionary<A | undefined>
-): Dictionary<A> {
-  const newR = pipe(
-    input,
-    Record.filter((x): x is A => x !== undefined)
-  )
-  return newR
-}
-
 type GetTag<T> = T extends { _tag: infer K } ? K : never
 export const isOfType = <T extends { _tag: string }>(tag: GetTag<T>) => (e: { _tag: string }): e is T => e._tag === tag
-
-export function capitalize<T extends string>(string: T): Capitalize<T> {
-  return (string.charAt(0).toUpperCase() + string.slice(1)) as Capitalize<T>
-}
-
-export function uncapitalize<T extends string>(string: T): Uncapitalize<T> {
-  return (string.charAt(0).toLowerCase() + string.slice(1)) as Uncapitalize<T>
-}
 
 export function pretty(o: unknown): string {
   return JSON.stringify(o, undefined, 2) ?? "undefined"
@@ -563,10 +536,6 @@ export function exhaustiveMatch<T extends string>() {
 
 export function exhaustiveMatch_<T extends string>(t: T) {
   return <Out extends Record<T, (t: T) => any>>(handlers: Out): ReturnType<Out[keyof Out]> => handlers[t](t)
-}
-
-export function assertUnreachable(x: never): never {
-  throw new Error("Unknown case " + x)
 }
 
 export type OptPromise<T extends () => any> = (

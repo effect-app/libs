@@ -8,7 +8,6 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { ApiClientFactory, InvalidStateError, makeRpcClient, NotLoggedInError, OptimisticConcurrencyException } from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
-import { tuple } from "effect-app/Function"
 import { HttpRouter, HttpServer } from "effect-app/http"
 import * as Layer from "effect-app/Layer"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
@@ -22,6 +21,7 @@ import * as Option from "effect/Option"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { RpcSerialization } from "effect/rpc"
 import * as Scope from "effect/Scope"
+import * as Tuple from "effect/Tuple"
 import { createServer } from "http"
 import { createApp, effectScope, ref } from "vue"
 import { RequestContextMiddleware } from "../../infra/src/internal/RequestContextMiddleware.ts"
@@ -167,7 +167,7 @@ const setup = () => {
         Effect.context<any>()
       ] as const
     )
-    .pipe(Effect.map(([client, context]) => tuple(runtime, client, context)), runtime.runPromise)
+    .pipe(Effect.map(([client, context]) => Tuple.make(runtime, client, context)), runtime.runPromise)
 }
 
 it("atom engine: rpc repo write invalidates and refetches; unrelated rpc write does not", async () => {

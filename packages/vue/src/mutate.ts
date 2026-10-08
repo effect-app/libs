@@ -3,7 +3,6 @@ import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, mak
 import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
-import { tuple } from "effect-app/Function"
 import * as Option from "effect-app/Option"
 import { isReadonlyArrayNonEmpty } from "effect/Array"
 import type * as Cause from "effect/Cause"
@@ -12,6 +11,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import type * as Reactivity from "effect/reactivity/Reactivity"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
+import * as Tuple from "effect/Tuple"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { invalidateAndAwait, invalidateSoft } from "./atomQuery.ts"
 import { getDerivedInvalidationKeys, partitionInvalidationKeys } from "./dependencyMetadata.ts"
@@ -102,7 +102,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
 
   const latestSuccess = computed(() => Option.getOrUndefined(AsyncResult.value(result.value)))
 
-  return tuple(result, latestSuccess, execute)
+  return Tuple.make(result, latestSuccess, execute)
 }
 
 /**
@@ -221,7 +221,7 @@ export const asResult = <Args extends readonly any[], A, E, R>(
         ))
       )
 
-  return tuple(computed(() => state.value), act)
+  return Tuple.make(computed(() => state.value), act)
 }
 
 /**
@@ -268,7 +268,7 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
 
   const act = (...args: Args) => runStream(handler(...args))
 
-  return tuple(computed(() => state.value), act)
+  return Tuple.make(computed(() => state.value), act)
 }
 
 const buildInvalidateCache = <RInvalidator>(

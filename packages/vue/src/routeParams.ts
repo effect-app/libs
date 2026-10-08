@@ -1,7 +1,7 @@
 import * as Option from "effect-app/Option"
 import * as S from "effect-app/Schema"
-import { typedKeysOf } from "effect-app/utils"
 import { flow } from "effect/Function"
+import * as Struct from "effect/Struct"
 import type { ParsedQuery } from "query-string"
 
 export function getQueryParam(search: ParsedQuery, param: string) {
@@ -18,10 +18,10 @@ export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, a
 ): {
   [K in keyof NER]: Option.Option<NER[K]["Type"]>
 } {
-  return typedKeysOf(t).reduce(
+  return Struct.keys(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      prev[cur] = getQueryParamO(query, cur as string).pipe(
+      prev[cur] = getQueryParamO(query, cur).pipe(
         Option.flatMap(S.decodeUnknownOption(t[cur]!))
       )
 
@@ -39,7 +39,7 @@ export function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(
 ): {
   [K in keyof NER]: NER[K]["Type"]
 } {
-  return typedKeysOf(t).reduce(
+  return Struct.keys(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       prev[cur] = S.decodeUnknownSync(t[cur]!)(

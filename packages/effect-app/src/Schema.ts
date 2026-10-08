@@ -115,7 +115,7 @@ export * from "./Schema/Class.ts"
 export { Class, ErrorClass, Opaque, OpaqueErrorFacadeClass, OpaqueFacade, OpaqueShape, OpaqueType, TaggedClass, TaggedErrorClass } from "./Schema/Class.ts"
 
 export { fromBrand, nominal } from "./Schema/brand.ts"
-export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.ts"
+export { Array, Boolean, Date, DateFromString, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.ts"
 export { Int, NonNegativeInt } from "./Schema/numbers.ts"
 
 export * from "./Schema/email.ts"

@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { identity } from "effect/Function"
 import * as Array from "../../Array.ts"
-import { toNonEmptyArray } from "../../Array.ts"
 import * as Option from "../../Option.ts"
 import * as S from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
@@ -439,10 +438,10 @@ export const toFilter = <
       t: null as unknown as TFieldValues,
       limit: a.limit,
       skip: a.skip,
-      select: Option.getOrUndefined(toNonEmptyArray(aggSelect)) as any,
+      select: Option.getOrUndefined(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(aggSelect)) as any,
       schema: a.schema,
       computed: undefined,
-      order: Option.getOrUndefined(toNonEmptyArray(a.order)),
+      order: Option.getOrUndefined(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(a.order)),
       ttype: a.ttype,
       mode: "aggregate" as const,
       filter: a.filter.length ? a.filter : undefined
@@ -519,10 +518,10 @@ export const toFilter = <
     t: null as unknown as TFieldValues,
     limit: a.limit,
     skip: a.skip,
-    select: Option.getOrUndefined(toNonEmptyArray(select)),
+    select: Option.getOrUndefined(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(select)),
     schema,
     computed,
-    order: Option.getOrUndefined(toNonEmptyArray(a.order)),
+    order: Option.getOrUndefined(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(a.order)),
     ttype: a.ttype,
     mode: a.mode ?? "transform",
     filter: a.filter.length

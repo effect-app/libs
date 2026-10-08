@@ -40,7 +40,6 @@
     "subtree:effect": "node scripts/sync-effect-subtree.js"
   },
   "dependencies": {
-    "date-fns": "^4.4.0",
     "fast-check": "^4.9.0",
     "vue": "^3.5.35"
   },

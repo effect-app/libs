@@ -12,7 +12,6 @@ import type * as Scope from "effect/Scope"
 import * as Unify from "effect/Unify"
 import * as Array from "../../../Array.ts"
 import type { NonEmptyReadonlyArray } from "../../../Array.ts"
-import { toNonEmptyArray } from "../../../Array.ts"
 import * as Chunk from "../../../Chunk.ts"
 import { NotFoundError } from "../../../client/errors.ts"
 import * as Context from "../../../Context.ts"
@@ -407,7 +406,7 @@ export function makeRepoInternal<
           const saveAllE = (a: Iterable<Encoded>) =>
             flatMapOption(
               Effect
-                .sync(() => toNonEmptyArray([...a])),
+                .sync(() => Option.liftPredicate(Array.isReadonlyArrayNonEmpty)([...a])),
               (a) =>
                 Effect.gen(function*() {
                   const { get, set } = yield* cms
@@ -442,7 +441,7 @@ export function makeRepoInternal<
               })
               return yield* saveAll(it)
                 .pipe(
-                  Effect.andThen(Effect.sync(() => toNonEmptyArray(evts))),
+                  Effect.andThen(Effect.sync(() => Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(evts))),
                   // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
                   (_) => flatMapOption(_, pub),
                   Effect.andThen(changeFeed.publish([Chunk.toArray(it), "save"] as [T[], "save" | "remove"])),
@@ -473,7 +472,7 @@ export function makeRepoInternal<
                   set(e[idKey], undefined)
                 }
                 yield* Effect
-                  .sync(() => toNonEmptyArray(evts))
+                  .sync(() => Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(evts))
                   // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
                   .pipe((_) => flatMapOption(_, pub))
 

@@ -1,9 +1,10 @@
 import * as Sentry from "@sentry/node"
 import * as Effect from "effect-app/Effect"
 import { getRC } from "effect-app/setupRequest"
-import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
+import { LogLevelToSentry } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import type * as LogLevel from "effect/LogLevel"
+import * as Record from "effect/Record"
 import { CauseException, tryToJson, tryToReport } from "./errors.ts"
 import { InfraLogger } from "./logger.ts"
 
@@ -32,12 +33,12 @@ export function reportError(name: string) {
       yield* InfraLogger
         .logWithLevel(level, "Reporting error", cause)
         .pipe(
-          Effect.annotateLogs(dropUndefined({
+          Effect.annotateLogs(Record.filter({
             extras,
             error: tryToReport(error),
             cause: tryToJson(cause),
             __error_name__: name
-          })),
+          }, (value) => value !== undefined)),
           Effect.catchCause((cause) => InfraLogger.logWarning("Failed to log error", cause)),
           Effect.catchCause(() => InfraLogger.logFatal("Failed to log error cause"))
         )
@@ -74,16 +75,18 @@ export function logError<E>(name: string) {
   return Effect.fnUntraced(
     function*(cause: Cause.Cause<E>, extras?: Record<string, unknown>) {
       if (Cause.hasInterruptsOnly(cause)) {
-        yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
+        yield* InfraLogger.logDebug("Interrupted").pipe(
+          Effect.annotateLogs(Record.filter({ extras }, (value) => value !== undefined))
+        )
         return
       }
       yield* InfraLogger
         .logWarning("Logging error", cause)
-        .pipe(Effect.annotateLogs(dropUndefined({
+        .pipe(Effect.annotateLogs(Record.filter({
           extras,
           cause: tryToJson(cause),
           __error_name__: name
-        })))
+        }, (value) => value !== undefined)))
     },
     (effect) => Effect.tapCause(effect, () => InfraLogger.logFatal("Failed to log error cause"))
   )

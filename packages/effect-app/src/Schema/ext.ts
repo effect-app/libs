@@ -43,7 +43,7 @@ import * as Struct from "effect/Struct"
 import { type NonEmptyReadonlyArray } from "../Array.ts"
 import * as Context from "../Context.ts"
 import * as SchemaAST from "../SchemaAST.ts"
-import { extendM, typedKeysOf } from "../utils.ts"
+import { extendM } from "../utils.ts"
 import { type AST } from "./schema.ts"
 
 type ProvidedCodec<Self extends S.Top, R> = S.Codec<
@@ -133,13 +133,6 @@ const dateHelpers = (s: S.Date) => ({
 
 /** Like the default Schema `Date` (Encoded is `Date`) with default helpers. */
 export const Date = extendM(S.Date, dateHelpers)
-
-/**
- * Alias of {@link Date}. Core `Schema.Date` already rejects invalid Dates.
- *
- * @deprecated Use {@link Date}.
- */
-export const DateValid = Date
 
 /** Like the default Schema `Boolean` but with default helpers. */
 export const Boolean = Object.assign(S.Boolean, {
@@ -522,7 +515,7 @@ export function makeOptional<NER extends S.Struct.Fields>(
 ): {
   [K in keyof NER]: NER[K] extends S.Top ? ReturnType<typeof S.optional<NER[K] & S.Top>> : any
 } {
-  return typedKeysOf(t).reduce((prev, cur) => {
+  return Struct.keys(t).reduce((prev, cur) => {
     prev[cur] = S.optional(t[cur] as any)
     return prev
   }, {} as any)
@@ -601,7 +594,7 @@ export function makeExactOptional<NER extends S.Struct.Fields>(
   [K in keyof NER]: NER[K] extends S.Top ? DropConstructorDefault<ReturnType<typeof S.optionalKey<NER[K] & S.Top>>>
     : any
 } {
-  return typedKeysOf(t).reduce((prev, cur) => {
+  return Struct.keys(t).reduce((prev, cur) => {
     prev[cur] = dropConstructorDefault(S.optionalKey(t[cur] as any))
     return prev
   }, {} as any)

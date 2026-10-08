@@ -6,7 +6,7 @@ import * as Effect from "effect-app/Effect"
 import type { FilterR, FilterResult, Ops } from "effect-app/Model/filter/filterApi"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import type { SupportedValues } from "effect-app/Store"
-import { assertUnreachable } from "effect-app/utils"
+import { absurd } from "effect/Function"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
 import { jsonifyFilter, type JsonLower } from "../utils.ts"
@@ -178,7 +178,7 @@ export function buildWhereCosmosQuery3(
           ? `IS_NULL(${k}) = true`
           : `${k} = ${v}`
       default: {
-        return assertUnreachable(x.op)
+        return absurd(x.op)
       }
     }
   }
@@ -389,7 +389,7 @@ export function buildWhereCosmosQuery3(
         return `MAX(${fieldRef}) AS ${key}`
       }
       default:
-        return assertUnreachable(agg)
+        return absurd(agg)
     }
   }
 
@@ -404,7 +404,7 @@ export function buildWhereCosmosQuery3(
         case "mul":
           return `(${compileExpr(expression.left)} * ${compileExpr(expression.right)})`
         default:
-          return assertUnreachable(expression)
+          return absurd(expression)
       }
     }
     const factorExpr = (unitExpr: string, toBase: string, factors: Readonly<Record<string, number>>) => {

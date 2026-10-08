@@ -8,8 +8,7 @@ import type { FieldValues } from "effect-app/Model/filter/types"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
-import { assertUnreachable } from "effect-app/utils"
-import { flow, pipe } from "effect/Function"
+import { absurd, flow, pipe } from "effect/Function"
 import * as Order from "effect/Order"
 import * as Ref from "effect/Ref"
 import * as Result from "effect/Result"
@@ -59,7 +58,7 @@ const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
     case "relation-length":
       return 0
     default:
-      return assertUnreachable(tag)
+      return absurd(tag)
   }
 }
 
@@ -89,7 +88,7 @@ const computeProjectionValue = (
       case "mul":
         return evalExpr(value, expression.left) * evalExpr(value, expression.right)
       default:
-        return assertUnreachable(expression)
+        return absurd(expression)
     }
   }
   switch (computed._tag) {
@@ -166,7 +165,7 @@ const computeProjectionValue = (
       return out
     }
     default:
-      return assertUnreachable(computed)
+      return absurd(computed)
   }
 }
 
@@ -203,7 +202,7 @@ const computeAggregateValue = <T extends FieldValues>(rows: readonly T[], agg: A
       return max ?? null
     }
     default:
-      return assertUnreachable(agg)
+      return absurd(agg)
   }
 }
 

@@ -3,7 +3,7 @@ import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
 import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
-import { assertUnreachable } from "effect-app/utils"
+import { absurd } from "effect/Function"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
 import { jsonifyFilter, type JsonLower } from "../utils.ts"
@@ -473,7 +473,7 @@ export function buildWhereSQLQuery(
         return `${k} = ${v}`
       }
       default:
-        return assertUnreachable(x.op)
+        return absurd(x.op)
     }
   }
 
@@ -555,7 +555,7 @@ export function buildWhereSQLQuery(
         case "mul":
           return `(${compileExpr(expression.left)} * ${compileExpr(expression.right)})`
         default:
-          return assertUnreachable(expression)
+          return absurd(expression)
       }
     }
     const factorCaseExpr = (unitExpr: string, toBase: string, factors: Readonly<Record<string, number>>) => {
@@ -644,7 +644,7 @@ export function buildWhereSQLQuery(
         return `(SELECT COALESCE(jsonb_agg(__v), '[]'::jsonb) FROM (${unionQuery}) t) AS "${key}"`
       }
       default:
-        return assertUnreachable(computed)
+        return absurd(computed)
     }
   }
 
@@ -664,7 +664,7 @@ export function buildWhereSQLQuery(
       case "agg-max":
         return `MAX(${fieldExpr(agg.field)}) AS "${key}"`
       default:
-        return assertUnreachable(agg)
+        return absurd(agg)
     }
   }
 

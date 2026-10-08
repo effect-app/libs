@@ -5,7 +5,7 @@ import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import * as Option from "effect-app/Option"
 import type { Filter } from "effect-app/Store"
-import { assertUnreachable } from "effect-app/utils"
+import { absurd } from "effect/Function"
 import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive, toJsonQueryValue } from "./utils.ts"
 
 const vAsArr = (v: unknown) => toJsonQueryValue(v) as any[]
@@ -103,7 +103,7 @@ const filterStatement = (x: any, p: FilterR) => {
     case undefined:
       return compare(k, v)
     default: {
-      return assertUnreachable(p.op)
+      return absurd(p.op)
     }
   }
 }

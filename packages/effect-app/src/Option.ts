@@ -4,23 +4,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // eslint-disable-next-line import/no-unassigned-import
 import "./builtin.ts"
-import { getOrUndefined as value, type Some } from "effect/Option"
+import { type Some } from "effect/Option"
 import * as Option from "effect/Option"
 
 export * from "effect/Option"
 
-export const getOrUndefined = value
-
 export function omitableToNullable<T>(om: Option.Option<T> | undefined) {
   return om ?? Option.fromNullishOr(om)
 }
-
-export const toBool = Option.match({
-  onNone: () => false,
-  onSome: () => true
-})
-
-export const fromBool = (b: boolean) => (b ? Option.some(true) : Option.none())
 
 /**
  * Access property, unwrapping Options along the path

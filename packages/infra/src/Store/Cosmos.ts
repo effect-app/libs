@@ -2,7 +2,6 @@
 
 import * as Array from "effect-app/Array"
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
-import { toNonEmptyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import type { FieldValues } from "effect-app/Model/filter/types"
@@ -165,7 +164,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                 Effect.andThen(seed!),
                 Effect.flatMap((m) =>
                   Effect.flatMapOption(
-                    Effect.succeed(toNonEmptyArray([...m])),
+                    Effect.succeed(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)([...m])),
                     (a) => bulkSetInternal(a, ns).pipe(Effect.orDie)
                   )
                 ),

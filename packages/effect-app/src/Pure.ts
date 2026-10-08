@@ -3,8 +3,8 @@ import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Result from "effect/Result"
+import * as Tuple from "effect/Tuple"
 import * as Context from "./Context.ts"
-import { tuple } from "./Function.ts"
 
 const S1 = Symbol()
 const S2 = Symbol()
@@ -159,10 +159,10 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
         )
         .pipe(
           Effect.map(
-            ({ log, state }) => tuple(log, Result.succeed(tuple(state, x)))
+            ({ log, state }) => Tuple.make(log, Result.succeed(Tuple.make(state, x)))
           )
         ))
-    .pipe(Effect.catch((err: any) => tagg.useSync((env) => tuple(env.env.log, Result.fail(err)))))
+    .pipe(Effect.catch((err: any) => tagg.useSync((env) => Tuple.make(env.env.log, Result.fail(err)))))
   return Effect.provide(a, Layer.succeed(tagg, { env: makePureEnv<W3, S3, S4>(s) as any }) as any) as any
 }
 
@@ -170,7 +170,7 @@ export function runResult<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Result.map(r, ([s]) => s)))
+  return Effect.map(runAll(self, s), ([log, r]) => Tuple.make(log, Result.map(r, ([s]) => s)))
 }
 
 export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(
@@ -179,7 +179,7 @@ export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(
 ) {
   return Effect.flatMap(
     runAll(self, s),
-    ([evts, r]) => Effect.map(Effect.fromResult(r), ([s3, a]) => tuple(s3, Chunk.toArray(evts), a))
+    ([evts, r]) => Effect.map(Effect.fromResult(r), ([s3, a]) => Tuple.make(s3, Chunk.toArray(evts), a))
   )
 }
 
@@ -187,14 +187,14 @@ export function runTermDiscard<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.map(runTerm(self, s), ([s3, w3]) => tuple(s3, w3))
+  return Effect.map(runTerm(self, s), ([s3, w3]) => Tuple.make(s3, w3))
 }
 
 export function runA<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Result.map(r, ([, a]) => a)))
+  return Effect.map(runAll(self, s), ([log, r]) => Tuple.make(log, Result.map(r, ([, a]) => a)))
 }
 
 export function modify<S2, A, S3>(
@@ -224,14 +224,14 @@ export function modifyM<W, R, E, A, S2, S3>(
 export function updateWith<S2, S3>(upd: (s: S2) => S3) {
   return modify((_: S2) => {
     const r = upd(_)
-    return tuple(r, r)
+    return Tuple.make(r, r)
   })
 }
 
 export function updateWithEffect<W, R, E, S2, S3>(
   upd: (s: S2, log: (evt: W) => PureLogT<W>) => Effect.Effect<S3, E, FixEnv<R, W, S2, S3>>
 ): Effect.Effect<S3, E, FixEnv<R, W, S2, S3>> {
-  return modifyM((_: S2) => Effect.map(upd(_, log), (_) => tuple(_, _)))
+  return modifyM((_: S2) => Effect.map(upd(_, log), (_) => Tuple.make(_, _)))
 }
 
 export type FixEnv<R, W, S, S2> =
@@ -301,11 +301,11 @@ export type FixEnv<R, W, S, S2> =
 //   }
 
 //   function update<S3>(upd: (s: S2) => S3) {
-//     return modify(_ => tuple(upd(_), void 0 as void))
+//     return modify(_ => Tuple.make(upd(_), void 0 as void))
 //   }
 
 //   function updateM<R, E, S3>(upd: (s: S2) => Effect.Effect<R, E, S3>) {
-//     return modifyM(_ => upd(_).map(_ => tuple(_, void 0 as void)))
+//     return modifyM(_ => upd(_).map(_ => Tuple.make(_, void 0 as void)))
 //   }
 
 //   const accessLog = Effect.serviceWithEffect(tag, _ => _.env.log.get)
@@ -321,12 +321,12 @@ export type FixEnv<R, W, S, S2> =
 //       ).map(
 //         (
 //           { log, state }
-//         ) => tuple(log, Either.right(tuple(state, x)) as Either.Either<E, readonly [S3, A]>)
+//         ) => Tuple.make(log, Either.right(Tuple.make(state, x)) as Either.Either<E, readonly [S3, A]>)
 //       )
 //     ).catchAll(
 //       err =>
 //         accessLog.map(log =>
-//           tuple(log, Either.left(err) as Either.Either<E, readonly [S3, A]>)
+//           Tuple.make(log, Either.left(err) as Either.Either<E, readonly [S3, A]>)
 //         )
 //     ).provideService(tag, { env: makePureEnv<W3, S3, S4>(s) as any }) as any
 //   }
@@ -335,14 +335,14 @@ export type FixEnv<R, W, S, S2> =
 //     self: Effect.Effect<FixEnv<R, W3, S1, S3>, E, A>,
 //     s: S4
 //   ) {
-//     return runAll(self, s).map(([log, r]) => tuple(log, r.map(([s]) => s)))
+//     return runAll(self, s).map(([log, r]) => Tuple.make(log, r.map(([s]) => s)))
 //   }
 
 //   function runA<R, E, A, W3, S1, S3, S4 extends S1>(
 //     self: Effect.Effect<FixEnv<R, W3, S1, S3>, E, A>,
 //     s: S4
 //   ) {
-//     return runAll(self, s).map(([log, r]) => tuple(log, r.map(([, a]) => a)))
+//     return runAll(self, s).map(([log, r]) => Tuple.make(log, r.map(([, a]) => a)))
 //   }
 
 //   return {

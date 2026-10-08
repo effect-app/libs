@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { NonEmptyReadonlyArray } from "effect-app/Array"
-import { toNonEmptyArray } from "effect-app/Array"
+import { isReadonlyArrayNonEmpty, type NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import type { ComputedProjectionIrExpression } from "effect-app/Model/query"
@@ -196,7 +195,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           if ((existing as any[]).length > 0) return
           yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
           const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
-          const ne = toNonEmptyArray([...items])
+          const ne = Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])
           // Seed inserts are not concurrent; OCC here is a programming defect.
           if (Option.isSome(ne)) {
             yield* bulkSetInternal(ne.value, ns).pipe(
@@ -550,7 +549,7 @@ function makeSQLiteStorePerNs(
         if ((existing as any[]).length > 0) return
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
         const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
-        const ne = toNonEmptyArray([...items])
+        const ne = Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])
         // Seed inserts are not concurrent; OCC here is a programming defect.
         if (Option.isSome(ne)) {
           yield* bulkSetInternal(ne.value, ns).pipe(

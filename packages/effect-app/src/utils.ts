@@ -111,6 +111,20 @@ export function dropUndefinedRec<Desired extends Record<any, any>>() {
   }
 }
 
+export type Dictionary<T> = {
+  readonly [P in string]: T
+}
+
+export function dropUndefined<A>(
+  input: Dictionary<A | undefined>
+): Dictionary<A> {
+  const newR = pipe(
+    input,
+    Record.filter((x): x is A => x !== undefined)
+  )
+  return newR
+}
+
 type GetTag<T> = T extends { _tag: infer K } ? K : never
 export const isOfType = <T extends { _tag: string }>(tag: GetTag<T>) => (e: { _tag: string }): e is T => e._tag === tag
 

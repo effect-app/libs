@@ -14,7 +14,7 @@ export interface NativeEffectReplacement {
   readonly note: string
   readonly imports: ReadonlyArray<readonly [local: string, from: string]>
   /** When set, a call `name(...args)` is rewritten instead of the bare identifier. */
-  readonly call?: "drop-undefined" | "date-add" | "date-sub" | "chunk"
+  readonly call?: "date-add" | "date-sub" | "chunk"
 }
 
 const struct = [["Struct", "effect/Struct"]] as const
@@ -44,7 +44,7 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
     expression: "Record.values",
     imports: record,
     note:
-      "Record.values reads the string keys of a record. When each value's type depends on its key, use Object.values; Record.values expects one value type."
+      "Record.values reads a record with one value type. When each value's type depends on its key, use Object.values."
   },
   {
     module: "effect-app/utils",
@@ -66,21 +66,6 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
     expression: "absurd",
     imports: absurd,
     note: "absurd throws when an impossible value is reached. The error text no longer includes the value."
-  },
-  {
-    module: "effect-app/utils",
-    name: "dropUndefined",
-    expression: "Record.filter",
-    imports: record,
-    call: "drop-undefined",
-    note: "Drops entries whose value is undefined."
-  },
-  {
-    module: "effect-app/utils",
-    name: "Dictionary",
-    expression: "Record",
-    imports: record,
-    note: "Dictionary<A> was `{ readonly [P in string]: A }`. Use Record<string, A>."
   },
   {
     module: "effect-app/Function",
@@ -131,13 +116,6 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
     expression: "Option.isSome",
     imports: option,
     note: "isSome is the boolean test and also narrows to Some."
-  },
-  {
-    module: "effect-app/Option",
-    name: "fromBool",
-    expression: "Option.liftPredicate((value: boolean): value is true => value)",
-    imports: option,
-    note: "true becomes Some(true). false becomes None."
   },
   {
     module: "effect-app/Effect",
@@ -354,26 +332,11 @@ export const migrateEffectAppSource = (source: string): string => {
 
 const render = (replacement: NativeEffectReplacement, source: string, afterName: number): Rendered => {
   const bare = { text: replacement.expression, end: afterName }
-  if (replacement.name === "Dictionary") {
-    const open = skipSpaces(source, afterName)
-    if (source[open] === "<") {
-      const typeArgs = readBalanced(source, open, "<", ">")
-      if (typeArgs !== undefined) {
-        return { text: `Record<string, ${typeArgs.body}>`, end: typeArgs.end }
-      }
-    }
-  }
   if (replacement.call === undefined) return bare
   const open = skipSpaces(source, afterName)
   if (source[open] !== "(") return bare
   const args = splitArgs(source, open)
   if (args === undefined) return bare
-  if (replacement.call === "drop-undefined" && args.args.length === 1) {
-    return {
-      text: `Record.filter(${args.args[0]}, (value) => value !== undefined)`,
-      end: args.end
-    }
-  }
   if (replacement.call === "chunk" && args.args.length === 2) {
     return {
       text: `Chunk.fromIterable(Array.chunksOf(${args.args[0]}, ${args.args[1]}))`,

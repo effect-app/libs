@@ -13,6 +13,8 @@ export function omitableToNullable<T>(om: Option.Option<T> | undefined) {
   return om ?? Option.fromNullishOr(om)
 }
 
+export const fromBool = (b: boolean) => (b ? Option.some(true) : Option.none())
+
 /**
  * Access property, unwrapping Options along the path
  */

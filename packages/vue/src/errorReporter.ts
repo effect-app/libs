@@ -3,10 +3,9 @@
 import * as Sentry from "@sentry/browser"
 import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
 import * as Effect from "effect-app/Effect"
-import { LogLevelToSentry } from "effect-app/utils"
+import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import * as Cause from "effect/Cause"
 import type * as LogLevel from "effect/LogLevel"
-import * as Record from "effect/Record"
 
 export const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
   try {
@@ -33,12 +32,12 @@ export function reportError(name: string) {
       yield* Effect
         .logWithLevel(level)("Reporting error", cause)
         .pipe(
-          Effect.annotateLogs(Record.filter({
+          Effect.annotateLogs(dropUndefined({
             extras,
             error: tryToReport(error),
             cause: tryToJson(cause),
             __error_name__: name
-          }, (value) => value !== undefined)),
+          })),
           Effect.catchCause((cause) => Effect.logWarning("Failed to log error", cause)),
           Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
         )
@@ -73,17 +72,17 @@ export function logError<E>(name: string) {
     function*(cause: Cause.Cause<E>, extras?: Record<string, unknown>) {
       if (Cause.hasInterruptsOnly(cause)) {
         yield* Effect.logDebug("Interrupted").pipe(
-          Effect.annotateLogs(Record.filter({ extras }, (value) => value !== undefined))
+          Effect.annotateLogs(dropUndefined({ extras }))
         )
         return
       }
       yield* Effect
         .logWarning("Logging error", cause)
-        .pipe(Effect.annotateLogs(Record.filter({
+        .pipe(Effect.annotateLogs(dropUndefined({
           extras,
           cause: tryToJson(cause),
           __error_name__: name
-        }, (value) => value !== undefined)))
+        })))
     },
     (effect) =>
       Effect.tapCause(effect, (cause) =>

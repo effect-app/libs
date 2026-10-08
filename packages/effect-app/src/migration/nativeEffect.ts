@@ -25,7 +25,7 @@ const array = [["Array", "effect/Array"]] as const
 const chunk = [["Chunk", "effect/Chunk"]] as const
 const tuple = [["Tuple", "effect/Tuple"]] as const
 const effect = [["Effect", "effect/Effect"]] as const
-const dateTime = [["DateTime", "effect/DateTime"]] as const
+const dateTime = [["DateTime", "effect/DateTime"], ["pipeZonedLocal", "effect-app/DateTime"]] as const
 const deferred = [["Deferred", "effect/Deferred"]] as const
 const result = [["Result", "effect/Result"]] as const
 const absurd = [["absurd", "effect/Function"]] as const
@@ -232,7 +232,7 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
       imports: dateTime,
       call,
       note:
-        "Pipes the Date instant through fromDateUnsafe, add or subtract, and toDate. Calendar units follow that DateTime's zone, which is UTC for fromDateUnsafe."
+        "pipeZonedLocal attaches the process timezone, runs DateTime.add or DateTime.subtract, and returns the instant with toDateUtc."
     }))
 ]
 
@@ -346,9 +346,7 @@ const render = (replacement: NativeEffectReplacement, source: string, afterName:
   if ((replacement.call === "date-add" || replacement.call === "date-sub") && args.args.length === 2) {
     const method = replacement.call === "date-add" ? "add" : "subtract"
     return {
-      text: `DateTime.fromDateUnsafe(${args.args[0]}).pipe(DateTime.${method}({ ${replacement.expression}: ${
-        args.args[1]
-      } }), DateTime.toDate)`,
+      text: `pipeZonedLocal(${args.args[0]}, DateTime.${method}({ ${replacement.expression}: ${args.args[1]} }))`,
       end: args.end
     }
   }
@@ -552,7 +550,7 @@ const insertImports = (source: string, needed: ReadonlyMap<string, Set<string>>)
   return `${source.slice(0, lastImport)}${block}${source.slice(lastImport)}`.replace(/^\n+/, "")
 }
 
-const namedImportNames = new Set(["absurd", "Date"])
+const namedImportNames = new Set(["absurd", "Date", "pipeZonedLocal"])
 
 const hasImport = (source: string, name: string, from: string): boolean => {
   const fromPattern = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")

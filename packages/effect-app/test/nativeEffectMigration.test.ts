@@ -49,13 +49,15 @@ const missing = unreachable(value)
     expect(migrated).toContain("const fields = compact({ a: 1, b: undefined })")
     expect(migrated).toContain("dropUndefined as compact")
     expect(migrated).toContain(
-      "const next = DateTime.fromDateUnsafe(today).pipe(DateTime.add({ days: 2 }), DateTime.toDate)"
+      "const next = pipeZonedLocal(today, DateTime.add({ days: 2 }))"
     )
     expect(migrated).toContain("const parts = Chunk.fromIterable(Array.chunksOf(items, 10))")
     expect(migrated).toContain("const some = Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(items)")
     expect(migrated).toContain(`import { Date } from "effect-app/Schema"`)
     expect(migrated).toContain("const Day = Date")
     expect(migrated).toContain("const missing = absurd(value)")
+    expect(migrated).toContain(`import { pipeZonedLocal } from "effect-app/DateTime"`)
+    expect(migrated).toContain(`import * as DateTime from "effect/DateTime"`)
     expect(migrated).not.toContain("effect-app/_ext/date")
     expect(migrated).not.toContain("DateValid")
   })

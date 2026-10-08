@@ -11,4 +11,6 @@ Deleted aliases and wrappers now live in Effect: `String.capitalize` / `uncapita
 
 `effect-app/migration/nativeEffect` exports the replacement table and `migrateEffectAppSource(source)`, which rewrites those imports in one file. `dropUndefined` and `fromBool` stay, along with `groupByT` (any key, entry list), `randomElement`, `findFirstMap`, and the schema constructors that add construction defaults.
 
-`Chunk.containsWith` calls the equivalence as `(needle, element)`. The old `elem` called it as `(element, needle)`, so only a symmetric equivalence is unchanged. `DateTime.add` and `subtract` use UTC calendar parts; the date-fns wrappers used the local calendar. `Record.values` expects one value type, so a mapped type whose value depends on its key should use `Object.values`.
+`effect-app/DateTime` adds `makeZonedLocal` and `pipeZonedLocal`. `makeZonedLocal` attaches the process timezone to a `Date` without moving the instant. `pipeZonedLocal` runs the functions passed to it and returns that instant with `DateTime.toDateUtc`. `DateAdd*` and `DateSub*` migrate to `pipeZonedLocal(date, DateTime.add({ days }))`, which keeps the local calendar.
+
+`Chunk.containsWith` calls the equivalence as `(needle, element)`. The old `elem` called it as `(element, needle)`, so only a symmetric equivalence is unchanged. `Record.values` expects one value type, so a mapped type whose value depends on its key should use `Object.values`.

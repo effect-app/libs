@@ -1,8 +1,8 @@
 ---
-"effect-app": minor
-"@effect-app/infra": minor
-"@effect-app/vue": minor
-"@effect-app/vue-components": minor
+"effect-app": patch
+"@effect-app/infra": patch
+"@effect-app/vue": patch
+"@effect-app/vue-components": patch
 ---
 
 Remove effect-app helpers that Effect already provides, and add `migrateEffectAppSource` to rewrite call sites.

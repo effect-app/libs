@@ -232,7 +232,7 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
       imports: dateTime,
       call,
       note:
-        "Operates on a DateTime built from the Date instant. Calendar units follow that DateTime's zone, which is UTC for fromDateUnsafe."
+        "Pipes the Date instant through fromDateUnsafe, add or subtract, and toDate. Calendar units follow that DateTime's zone, which is UTC for fromDateUnsafe."
     }))
 ]
 
@@ -346,9 +346,9 @@ const render = (replacement: NativeEffectReplacement, source: string, afterName:
   if ((replacement.call === "date-add" || replacement.call === "date-sub") && args.args.length === 2) {
     const method = replacement.call === "date-add" ? "add" : "subtract"
     return {
-      text: `DateTime.toDate(DateTime.${method}(DateTime.fromDateUnsafe(${
-        args.args[0]
-      }), { ${replacement.expression}: ${args.args[1]} }))`,
+      text: `DateTime.fromDateUnsafe(${args.args[0]}).pipe(DateTime.${method}({ ${replacement.expression}: ${
+        args.args[1]
+      } }), DateTime.toDate)`,
       end: args.end
     }
   }

@@ -49,7 +49,7 @@ const missing = unreachable(value)
     expect(migrated).toContain("const fields = compact({ a: 1, b: undefined })")
     expect(migrated).toContain("dropUndefined as compact")
     expect(migrated).toContain(
-      "const next = DateTime.toDate(DateTime.add(DateTime.fromDateUnsafe(today), { days: 2 }))"
+      "const next = DateTime.fromDateUnsafe(today).pipe(DateTime.add({ days: 2 }), DateTime.toDate)"
     )
     expect(migrated).toContain("const parts = Chunk.fromIterable(Array.chunksOf(items, 10))")
     expect(migrated).toContain("const some = Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(items)")

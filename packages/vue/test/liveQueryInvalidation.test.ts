@@ -1,5 +1,10 @@
-import { DataDependencies } from "effect-app/client"
+import { defaultRegistry } from "@effect/atom-vue"
+import { DataDependencies, makeQueryKey } from "effect-app/client"
+import * as Effect from "effect-app/Effect"
+import * as Layer from "effect-app/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
 import { beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, registerLiveQuery } from "../src/liveQueryInvalidation.js"
 
 const repo = DataDependencies.repo("Inventory", ["item-1"])
@@ -12,6 +17,69 @@ describe("live query invalidation", () => {
     while (cleanups.length > 0) cleanups.pop()?.()
     vi.useRealTimers()
   })
+
+  it.each(["await", "soft"] as const)(
+    "keeps an observed %s query subscribed after successive repository-write refreshes",
+    async (invalidation) => {
+      const dependency = DataDependencies.repo("LiveOrders")
+      const mrt = ManagedRuntime.make(Layer.empty)
+      const rt = makeAtomClientRuntime(() => Layer.empty, mrt.memoMap)
+      let calls = 0
+      let receive = (_writes: DataDependencies.DataDependencies) => {}
+      let reset = () => {}
+      let settled = Promise.resolve()
+      let refreshes = 0
+      configureLiveQueryInvalidation({
+        ready: () => Promise.resolve(),
+        subscribe: (onWrites, onReset) => {
+          receive = onWrites
+          reset = onReset
+          return () => {
+            receive = () => {}
+            reset = () => {}
+          }
+        },
+        invalidate: (keys) => {
+          refreshes++
+          settled = Effect.runPromise(invalidateAndAwait(keys))
+        }
+      })
+      const query = {
+        id: "LiveOrders.List",
+        handler: () => DataDependencies.read(dependency).pipe(Effect.andThen(Effect.sync(() => ++calls)))
+      }
+      const base = buildQueryFamily(rt, query)(undefined)
+      const atom = withQueryOptions(base, { live: true, invalidation, revalidateOnFocus: false }, [
+        ...makeQueryKey(query),
+        undefined
+      ])
+      const unmount = defaultRegistry.mount(atom)
+      try {
+        await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
+        expect(calls).toBe(1)
+        receive(new Set([dependency]))
+        await settled
+        expect(calls).toBe(2)
+        expect(refreshes).toBe(1)
+        receive(new Set([dependency]))
+        await settled
+        expect(calls).toBe(3)
+        expect(refreshes).toBe(2)
+        reset()
+        await settled
+        expect(calls).toBe(4)
+        expect(refreshes).toBe(3)
+        receive(new Set([dependency]))
+        await settled
+        expect(calls).toBe(5)
+        expect(refreshes).toBe(4)
+      } finally {
+        unmount()
+        defaultRegistry.reset()
+        await mrt.dispose()
+      }
+    }
+  )
 
   it("invalidates only live queries whose recorded reads intersect", () => {
     const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []

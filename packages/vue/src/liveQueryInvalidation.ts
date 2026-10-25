@@ -44,7 +44,9 @@ const schedule = (entry: LiveQueryEntry) => {
 
 const dispatch = (writes: DataDependencies.DataDependencies) => {
   if (!DataDependencies.isNonEmpty(writes)) return
-  for (const entry of entries.values()) {
+  // a synchronous refresh can replace registrations while this write is being dispatched
+  const snapshot = [...entries.values()]
+  for (const entry of snapshot) {
     if (DataDependencies.intersects(entry.reads(), writes)) schedule(entry)
   }
 }
@@ -59,7 +61,8 @@ const receive = (writes: DataDependencies.DataDependencies) => {
 
 const reset = () => {
   bufferedWrites = DataDependencies.empty()
-  for (const entry of entries.values()) {
+  const snapshot = [...entries.values()]
+  for (const entry of snapshot) {
     if (DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
   }
 }

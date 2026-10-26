@@ -320,8 +320,13 @@ export const awaitLiveQueryFetch = async (fetch: LiveQueryFetch, signal?: AbortS
   const state = fetches.get(fetch)
   if (state === undefined || state.released) return
   try {
-    const ready = await waitReady(signal)
-    state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
+    // every `await` is a gap in which the source can be switched: only record a still-current epoch
+    for (;;) {
+      const ready = await waitReady(signal)
+      if (ready !== epoch) continue
+      state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
+      break
+    }
   } finally {
     stopAwaiting(state)
   }
@@ -345,7 +350,9 @@ const finishDiscovery = (entry: LiveQueryEntry) => {
 }
 
 /** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
-export const liveQueryReady = (): Promise<void> => waitReady().then(() => {})
+export const liveQueryReady = async (): Promise<void> => {
+  while (await waitReady() !== epoch);
+}
 
 // Boolean callers cannot say which fetch ended: their entries keep buffering until every legacy fetch has
 // ended. Other queries are unaffected; bookkeeping is per entry, not per call.
@@ -362,8 +369,12 @@ export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
   legacyDiscovering++
   legacyEntries.set(state.entry, (legacyEntries.get(state.entry) ?? 0) + 1)
   try {
-    const ready = await waitReady()
-    state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
+    for (;;) {
+      const ready = await waitReady()
+      if (ready !== epoch) continue
+      state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
+      break
+    }
   } catch (error) {
     endLiveQueryFetch(true)
     throw error

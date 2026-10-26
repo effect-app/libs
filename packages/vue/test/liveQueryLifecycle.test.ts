@@ -453,4 +453,28 @@ describe("live query lifecycle", () => {
     cleanups.push(() => releaseLiveQueryFetch(fetch))
     await expect(awaitLiveQueryFetch(fetch, controller.signal)).rejects.toBeDefined()
   })
+
+  it.each(["modern", "legacy"] as const)(
+    "keeps a %s wait when a switch is queued right after readiness",
+    async (api) => {
+      let open = () => {}
+      const oldReady = new Promise<void>((resolve) => open = resolve)
+      configureLiveQueryInvalidation(makeSource(() => oldReady).source)
+      const key = ["$Inventory", "Get", { id: `deferred-${api}` }]
+      cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+      let settled = false
+      if (api === "modern") {
+        const fetch = acquire(key)
+        cleanups.push(() => releaseLiveQueryFetch(fetch))
+        void awaitLiveQueryFetch(fetch).then(() => settled = true, () => settled = true)
+      } else {
+        cleanups.push(() => endLiveQueryFetch(true))
+        void beginLiveQueryFetch(key).then(() => settled = true, () => settled = true)
+      }
+      void oldReady.then(() => queueMicrotask(() => configureLiveQueryInvalidation(makeSource(never).source)))
+      open()
+      await flush()
+      expect(settled).toBe(false)
+    }
+  )
 })

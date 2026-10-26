@@ -320,9 +320,16 @@ export const awaitLiveQueryFetch = async (fetch: LiveQueryFetch, signal?: AbortS
   const state = fetches.get(fetch)
   if (state === undefined || state.released) return
   try {
-    // every `await` is a gap in which the source can be switched: only record a still-current epoch
+    // every `await` is a gap in which the source can be switched: only settle for a still-current epoch
     for (;;) {
-      const ready = await waitReady(signal)
+      const target = epoch
+      let ready: number
+      try {
+        ready = await waitReady(signal)
+      } catch (error) {
+        if (signal?.aborted === true || epoch === target) throw error
+        continue
+      }
       if (ready !== epoch) continue
       state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
       break
@@ -351,7 +358,14 @@ const finishDiscovery = (entry: LiveQueryEntry) => {
 
 /** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
 export const liveQueryReady = async (): Promise<void> => {
-  while (await waitReady() !== epoch);
+  for (;;) {
+    const target = epoch
+    try {
+      if (await waitReady() === epoch) return
+    } catch (error) {
+      if (epoch === target) throw error
+    }
+  }
 }
 
 // Boolean callers cannot say which fetch ended: their entries keep buffering until every legacy fetch has
@@ -370,7 +384,14 @@ export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
   legacyEntries.set(state.entry, (legacyEntries.get(state.entry) ?? 0) + 1)
   try {
     for (;;) {
-      const ready = await waitReady()
+      const target = epoch
+      let ready: number
+      try {
+        ready = await waitReady()
+      } catch (error) {
+        if (epoch === target) throw error
+        continue
+      }
       if (ready !== epoch) continue
       state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
       break

@@ -6,7 +6,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
 import { getQueryReadDependencies } from "../src/dependencyMetadata.js"
-import { acquireLiveQueryFetch, awaitLiveQueryFetch, beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, type LiveQueryInvalidationSource, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
+import { acquireLiveQueryFetch, awaitLiveQueryFetch, beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, type LiveQueryInvalidationSource, liveQueryReady, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
 
 type Keys = Array<ReadonlyArray<ReadonlyArray<unknown>>>
 
@@ -473,6 +473,33 @@ describe("live query lifecycle", () => {
       }
       void oldReady.then(() => queueMicrotask(() => configureLiveQueryInvalidation(makeSource(never).source)))
       open()
+      await flush()
+      expect(settled).toBe(false)
+    }
+  )
+
+  it.each(["modern", "legacy", "ready"] as const)(
+    "ignores a %s rejection when a switch is queued right after it",
+    async (api) => {
+      let rejectOld = (_error: unknown) => {}
+      const oldReady = new Promise<void>((_, reject) => rejectOld = reject)
+      configureLiveQueryInvalidation(makeSource(() => oldReady).source)
+      const key = ["$Inventory", "Get", { id: `deferred-rejection-${api}` }]
+      cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+      let settled = false
+      const done = () => settled = true
+      if (api === "modern") {
+        const fetch = acquire(key)
+        cleanups.push(() => releaseLiveQueryFetch(fetch))
+        void awaitLiveQueryFetch(fetch).then(done, done)
+      } else if (api === "legacy") {
+        cleanups.push(() => endLiveQueryFetch(true))
+        void beginLiveQueryFetch(key).then(done, done)
+      } else {
+        void liveQueryReady().then(done, done)
+      }
+      void oldReady.catch(() => queueMicrotask(() => configureLiveQueryInvalidation(makeSource(never).source)))
+      rejectOld(new Error("departed source"))
       await flush()
       expect(settled).toBe(false)
     }

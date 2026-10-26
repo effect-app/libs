@@ -1,5 +1,7 @@
 # @effect-app/prelude
 
+## 4.0.6
+
 ## 4.0.5
 
 ### Patch Changes

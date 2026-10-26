@@ -6,7 +6,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
 import { getQueryInvalidationMode } from "../src/dependencyMetadata.js"
-import { beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, registerLiveQuery } from "../src/liveQueryInvalidation.js"
+import { acquireLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, liveQueryReady, registerLiveQuery } from "../src/liveQueryInvalidation.js"
 
 const repo = DataDependencies.repo("Inventory", ["item-1"])
 const otherId = DataDependencies.repo("Inventory", ["item-2"])
@@ -166,14 +166,54 @@ describe("live query invalidation", () => {
     let reads = DataDependencies.empty()
     cleanups.push(registerLiveQuery(key, () => reads, {}))
 
-    const starting = beginLiveQueryFetch(key)
+    const wasLive = acquireLiveQueryFetch(key)
+    const starting = liveQueryReady()
     receive(new Set([repo]))
     open()
-    const wasLive = await starting
+    await starting
     reads = new Set([repo])
     endLiveQueryFetch(wasLive)
 
     expect(invalidations).toEqual([[key]])
+  })
+
+  it("dispatches writes after an observed live query is interrupted while awaiting readiness", async () => {
+    const dependency = DataDependencies.repo("LiveOrders")
+    const mrt = ManagedRuntime.make(Layer.empty)
+    const rt = makeAtomClientRuntime(() => Layer.empty, mrt.memoMap)
+    const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+    let receive = (_writes: DataDependencies.DataDependencies) => {}
+    let readyCalled = () => {}
+    const readyRequested = new Promise<void>((resolve) => readyCalled = resolve)
+    configureLiveQueryInvalidation({
+      ready: () => {
+        readyCalled()
+        return new Promise<void>(() => {})
+      },
+      subscribe: (onWrites) => {
+        receive = onWrites
+        return () => {}
+      },
+      invalidate: (keys) => invalidations.push(keys)
+    })
+    const query = { id: "LiveOrders.Pending", handler: () => DataDependencies.read(dependency) }
+    const base = buildQueryFamily(rt, query)(undefined)
+    const atom = withQueryOptions(base, { live: true, revalidateOnFocus: false }, [...makeQueryKey(query), undefined])
+    try {
+      const unmount = defaultRegistry.mount(atom)
+      await readyRequested
+      unmount()
+      defaultRegistry.reset()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      const key = ["$LiveOrders", "Other", undefined]
+      cleanups.push(registerLiveQuery(key, () => new Set([dependency]), {}))
+      receive(new Set([dependency]))
+      expect(invalidations).toEqual([[key]])
+    } finally {
+      defaultRegistry.reset()
+      await mrt.dispose()
+    }
   })
 
   it("coalesces matching writes using the query's maximum delay", () => {

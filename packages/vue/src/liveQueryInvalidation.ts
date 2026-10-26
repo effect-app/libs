@@ -121,17 +121,14 @@ export const registerLiveQuery = (
   }
 }
 
-export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
+/** Synchronously marks a live fetch as discovering; pair with `endLiveQueryFetch` even if interrupted. */
+export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>) => {
   if (!entries.has(Hash.hash(key)) || source === undefined) return false
   discovering++
-  try {
-    await source.ready()
-    return true
-  } catch (error) {
-    discovering--
-    throw error
-  }
+  return true
 }
+
+export const liveQueryReady = () => source?.ready() ?? Promise.resolve()
 
 export const endLiveQueryFetch = (wasLive: boolean) => {
   if (!wasLive) return

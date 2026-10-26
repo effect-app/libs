@@ -34,7 +34,7 @@ import * as Stream from "effect/Stream"
 import type * as Tracer from "effect/Tracer"
 import { clearQueryReadDependencies, getQueryReadDependencies, type QueryInvalidationMode, registerQueryInvalidationMode, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
-import { beginLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, registerLiveQuery } from "./liveQueryInvalidation.ts"
+import { acquireLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, liveQueryReady, registerLiveQuery } from "./liveQueryInvalidation.ts"
 import { atomsToRefetch, observeQueryAtom } from "./queryLifetime.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
@@ -503,14 +503,16 @@ export const buildQueryFamily = <I, A, E>(
             setQueryReadDependencies(fullKey, lastReads)
             return result
           })
-        let liveFetch = false
         const effect = Effect
-          .gen(function*() {
-            liveFetch = yield* Effect.promise(() => beginLiveQueryFetch(fullKey))
-            return yield* recordReads.pipe(Effect.retry({ times: 5, while: isRetryable }))
-          })
+          .acquireUseRelease(
+            Effect.sync(() => acquireLiveQueryFetch(fullKey)),
+            (live) =>
+              (live ? Effect.promise(liveQueryReady) : Effect.void).pipe(
+                Effect.andThen(recordReads.pipe(Effect.retry({ times: 5, while: isRetryable })))
+              ),
+            (live) => Effect.sync(() => endLiveQueryFetch(live))
+          )
           .pipe(
-            Effect.ensuring(Effect.sync(() => endLiveQueryFetch(liveFetch))),
             Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
             // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
             // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that

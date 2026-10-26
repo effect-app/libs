@@ -6,10 +6,16 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
 import { getQueryInvalidationMode } from "../src/dependencyMetadata.js"
-import { acquireLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, liveQueryReady, registerLiveQuery } from "../src/liveQueryInvalidation.js"
+import { acquireLiveQueryFetch, awaitLiveQueryFetch, configureLiveQueryInvalidation, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
 
 const repo = DataDependencies.repo("Inventory", ["item-1"])
 const otherId = DataDependencies.repo("Inventory", ["item-2"])
+
+const acquire = (key: ReadonlyArray<unknown>) => {
+  const fetch = acquireLiveQueryFetch(key)
+  if (fetch === undefined) throw new Error("expected a live fetch")
+  return fetch
+}
 
 describe("live query invalidation", () => {
   const cleanups: Array<() => void> = []
@@ -166,13 +172,13 @@ describe("live query invalidation", () => {
     let reads = DataDependencies.empty()
     cleanups.push(registerLiveQuery(key, () => reads, {}))
 
-    const wasLive = acquireLiveQueryFetch(key)
-    const starting = liveQueryReady()
+    const fetch = acquire(key)
+    const starting = awaitLiveQueryFetch(fetch)
     receive(new Set([repo]))
     open()
     await starting
     reads = new Set([repo])
-    endLiveQueryFetch(wasLive)
+    releaseLiveQueryFetch(fetch)
 
     expect(invalidations).toEqual([[key]])
   })
@@ -214,6 +220,39 @@ describe("live query invalidation", () => {
       defaultRegistry.reset()
       await mrt.dispose()
     }
+  })
+
+  it("moves a pending readiness wait to a newly configured source", async () => {
+    const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+    let receive = (_writes: DataDependencies.DataDependencies) => {}
+    configureLiveQueryInvalidation({
+      ready: () => new Promise<void>(() => {}),
+      subscribe: () => () => {},
+      invalidate: () => {}
+    })
+    const key = ["$Inventory", "Get", { id: "item-1" }]
+    let reads = DataDependencies.empty()
+    cleanups.push(registerLiveQuery(key, () => reads, {}))
+    const fetch = acquire(key)
+    const starting = awaitLiveQueryFetch(fetch)
+
+    let open = () => {}
+    const ready = new Promise<void>((resolve) => open = resolve)
+    configureLiveQueryInvalidation({
+      ready: () => ready,
+      subscribe: (onWrites) => {
+        receive = onWrites
+        return () => {}
+      },
+      invalidate: (keys) => invalidations.push(keys)
+    })
+    receive(new Set([repo]))
+    open()
+    await starting
+    reads = new Set([repo])
+    releaseLiveQueryFetch(fetch)
+
+    expect(invalidations).toEqual([[key]])
   })
 
   it("coalesces matching writes using the query's maximum delay", () => {

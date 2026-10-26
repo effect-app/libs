@@ -23,9 +23,11 @@ import * as S from "effect-app/Schema"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
+import * as Exit from "effect/Exit"
 import { isHttpClientError } from "effect/http/HttpClientError"
 import type * as Layer from "effect/Layer"
+import * as MutableHashMap from "effect/MutableHashMap"
+import * as MutableHashSet from "effect/MutableHashSet"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Atom from "effect/reactivity/Atom"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
@@ -34,7 +36,7 @@ import * as Stream from "effect/Stream"
 import type * as Tracer from "effect/Tracer"
 import { clearQueryReadDependencies, getQueryReadDependencies, type QueryInvalidationMode, registerQueryInvalidationMode, setQueryReadDependencies } from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
-import { acquireLiveQueryFetch, endLiveQueryFetch, type LiveQueryOptions, liveQueryReady, registerLiveQuery } from "./liveQueryInvalidation.ts"
+import { acquireLiveQueryFetch, awaitLiveQueryFetch, type LiveQueryOptions, registerLiveQuery, releaseLiveQueryFetch } from "./liveQueryInvalidation.ts"
 import { atomsToRefetch, observeQueryAtom } from "./queryLifetime.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
@@ -43,11 +45,10 @@ const prefixesOf = (key: ReadonlyArray<unknown>): ReadonlyArray<ReadonlyArray<un
 
 const uniqueKeys = (keys: ReadonlyArray<ReadonlyArray<unknown>>): ReadonlyArray<ReadonlyArray<unknown>> => {
   const out: Array<ReadonlyArray<unknown>> = []
-  const seen = new Set<number>()
+  const seen = MutableHashSet.empty<ReadonlyArray<unknown>>()
   for (const key of keys) {
-    const hash = Hash.hash(key)
-    if (seen.has(hash)) continue
-    seen.add(hash)
+    if (MutableHashSet.has(seen, key)) continue
+    MutableHashSet.add(seen, key)
     out.push(key)
   }
   return out
@@ -58,20 +59,21 @@ const uniqueKeys = (keys: ReadonlyArray<ReadonlyArray<unknown>>): ReadonlyArray<
 // alive in the registry (mounted OR cached within idle-ttl). Invalidation *marks* every matching
 // atom stale; it only *refetches* atoms that currently have observers (TanStack refetchType:
 // "active"). Idle cache entries refetch on the next mount.
-const keyAtoms = new Map<number, Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>>()
+const keyAtoms = MutableHashMap.empty<ReadonlyArray<unknown>, Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>>()
 
 const trackByKeys =
   (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
     Atom.transform(atom, (get) => {
       for (const key of keys) {
-        const h = Hash.hash(key)
-        let set = keyAtoms.get(h)
-        if (!set) keyAtoms.set(h, set = new Set())
+        let set = Option.getOrUndefined(MutableHashMap.get(keyAtoms, key))
+        if (!set) MutableHashMap.set(keyAtoms, key, set = new Set())
         set.add(atom)
         get.addFinalizer(() => {
           set.delete(atom)
-          if (set.size === 0) keyAtoms.delete(h)
+          if (set.size === 0 && Option.getOrUndefined(MutableHashMap.get(keyAtoms, key)) === set) {
+            MutableHashMap.remove(keyAtoms, key)
+          }
         })
       }
       return get(atom)
@@ -111,7 +113,7 @@ const trackReadDependencies =
 const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
   for (const key of keys) {
-    const set = keyAtoms.get(Hash.hash(key))
+    const set = Option.getOrUndefined(MutableHashMap.get(keyAtoms, key))
     if (set) { for (const a of set) atoms.add(a) }
   }
   return [...atoms]
@@ -377,6 +379,16 @@ const recoverStuckWaitingOnMount =
       return current
     }, { initialValueTarget: wrapped })
 
+/** Runs `setup` once per mount (not per result change) and forwards the wrapped atom's results. */
+const withMountLifetime =
+  <A, E>(setup: (get: Atom.AtomContext) => void) =>
+  (atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
+    Atom.transform(atom, (get) => {
+      setup(get)
+      get.subscribe(atom, (value) => get.setSelf(value))
+      return get.once(atom)
+    }, { initialValueTarget: atom })
+
 export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
   opts: AtomQueryOptions = {},
@@ -386,24 +398,15 @@ export const withQueryOptions = <A, E>(
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
   let atom = self
   if (liveKey !== undefined) {
-    atom = Atom.transform(atom, (get) => {
-      const unregister = registerQueryInvalidationMode(liveKey, opts.invalidation ?? "await")
-      get.addFinalizer(unregister)
-      return get(self)
-    }, { initialValueTarget: self })
+    atom = withMountLifetime<A, E>((get) => {
+      get.addFinalizer(registerQueryInvalidationMode(liveKey, opts.invalidation ?? "await"))
+    })(atom)
   }
   if (opts.live && liveKey !== undefined) {
     const liveOptions = opts.live === true ? {} : opts.live
-    const inner = atom
-    atom = Atom.transform(inner, (get) => {
-      const unregister = registerLiveQuery(
-        liveKey,
-        () => getQueryReadDependencies(liveKey),
-        liveOptions
-      )
-      get.addFinalizer(unregister)
-      return get(inner)
-    }, { initialValueTarget: self })
+    atom = withMountLifetime<A, E>((get) => {
+      get.addFinalizer(registerLiveQuery(liveKey, () => getQueryReadDependencies(liveKey), liveOptions))
+    })(atom)
   }
   const revalidateOnFocus = opts.revalidateOnFocus ?? true
   atom = Atom.swr({
@@ -476,6 +479,10 @@ export const buildQueryFamily = <I, A, E>(
 
   return Atom.family((input: I) => {
     const fullKey = [...baseKey, input]
+    // metadata/live identity: projections of one handler read different data
+    const projectedFullKey = self.queryKeyProjectionHash === undefined
+      ? fullKey
+      : [...baseKey, self.queryKeyProjectionHash, input]
     // Record the repository/server read-dependencies seen while fetching, keyed by `fullKey`, so a
     // later mutation whose writes intersect them can derive this query as an invalidation target.
     // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
@@ -496,21 +503,32 @@ export const buildQueryFamily = <I, A, E>(
             const readsRef = yield* Ref.make(DataDependencies.empty())
             const writesRef = yield* Ref.make(DataDependencies.empty())
             const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
-            const result = yield* self
+            return yield* self
               .handler(input)
-              .pipe(Effect.provideService(DataDependencies.DataDependencyRecorder, recorder))
-            lastReads = yield* Ref.get(readsRef)
-            setQueryReadDependencies(fullKey, lastReads)
-            return result
+              .pipe(
+                Effect.provideService(DataDependencies.DataDependencyRecorder, recorder),
+                // a failure (e.g. not found) still depends on what it read; keep a displayed success's reads
+                Effect.onExit((exit) =>
+                  Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)
+                    ? Effect.void
+                    : Ref.get(readsRef).pipe(Effect.map((reads) => {
+                      lastReads = Exit.isSuccess(exit) ? reads : DataDependencies.merge(lastReads, reads)
+                      setQueryReadDependencies(projectedFullKey, lastReads)
+                    }))
+                )
+              )
           })
         const effect = Effect
           .acquireUseRelease(
-            Effect.sync(() => acquireLiveQueryFetch(fullKey)),
+            Effect.sync(() => acquireLiveQueryFetch(projectedFullKey)),
             (live) =>
-              (live ? Effect.promise(liveQueryReady) : Effect.void).pipe(
+              (live === undefined ? Effect.void : Effect.promise((signal) => awaitLiveQueryFetch(live, signal))).pipe(
                 Effect.andThen(recordReads.pipe(Effect.retry({ times: 5, while: isRetryable })))
               ),
-            (live) => Effect.sync(() => endLiveQueryFetch(live))
+            (live) =>
+              Effect.sync(() => {
+                if (live !== undefined) releaseLiveQueryFetch(live)
+              })
           )
           .pipe(
             Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
@@ -534,13 +552,10 @@ export const buildQueryFamily = <I, A, E>(
     // Register under every prefix of the full key => hierarchical (prefix) invalidation. Two roles:
     //   - withReactivity: `Reactivity.invalidate(key)` refreshes this atom (the actual refetch).
     //   - trackByKeys:    records the atom in `keyAtoms` so the mutation can AWAIT its settle.
-    const projectedFullKey = self.queryKeyProjectionHash === undefined
-      ? fullKey
-      : [...baseKey, self.queryKeyProjectionHash, input]
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackByKeys(reactivityKeys)(atom)
-    atom = trackReadDependencies(fullKey, () => lastReads)(atom)
+    atom = trackReadDependencies(projectedFullKey, () => lastReads)(atom)
     // gcTime LAST so the whole chain (incl. the registration + tracking) stays alive through the
     // idle window. Invalidation still finds the cached atom and marks it stale; it does not
     // refetch until an observer remounts (TanStack refetchType: "active").
@@ -561,8 +576,8 @@ export const buildQueryFamily = <I, A, E>(
     const observed = observeQueryAtom(result)
     queryFetchStates.set(result, fetchState)
     queryFetchStates.set(observed, fetchState)
-    atomQueryKeys.set(result, fullKey)
-    atomQueryKeys.set(observed, fullKey)
+    atomQueryKeys.set(result, projectedFullKey)
+    atomQueryKeys.set(observed, projectedFullKey)
     return observed
   })
 }

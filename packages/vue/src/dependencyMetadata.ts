@@ -1,37 +1,42 @@
 import { DataDependencies } from "effect-app/client"
-import * as Hash from "effect/Hash"
+import * as MutableHashMap from "effect/MutableHashMap"
+import * as Option from "effect/Option"
 
 // Maps a live query's reactivity key (its full `[...queryKey, input]` key) to the
 // data dependencies it read while fetching. Populated when the query handler resolves and
 // cleared when the query atom is GC'd, so the set mirrors the live query atoms (mounted or
 // cached-within-ttl) — the atom equivalent of the former tanstack query cache.
 type Entry = { readonly key: ReadonlyArray<unknown>; readonly reads: DataDependencies.DataDependencies }
-const readDependencies = new Map<number, Entry>()
+const readDependencies = MutableHashMap.empty<ReadonlyArray<unknown>, Entry>()
 export type QueryInvalidationMode = "await" | "soft"
 type InvalidationModeEntry = { awaitSubscribers: number; softSubscribers: number }
-const invalidationModes = new Map<number, InvalidationModeEntry>()
+const invalidationModes = MutableHashMap.empty<ReadonlyArray<unknown>, InvalidationModeEntry>()
 
 export const registerQueryInvalidationMode = (
   key: ReadonlyArray<unknown>,
   mode: QueryInvalidationMode
 ): () => void => {
-  const hash = Hash.hash(key)
-  const entry = invalidationModes.get(hash) ?? { awaitSubscribers: 0, softSubscribers: 0 }
+  const entry = Option.getOrUndefined(MutableHashMap.get(invalidationModes, key))
+    ?? { awaitSubscribers: 0, softSubscribers: 0 }
   if (mode === "soft") entry.softSubscribers++
   else entry.awaitSubscribers++
-  invalidationModes.set(hash, entry)
+  MutableHashMap.set(invalidationModes, key, entry)
   let active = true
   return () => {
     if (!active) return
     active = false
     if (mode === "soft") entry.softSubscribers--
     else entry.awaitSubscribers--
-    if (entry.awaitSubscribers === 0 && entry.softSubscribers === 0) invalidationModes.delete(hash)
+    if (
+      entry.awaitSubscribers === 0
+      && entry.softSubscribers === 0
+      && Option.getOrUndefined(MutableHashMap.get(invalidationModes, key)) === entry
+    ) MutableHashMap.remove(invalidationModes, key)
   }
 }
 
 export const getQueryInvalidationMode = (key: ReadonlyArray<unknown>): QueryInvalidationMode => {
-  const entry = invalidationModes.get(Hash.hash(key))
+  const entry = Option.getOrUndefined(MutableHashMap.get(invalidationModes, key))
   return entry !== undefined && entry.awaitSubscribers === 0 && entry.softSubscribers > 0 ? "soft" : "await"
 }
 
@@ -39,18 +44,18 @@ export const setQueryReadDependencies = (
   key: ReadonlyArray<unknown>,
   reads: DataDependencies.DataDependencies
 ) => {
-  const h = Hash.hash(key)
-  if (!DataDependencies.isNonEmpty(reads)) readDependencies.delete(h)
-  else readDependencies.set(h, { key, reads })
+  if (!DataDependencies.isNonEmpty(reads)) MutableHashMap.remove(readDependencies, key)
+  else MutableHashMap.set(readDependencies, key, { key, reads })
 }
 
 export const clearQueryReadDependencies = (key: ReadonlyArray<unknown>) => {
-  readDependencies.delete(Hash.hash(key))
+  MutableHashMap.remove(readDependencies, key)
 }
 
 export const getQueryReadDependencies = (
   key: ReadonlyArray<unknown>
-): DataDependencies.DataDependencies => readDependencies.get(Hash.hash(key))?.reads ?? DataDependencies.empty()
+): DataDependencies.DataDependencies =>
+  Option.getOrUndefined(MutableHashMap.get(readDependencies, key))?.reads ?? DataDependencies.empty()
 
 /**
  * Reactivity keys of every live query whose recorded read-dependencies intersect this
@@ -62,7 +67,7 @@ export const getDerivedInvalidationKeys = (
 ): ReadonlyArray<ReadonlyArray<unknown>> => {
   if (!DataDependencies.isNonEmpty(writeDependencies)) return []
   const keys: Array<ReadonlyArray<unknown>> = []
-  for (const { key, reads } of readDependencies.values()) {
+  for (const { key, reads } of MutableHashMap.values(readDependencies)) {
     if (DataDependencies.intersects(reads, writeDependencies)) keys.push(key)
   }
   return keys

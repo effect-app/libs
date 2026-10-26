@@ -17,6 +17,7 @@ export interface LiveQueryInvalidationSource {
 }
 
 interface LiveQueryEntry {
+  readonly hash: number
   readonly key: ReadonlyArray<unknown>
   readonly reads: () => DataDependencies.DataDependencies
   observers: number
@@ -42,12 +43,13 @@ const schedule = (entry: LiveQueryEntry) => {
   entry.timer = setTimeout(() => invalidateEntry(entry), maxDelayMs)
 }
 
+// a synchronous refresh can remove or replace registrations while dispatching
+const isCurrent = (entry: LiveQueryEntry) => entries.get(entry.hash) === entry
+
 const dispatch = (writes: DataDependencies.DataDependencies) => {
   if (!DataDependencies.isNonEmpty(writes)) return
-  // a synchronous refresh can replace registrations while this write is being dispatched
-  const snapshot = [...entries.values()]
-  for (const entry of snapshot) {
-    if (DataDependencies.intersects(entry.reads(), writes)) schedule(entry)
+  for (const entry of Array.from(entries.values())) {
+    if (isCurrent(entry) && DataDependencies.intersects(entry.reads(), writes)) schedule(entry)
   }
 }
 
@@ -61,9 +63,8 @@ const receive = (writes: DataDependencies.DataDependencies) => {
 
 const reset = () => {
   bufferedWrites = DataDependencies.empty()
-  const snapshot = [...entries.values()]
-  for (const entry of snapshot) {
-    if (DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
+  for (const entry of Array.from(entries.values())) {
+    if (isCurrent(entry) && DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
   }
 }
 
@@ -93,6 +94,7 @@ export const registerLiveQuery = (
     current.delays.set(delay, (current.delays.get(delay) ?? 0) + 1)
   } else {
     entries.set(hash, {
+      hash,
       key,
       reads,
       observers: 1,

@@ -4,7 +4,8 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
+import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
+import { getQueryInvalidationMode } from "../src/dependencyMetadata.js"
 import { beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, registerLiveQuery } from "../src/liveQueryInvalidation.js"
 
 const repo = DataDependencies.repo("Inventory", ["item-1"])
@@ -41,7 +42,11 @@ describe("live query invalidation", () => {
         },
         invalidate: (keys) => {
           refreshes++
-          settled = Effect.runPromise(invalidateAndAwait(keys))
+          settled = Effect.runPromise(
+            keys.every((key) => getQueryInvalidationMode(key) === "soft")
+              ? invalidateSoft(keys).pipe(Effect.andThen(awaitAtomResult(defaultRegistry, atom)))
+              : invalidateAndAwait(keys)
+          )
         }
       })
       const query = {
@@ -57,6 +62,7 @@ describe("live query invalidation", () => {
       try {
         await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
         expect(calls).toBe(1)
+        expect(getQueryInvalidationMode([...makeQueryKey(query), undefined])).toBe(invalidation)
         receive(new Set([dependency]))
         await settled
         expect(calls).toBe(2)
@@ -78,6 +84,46 @@ describe("live query invalidation", () => {
         defaultRegistry.reset()
         await mrt.dispose()
       }
+    }
+  )
+
+  it.each(["write", "reset"] as const)(
+    "skips registrations removed or replaced by a synchronous refresh during %s dispatch",
+    (event) => {
+      vi.useFakeTimers()
+      const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+      let receive = (_writes: DataDependencies.DataDependencies) => {}
+      let reset = () => {}
+      const first = ["$Inventory", "List", undefined]
+      const removed = ["$Inventory", "Get", { id: "item-1" }]
+      const replaced = ["$Inventory", "Get", { id: "item-2" }]
+      let unregisterRemoved = () => {}
+      let unregisterReplaced = () => {}
+      configureLiveQueryInvalidation({
+        ready: () => Promise.resolve(),
+        subscribe: (onWrites, onReset) => {
+          receive = onWrites
+          reset = onReset
+          return () => {}
+        },
+        invalidate: (keys) => {
+          invalidations.push(keys)
+          if (keys[0] !== first) return
+          unregisterRemoved()
+          unregisterReplaced()
+          unregisterReplaced = registerLiveQuery(replaced, () => new Set([repo]), { maxDelayMs: 1_000 })
+        }
+      })
+
+      cleanups.push(registerLiveQuery(first, () => new Set([repo]), {}))
+      unregisterRemoved = registerLiveQuery(removed, () => new Set([repo]), {})
+      unregisterReplaced = registerLiveQuery(replaced, () => new Set([repo]), {})
+      cleanups.push(() => unregisterReplaced())
+
+      if (event === "write") receive(new Set([repo]))
+      else reset()
+      vi.runAllTimers()
+      expect(invalidations).toEqual([[first]])
     }
   )
 

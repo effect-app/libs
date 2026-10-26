@@ -394,14 +394,15 @@ export const withQueryOptions = <A, E>(
   }
   if (opts.live && liveKey !== undefined) {
     const liveOptions = opts.live === true ? {} : opts.live
-    atom = Atom.transform(atom, (get) => {
+    const inner = atom
+    atom = Atom.transform(inner, (get) => {
       const unregister = registerLiveQuery(
         liveKey,
         () => getQueryReadDependencies(liveKey),
         liveOptions
       )
       get.addFinalizer(unregister)
-      return get(self)
+      return get(inner)
     }, { initialValueTarget: self })
   }
   const revalidateOnFocus = opts.revalidateOnFocus ?? true

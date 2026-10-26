@@ -130,6 +130,18 @@ export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>) => {
 
 export const liveQueryReady = () => source?.ready() ?? Promise.resolve()
 
+/** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `liveQueryReady`. */
+export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
+  if (!acquireLiveQueryFetch(key)) return false
+  try {
+    await liveQueryReady()
+    return true
+  } catch (error) {
+    discovering--
+    throw error
+  }
+}
+
 export const endLiveQueryFetch = (wasLive: boolean) => {
   if (!wasLive) return
   discovering = Math.max(0, discovering - 1)

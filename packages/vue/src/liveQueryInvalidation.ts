@@ -1,5 +1,6 @@
 import { DataDependencies } from "effect-app/client"
-import * as Hash from "effect/Hash"
+import * as MutableHashMap from "effect/MutableHashMap"
+import * as Option from "effect/Option"
 
 export interface LiveQueryOptions {
   /** Fixed maximum delay from the first matching write. Zero reacts immediately. */
@@ -17,72 +18,180 @@ export interface LiveQueryInvalidationSource {
 }
 
 interface LiveQueryEntry {
-  readonly hash: number
   readonly key: ReadonlyArray<unknown>
   readonly reads: () => DataDependencies.DataDependencies
   observers: number
   readonly delays: Map<number, number>
   timer: ReturnType<typeof setTimeout> | undefined
+  firstWriteAt: number
+  deadline: number
+  /** live fetches between acquire and release; their writes are buffered until reads are known */
+  discovering: number
+  /** live fetches still waiting for source readiness */
+  awaitingReady: number
+  buffered: DataDependencies.DataDependencies
+  /** invalidate when discovery ends (reset, or a source epoch no fetch covered) */
+  dirty: boolean
+  /** latest source epoch a fetch of this entry was ready for */
+  coveredEpoch: number
 }
 
-const entries = new Map<number, LiveQueryEntry>()
+/** One live fetch: acquire before running, release on every exit. */
+export interface LiveQueryFetch {
+  readonly key: ReadonlyArray<unknown>
+}
+
+interface FetchState {
+  readonly entry: LiveQueryEntry
+  awaiting: boolean
+  released: boolean
+}
+
+const entries = MutableHashMap.empty<ReadonlyArray<unknown>, LiveQueryEntry>()
+const fetches = new WeakMap<LiveQueryFetch, FetchState>()
+const epochListeners = new Set<() => void>()
 let source: LiveQueryInvalidationSource | undefined
 let unsubscribe: (() => void) | undefined
-let discovering = 0
-let bufferedWrites = DataDependencies.empty()
-let signalSourceChanged = () => {}
-let sourceChanged = new Promise<void>((resolve) => signalSourceChanged = resolve)
+let subscribing = false
+let epoch = 0
+
+// a synchronous refresh can remove or replace registrations while dispatching
+const isCurrent = (entry: LiveQueryEntry) => Option.getOrUndefined(MutableHashMap.get(entries, entry.key)) === entry
+
+const forEachCurrent = (f: (entry: LiveQueryEntry) => void) => {
+  for (const entry of Array.from(MutableHashMap.values(entries))) {
+    if (isCurrent(entry)) f(entry)
+  }
+}
 
 const invalidateEntry = (entry: LiveQueryEntry) => {
   entry.timer = undefined
-  source?.invalidate([entry.key])
+  if (isCurrent(entry)) source?.invalidate([entry.key])
+}
+
+// (re)arm for the strictest observer; a stricter observer or write can only bring the deadline forward
+const arm = (entry: LiveQueryEntry) => {
+  const deadline = entry.firstWriteAt + Math.min(...entry.delays.keys())
+  if (entry.timer !== undefined) {
+    if (entry.deadline <= deadline) return
+    clearTimeout(entry.timer)
+    entry.timer = undefined
+  }
+  entry.deadline = deadline
+  const wait = deadline - Date.now()
+  if (wait <= 0) return invalidateEntry(entry)
+  entry.timer = setTimeout(() => invalidateEntry(entry), wait)
 }
 
 const schedule = (entry: LiveQueryEntry) => {
-  if (entry.timer !== undefined) return
-  const maxDelayMs = Math.min(...entry.delays.keys())
-  if (maxDelayMs <= 0) return invalidateEntry(entry)
-  entry.timer = setTimeout(() => invalidateEntry(entry), maxDelayMs)
+  if (entry.timer === undefined) entry.firstWriteAt = Date.now()
+  arm(entry)
 }
 
-// a synchronous refresh can remove or replace registrations while dispatching
-const isCurrent = (entry: LiveQueryEntry) => entries.get(entry.hash) === entry
-
-const dispatch = (writes: DataDependencies.DataDependencies) => {
-  if (!DataDependencies.isNonEmpty(writes)) return
-  for (const entry of Array.from(entries.values())) {
-    if (isCurrent(entry) && DataDependencies.intersects(entry.reads(), writes)) schedule(entry)
-  }
+const markStale = (entry: LiveQueryEntry) => {
+  if (entry.discovering > 0) entry.dirty = true
+  else schedule(entry)
 }
 
 const receive = (writes: DataDependencies.DataDependencies) => {
-  if (discovering > 0) {
-    bufferedWrites = DataDependencies.merge(bufferedWrites, writes)
-    return
-  }
-  dispatch(writes)
+  if (!DataDependencies.isNonEmpty(writes)) return
+  forEachCurrent((entry) => {
+    if (entry.discovering > 0) entry.buffered = DataDependencies.merge(entry.buffered, writes)
+    else if (DataDependencies.intersects(entry.reads(), writes)) schedule(entry)
+  })
 }
 
-const reset = () => {
-  bufferedWrites = DataDependencies.empty()
-  for (const entry of Array.from(entries.values())) {
-    if (isCurrent(entry) && DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
+const reset = () =>
+  forEachCurrent((entry) => {
+    if (entry.discovering > 0) entry.dirty = true
+    else if (DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
+  })
+
+/** Whether the current source became ready before being replaced; rejects with its error or on abort. */
+const readyOnce = async (signal?: AbortSignal): Promise<boolean> => {
+  const target = epoch
+  const current = source
+  if (current === undefined) return true
+  const detach: Array<() => void> = []
+  // listen before calling `ready()`: it may reconfigure synchronously
+  const interrupted = new Promise<void>((resolve) => {
+    epochListeners.add(resolve)
+    detach.push(() => epochListeners.delete(resolve))
+    if (signal === undefined) return
+    const onAbort = () => resolve()
+    signal.addEventListener("abort", onAbort, { once: true })
+    detach.push(() => signal.removeEventListener("abort", onAbort))
+  })
+  try {
+    await Promise.race([current.ready(), interrupted])
+  } catch (error) {
+    if (epoch === target && signal?.aborted !== true) throw error
+  } finally {
+    for (const f of detach) f()
   }
+  if (signal?.aborted === true) throw signal.reason
+  return epoch === target
+}
+
+/** Resolves with the epoch whose readiness was observed; a reconfigured source supersedes the wait. */
+const waitReady = async (signal?: AbortSignal): Promise<number> => {
+  const target = epoch
+  return await readyOnce(signal) ? target : waitReady(signal)
+}
+
+// a reconfigured source runs its own catch-up
+const catchUp = (stale: ReadonlyArray<LiveQueryEntry>) => {
+  const target = epoch
+  readyOnce().then((ready) => {
+    if (!ready || epoch !== target) return
+    for (const entry of stale) {
+      if (isCurrent(entry) && entry.awaitingReady === 0 && entry.coveredEpoch !== target) markStale(entry)
+    }
+  }, () => {})
+}
+
+const unsubscribeNow = () => {
+  const current = unsubscribe
+  unsubscribe = undefined
+  current?.()
 }
 
 const ensureSubscribed = () => {
-  if (unsubscribe === undefined && source !== undefined && entries.size > 0) {
-    unsubscribe = source.subscribe(receive, reset)
+  if (unsubscribe !== undefined || subscribing || source === undefined || MutableHashMap.size(entries) === 0) return
+  const target = epoch
+  const active = () => epoch === target
+  subscribing = true
+  let handle: () => void
+  try {
+    handle = source.subscribe(
+      (writes) => {
+        if (active()) receive(writes)
+      },
+      () => {
+        if (active()) reset()
+      }
+    )
+  } finally {
+    subscribing = false
   }
+  if (!active() || MutableHashMap.size(entries) === 0) {
+    handle()
+    return ensureSubscribed()
+  }
+  unsubscribe = handle
 }
 
 export const configureLiveQueryInvalidation = (next: LiveQueryInvalidationSource) => {
-  unsubscribe?.()
-  unsubscribe = undefined
+  unsubscribeNow()
   source = next
-  signalSourceChanged()
-  sourceChanged = new Promise<void>((resolve) => signalSourceChanged = resolve)
+  epoch++
+  const listeners = Array.from(epochListeners)
+  epochListeners.clear()
+  for (const f of listeners) f()
   ensureSubscribed()
+  const stale: Array<LiveQueryEntry> = []
+  forEachCurrent((entry) => stale.push(entry))
+  if (stale.length > 0) catchUp(stale)
 }
 
 export const registerLiveQuery = (
@@ -90,73 +199,113 @@ export const registerLiveQuery = (
   reads: () => DataDependencies.DataDependencies,
   options: LiveQueryOptions
 ) => {
-  const hash = Hash.hash(key)
   const delay = options.maxDelayMs ?? 0
-  const current = entries.get(hash)
-  if (current !== undefined) {
-    current.observers++
-    current.delays.set(delay, (current.delays.get(delay) ?? 0) + 1)
+  let entry = Option.getOrUndefined(MutableHashMap.get(entries, key))
+  if (entry !== undefined) {
+    entry.observers++
+    entry.delays.set(delay, (entry.delays.get(delay) ?? 0) + 1)
+    if (entry.timer !== undefined) arm(entry)
   } else {
-    entries.set(hash, {
-      hash,
+    entry = {
       key,
       reads,
       observers: 1,
       delays: new Map([[delay, 1]]),
-      timer: undefined
-    })
-  }
-  ensureSubscribed()
-
-  return () => {
-    const entry = entries.get(hash)
-    if (entry === undefined) return
-    const delayObservers = entry.delays.get(delay) ?? 0
-    if (delayObservers <= 1) entry.delays.delete(delay)
-    else entry.delays.set(delay, delayObservers - 1)
-    if (--entry.observers > 0) return
-    if (entry.timer !== undefined) clearTimeout(entry.timer)
-    entries.delete(hash)
-    if (entries.size === 0) {
-      unsubscribe?.()
-      unsubscribe = undefined
-      bufferedWrites = DataDependencies.empty()
+      timer: undefined,
+      firstWriteAt: 0,
+      deadline: 0,
+      discovering: 0,
+      awaitingReady: 0,
+      buffered: DataDependencies.empty(),
+      dirty: false,
+      coveredEpoch: -1
     }
+    MutableHashMap.set(entries, key, entry)
+    ensureSubscribed()
+    // writes missed while unsubscribed (cached result, or a fetch that started before this registration)
+    if (source !== undefined) catchUp([entry])
+  }
+
+  const registered = entry
+  let active = true
+  return () => {
+    if (!active) return
+    active = false
+    const delayObservers = registered.delays.get(delay) ?? 0
+    if (delayObservers <= 1) registered.delays.delete(delay)
+    else registered.delays.set(delay, delayObservers - 1)
+    if (--registered.observers > 0) return
+    if (registered.timer !== undefined) clearTimeout(registered.timer)
+    registered.timer = undefined
+    if (isCurrent(registered)) MutableHashMap.remove(entries, key)
+    if (MutableHashMap.size(entries) === 0) unsubscribeNow()
   }
 }
 
-/** Synchronously marks a live fetch as discovering; pair with `endLiveQueryFetch` even if interrupted. */
-export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>) => {
-  if (!entries.has(Hash.hash(key)) || source === undefined) return false
-  discovering++
-  return true
+/** Synchronously starts a live fetch for a registered key; release it with `releaseLiveQueryFetch` on every exit. */
+export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>): LiveQueryFetch | undefined => {
+  const entry = Option.getOrUndefined(MutableHashMap.get(entries, key))
+  if (entry === undefined || source === undefined) return undefined
+  entry.discovering++
+  entry.awaitingReady++
+  const fetch: LiveQueryFetch = { key }
+  fetches.set(fetch, { entry, awaiting: true, released: false })
+  return fetch
+}
+
+const stopAwaiting = (state: FetchState) => {
+  if (!state.awaiting) return
+  state.awaiting = false
+  state.entry.awaitingReady--
+}
+
+/** Waits until writes after this point reach the fetch; abort to stop waiting. */
+export const awaitLiveQueryFetch = async (fetch: LiveQueryFetch, signal?: AbortSignal) => {
+  const state = fetches.get(fetch)
+  if (state === undefined || state.released) return
+  try {
+    const ready = await waitReady(signal)
+    state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
+  } finally {
+    stopAwaiting(state)
+  }
+}
+
+export const releaseLiveQueryFetch = (fetch: LiveQueryFetch) => {
+  const state = fetches.get(fetch)
+  if (state === undefined || state.released) return
+  state.released = true
+  stopAwaiting(state)
+  const { entry } = state
+  if (--entry.discovering > 0 || !isCurrent(entry)) return
+  const { buffered, dirty } = entry
+  entry.buffered = DataDependencies.empty()
+  entry.dirty = false
+  if (dirty || DataDependencies.intersects(entry.reads(), buffered)) schedule(entry)
 }
 
 /** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
-export const liveQueryReady = async (): Promise<void> => {
-  const current = source
-  if (current === undefined) return
-  await Promise.race([current.ready(), sourceChanged])
-  if (source !== current) return liveQueryReady()
-}
+export const liveQueryReady = (): Promise<void> => waitReady().then(() => {})
 
-/** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `liveQueryReady`. */
+const legacyFetches: Array<LiveQueryFetch> = []
+
+/** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `awaitLiveQueryFetch`. */
 export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
-  if (!acquireLiveQueryFetch(key)) return false
+  const fetch = acquireLiveQueryFetch(key)
+  if (fetch === undefined) return false
   try {
-    await liveQueryReady()
-    return true
+    await awaitLiveQueryFetch(fetch)
   } catch (error) {
-    discovering--
+    releaseLiveQueryFetch(fetch)
     throw error
   }
+  legacyFetches.push(fetch)
+  return true
 }
 
+/** @deprecated Pairs with `beginLiveQueryFetch`; use `releaseLiveQueryFetch`. */
 export const endLiveQueryFetch = (wasLive: boolean) => {
   if (!wasLive) return
-  discovering = Math.max(0, discovering - 1)
-  if (discovering > 0 || !DataDependencies.isNonEmpty(bufferedWrites)) return
-  const writes = bufferedWrites
-  bufferedWrites = DataDependencies.empty()
-  dispatch(writes)
+  const fetch = legacyFetches.shift()
+  if (fetch !== undefined) releaseLiveQueryFetch(fetch)
 }

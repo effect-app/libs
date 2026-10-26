@@ -216,6 +216,39 @@ describe("live query invalidation", () => {
     }
   })
 
+  it("moves a pending readiness wait to a newly configured source", async () => {
+    const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
+    let receive = (_writes: DataDependencies.DataDependencies) => {}
+    configureLiveQueryInvalidation({
+      ready: () => new Promise<void>(() => {}),
+      subscribe: () => () => {},
+      invalidate: () => {}
+    })
+    const key = ["$Inventory", "Get", { id: "item-1" }]
+    let reads = DataDependencies.empty()
+    cleanups.push(registerLiveQuery(key, () => reads, {}))
+    const wasLive = acquireLiveQueryFetch(key)
+    const starting = liveQueryReady()
+
+    let open = () => {}
+    const ready = new Promise<void>((resolve) => open = resolve)
+    configureLiveQueryInvalidation({
+      ready: () => ready,
+      subscribe: (onWrites) => {
+        receive = onWrites
+        return () => {}
+      },
+      invalidate: (keys) => invalidations.push(keys)
+    })
+    receive(new Set([repo]))
+    open()
+    await starting
+    reads = new Set([repo])
+    endLiveQueryFetch(wasLive)
+
+    expect(invalidations).toEqual([[key]])
+  })
+
   it("coalesces matching writes using the query's maximum delay", () => {
     vi.useFakeTimers()
     const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []

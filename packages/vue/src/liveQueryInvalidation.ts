@@ -30,6 +30,8 @@ let source: LiveQueryInvalidationSource | undefined
 let unsubscribe: (() => void) | undefined
 let discovering = 0
 let bufferedWrites = DataDependencies.empty()
+let signalSourceChanged = () => {}
+let sourceChanged = new Promise<void>((resolve) => signalSourceChanged = resolve)
 
 const invalidateEntry = (entry: LiveQueryEntry) => {
   entry.timer = undefined
@@ -78,6 +80,8 @@ export const configureLiveQueryInvalidation = (next: LiveQueryInvalidationSource
   unsubscribe?.()
   unsubscribe = undefined
   source = next
+  signalSourceChanged()
+  sourceChanged = new Promise<void>((resolve) => signalSourceChanged = resolve)
   ensureSubscribed()
 }
 
@@ -128,7 +132,13 @@ export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>) => {
   return true
 }
 
-export const liveQueryReady = () => source?.ready() ?? Promise.resolve()
+/** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
+export const liveQueryReady = async (): Promise<void> => {
+  const current = source
+  if (current === undefined) return
+  await Promise.race([current.ready(), sourceChanged])
+  if (source !== current) return liveQueryReady()
+}
 
 /** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `liveQueryReady`. */
 export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {

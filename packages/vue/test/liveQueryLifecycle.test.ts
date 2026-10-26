@@ -20,6 +20,12 @@ const acquire = (key: ReadonlyArray<unknown>) => {
   return fetch
 }
 
+const isRegistered = (key: ReadonlyArray<unknown>) => {
+  const fetch = acquireLiveQueryFetch(key)
+  if (fetch !== undefined) releaseLiveQueryFetch(fetch)
+  return fetch !== undefined
+}
+
 const makeSource = (ready: () => Promise<void> = () => Promise.resolve()) => {
   const invalidations: Keys = []
   const handlers = { receive: (_writes: DataDependencies.DataDependencies) => {}, reset: () => {} }
@@ -365,20 +371,86 @@ describe("live query lifecycle", () => {
     let calls = 0
     const query = {
       id: "RemountOrders.List",
-      handler: () => DataDependencies.read(dependency).pipe(Effect.andThen(Effect.sync(() => ++calls)))
+      // network latency: SWR's mount task sees the catch-up refetch in flight
+      handler: () =>
+        DataDependencies.read(dependency).pipe(
+          Effect.andThen(Effect.sleep("1 millis")),
+          Effect.andThen(Effect.sync(() => ++calls))
+        )
     }
+    const key = [...makeQueryKey(query), undefined]
     const atom = withQueryOptions(
       buildQueryFamily(rt, query)(undefined),
       { live: { maxDelayMs: 20 }, staleTime, revalidateOnFocus: false },
-      [...makeQueryKey(query), undefined]
+      key
     )
     const unmount = defaultRegistry.mount(atom)
     await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
     unmount()
-    await flush()
+    // the registry disposes asynchronously; a remount before that keeps the registration (nothing missed)
+    await vi.waitFor(() => expect(isRegistered(key)).toBe(false))
     cleanups.push(defaultRegistry.mount(atom))
     await new Promise((resolve) => setTimeout(resolve, 50))
     await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
     expect(calls).toBe(2)
+  })
+
+  it("catches up a mounted stale query when the source is switched", async () => {
+    const dependency = DataDependencies.repo("SwitchedOrders")
+    const invalidate = (keys: ReadonlyArray<ReadonlyArray<unknown>>) => void Effect.runPromise(invalidateAndAwait(keys))
+    configureLiveQueryInvalidation({ ...makeSource().source, invalidate })
+    const mrt = ManagedRuntime.make(Layer.empty)
+    cleanups.push(() => void mrt.dispose())
+    const rt = makeAtomClientRuntime(() => Layer.empty, mrt.memoMap)
+    let calls = 0
+    const query = {
+      id: "SwitchedOrders.List",
+      handler: () => DataDependencies.read(dependency).pipe(Effect.andThen(Effect.sync(() => ++calls)))
+    }
+    const atom = withQueryOptions(
+      buildQueryFamily(rt, query)(undefined),
+      { live: true, staleTime: 0, revalidateOnFocus: false },
+      [...makeQueryKey(query), undefined]
+    )
+    cleanups.push(defaultRegistry.mount(atom))
+    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
+    await flush()
+    expect(calls).toBe(1)
+    configureLiveQueryInvalidation({ ...makeSource().source, invalidate })
+    await flush()
+    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
+    expect(calls).toBe(2)
+  })
+
+  it("keeps waiting when a switch runs between readiness settling and the wait resuming", async () => {
+    let open = () => {}
+    const ready = new Promise<void>((resolve) => open = resolve)
+    configureLiveQueryInvalidation(makeSource(() => ready).source)
+    const key = ["$Inventory", "Get", { id: "overtaken" }]
+    cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+    const fetch = acquire(key)
+    cleanups.push(() => releaseLiveQueryFetch(fetch))
+    let settled = false
+    void awaitLiveQueryFetch(fetch).then(() => settled = true, () => settled = true)
+    void ready.then(() => configureLiveQueryInvalidation(makeSource(never).source))
+    open()
+    await flush()
+    expect(settled).toBe(false)
+  })
+
+  it("rejects when ready() aborts the wait synchronously", async () => {
+    const controller = new AbortController()
+    configureLiveQueryInvalidation(
+      makeSource(() => {
+        controller.abort()
+        return never()
+      })
+        .source
+    )
+    const key = ["$Inventory", "Get", { id: "sync-abort" }]
+    cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+    const fetch = acquire(key)
+    cleanups.push(() => releaseLiveQueryFetch(fetch))
+    await expect(awaitLiveQueryFetch(fetch, controller.signal)).rejects.toBeDefined()
   })
 })

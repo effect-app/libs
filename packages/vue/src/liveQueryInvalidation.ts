@@ -20,7 +20,6 @@ export interface LiveQueryInvalidationSource {
 interface LiveQueryEntry {
   readonly key: ReadonlyArray<unknown>
   readonly reads: () => DataDependencies.DataDependencies
-  readonly needsCatchUp: () => boolean
   observers: number
   readonly delays: Map<number, number>
   timer: ReturnType<typeof setTimeout> | undefined
@@ -111,11 +110,12 @@ const receive = (writes: DataDependencies.DataDependencies) => {
   })
 }
 
-const reset = () =>
+const reset = () => {
   forEachCurrent((entry) => {
     if (entry.discovering > 0) entry.dirty = true
     else if (DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
   })
+}
 
 const settle = (current: NonNullable<typeof observation>, outcome: ReadyOutcome) => {
   if (observation === current) observation = undefined
@@ -150,22 +150,35 @@ const readyOnce = (signal?: AbortSignal) =>
   new Promise<boolean>((resolve, reject) => {
     if (signal?.aborted === true) return reject(signal.reason)
     if (source === undefined) return resolve(true)
+    let detach: (() => void) | undefined
+    let aborted = false
     const onAbort = () => {
-      detach()
+      aborted = true
+      detach?.()
       reject(signal?.reason)
     }
     signal?.addEventListener("abort", onAbort, { once: true })
-    const detach = observeReady((outcome) => {
+    // `ready()` may abort synchronously, before `detach` exists
+    detach = observeReady((outcome) => {
       signal?.removeEventListener("abort", onAbort)
       if (outcome._tag === "failed") reject(outcome.error)
       else resolve(outcome._tag === "ready")
     })
+    if (aborted) detach()
   })
 
 /** Resolves with the epoch whose readiness was observed; a reconfigured source supersedes the wait. */
 const waitReady = async (signal?: AbortSignal): Promise<number> => {
   const target = epoch
-  return await readyOnce(signal) ? target : waitReady(signal)
+  let ready: boolean
+  try {
+    ready = await readyOnce(signal)
+  } catch (error) {
+    // a reconfiguration can run between settlement and this continuation
+    if (epoch === target || signal?.aborted === true) throw error
+    return waitReady(signal)
+  }
+  return ready && epoch === target ? target : waitReady(signal)
 }
 
 const cancelCatchUp = (entry: LiveQueryEntry) => {
@@ -183,7 +196,7 @@ const catchUp = (entry: LiveQueryEntry) => {
   readyOnce(controller.signal).then((ready) => {
     if (entry.catchUp === controller) entry.catchUp = undefined
     if (!ready || epoch !== target || !isCurrent(entry)) return
-    if (entry.awaitingReady === 0 && entry.coveredEpoch !== target && entry.needsCatchUp()) invalidateNow(entry)
+    if (entry.awaitingReady === 0 && entry.coveredEpoch !== target) invalidateNow(entry)
   }, () => {})
 }
 
@@ -236,9 +249,7 @@ export const configureLiveQueryInvalidation = (next: LiveQueryInvalidationSource
 export const registerLiveQuery = (
   key: ReadonlyArray<unknown>,
   reads: () => DataDependencies.DataDependencies,
-  options: LiveQueryOptions,
-  /** checked once the source is ready; false when the caller refetches anyway (that live fetch covers missed writes) */
-  registration: { readonly needsCatchUp?: () => boolean } = {}
+  options: LiveQueryOptions
 ) => {
   const delay = options.maxDelayMs ?? 0
   let entry = Option.getOrUndefined(MutableHashMap.get(entries, key))
@@ -250,7 +261,6 @@ export const registerLiveQuery = (
     entry = {
       key,
       reads,
-      needsCatchUp: registration.needsCatchUp ?? (() => true),
       observers: 1,
       delays: new Map([[delay, 1]]),
       timer: undefined,
@@ -322,8 +332,12 @@ export const releaseLiveQueryFetch = (fetch: LiveQueryFetch) => {
   if (state === undefined || state.released) return
   state.released = true
   stopAwaiting(state)
-  const { entry } = state
-  if (--entry.discovering > 0 || !isCurrent(entry)) return
+  state.entry.discovering--
+  finishDiscovery(state.entry)
+}
+
+const finishDiscovery = (entry: LiveQueryEntry) => {
+  if (entry.discovering > 0 || !isCurrent(entry)) return
   const { buffered, dirty } = entry
   entry.buffered = DataDependencies.empty()
   entry.dirty = false
@@ -333,27 +347,39 @@ export const releaseLiveQueryFetch = (fetch: LiveQueryFetch) => {
 /** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
 export const liveQueryReady = (): Promise<void> => waitReady().then(() => {})
 
-// boolean callers cannot say which fetch ended, so release theirs together once all have ended
-const legacyFetches: Array<LiveQueryFetch> = []
-let legacyActive = 0
+// Boolean callers cannot say which fetch ended: their entries keep buffering until every legacy fetch has
+// ended. Other queries are unaffected; bookkeeping is per entry, not per call.
+const legacyEntries = new Map<LiveQueryEntry, number>()
+let legacyDiscovering = 0
 
-/** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `awaitLiveQueryFetch`. */
+/** @deprecated Waits for all concurrent legacy fetches; use `acquireLiveQueryFetch` + `awaitLiveQueryFetch`. */
 export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
   const fetch = acquireLiveQueryFetch(key)
-  if (fetch === undefined) return false
-  legacyActive++
-  legacyFetches.push(fetch)
+  const state = fetch && fetches.get(fetch)
+  if (fetch === undefined || state === undefined) return false
+  // hand the discovery count over to the legacy barrier
+  state.released = true
+  legacyDiscovering++
+  legacyEntries.set(state.entry, (legacyEntries.get(state.entry) ?? 0) + 1)
   try {
-    await awaitLiveQueryFetch(fetch)
+    const ready = await waitReady()
+    state.entry.coveredEpoch = Math.max(state.entry.coveredEpoch, ready)
   } catch (error) {
     endLiveQueryFetch(true)
     throw error
+  } finally {
+    stopAwaiting(state)
   }
   return true
 }
 
 /** @deprecated Pairs with `beginLiveQueryFetch`; use `releaseLiveQueryFetch`. */
 export const endLiveQueryFetch = (wasLive: boolean) => {
-  if (!wasLive || legacyActive === 0 || --legacyActive > 0) return
-  for (const fetch of legacyFetches.splice(0)) releaseLiveQueryFetch(fetch)
+  if (!wasLive || legacyDiscovering === 0 || --legacyDiscovering > 0) return
+  const ended = Array.from(legacyEntries)
+  legacyEntries.clear()
+  for (const [entry, count] of ended) {
+    entry.discovering -= count
+    finishDiscovery(entry)
+  }
 }

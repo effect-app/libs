@@ -6,7 +6,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
 import { getQueryReadDependencies } from "../src/dependencyMetadata.js"
-import { acquireLiveQueryFetch, awaitLiveQueryFetch, beginLiveQueryFetch, configureLiveQueryInvalidation, type LiveQueryInvalidationSource, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
+import { acquireLiveQueryFetch, awaitLiveQueryFetch, beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, type LiveQueryInvalidationSource, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
 
 type Keys = Array<ReadonlyArray<ReadonlyArray<unknown>>>
 
@@ -299,5 +299,86 @@ describe("live query lifecycle", () => {
     vi.advanceTimersByTime(10)
     cleanups.push(registerLiveQuery(key, () => new Set([repo]), { maxDelayMs: 0 }))
     expect(invalidations).toEqual([[key]])
+  })
+
+  it("releases deprecated fetches together when they end out of order", async () => {
+    const { handlers, invalidations, source } = makeSource()
+    configureLiveQueryInvalidation(source)
+    const first = ["$Inventory", "Get", { id: "legacy-a" }]
+    const second = ["$Inventory", "Get", { id: "legacy-b" }]
+    let firstReads = DataDependencies.empty()
+    cleanups.push(registerLiveQuery(first, () => firstReads, {}))
+    cleanups.push(registerLiveQuery(second, () => new Set([repo]), {}))
+    const [a, b] = await Promise.all([beginLiveQueryFetch(first), beginLiveQueryFetch(second)])
+    handlers.receive(new Set([repo]))
+    endLiveQueryFetch(b)
+    expect(invalidations).toEqual([])
+    firstReads = new Set([repo])
+    endLiveQueryFetch(a)
+    expect(invalidations).toEqual([[first], [second]])
+  })
+
+  it("rejects an already aborted readiness wait", async () => {
+    configureLiveQueryInvalidation(makeSource(never).source)
+    const key = ["$Inventory", "Get", { id: "pre-aborted" }]
+    cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+    const fetch = acquire(key)
+    cleanups.push(() => releaseLiveQueryFetch(fetch))
+    await expect(awaitLiveQueryFetch(fetch, AbortSignal.abort())).rejects.toBeDefined()
+  })
+
+  it("rejects an aborted wait after following a source switch", async () => {
+    configureLiveQueryInvalidation(makeSource(never).source)
+    const key = ["$Inventory", "Get", { id: "abort-after-switch" }]
+    cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
+    const fetch = acquire(key)
+    cleanups.push(() => releaseLiveQueryFetch(fetch))
+    const controller = new AbortController()
+    const waiting = awaitLiveQueryFetch(fetch, controller.signal)
+    configureLiveQueryInvalidation(makeSource(never).source)
+    await flush()
+    controller.abort()
+    await expect(waiting).rejects.toBeDefined()
+  })
+
+  it("does not ask the source again after an unregistered query's catch-up is cancelled", async () => {
+    let open = () => {}
+    const ready = vi.fn(() => new Promise<void>((resolve) => open = resolve))
+    const { invalidations, source } = makeSource(ready)
+    configureLiveQueryInvalidation(source)
+    const key = ["$Inventory", "List", "cancelled-catch-up"]
+    registerLiveQuery(key, () => new Set([repo]), {})()
+    open()
+    await flush()
+    expect(invalidations).toEqual([])
+  })
+
+  it.each([0, 60_000])("revalidates a remount once with staleTime %i", async (staleTime) => {
+    const dependency = DataDependencies.repo("RemountOrders")
+    configureLiveQueryInvalidation({
+      ...makeSource().source,
+      invalidate: (keys) => void Effect.runPromise(invalidateAndAwait(keys))
+    })
+    const mrt = ManagedRuntime.make(Layer.empty)
+    cleanups.push(() => void mrt.dispose())
+    const rt = makeAtomClientRuntime(() => Layer.empty, mrt.memoMap)
+    let calls = 0
+    const query = {
+      id: "RemountOrders.List",
+      handler: () => DataDependencies.read(dependency).pipe(Effect.andThen(Effect.sync(() => ++calls)))
+    }
+    const atom = withQueryOptions(
+      buildQueryFamily(rt, query)(undefined),
+      { live: { maxDelayMs: 20 }, staleTime, revalidateOnFocus: false },
+      [...makeQueryKey(query), undefined]
+    )
+    const unmount = defaultRegistry.mount(atom)
+    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
+    unmount()
+    await flush()
+    cleanups.push(defaultRegistry.mount(atom))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await Effect.runPromise(awaitAtomResult(defaultRegistry, atom))
+    expect(calls).toBe(2)
   })
 })

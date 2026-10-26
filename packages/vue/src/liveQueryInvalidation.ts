@@ -20,6 +20,7 @@ export interface LiveQueryInvalidationSource {
 interface LiveQueryEntry {
   readonly key: ReadonlyArray<unknown>
   readonly reads: () => DataDependencies.DataDependencies
+  readonly needsCatchUp: () => boolean
   observers: number
   readonly delays: Map<number, number>
   timer: ReturnType<typeof setTimeout> | undefined
@@ -34,6 +35,8 @@ interface LiveQueryEntry {
   dirty: boolean
   /** latest source epoch a fetch of this entry was ready for */
   coveredEpoch: number
+  /** pending check for writes missed before this subscription's epoch was covered */
+  catchUp: AbortController | undefined
 }
 
 /** One live fetch: acquire before running, release on every exit. */
@@ -49,7 +52,12 @@ interface FetchState {
 
 const entries = MutableHashMap.empty<ReadonlyArray<unknown>, LiveQueryEntry>()
 const fetches = new WeakMap<LiveQueryFetch, FetchState>()
-const epochListeners = new Set<() => void>()
+type ReadyOutcome = { readonly _tag: "ready" } | { readonly _tag: "switched" } | {
+  readonly _tag: "failed"
+  readonly error: unknown
+}
+/** One shared `ready()` call per epoch; waiters detach on abort so none accumulate on the promise. */
+let observation: { readonly epoch: number; readonly waiters: Set<(outcome: ReadyOutcome) => void> } | undefined
 let source: LiveQueryInvalidationSource | undefined
 let unsubscribe: (() => void) | undefined
 let subscribing = false
@@ -88,9 +96,11 @@ const schedule = (entry: LiveQueryEntry) => {
   arm(entry)
 }
 
-const markStale = (entry: LiveQueryEntry) => {
-  if (entry.discovering > 0) entry.dirty = true
-  else schedule(entry)
+// catch-up replaces a refetch, so it bypasses write coalescing; a running refetch makes SWR skip its own
+const invalidateNow = (entry: LiveQueryEntry) => {
+  if (entry.discovering > 0) return void (entry.dirty = true)
+  if (entry.timer !== undefined) clearTimeout(entry.timer)
+  invalidateEntry(entry)
 }
 
 const receive = (writes: DataDependencies.DataDependencies) => {
@@ -107,31 +117,50 @@ const reset = () =>
     else if (DataDependencies.isNonEmpty(entry.reads())) schedule(entry)
   })
 
-/** Whether the current source became ready before being replaced; rejects with its error or on abort. */
-const readyOnce = async (signal?: AbortSignal): Promise<boolean> => {
-  const target = epoch
-  const current = source
-  if (current === undefined) return true
-  const detach: Array<() => void> = []
-  // listen before calling `ready()`: it may reconfigure synchronously
-  const interrupted = new Promise<void>((resolve) => {
-    epochListeners.add(resolve)
-    detach.push(() => epochListeners.delete(resolve))
-    if (signal === undefined) return
-    const onAbort = () => resolve()
-    signal.addEventListener("abort", onAbort, { once: true })
-    detach.push(() => signal.removeEventListener("abort", onAbort))
-  })
-  try {
-    await Promise.race([current.ready(), interrupted])
-  } catch (error) {
-    if (epoch === target && signal?.aborted !== true) throw error
-  } finally {
-    for (const f of detach) f()
-  }
-  if (signal?.aborted === true) throw signal.reason
-  return epoch === target
+const settle = (current: NonNullable<typeof observation>, outcome: ReadyOutcome) => {
+  if (observation === current) observation = undefined
+  if (current.epoch !== epoch) return
+  const waiters = Array.from(current.waiters)
+  current.waiters.clear()
+  for (const f of waiters) f(outcome)
 }
+
+const observeReady = (waiter: (outcome: ReadyOutcome) => void) => {
+  let current = observation
+  if (current === undefined || current.epoch !== epoch) {
+    const started = { epoch, waiters: new Set([waiter]) }
+    current = observation = started
+    // the waiter is attached first: `ready()` may reconfigure synchronously
+    let ready: Promise<void>
+    try {
+      ready = source?.ready() ?? Promise.resolve()
+    } catch (error) {
+      ready = Promise.reject(error)
+    }
+    ready.then(() => settle(started, { _tag: "ready" }), (error) => settle(started, { _tag: "failed", error }))
+  } else {
+    current.waiters.add(waiter)
+  }
+  const observed = current
+  return () => observed.waiters.delete(waiter)
+}
+
+/** Whether the current source became ready before being replaced; rejects with its error or on abort. */
+const readyOnce = (signal?: AbortSignal) =>
+  new Promise<boolean>((resolve, reject) => {
+    if (signal?.aborted === true) return reject(signal.reason)
+    if (source === undefined) return resolve(true)
+    const onAbort = () => {
+      detach()
+      reject(signal?.reason)
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    const detach = observeReady((outcome) => {
+      signal?.removeEventListener("abort", onAbort)
+      if (outcome._tag === "failed") reject(outcome.error)
+      else resolve(outcome._tag === "ready")
+    })
+  })
 
 /** Resolves with the epoch whose readiness was observed; a reconfigured source supersedes the wait. */
 const waitReady = async (signal?: AbortSignal): Promise<number> => {
@@ -139,14 +168,22 @@ const waitReady = async (signal?: AbortSignal): Promise<number> => {
   return await readyOnce(signal) ? target : waitReady(signal)
 }
 
-// a reconfigured source runs its own catch-up
-const catchUp = (stale: ReadonlyArray<LiveQueryEntry>) => {
+const cancelCatchUp = (entry: LiveQueryEntry) => {
+  entry.catchUp?.abort()
+  entry.catchUp = undefined
+}
+
+// a reconfigured source restarts it; a live fetch or unregistering cancels it
+const catchUp = (entry: LiveQueryEntry) => {
+  cancelCatchUp(entry)
+  if (source === undefined) return
   const target = epoch
-  readyOnce().then((ready) => {
-    if (!ready || epoch !== target) return
-    for (const entry of stale) {
-      if (isCurrent(entry) && entry.awaitingReady === 0 && entry.coveredEpoch !== target) markStale(entry)
-    }
+  const controller = new AbortController()
+  entry.catchUp = controller
+  readyOnce(controller.signal).then((ready) => {
+    if (entry.catchUp === controller) entry.catchUp = undefined
+    if (!ready || epoch !== target || !isCurrent(entry)) return
+    if (entry.awaitingReady === 0 && entry.coveredEpoch !== target && entry.needsCatchUp()) invalidateNow(entry)
   }, () => {})
 }
 
@@ -185,19 +222,23 @@ export const configureLiveQueryInvalidation = (next: LiveQueryInvalidationSource
   unsubscribeNow()
   source = next
   epoch++
-  const listeners = Array.from(epochListeners)
-  epochListeners.clear()
-  for (const f of listeners) f()
+  const previous = observation
+  observation = undefined
+  if (previous !== undefined) {
+    const waiters = Array.from(previous.waiters)
+    previous.waiters.clear()
+    for (const f of waiters) f({ _tag: "switched" })
+  }
   ensureSubscribed()
-  const stale: Array<LiveQueryEntry> = []
-  forEachCurrent((entry) => stale.push(entry))
-  if (stale.length > 0) catchUp(stale)
+  forEachCurrent(catchUp)
 }
 
 export const registerLiveQuery = (
   key: ReadonlyArray<unknown>,
   reads: () => DataDependencies.DataDependencies,
-  options: LiveQueryOptions
+  options: LiveQueryOptions,
+  /** checked once the source is ready; false when the caller refetches anyway (that live fetch covers missed writes) */
+  registration: { readonly needsCatchUp?: () => boolean } = {}
 ) => {
   const delay = options.maxDelayMs ?? 0
   let entry = Option.getOrUndefined(MutableHashMap.get(entries, key))
@@ -209,6 +250,7 @@ export const registerLiveQuery = (
     entry = {
       key,
       reads,
+      needsCatchUp: registration.needsCatchUp ?? (() => true),
       observers: 1,
       delays: new Map([[delay, 1]]),
       timer: undefined,
@@ -218,12 +260,13 @@ export const registerLiveQuery = (
       awaitingReady: 0,
       buffered: DataDependencies.empty(),
       dirty: false,
-      coveredEpoch: -1
+      coveredEpoch: -1,
+      catchUp: undefined
     }
     MutableHashMap.set(entries, key, entry)
     ensureSubscribed()
     // writes missed while unsubscribed (cached result, or a fetch that started before this registration)
-    if (source !== undefined) catchUp([entry])
+    catchUp(entry)
   }
 
   const registered = entry
@@ -237,6 +280,7 @@ export const registerLiveQuery = (
     if (--registered.observers > 0) return
     if (registered.timer !== undefined) clearTimeout(registered.timer)
     registered.timer = undefined
+    cancelCatchUp(registered)
     if (isCurrent(registered)) MutableHashMap.remove(entries, key)
     if (MutableHashMap.size(entries) === 0) unsubscribeNow()
   }
@@ -248,6 +292,8 @@ export const acquireLiveQueryFetch = (key: ReadonlyArray<unknown>): LiveQueryFet
   if (entry === undefined || source === undefined) return undefined
   entry.discovering++
   entry.awaitingReady++
+  // this fetch awaits readiness itself, covering the epoch the catch-up was waiting for
+  cancelCatchUp(entry)
   const fetch: LiveQueryFetch = { key }
   fetches.set(fetch, { entry, awaiting: true, released: false })
   return fetch
@@ -287,25 +333,27 @@ export const releaseLiveQueryFetch = (fetch: LiveQueryFetch) => {
 /** Waits for the current source; a reconfigured source supersedes a pending wait on the previous one. */
 export const liveQueryReady = (): Promise<void> => waitReady().then(() => {})
 
+// boolean callers cannot say which fetch ended, so release theirs together once all have ended
 const legacyFetches: Array<LiveQueryFetch> = []
+let legacyActive = 0
 
 /** @deprecated Interruptible between acquire and ready; use `acquireLiveQueryFetch` + `awaitLiveQueryFetch`. */
 export const beginLiveQueryFetch = async (key: ReadonlyArray<unknown>) => {
   const fetch = acquireLiveQueryFetch(key)
   if (fetch === undefined) return false
+  legacyActive++
+  legacyFetches.push(fetch)
   try {
     await awaitLiveQueryFetch(fetch)
   } catch (error) {
-    releaseLiveQueryFetch(fetch)
+    endLiveQueryFetch(true)
     throw error
   }
-  legacyFetches.push(fetch)
   return true
 }
 
 /** @deprecated Pairs with `beginLiveQueryFetch`; use `releaseLiveQueryFetch`. */
 export const endLiveQueryFetch = (wasLive: boolean) => {
-  if (!wasLive) return
-  const fetch = legacyFetches.shift()
-  if (fetch !== undefined) releaseLiveQueryFetch(fetch)
+  if (!wasLive || legacyActive === 0 || --legacyActive > 0) return
+  for (const fetch of legacyFetches.splice(0)) releaseLiveQueryFetch(fetch)
 }

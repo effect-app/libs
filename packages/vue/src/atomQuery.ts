@@ -381,10 +381,10 @@ const recoverStuckWaitingOnMount =
 
 /** Runs `setup` once per mount (not per result change) and forwards the wrapped atom's results. */
 const withMountLifetime =
-  (setup: (get: Atom.AtomContext) => void) =>
-  <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
+  <A, E>(setup: (get: Atom.AtomContext, atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => void) =>
+  (atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
     Atom.transform(atom, (get) => {
-      setup(get)
+      setup(get, atom)
       get.subscribe(atom, (value) => get.setSelf(value))
       return get.once(atom)
     }, { initialValueTarget: atom })
@@ -398,14 +398,22 @@ export const withQueryOptions = <A, E>(
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
   let atom = self
   if (liveKey !== undefined) {
-    atom = withMountLifetime((get) => {
+    atom = withMountLifetime<A, E>((get) => {
       get.addFinalizer(registerQueryInvalidationMode(liveKey, opts.invalidation ?? "await"))
     })(atom)
   }
   if (opts.live && liveKey !== undefined) {
     const liveOptions = opts.live === true ? {} : opts.live
-    atom = withMountLifetime((get) => {
-      get.addFinalizer(registerLiveQuery(liveKey, () => getQueryReadDependencies(liveKey), liveOptions))
+    const staleTimeMs = staleTimeMsOf(opts)
+    atom = withMountLifetime<A, E>((get, inner) => {
+      // a fetch that is running or that SWR will start (stale) covers writes missed while unobserved
+      const needsCatchUp = () => {
+        const current = get.once(inner)
+        return !current.waiting && current._tag !== "Initial" && !isStaleResult(current, staleTimeMs)
+      }
+      get.addFinalizer(
+        registerLiveQuery(liveKey, () => getQueryReadDependencies(liveKey), liveOptions, { needsCatchUp })
+      )
     })(atom)
   }
   const revalidateOnFocus = opts.revalidateOnFocus ?? true

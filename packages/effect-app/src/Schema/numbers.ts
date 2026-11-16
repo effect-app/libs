@@ -164,10 +164,16 @@ export type PositiveDecimal = PositiveNumber
 /** Signed 32-bit integer bounds, matching Java `Integer.MIN_VALUE` / `Integer.MAX_VALUE`. */
 export const INT32_MIN = -2147483648
 export const INT32_MAX = 2147483647
-/** Largest finite IEEE 754 binary32 value, Java `Float.MAX_VALUE`. */
-export const FLOAT32_MAX = 3.4028234663852886e38
-/** Smallest positive IEEE 754 binary32 value (subnormal), Java `Float.MIN_VALUE`. */
-export const FLOAT32_MIN_POSITIVE = 1.401298464324817e-45
+/**
+ * Java's `Float.MAX_VALUE` literal `3.4028235E38` (as written by `Float.toString`). Rounds to the largest
+ * finite IEEE 754 binary32 value; anything accepted up to it stays finite in binary32 (no overflow).
+ */
+export const FLOAT32_MAX = 3.4028235e38
+/**
+ * Java's `Float.MIN_VALUE` literal `1.4E-45` (as written by `Float.toString`). Rounds to the smallest
+ * positive binary32 value (subnormal `2^-149`); anything accepted from it stays non-zero (no underflow).
+ */
+export const FLOAT32_MIN_POSITIVE = 1.4e-45
 
 // The upper-bound check also carries the OpenAPI `format`, so Effect inlines it next to the
 // tightened `minimum`/`maximum` instead of emitting a separate `allOf` member.
@@ -250,13 +256,13 @@ export const PositiveInt32: PositiveInt32Schema = extendM(
 export interface NonNegativeNumber32Brand extends Simplify<B.Brand<"NonNegativeNumber32"> & NonNegativeNumberBrand> {}
 export type NonNegativeNumber32 = number & NonNegativeNumber32Brand
 /**
- * Non-negative finite number within IEEE 754 binary32 range (`[0, 3.4028234663852886e38]`),
+ * Non-negative finite number within IEEE 754 binary32 range (`[0, 3.4028235e38]`),
  * JSON Schema `format: "float"`.
  *
  * Range-only: values are kept as-is (no rounding to binary32); a binary32 consumer rounds to its
- * nearest float (~7 significant digits). Values above `FLOAT32_MAX` (overflow) are rejected.
- * Values below `FLOAT32_MIN_POSITIVE` are accepted and underflow to `0` in binary32, which keeps
- * them non-negative. `.withConstructorDefault` => `0` (construction-only).
+ * nearest float (~7 significant digits). Values above `FLOAT32_MAX` are rejected (overflow to
+ * `Infinity`, conservatively from Java's literal). Tiny values below `FLOAT32_MIN_POSITIVE` are accepted:
+ * they may underflow to `0` in binary32, which keeps them non-negative. `.withConstructorDefault` => `0` (construction-only).
  */
 export interface NonNegativeNumber32Schema extends BrandedSchema<S.Finite, NonNegativeNumber32> {
   (i: number, options?: SchemaAST.ParseOptions): NonNegativeNumber32
@@ -288,11 +294,12 @@ export interface PositiveNumber32Brand
 export type PositiveNumber32 = number & PositiveNumber32Brand
 /**
  * Positive finite number within IEEE 754 binary32 range
- * (`[1.401298464324817e-45, 3.4028234663852886e38]`), JSON Schema `format: "float"`.
+ * (`[1.4e-45, 3.4028235e38]`), JSON Schema `format: "float"`.
  *
  * Range-only: values are kept as-is (no rounding to binary32); a binary32 consumer rounds to its
- * nearest float (~7 significant digits). Values above `FLOAT32_MAX` (overflow) and positive values
- * below `FLOAT32_MIN_POSITIVE` (underflow to `0`, losing positivity) are rejected.
+ * nearest float (~7 significant digits). Values above `FLOAT32_MAX` (overflow to `Infinity`) and
+ * values below `FLOAT32_MIN_POSITIVE` (underflow to `0`, losing positivity) are rejected, conservatively
+ * from Java's `Float` literals.
  * `.withConstructorDefault` => `1` (construction-only).
  */
 export interface PositiveNumber32Schema extends BrandedSchema<S.Finite, PositiveNumber32> {

@@ -8,8 +8,12 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/http-api
 import { describe, expect, test } from "vitest"
 
 const { FLOAT32_MAX, FLOAT32_MIN_POSITIVE, INT32_MAX, INT32_MIN } = S
+const binary32Max = (2 - 2 ** -23) * 2 ** 127
 // next double above FLOAT32_MAX (its ulp is 2^75)
 const aboveFloat32Max = FLOAT32_MAX + 2 ** 75
+// genuine binary32 overflow / underflow
+const overflows = 3.4028236e38
+const underflows = 7e-46
 const nonFinite = [NaN, Infinity, -Infinity]
 
 const cases = [
@@ -34,15 +38,15 @@ const cases = [
   {
     name: "NonNegativeNumber32",
     schema: S.NonNegativeNumber32,
-    // FLOAT32_MIN_POSITIVE / 2 underflows to 0 in binary32: still non-negative, accepted
-    accept: [0, FLOAT32_MIN_POSITIVE / 2, FLOAT32_MIN_POSITIVE, 0.1, 1.5, INT32_MAX + 0.5, FLOAT32_MAX],
-    reject: [-0.1, -FLOAT32_MIN_POSITIVE, aboveFloat32Max, 3.5e38, Number.MAX_VALUE, ...nonFinite]
+    // underflow to 0 in binary32 keeps the value non-negative: accepted
+    accept: [0, underflows, 2 ** -149, FLOAT32_MIN_POSITIVE, 0.1, 1.5, INT32_MAX + 0.5, binary32Max, FLOAT32_MAX],
+    reject: [-0.1, -FLOAT32_MIN_POSITIVE, aboveFloat32Max, overflows, Number.MAX_VALUE, ...nonFinite]
   },
   {
     name: "PositiveNumber32",
     schema: S.PositiveNumber32,
-    accept: [FLOAT32_MIN_POSITIVE, 0.1, 1, 1.5, INT32_MAX + 0.5, FLOAT32_MAX],
-    reject: [0, -0.1, FLOAT32_MIN_POSITIVE / 2, aboveFloat32Max, Number.MAX_VALUE, ...nonFinite]
+    accept: [FLOAT32_MIN_POSITIVE, 2 ** -149, 0.1, 1, 1.5, INT32_MAX + 0.5, binary32Max, FLOAT32_MAX],
+    reject: [0, -0.1, underflows, aboveFloat32Max, overflows, Number.MAX_VALUE, ...nonFinite]
   }
 ] as const
 
@@ -50,12 +54,13 @@ test("bounds match Java Integer / Float", () => {
   expect(INT32_MIN).toBe(-(2 ** 31))
   expect(INT32_MAX).toBe(2 ** 31 - 1)
   expect(INT32_MAX + 1 | 0).toBe(INT32_MIN)
-  expect(Math.fround(FLOAT32_MAX)).toBe(FLOAT32_MAX)
-  expect(FLOAT32_MAX).toBe((2 - 2 ** -23) * 2 ** 127)
-  expect(Math.fround(FLOAT32_MIN_POSITIVE)).toBe(FLOAT32_MIN_POSITIVE)
-  expect(FLOAT32_MIN_POSITIVE).toBe(2 ** -149)
-  expect(Math.fround(FLOAT32_MIN_POSITIVE / 2)).toBe(0)
-  expect(Math.fround(aboveFloat32Max * 1.0000001)).toBe(Infinity)
+  // Java Float.toString(Float.MAX_VALUE / Float.MIN_VALUE)
+  expect(FLOAT32_MAX).toBe(Number("3.4028235E38"))
+  expect(FLOAT32_MIN_POSITIVE).toBe(Number("1.4E-45"))
+  expect(Math.fround(FLOAT32_MAX)).toBe(binary32Max)
+  expect(Math.fround(FLOAT32_MIN_POSITIVE)).toBe(2 ** -149)
+  expect(Math.fround(overflows)).toBe(Infinity)
+  expect(Math.fround(underflows)).toBe(0)
 })
 
 describe.each(cases)("$name", ({ accept, reject, schema }) => {
@@ -152,5 +157,7 @@ describe("JSON Schema / OpenAPI", () => {
   test("flattenSimpleAllOf keeps allOf on conflicting non-bound keywords", () => {
     const input = { type: "string", format: "uuid", allOf: [{ format: "email" }] }
     expect(flattenSimpleAllOf(input)).toStrictEqual(input)
+    expect(flattenSimpleAllOf({ type: "string", "x-a": 1, allOf: [{ "x-a": 2, deprecated: true }] }))
+      .toStrictEqual({ type: "string", "x-a": 2, deprecated: true })
   })
 })

@@ -27,7 +27,17 @@ export function specialJsonSchemaDocument(
 
 const lowerBoundKeywords = new Set(["minimum", "exclusiveMinimum", "minLength", "minItems", "minProperties"])
 const upperBoundKeywords = new Set(["maximum", "exclusiveMaximum", "maxLength", "maxItems", "maxProperties"])
-const annotationKeywords = new Set(["title", "description", "default", "examples", "readOnly", "writeOnly"])
+const annotationKeywords = new Set([
+  "title",
+  "description",
+  "default",
+  "examples",
+  "readOnly",
+  "writeOnly",
+  "deprecated",
+  "$comment"
+])
+const isAnnotationKeyword = (key: string) => annotationKeywords.has(key) || key.startsWith("x-")
 
 // Every keyword of an `allOf` member applies, so a repeated bound reduces to its tighter value.
 // Returns `undefined` on any other conflicting validation keyword: then the `allOf` is kept.
@@ -38,7 +48,7 @@ function mergeAllOfEntry(
   const out = { ...merged }
   for (const [key, value] of Object.entries(entry)) {
     const current = out[key]
-    if (!(key in out) || annotationKeywords.has(key)) {
+    if (!(key in out) || isAnnotationKeyword(key)) {
       out[key] = value
     } else if (typeof current === "number" && typeof value === "number" && lowerBoundKeywords.has(key)) {
       out[key] = Math.max(current, value)

@@ -112,7 +112,7 @@ describe("JSON Schema / OpenAPI", () => {
   const expected = {
     Int32: { type: "integer", minimum: INT32_MIN, maximum: INT32_MAX, format: "int32" },
     NonNegativeInt32: { type: "integer", minimum: 0, maximum: INT32_MAX, format: "int32" },
-    PositiveInt32: { type: "integer", exclusiveMinimum: 0, maximum: INT32_MAX, format: "int32" },
+    PositiveInt32: { type: "integer", minimum: 1, maximum: INT32_MAX, format: "int32" },
     NonNegativeNumber32: { type: "number", minimum: 0, maximum: FLOAT32_MAX, format: "float" },
     PositiveNumber32: { type: "number", minimum: FLOAT32_MIN_POSITIVE, maximum: FLOAT32_MAX, format: "float" }
   }

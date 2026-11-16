@@ -236,7 +236,8 @@ export interface PositiveInt32Schema extends BrandedSchema<S.Int, PositiveInt32>
 }
 export const PositiveInt32: PositiveInt32Schema = extendM(
   S.Int.pipe(
-    S.check(S.isGreaterThan(0), isInt32Maximum()),
+    // `>= 1` rather than `> 0`: same integer set, but an inclusive `minimum` that Java generators keep exact
+    S.check(S.isGreaterThanOrEqualTo(1), isInt32Maximum()),
     fromBrand<PositiveInt32>(nominal<PositiveInt32>(), { identifier: "PositiveInt32", jsonSchema: {} }),
     withDefaultMake
   ),

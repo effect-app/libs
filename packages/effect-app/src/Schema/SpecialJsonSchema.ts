@@ -25,10 +25,43 @@ export function specialJsonSchemaDocument(
   }
 }
 
+const lowerBoundKeywords = new Set(["minimum", "exclusiveMinimum", "minLength", "minItems", "minProperties"])
+const upperBoundKeywords = new Set(["maximum", "exclusiveMaximum", "maxLength", "maxItems", "maxProperties"])
+const annotationKeywords = new Set(["title", "description", "default", "examples", "readOnly", "writeOnly"])
+
+// Every keyword of an `allOf` member applies, so a repeated bound reduces to its tighter value.
+// Returns `undefined` on any other conflicting validation keyword: then the `allOf` is kept.
+function mergeAllOfEntry(
+  merged: Record<string, unknown>,
+  entry: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  const out = { ...merged }
+  for (const [key, value] of Object.entries(entry)) {
+    const current = out[key]
+    if (!(key in out) || annotationKeywords.has(key)) {
+      out[key] = value
+    } else if (typeof current === "number" && typeof value === "number" && lowerBoundKeywords.has(key)) {
+      out[key] = Math.max(current, value)
+    } else if (typeof current === "number" && typeof value === "number" && upperBoundKeywords.has(key)) {
+      out[key] = Math.min(current, value)
+    } else if (JSON.stringify(current) !== JSON.stringify(value)) {
+      return undefined
+    }
+  }
+  if (typeof out["minimum"] === "number" && typeof out["exclusiveMinimum"] === "number") {
+    delete out[out["exclusiveMinimum"] >= out["minimum"] ? "minimum" : "exclusiveMinimum"]
+  }
+  if (typeof out["maximum"] === "number" && typeof out["exclusiveMaximum"] === "number") {
+    delete out[out["exclusiveMaximum"] <= out["maximum"] ? "maximum" : "exclusiveMaximum"]
+  }
+  return out
+}
+
 /**
  * Flattens `allOf` entries into the parent when the parent already has a
  * `type` and every `allOf` entry is a plain constraint object (no `$ref`,
- * no `type`). Merged properties from `allOf` entries win on conflict.
+ * no `type`). Repeated bounds keep the tighter value, annotations from
+ * `allOf` entries win, and any other conflicting keyword keeps the `allOf`.
  */
 export function flattenSimpleAllOf(obj: unknown): unknown {
   if (obj === null || typeof obj !== "object") return obj
@@ -50,9 +83,10 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
     )
     if (canFlatten) {
       const { allOf: _, ...rest } = result
-      const merged: Record<string, unknown> = { ...rest }
+      let merged: Record<string, unknown> | undefined = rest
       for (const entry of allOf) {
-        Object.assign(merged, entry)
+        merged = mergeAllOfEntry(merged, entry)
+        if (merged === undefined) return result
       }
       return merged
     }

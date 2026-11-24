@@ -1,14 +1,10 @@
 // Do not import to frontend
 
-import { faker } from "@faker-js/faker"
-import { setFaker } from "effect-app/faker"
 import type * as S from "effect-app/Schema"
 import * as Arbitrary from "effect/Arbitrary"
 import * as Effect from "effect/Effect"
 
 const seed = 5
-
-setFaker(faker)
 
 // Native `sampleEffect({ count: 1 })` always uses attempt 0 of the master seed (edge-biased).
 // Integer `seed + n` stayed in that bucket and collided for StringId. Mix a per-call suffix

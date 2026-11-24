@@ -9,7 +9,6 @@
     "directory": "packages/infra"
   },
   "dependencies": {
-    "@faker-js/faker": "^8.4.1",
     "@sentry/node": "10.55.0",
     "effect-app": "workspace:*",
     "jose": "^6.2.3",

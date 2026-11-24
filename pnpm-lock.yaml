@@ -518,9 +518,6 @@ importers:
       '@effect/vitest':
         specifier: ^4.1.5
         version: 4.1.5(effect@4.1.5)(vitest@5.0.5(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@29.1.1)(vite@8.0.15(@types/node@25.9.1)(esbuild@0.28.0)(sass@1.100.0)(terser@5.45.0)(tsx@4.22.4)(yaml@2.9.0)))
-      '@faker-js/faker':
-        specifier: ^8.4.1
-        version: 8.4.1
       '@sendgrid/helpers':
         specifier: ^8.0.0
         version: 8.0.0

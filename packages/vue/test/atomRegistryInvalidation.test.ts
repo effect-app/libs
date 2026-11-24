@@ -6,7 +6,7 @@ import * as Option from "effect-app/Option"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import type * as Atom from "effect/reactivity/Atom"
+import * as Atom from "effect/reactivity/Atom"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { afterEach, describe, expect, it } from "vitest"
@@ -18,6 +18,7 @@ import {
   makeAtomClientRuntime,
   withQueryOptions
 } from "../src/atomQuery.js"
+import { initializeAsync } from "../src/runtime.js"
 
 const makeEnv = () => {
   const mrt = ManagedRuntime.make(Reactivity.layer)
@@ -153,6 +154,66 @@ describe("AtomRegistry context resolution in invalidateSoft / invalidateAndAwait
     } finally {
       unsubDefault()
       await mrt.dispose()
+    }
+  })
+
+  it("shares one built Context and Reactivity instance across initializeAsync, makeAtomClientRuntime, and Atom.runtime when given Atom.runtime.memoMap", async () => {
+    class SharedProbe extends Context.Service<SharedProbe, { readonly id: number }>()("SharedProbe") {}
+    let builds = 0
+    const probeLayer = Layer.effect(
+      SharedProbe,
+      Effect.sync(() => ({ id: ++builds }))
+    )
+    const globalLayers = probeLayer.pipe(
+      Layer.provideMerge(Reactivity.layer),
+      Layer.provideMerge(Layer.succeed(AtomRegistry.AtomRegistry, defaultRegistry))
+    )
+
+    const sharedMemoMap = defaultRegistry.get(Atom.runtime.memoMap)
+    const rt = await initializeAsync(globalLayers, { memoMap: sharedMemoMap })
+    const builtCtx = await rt.context()
+    Atom.runtime.addGlobalLayer(Layer.succeedContext(builtCtx))
+
+    const clientMrt = ManagedRuntime.make(globalLayers, { memoMap: rt.memoMap })
+    const clientCtx = await clientMrt.context()
+    const atomClientRt = makeAtomClientRuntime(() => Layer.succeedContext(clientCtx), clientMrt.memoMap)
+
+    const atomRt = Atom.runtime(globalLayers)
+    const probeAtom = atomRt.atom(
+      Effect.gen(function* () {
+        return { probe: yield* SharedProbe, reactivity: yield* Reactivity.Reactivity }
+      })
+    )
+
+    let atomReactiveRuns = 0
+    const atomReactive = Atom.withReactivity(["shared-ping"])(atomRt.atom(Effect.sync(() => ++atomReactiveRuns)))
+    let clientReactiveRuns = 0
+    const clientReactive = atomClientRt.factory.withReactivity(["shared-pong"])(
+      atomClientRt.runtime.atom(Effect.sync(() => ++clientReactiveRuns))
+    )
+
+    const unsub1 = defaultRegistry.subscribe(atomReactive, () => {})
+    const unsub2 = defaultRegistry.subscribe(clientReactive, () => {})
+    try {
+      const atomObserved = await Effect.runPromise(AtomRegistry.getResult(defaultRegistry, probeAtom))
+      expect(builds).toBe(1)
+      expect(Context.get(builtCtx, SharedProbe)).toBe(Context.get(clientCtx, SharedProbe))
+      expect(Context.get(builtCtx, SharedProbe)).toBe(atomObserved.probe)
+      expect(Context.get(builtCtx, Reactivity.Reactivity)).toBe(Context.get(clientCtx, Reactivity.Reactivity))
+      expect(Context.get(builtCtx, Reactivity.Reactivity)).toBe(atomObserved.reactivity)
+
+      expect(await Effect.runPromise(AtomRegistry.getResult(defaultRegistry, atomReactive))).toBe(1)
+      await rt.runPromise(Reactivity.invalidate(["shared-ping"]))
+      expect(await Effect.runPromise(AtomRegistry.getResult(defaultRegistry, atomReactive))).toBe(2)
+
+      expect(await Effect.runPromise(AtomRegistry.getResult(defaultRegistry, clientReactive))).toBe(1)
+      await rt.runPromise(Reactivity.invalidate(["shared-pong"]))
+      expect(await Effect.runPromise(AtomRegistry.getResult(defaultRegistry, clientReactive))).toBe(2)
+    } finally {
+      unsub2()
+      unsub1()
+      await clientMrt.dispose()
+      await rt.dispose()
     }
   })
 })

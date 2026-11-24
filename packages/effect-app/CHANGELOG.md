@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.1.1
+
+### Patch Changes
+
+- 64ffded: Upgrade `effect` and `@effect/*` packages to `4.1.5`.
+
 ## 4.1.0
 
 ### Minor Changes

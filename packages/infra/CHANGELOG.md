@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.1.1
+
+### Patch Changes
+
+- 924ae2f: Switch typechecking and type-aware linting to `tsrs` (`7.1.0-beta.tsrs4`), `oxlint` (`1.94.0`), and `@effect/tsgo` (`0.73.4`) (`effect-tsgo oxlint`), removing `@typescript/native-preview` and `oxlint-tsgolint`.
+- 64ffded: Upgrade `effect` and `@effect/*` packages to `4.1.5`.
+- Updated dependencies [64ffded]
+  - effect-app@4.1.1
+
 ## 4.1.0
 
 ### Patch Changes

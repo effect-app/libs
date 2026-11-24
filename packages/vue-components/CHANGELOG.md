@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 4.1.1
+
+### Patch Changes
+
+- 64ffded: Upgrade `effect` and `@effect/*` packages to `4.1.5`.
+- Updated dependencies [64ffded]
+- Updated dependencies [f6b8a12]
+  - effect-app@4.1.1
+  - @effect-app/vue@4.1.1
+
 ## 4.1.0
 
 ### Patch Changes

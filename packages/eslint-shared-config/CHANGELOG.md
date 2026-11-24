@@ -1,5 +1,17 @@
 # @effect-app/eslint-shared-config
 
+## 0.7.0
+
+### Minor Changes
+
+- f6b8a12: Switch code formatting from `dprint` to `oxfmt` (`0.80.0`), replacing `./dprint.jsonc` export with `./oxfmtrc.json`.
+- 924ae2f: Switch typechecking and type-aware linting to `tsrs` (`7.1.0-beta.tsrs4`), `oxlint` (`1.94.0`), and `@effect/tsgo` (`0.73.4`) (`effect-tsgo oxlint`), removing `@typescript/native-preview` and `oxlint-tsgolint`.
+
+### Patch Changes
+
+- Updated dependencies [924ae2f]
+  - @effect-app/eslint-codegen-model@2.0.1
+
 ## 0.6.0
 
 ### Minor Changes

@@ -22,6 +22,7 @@ import { type Fiber } from "effect/Fiber"
 import * as Hash from "effect/Hash"
 import type * as ManagedRuntime from "effect/ManagedRuntime"
 import type * as AsyncResult from "effect/reactivity/AsyncResult"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import type * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
@@ -731,10 +732,17 @@ const makeResolvedAtomQueryInvalidator = <R>(getContext: () => Context.Context<R
     return (reactivity = service)
   }
 
+  const withClientServices = (effect: Effect.Effect<void>): Effect.Effect<void> => {
+    const withReactivity = effect.pipe(Effect.provideService(Reactivity.Reactivity, getReactivity()))
+    const registry = Context.getOrUndefined(getContext(), AtomRegistry.AtomRegistry)
+    return registry === undefined
+      ? withReactivity
+      : withReactivity.pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry))
+  }
+
   return {
-    invalidateAndAwait: (keys) =>
-      invalidateAndAwait(keys).pipe(Effect.provideService(Reactivity.Reactivity, getReactivity())),
-    invalidateSoft: (keys) => invalidateSoft(keys).pipe(Effect.provideService(Reactivity.Reactivity, getReactivity()))
+    invalidateAndAwait: (keys) => withClientServices(invalidateAndAwait(keys)),
+    invalidateSoft: (keys) => withClientServices(invalidateSoft(keys))
   }
 }
 

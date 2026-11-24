@@ -417,11 +417,9 @@ export const makeMessageStorage = Effect.fnUntraced(function* (options?: Storage
 
   const claimMessageRead = (doc: MessageDoc, now: number) =>
     tryCosmos(() =>
-      container
-        .item(doc.id, doc._partitionKey)
-        .patch<MessageDoc>([{ op: "set", path: "/lastRead", value: now }], {
-          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-        })
+      container.item(doc.id, doc._partitionKey).patch<MessageDoc>([{ op: "set", path: "/lastRead", value: now }], {
+        accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+      })
     ).pipe(
       Effect.tap(annotateItem),
       Effect.as(true),

@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.1.2
+
+### Patch Changes
+
+- 41d7f91: - `effect-app/runtime`: allow passing `{ memoMap }` to `makeAppRuntime`, `initializeSync`, and `initializeAsync` so apps can share `Atom.runtime`'s `Layer.MemoMap` (`defaultRegistry.get(Atom.runtime.memoMap)`) and avoid building duplicate contexts or `Reactivity` instances.
+  - `@effect-app/vue`: resolve `AtomRegistry.AtomRegistry` from Effect context in `invalidateSoft` and `invalidateAndAwait` (falling back to `defaultRegistry` when absent), and forward an optional `AtomRegistry` from `makeClient`'s base runtime context.
+- Updated dependencies [41d7f91]
+  - effect-app@4.1.2
+
 ## 4.1.1
 
 ### Patch Changes

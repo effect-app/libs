@@ -741,6 +741,48 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           withTracerDisabled
         ),
 
+    deleteProcessed: ({ completedBefore, entityType, limit }) => {
+      const maxDelete = Math.floor(limit)
+      if (maxDelete <= 0 || !(completedBefore > Snowflake.constEpochMillis - 2 ** 41)) {
+        return Effect.succeed(0)
+      }
+      return queryMessages(
+        "SELECT * FROM c WHERE c.type = 'message' AND c.entityType = @entityType AND c.kind = 'Request' AND c.processed = true AND NOT IS_NULL(c.lastReplyId) ORDER BY c.rowid",
+        [{ name: "@entityType", value: entityType }]
+      )
+        .pipe(
+          Effect.flatMap((docs) => {
+            const requestIds: Array<string> = []
+            for (const doc of docs) {
+              if (requestIds.length >= maxDelete) break
+              if (
+                doc.lastReplyId !== null
+                && Snowflake.timestamp(Snowflake.Snowflake(doc.lastReplyId)) < completedBefore
+              ) {
+                requestIds.push(doc.requestId)
+              }
+            }
+            if (!Arr.isArrayNonEmpty(requestIds)) return Effect.succeed(0)
+            return Effect.gen(function*() {
+              const replies = yield* queryReplies(
+                "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+                [{ name: "@requestIds", value: requestIds }]
+              )
+              const messages = yield* queryMessages(
+                "SELECT * FROM c WHERE c.type = 'message' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+                [{ name: "@requestIds", value: requestIds }]
+              )
+              yield* deleteDocs(replies)
+              yield* deleteDocs(messages)
+              return requestIds.length
+            })
+          }),
+          annotate("deleteProcessed"),
+          refailPersistence,
+          withTracerDisabled
+        )
+    },
+
     withTransaction: (effect) => effect
   })
 })

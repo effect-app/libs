@@ -14,6 +14,8 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "pnpm all clean",
     "clean-dist": "pnpm -r clean-dist",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "lint-fix": "NODE_OPTIONS=--max-old-space-size=6144 pnpm -r --no-bail lint-fix",
     "lint": "pnpm -r lint",
     "circular:dist": "pnpm -r circular:dist",

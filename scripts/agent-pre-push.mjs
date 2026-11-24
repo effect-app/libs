@@ -9,9 +9,10 @@
  * raw `gh pr ready`, which the shim gates rather than refuses.
  *
  * Ship gate — the JS quality path CI runs, and nothing else:
- *   1. `pnpm check`  — tsrs --build ./tsconfig.all.json
- *   2. `pnpm lint`
- *   3. `pnpm test`   — pnpm -r --no-bail test:run
+ *   1. `pnpm check`        — tsrs --build ./tsconfig.all.json
+ *   2. `pnpm format:check` — oxfmt --check .
+ *   3. `pnpm lint`
+ *   4. `pnpm test`         — pnpm -r --no-bail test:run
  *
  * This is a library monorepo: there is no application to stand up and no browser
  * suite, so the unit run is the whole story. That keeps the gate honest about
@@ -113,6 +114,7 @@ export const runAgentShipGate = async (opts = {}) => {
   }
 
   run("pnpm check", ["pnpm", "check"], { cwd: root, env })
+  run("pnpm format:check", ["pnpm", "format:check"], { cwd: root, env })
   run("pnpm lint", ["pnpm", "lint"], { cwd: root, env })
   run("pnpm test", ["pnpm", "test"], { cwd: root, env })
 

@@ -27,7 +27,7 @@ browser or API suite here that a draft could usefully defer, and a pushed commit
 that does not compile or whose tests fail is worth nothing to a reviewer whatever
 the PR says.
 
-The gate is `pnpm check` → `pnpm lint` → `pnpm test`, which is what CI runs and
+The gate is `pnpm check` → `pnpm format:check` → `pnpm lint` → `pnpm test`, which is what CI runs and
 nothing more. This is a library monorepo — no application to stand up, no browser
 suite — so the unit run _is_ the gate. It caches the validated HEAD SHA in
 `.run/agent-ship-gate.json`, so **one commit is validated once** however many

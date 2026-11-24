@@ -141,13 +141,18 @@ const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<Asy
   return [...atoms]
 }
 
+const resolveRegistry: Effect.Effect<AtomRegistry.AtomRegistry> = Effect.serviceOption(AtomRegistry.AtomRegistry).pipe(
+  Effect.map(Option.getOrElse(() => defaultRegistry))
+)
+
 /** Refresh observed query atoms without making the triggering mutation await them. */
 export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
   Effect.gen(function* () {
     const atoms = atomsToRefetch(atomsForKeys(keys))
     yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
     if (atoms.length === 0) return
-    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+    const registry = yield* resolveRegistry
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => registry.refresh(atom)), {
       discard: true
     })
   }).pipe(Effect.orDie)
@@ -168,11 +173,12 @@ export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<
     const atoms = atomsToRefetch(atomsForKeys(keys))
     yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
     if (atoms.length === 0) return
-    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+    const registry = yield* resolveRegistry
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => registry.refresh(atom)), {
       discard: true
     })
     // Contract: observers > 0 ⇒ wait for this refresh to finish.
-    yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
+    yield* Effect.forEach(atoms, (a) => awaitAtomResult(registry, a).pipe(Effect.exit))
   }).pipe(Effect.orDie)
 
 const isPlainObject = (o: unknown): o is Record<string, unknown> => {

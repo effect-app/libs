@@ -7,9 +7,17 @@ import { type Context } from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as Layer from "./Layer.ts"
 
-export const makeAppRuntime = Effect.fnUntraced(function* <A, E>(layer: Layer.Layer<A, E>) {
+export interface AppRuntimeOptions {
+  readonly memoMap?: Layer.MemoMap | undefined
+}
+
+export const makeAppRuntime = Effect.fnUntraced(function* <A, E>(
+  layer: Layer.Layer<A, E>,
+  options?: AppRuntimeOptions
+) {
   const l = layer.pipe(Layer.provide(Logger.layer([Logger.consolePretty()])), Layer.orDie)
-  const mrt = ManagedRuntime.make(l)
+  const mrt =
+    options?.memoMap !== undefined ? ManagedRuntime.make(l, { memoMap: options.memoMap }) : ManagedRuntime.make(l)
   yield* mrt.contextEffect
   return Object.assign(mrt, {
     [Symbol.dispose]() {
@@ -22,13 +30,13 @@ export const makeAppRuntime = Effect.fnUntraced(function* <A, E>(layer: Layer.La
   }) // as we initialise here, there is no more error left.
 })
 
-export function initializeSync<A, E>(layer: Layer.Layer<A, E>) {
-  const runtime = Effect.runSync(makeAppRuntime(layer))
+export function initializeSync<A, E>(layer: Layer.Layer<A, E>, options?: AppRuntimeOptions) {
+  const runtime = Effect.runSync(makeAppRuntime(layer, options))
   return runtime
 }
 
-export function initializeAsync<A, E>(layer: Layer.Layer<A, E>) {
-  return Effect.runPromise(makeAppRuntime(layer))
+export function initializeAsync<A, E>(layer: Layer.Layer<A, E>, options?: AppRuntimeOptions) {
+  return Effect.runPromise(makeAppRuntime(layer, options))
 }
 
 // we wrap into CauseException because we want to keep the full cause of the failure.

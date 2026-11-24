@@ -43,13 +43,9 @@ export const makeInvalidationKeysService = (
   onAdded?: (key: InvalidationKey) => Effect.Effect<void>
 ): InvalidationKeysService => ({
   add: (key) =>
-    Ref
-      .modify(ref, (keys) => {
-        if (keys.some((existing) => Equal.equals(existing, key))) return [false, keys]
-        return [true, [...keys, key]]
-      })
-      .pipe(
-        Effect.flatMap((added) => added && onAdded ? onAdded(key) : Effect.void)
-      ),
+    Ref.modify(ref, (keys) => {
+      if (keys.some((existing) => Equal.equals(existing, key))) return [false, keys]
+      return [true, [...keys, key]]
+    }).pipe(Effect.flatMap((added) => (added && onAdded ? onAdded(key) : Effect.void))),
   get: Ref.get(ref)
 })

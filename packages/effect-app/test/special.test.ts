@@ -1,4 +1,13 @@
-import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
+import {
+  InvalidStateError,
+  LoginError,
+  NotFoundError,
+  NotLoggedInError,
+  OptimisticConcurrencyException,
+  ServiceUnavailableError,
+  UnauthorizedError,
+  ValidationError
+} from "effect-app/client/errors"
 import { RequestContext } from "effect-app/RequestContext"
 import * as AppSchema from "effect-app/Schema"
 import { Class } from "effect-app/Schema/Class"
@@ -29,13 +38,9 @@ interface FacadeModelMake {
   readonly value: string
 }
 
-class FacadeModel extends AppSchema.OpaqueFacade<
-  FacadeModel,
-  FacadeModelEncoded,
-  FacadeModelMake,
-  never,
-  never
->()(_FacadeModel) {
+class FacadeModel extends AppSchema.OpaqueFacade<FacadeModel, FacadeModelEncoded, FacadeModelMake, never, never>()(
+  _FacadeModel
+) {
   declare readonly value: string
   declare readonly upperValue: string
 
@@ -121,12 +126,10 @@ class RenamedStructFacadeModel extends AppSchema.OpaqueFacade<
   declare readonly internalName: string
 }
 
-const _RenamedOpaqueStructFacadeModel = AppSchema
-  .Opaque<
-    { readonly internalName: string },
-    RenamedStructFacadeModelEncoded
-  >()(AppSchema.Struct({ internalName: S.String }))
-  .pipe(S.encodeKeys({ internalName: "external_name" }))
+const _RenamedOpaqueStructFacadeModel = AppSchema.Opaque<
+  { readonly internalName: string },
+  RenamedStructFacadeModelEncoded
+>()(AppSchema.Struct({ internalName: S.String })).pipe(S.encodeKeys({ internalName: "external_name" }))
 
 class RenamedOpaqueStructFacadeModel extends AppSchema.OpaqueFacade<
   RenamedOpaqueStructFacadeModel,
@@ -522,10 +525,7 @@ describe("Struct.copy", () => {
   it("allows widening updates against the full struct type", () => {
     const A = AppSchema.Struct({
       name: S.String,
-      state: S.Union([
-        S.Struct({ _tag: S.tag("a"), a: S.String }),
-        S.Struct({ _tag: S.tag("b"), b: S.Number })
-      ])
+      state: S.Union([S.Struct({ _tag: S.tag("a"), a: S.String }), S.Struct({ _tag: S.tag("b"), b: S.Number })])
     })
 
     const instance = A.make({ name: "x", state: { _tag: "a", a: "a" } })
@@ -565,8 +565,7 @@ describe("Struct.copy", () => {
   })
 
   it("copy function is preserved through chained calls", () => {
-    const A = AppSchema
-      .Struct({ a: S.String, b: S.Number })
+    const A = AppSchema.Struct({ a: S.String, b: S.Number })
       .annotate({ title: "A" })
       .annotateKey({ description: "test" })
 
@@ -642,15 +641,14 @@ describe("TaggedError", () => {
 describe("SpecialJsonSchema", () => {
   it("nullable to optional — from NullOr", () => {
     const nullableDecodedUndefinedEncoded = (schema: S.Top) => {
-      const isNullableSchema = "members" in schema
-        && globalThis.Array.isArray((schema as any).members)
-        && (schema as any).members.length === 2
-        && (schema as any).members.some((member: any) => member.ast._tag === "Null")
+      const isNullableSchema =
+        "members" in schema &&
+        globalThis.Array.isArray((schema as any).members) &&
+        (schema as any).members.length === 2 &&
+        (schema as any).members.some((member: any) => member.ast._tag === "Null")
 
-      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<S.Top> : undefined
-      const innerSchema = nullableMembers
-        ? nullableMembers.find((member: any) => member.ast._tag !== "Null")!
-        : schema
+      const nullableMembers = isNullableSchema ? ((schema as any).members as ReadonlyArray<S.Top>) : undefined
+      const innerSchema = nullableMembers ? nullableMembers.find((member: any) => member.ast._tag !== "Null")! : schema
 
       const nullableSchema = isNullableSchema ? schema : S.NullOr(schema)
 
@@ -678,10 +676,10 @@ describe("SpecialJsonSchema", () => {
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
       schema: {
-        "type": "object",
-        "additionalProperties": true,
-        "properties": {
-          "status": { "type": "string" }
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          status: { type: "string" }
         }
       },
       definitions: {}
@@ -713,26 +711,23 @@ describe("SpecialJsonSchema", () => {
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
       schema: {
-        "type": "object",
-        "additionalProperties": true,
-        "properties": {
-          "a": { "$ref": "#/$defs/X" },
-          "b": { "$ref": "#/$defs/X" },
-          "c": {
-            "anyOf": [
-              { "$ref": "#/$defs/X" },
-              { "type": "null" }
-            ]
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          a: { $ref: "#/$defs/X" },
+          b: { $ref: "#/$defs/X" },
+          c: {
+            anyOf: [{ $ref: "#/$defs/X" }, { type: "null" }]
           },
-          "d": { "$ref": "#/$defs/X" },
-          "e": { "$ref": "#/$defs/X" }
+          d: { $ref: "#/$defs/X" },
+          e: { $ref: "#/$defs/X" }
         },
-        "required": ["c", "d"]
+        required: ["c", "d"]
       },
       definitions: {
         X: {
-          "type": "string",
-          "title": "X"
+          type: "string",
+          title: "X"
         }
       }
     })
@@ -743,15 +738,14 @@ describe("SpecialJsonSchema", () => {
 
     const cache = new WeakMap()
     const nullableDecodedUndefinedEncoded = (schema: S.Top) => {
-      const isNullableSchema = "members" in schema
-        && globalThis.Array.isArray((schema as any).members)
-        && (schema as any).members.length === 2
-        && (schema as any).members.some((member: any) => member.ast._tag === "Null")
+      const isNullableSchema =
+        "members" in schema &&
+        globalThis.Array.isArray((schema as any).members) &&
+        (schema as any).members.length === 2 &&
+        (schema as any).members.some((member: any) => member.ast._tag === "Null")
 
-      const nullableMembers = isNullableSchema ? (schema as any).members as ReadonlyArray<S.Top> : undefined
-      const innerSchema = nullableMembers
-        ? nullableMembers.find((member: any) => member.ast._tag !== "Null")!
-        : schema
+      const nullableMembers = isNullableSchema ? ((schema as any).members as ReadonlyArray<S.Top>) : undefined
+      const innerSchema = nullableMembers ? nullableMembers.find((member: any) => member.ast._tag !== "Null")! : schema
 
       const cached = cache.get(innerSchema.ast)
       if (cached !== undefined) return cached
@@ -780,26 +774,23 @@ describe("SpecialJsonSchema", () => {
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
       schema: {
-        "type": "object",
-        "additionalProperties": true,
-        "properties": {
-          "a": { "$ref": "#/$defs/X" },
-          "b": { "$ref": "#/$defs/X" },
-          "c": {
-            "anyOf": [
-              { "$ref": "#/$defs/X" },
-              { "type": "null" }
-            ]
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          a: { $ref: "#/$defs/X" },
+          b: { $ref: "#/$defs/X" },
+          c: {
+            anyOf: [{ $ref: "#/$defs/X" }, { type: "null" }]
           },
-          "d": { "$ref": "#/$defs/X" },
-          "e": { "$ref": "#/$defs/X" }
+          d: { $ref: "#/$defs/X" },
+          e: { $ref: "#/$defs/X" }
         },
-        "required": ["c", "d"]
+        required: ["c", "d"]
       },
       definitions: {
         X: {
-          "type": "string",
-          "title": "X"
+          type: "string",
+          title: "X"
         }
       }
     })
@@ -853,10 +844,9 @@ describe("SpecialOpenApi", () => {
     expect(result.components.schemas).toStrictEqual({
       X: { type: "string", title: "X" }
     })
-    expect(
-      result.paths["/bar"].get.responses[200].content["application/json"].schema
-    )
-      .toStrictEqual({ $ref: "#/components/schemas/X" })
+    expect(result.paths["/bar"].get.responses[200].content["application/json"].schema).toStrictEqual({
+      $ref: "#/components/schemas/X"
+    })
   })
 
   it("does not deduplicate entries with different representations", () => {
@@ -909,10 +899,7 @@ describe("SpecialOpenApi", () => {
               content: {
                 "application/json": {
                   schema: {
-                    anyOf: [
-                      { $ref: "#/components/schemas/Y1" },
-                      { type: "null" }
-                    ]
+                    anyOf: [{ $ref: "#/components/schemas/Y1" }, { type: "null" }]
                   }
                 }
               }
@@ -933,10 +920,9 @@ describe("SpecialOpenApi", () => {
     expect(result.components.schemas).toStrictEqual({
       Y: { type: "object", properties: { name: { type: "string" } } }
     })
-    expect(
-      result.paths["/baz"].post.requestBody.content["application/json"].schema.anyOf[0]
-    )
-      .toStrictEqual({ $ref: "#/components/schemas/Y" })
+    expect(result.paths["/baz"].post.requestBody.content["application/json"].schema.anyOf[0]).toStrictEqual({
+      $ref: "#/components/schemas/Y"
+    })
   })
 
   it("rewrites $ref pointers inside definitions themselves", () => {
@@ -1060,10 +1046,7 @@ describe("flattenSimpleAllOf", () => {
   it("flattens string type with multiple constraints", () => {
     const input = {
       type: "string",
-      allOf: [
-        { minLength: 1, maxLength: 255 },
-        { title: "NonEmptyString255" }
-      ]
+      allOf: [{ minLength: 1, maxLength: 255 }, { title: "NonEmptyString255" }]
     }
     expect(flattenSimpleAllOf(input)).toStrictEqual({
       type: "string",
@@ -1132,10 +1115,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
       additionalProperties: true,
       properties: {
         note: {
-          anyOf: [
-            { $ref: "#/$defs/NonEmptyString64k" },
-            { type: "null" }
-          ]
+          anyOf: [{ $ref: "#/$defs/NonEmptyString64k" }, { type: "null" }]
         }
       },
       required: ["note"]
@@ -1168,11 +1148,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const valueProp = (doc.schema as Record<string, any>)["properties"]["value"]
 
     expect(valueProp).toStrictEqual({
-      anyOf: [
-        { $ref: "#/$defs/A" },
-        { $ref: "#/$defs/B" },
-        { type: "null" }
-      ]
+      anyOf: [{ $ref: "#/$defs/A" }, { $ref: "#/$defs/B" }, { type: "null" }]
     })
   })
 })
@@ -1180,42 +1156,27 @@ describe("Post-processing integration — real Effect Schema types", () => {
 describe("flattenNestedAnyOf", () => {
   it("flattens nested anyOf with no sibling keys", () => {
     const input = {
-      anyOf: [
-        { anyOf: [{ type: "string" }, { type: "number" }] },
-        { type: "null" }
-      ]
+      anyOf: [{ anyOf: [{ type: "string" }, { type: "number" }] }, { type: "null" }]
     }
     expect(flattenNestedAnyOf(input)).toStrictEqual({
-      anyOf: [
-        { type: "string" },
-        { type: "number" },
-        { type: "null" }
-      ]
+      anyOf: [{ type: "string" }, { type: "number" }, { type: "null" }]
     })
   })
 
   it("does not flatten anyOf entry with sibling keys", () => {
     const input = {
-      anyOf: [
-        { anyOf: [{ type: "string" }], title: "X" },
-        { type: "null" }
-      ]
+      anyOf: [{ anyOf: [{ type: "string" }], title: "X" }, { type: "null" }]
     }
     // The inner anyOf is not flattened into the outer (sibling "title" prevents it),
     // but the single-element inner anyOf is unwrapped within the entry itself
     expect(flattenNestedAnyOf(input)).toStrictEqual({
-      anyOf: [
-        { type: "string", title: "X" },
-        { type: "null" }
-      ]
+      anyOf: [{ type: "string", title: "X" }, { type: "null" }]
     })
   })
 
   it("unwraps anyOf with single item after flattening", () => {
     const input = {
-      anyOf: [
-        { anyOf: [{ type: "string" }] }
-      ]
+      anyOf: [{ anyOf: [{ type: "string" }] }]
     }
     expect(flattenNestedAnyOf(input)).toStrictEqual({ type: "string" })
   })
@@ -1235,21 +1196,14 @@ describe("flattenNestedAnyOf", () => {
     const input = {
       properties: {
         field: {
-          anyOf: [
-            { anyOf: [{ $ref: "#/defs/A" }, { $ref: "#/defs/B" }] },
-            { type: "null" }
-          ]
+          anyOf: [{ anyOf: [{ $ref: "#/defs/A" }, { $ref: "#/defs/B" }] }, { type: "null" }]
         }
       }
     }
     expect(flattenNestedAnyOf(input)).toStrictEqual({
       properties: {
         field: {
-          anyOf: [
-            { $ref: "#/defs/A" },
-            { $ref: "#/defs/B" },
-            { type: "null" }
-          ]
+          anyOf: [{ $ref: "#/defs/A" }, { $ref: "#/defs/B" }, { type: "null" }]
         }
       }
     })

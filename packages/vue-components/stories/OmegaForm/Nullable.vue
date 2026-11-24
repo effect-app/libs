@@ -15,18 +15,9 @@
         When the form is submitted, the values will reflect the user's input, with null representing any fields that
         were left empty.
       </p>
-      <form.Input
-        label="a (NullOr NonEmptyString)"
-        name="a"
-      />
-      <form.Input
-        label="b (NullOr String)"
-        name="b"
-      />
-      <form.Input
-        label="c.e (NullOr Struct.e)"
-        name="c.e"
-      />
+      <form.Input label="a (NullOr NonEmptyString)" name="a" />
+      <form.Input label="b (NullOr String)" name="b" />
+      <form.Input label="c.e (NullOr Struct.e)" name="c.e" />
       <form.Field name="c.d">
         <template #default="{ state, field }">
           <div>
@@ -44,9 +35,7 @@
       </form.Field>
       <pre>{{ values }}</pre>
       <form.Errors />
-      <v-btn type="submit">
-        Submit
-      </v-btn>
+      <v-btn type="submit"> Submit </v-btn>
     </template>
   </form.Form>
 </template>
@@ -59,12 +48,12 @@ const form = useOmegaForm(
   S.Struct({
     a: S.NullOr(S.NonEmptyString).withConstructorDefault,
     b: S.NullOr(S.String).withConstructorDefault,
-    c: S
-      .NullOr(S.Struct({
+    c: S.NullOr(
+      S.Struct({
         d: S.NonEmptyString.pipe(S.check(S.isMinLength(20), S.isMaxLength(4000))),
         e: S.String
-      }))
-      .withConstructorDefault
+      })
+    ).withConstructorDefault
   }),
   {
     onSubmit: async ({ value }) => {
@@ -78,7 +67,8 @@ const form = useOmegaForm(
 h1 {
   margin-bottom: 1rem;
 }
-ul, ol {
+ul,
+ol {
   margin-left: 1rem;
   margin-bottom: 1rem;
 }

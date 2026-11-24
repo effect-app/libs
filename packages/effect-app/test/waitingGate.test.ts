@@ -13,10 +13,11 @@ describe("suspendWaiting", () => {
     gate.bind((depth) => Effect.sync(() => depths.push(depth)))
 
     await run(
-      suspendWaiting(Effect.sync(() => {
-        expect(gate.depth).toBe(1)
-      }))
-        .pipe(Effect.provideService(WaitingGate, gate))
+      suspendWaiting(
+        Effect.sync(() => {
+          expect(gate.depth).toBe(1)
+        })
+      ).pipe(Effect.provideService(WaitingGate, gate))
     )
 
     expect(gate.depth).toBe(0)
@@ -26,39 +27,44 @@ describe("suspendWaiting", () => {
   test("nests", async () => {
     const gate = makeWaitingGate()
     await run(
-      suspendWaiting(suspendWaiting(Effect.sync(() => {
-        expect(gate.depth).toBe(2)
-      })))
-        .pipe(Effect.provideService(WaitingGate, gate))
+      suspendWaiting(
+        suspendWaiting(
+          Effect.sync(() => {
+            expect(gate.depth).toBe(2)
+          })
+        )
+      ).pipe(Effect.provideService(WaitingGate, gate))
     )
     expect(gate.depth).toBe(0)
   })
 
   test("restores depth when the effect is interrupted", async () => {
     const gate = makeWaitingGate()
-    await run(Effect.gen(function*() {
-      const entered = yield* Deferred.make<void>()
-      const fiber = yield* suspendWaiting(Effect.gen(function*() {
-        yield* Deferred.succeed(entered, undefined)
-        return yield* Effect.never
-      }))
-        .pipe(
-          Effect.provideService(WaitingGate, gate),
-          Effect.forkChild
-        )
-      yield* Deferred.await(entered)
-      expect(gate.depth).toBe(1)
-      yield* Fiber.interrupt(fiber)
-      expect(gate.depth).toBe(0)
-    }))
+    await run(
+      Effect.gen(function* () {
+        const entered = yield* Deferred.make<void>()
+        const fiber = yield* suspendWaiting(
+          Effect.gen(function* () {
+            yield* Deferred.succeed(entered, undefined)
+            return yield* Effect.never
+          })
+        ).pipe(Effect.provideService(WaitingGate, gate), Effect.forkChild)
+        yield* Deferred.await(entered)
+        expect(gate.depth).toBe(1)
+        yield* Fiber.interrupt(fiber)
+        expect(gate.depth).toBe(0)
+      })
+    )
   })
 
   test("does nothing on the default gate", async () => {
-    await run(Effect.gen(function*() {
-      const gate = yield* WaitingGate
-      expect(gate.active).toBe(false)
-      yield* suspendWaiting(Effect.void)
-      expect(gate.depth).toBe(0)
-    }))
+    await run(
+      Effect.gen(function* () {
+        const gate = yield* WaitingGate
+        expect(gate.active).toBe(false)
+        yield* suspendWaiting(Effect.void)
+        expect(gate.depth).toBe(0)
+      })
+    )
   })
 })

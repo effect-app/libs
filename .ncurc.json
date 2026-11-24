@@ -11,10 +11,5 @@
     "eslint-plugin-codegen",
     "@tanstack/*"
   ],
-  "dep": [
-    "prod",
-    "dev",
-    "optional",
-    "peer"
-  ]
+  "dep": ["prod", "dev", "optional", "peer"]
 }

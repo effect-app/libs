@@ -27,10 +27,11 @@
       "default": "./src/eslint.vue.config.mjs"
     },
     "./oxlintrc.json": "./src/oxlintrc.json",
-    "./dprint.jsonc": "./src/dprint.jsonc"
+    "./oxfmtrc.json": "./src/oxfmtrc.json"
   },
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*",
+    "oxfmt": "0.80.0",
     "oxlint": "1.94.0",
     "@eslint/js": "10.0.1",
     "@eslint/eslintrc": "3.3.5",
@@ -43,11 +44,6 @@
     "@typescript-eslint/parser": "8.60.0",
     "@typescript-eslint/eslint-plugin": "8.60.0",
     "globals": "17.6.0",
-    "dprint-plugin-malva": "0.16.0",
-    "dprint-plugin-markup": "0.27.2",
-    "dprint-plugin-yaml": "0.6.0",
-    "@dprint/typescript": "0.96.1",
-    "@dprint/formatter": "~0.5.1",
     "jsonc-parser": "3.3.1"
   },
   "devDependencies": {},

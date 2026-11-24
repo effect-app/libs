@@ -53,9 +53,10 @@ const VSelect = defineComponent({
 
 describe("OmegaForm input attributes", () => {
   it("does not forward the internal form object as a native form attribute", async () => {
-    const wrapper = mount({
-      components: { OmegaIntlProvider },
-      template: `
+    const wrapper = mount(
+      {
+        components: { OmegaIntlProvider },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <component
@@ -69,25 +70,27 @@ describe("OmegaForm input attributes", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useOmegaForm(
-          S.Struct({
-            password: S.NonEmptyString255
-          }),
-          {
-            defaultValues: {
-              password: ""
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              password: S.NonEmptyString255
+            }),
+            {
+              defaultValues: {
+                password: ""
+              }
             }
-          }
-        )
+          )
 
-        return { form }
+          return { form }
+        }
+      },
+      {
+        global: {
+          components: { VTextField, VSelect }
+        }
       }
-    }, {
-      global: {
-        components: { VTextField, VSelect }
-      }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
@@ -101,9 +104,10 @@ describe("OmegaForm input attributes", () => {
   })
 
   it("renders a newly-supported native input type (tel) on the text-field branch", async () => {
-    const wrapper = mount({
-      components: { OmegaIntlProvider },
-      template: `
+    const wrapper = mount(
+      {
+        components: { OmegaIntlProvider },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <component
@@ -115,19 +119,18 @@ describe("OmegaForm input attributes", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useOmegaForm(
-          S.Struct({ phone: S.String }),
-          { defaultValues: { phone: "" } }
-        )
+        setup() {
+          const form = useOmegaForm(S.Struct({ phone: S.String }), { defaultValues: { phone: "" } })
 
-        return { form }
+          return { form }
+        }
+      },
+      {
+        global: {
+          components: { VTextField }
+        }
       }
-    }, {
-      global: {
-        components: { VTextField }
-      }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
@@ -137,9 +140,10 @@ describe("OmegaForm input attributes", () => {
   it("falls back to a text input and warns for a type no branch handles", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
 
-    const wrapper = mount({
-      components: { OmegaIntlProvider },
-      template: `
+    const wrapper = mount(
+      {
+        components: { OmegaIntlProvider },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <component
@@ -151,19 +155,18 @@ describe("OmegaForm input attributes", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useOmegaForm(
-          S.Struct({ mystery: S.String }),
-          { defaultValues: { mystery: "" } }
-        )
+        setup() {
+          const form = useOmegaForm(S.Struct({ mystery: S.String }), { defaultValues: { mystery: "" } })
 
-        return { form }
+          return { form }
+        }
+      },
+      {
+        global: {
+          components: { VTextField }
+        }
       }
-    }, {
-      global: {
-        components: { VTextField }
-      }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
@@ -175,9 +178,10 @@ describe("OmegaForm input attributes", () => {
   })
 
   it("keeps input configuration props off the renderer attrs", async () => {
-    const wrapper = mount({
-      components: { OmegaIntlProvider },
-      template: `
+    const wrapper = mount(
+      {
+        components: { OmegaIntlProvider },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <component
@@ -190,25 +194,27 @@ describe("OmegaForm input attributes", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useOmegaForm(
-          S.Struct({
-            choice: S.Literal("one")
-          }),
-          {
-            defaultValues: {
-              choice: "one"
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              choice: S.Literal("one")
+            }),
+            {
+              defaultValues: {
+                choice: "one"
+              }
             }
-          }
-        )
+          )
 
-        return { form }
+          return { form }
+        }
+      },
+      {
+        global: {
+          components: { VTextField, VSelect }
+        }
       }
-    }, {
-      global: {
-        components: { VTextField, VSelect }
-      }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 

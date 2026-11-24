@@ -1,18 +1,8 @@
 <template>
   <form.Form>
-    <form.Input
-      label="email"
-      name="email"
-      :form="form"
-    />
-    <form.Input
-      label="confirm"
-      name="confirm"
-      :form="form"
-    />
-    <v-btn type="submit">
-      submit
-    </v-btn>
+    <form.Input label="email" name="email" :form="form" />
+    <form.Input label="confirm" name="confirm" :form="form" />
+    <v-btn type="submit"> submit </v-btn>
     <form.Errors />
   </form.Form>
 </template>
@@ -21,18 +11,18 @@
 import * as S from "effect-app/Schema"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
-const schema = S
-  .Struct({
-    email: S.Email,
-    confirm: S.Email
-  })
-  .pipe(
-    S.check(S.makeFilter((form) => {
+const schema = S.Struct({
+  email: S.Email,
+  confirm: S.Email
+}).pipe(
+  S.check(
+    S.makeFilter((form) => {
       if (form.email !== form.confirm) {
         return "Email and confirmation must match!"
       }
-    }))
+    })
   )
+)
 
 const form = useOmegaForm(schema, {
   defaultValues: {

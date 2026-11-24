@@ -1,13 +1,8 @@
 {
-  "extends": [
-    "@tsconfig/strictest/tsconfig.json",
-    "./tsconfig.plugins.json"
-  ],
+  "extends": ["@tsconfig/strictest/tsconfig.json", "./tsconfig.plugins.json"],
   "compilerOptions": {
     "module": "Node16",
-    "lib": [
-      "ES2023"
-    ],
+    "lib": ["ES2023"],
     "target": "es2022",
     // inline source maps stay better in sync with the source, which should aid with watchers.
     // "sourceMap": true,
@@ -31,9 +26,7 @@
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true,
     // "preserveSymlinks": true
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
   "watchOptions": {
     // Use native file system events for files and directories
@@ -44,26 +37,9 @@
     //     // Poll files for updates more frequently
     //     // when they're updated a lot.
     "fallbackPolling": "dynamicPriority",
-    "excludeDirectories": [
-      "**/node_modules",
-      "**/dist",
-      "**/.build",
-      "**/.git",
-      "**/.data",
-      "**/.logs",
-      "**/.*"
-    ],
-    "excludeFiles": [
-      "**/*.tmp",
-      "openapi.json",
-      "*.json"
-    ]
+    "excludeDirectories": ["**/node_modules", "**/dist", "**/.build", "**/.git", "**/.data", "**/.logs", "**/.*"],
+    "excludeFiles": ["**/*.tmp", "openapi.json", "*.json"]
   },
   "include": [],
-  "exclude": [
-    "**/node_modules",
-    "**/build",
-    "**/dist",
-    "**/.*"
-  ]
+  "exclude": ["**/node_modules", "**/build", "**/dist", "**/.*"]
 }

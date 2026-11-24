@@ -88,8 +88,8 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
 
   if (result["type"] && globalThis.Array.isArray(result["allOf"])) {
     const allOf = result["allOf"] as Array<Record<string, unknown>>
-    const canFlatten = allOf.every((entry) =>
-      typeof entry === "object" && entry !== null && !("$ref" in entry) && !("type" in entry)
+    const canFlatten = allOf.every(
+      (entry) => typeof entry === "object" && entry !== null && !("$ref" in entry) && !("type" in entry)
     )
     if (canFlatten) {
       const { allOf: _, ...rest } = result
@@ -146,14 +146,14 @@ export function flattenNestedAnyOf(obj: unknown): unknown {
     const flattened: Array<unknown> = []
     for (const entry of anyOf) {
       if (
-        typeof entry === "object"
-        && entry !== null
-        && !globalThis.Array.isArray(entry)
-        && "anyOf" in entry
-        && Object.keys(entry).length === 1
-        && globalThis.Array.isArray((entry as Record<string, unknown>)["anyOf"])
+        typeof entry === "object" &&
+        entry !== null &&
+        !globalThis.Array.isArray(entry) &&
+        "anyOf" in entry &&
+        Object.keys(entry).length === 1 &&
+        globalThis.Array.isArray((entry as Record<string, unknown>)["anyOf"])
       ) {
-        flattened.push(...(entry as Record<string, unknown>)["anyOf"] as Array<unknown>)
+        flattened.push(...((entry as Record<string, unknown>)["anyOf"] as Array<unknown>))
       } else {
         flattened.push(entry)
       }

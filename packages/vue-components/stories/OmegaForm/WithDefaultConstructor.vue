@@ -1,8 +1,5 @@
 <template>
-  <addForm.Form
-    :subscribe="['errors', 'values']"
-    show-errors-on="onChange"
-  >
+  <addForm.Form :subscribe="['errors', 'values']" show-errors-on="onChange">
     <template #default="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
       <div>Values: {{ vvv }}</div>
@@ -22,14 +19,13 @@ const AddSchema = S.Struct({
   first: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
   second: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
   third: S.NullOr(S.String).withConstructorDefault,
-  fourth: S
-    .Struct({
-      addForm: S.NullOr(S.String).withConstructorDefault,
-      b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
-      c: S.Struct({
-        d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
-      })
-    }),
+  fourth: S.Struct({
+    addForm: S.NullOr(S.String).withConstructorDefault,
+    b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
+    c: S.Struct({
+      d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
+    })
+  }),
   fifth: S.Email,
   sixth: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000)))
 })

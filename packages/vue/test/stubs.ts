@@ -60,23 +60,28 @@ const fakeToastLayer = (toasts: any[] = []) =>
           }
           return id
         }
-      return Toast.Toast.of(Toast.wrap({
-        error: fakeToast("error"),
-        warning: fakeToast("warning"),
-        success: fakeToast("success"),
-        info: fakeToast("info"),
-        dismiss
-      })) as any
+      return Toast.Toast.of(
+        Toast.wrap({
+          error: fakeToast("error"),
+          warning: fakeToast("warning"),
+          success: fakeToast("success"),
+          info: fakeToast("info"),
+          dismiss
+        })
+      ) as any
     })
   )
 
 export const makeFakeIntl = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) => {
   const locale = ref("en" as const)
   const intlCache = Intl.createIntlCache()
-  const intl = Intl.createIntl<typeof locale.value>({
-    locale: locale.value,
-    messages
-  }, intlCache)
+  const intl = Intl.createIntl<typeof locale.value>(
+    {
+      locale: locale.value,
+      messages
+    },
+    intlCache
+  )
 
   return {
     locale,
@@ -89,11 +94,15 @@ export const makeFakeIntl = (messages: Record<string, string> | Record<string, M
 }
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
-  Layer.effect(I18n, Effect.sync(() => I18n.of(makeFakeIntl(messages))))
+  Layer.effect(
+    I18n,
+    Effect.sync(() => I18n.of(makeFakeIntl(messages)))
+  )
 
-export const useExperimental = (
-  options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
-) => {
+export const useExperimental = (options?: {
+  messages?: Record<string, string> | Record<string, MessageFormatElement[]>
+  toasts: any[]
+}) => {
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
@@ -106,9 +115,10 @@ export const useExperimental = (
 // Effect-returning variant: keeps the caller's runtime context (e.g. a TestClock
 // provided by `it.effect`) so virtual-time advances reach the runtime captured
 // inside Commander.
-export const useExperimentalE = (
-  options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
-) => {
+export const useExperimentalE = (options?: {
+  messages?: Record<string, string> | Record<string, MessageFormatElement[]>
+  toasts: any[]
+}) => {
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
@@ -129,27 +139,39 @@ export const SomethingReq = TaggedRequestFor("Something")
 const SomethingQuery = SomethingReq.Query
 const SomethingCommand = SomethingReq.Command
 
-class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
-  id: S.String
-}, { success: S.FiniteFromString }) {}
-
-class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()("GetSomething3", {
-  id: S.NullOr(S.String).withConstructorDefault
-}, { success: S.FiniteFromString }) {}
-
-class SomethingGetSomething4
-  extends SomethingQuery<SomethingGetSomething4>()("GetSomething4", {}, { success: S.FiniteFromString })
-{}
-
-class SomethingGetSomething2WithDependencies
-  extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
+class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()(
+  "GetSomething2",
+  {
     id: S.String
-  }, {
+  },
+  { success: S.FiniteFromString }
+) {}
+
+class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()(
+  "GetSomething3",
+  {
+    id: S.NullOr(S.String).withConstructorDefault
+  },
+  { success: S.FiniteFromString }
+) {}
+
+class SomethingGetSomething4 extends SomethingQuery<SomethingGetSomething4>()(
+  "GetSomething4",
+  {},
+  { success: S.FiniteFromString }
+) {}
+
+class SomethingGetSomething2WithDependencies extends SomethingQuery<SomethingGetSomething2WithDependencies>()(
+  "GetSomething2",
+  {
+    id: S.String
+  },
+  {
     // this is intentilally fake, to simulate a codec that requires a dependency
     success: S.FiniteFromString,
     error: S.String
-  })
-{}
+  }
+) {}
 
 type SomethingInvalidationResources = {
   GetSomething2: typeof SomethingGetSomething2
@@ -176,36 +198,49 @@ class SomethingDoMixed extends SomethingCommand<SomethingDoMixed>()("DoMixed", {
 class SomethingDoSomething extends SomethingCommand<
   SomethingDoSomething,
   { Something: SomethingInvalidationResources }
->()("DoSomething", {
-  id: S.String
-}, {
-  success: S.FiniteFromString
-}, (queryKey, { Something }, input, output) => {
-  return [
-    { filters: { queryKey } },
-    {
-      filters: {
-        queryKey: [
-          Something["GetSomething2"].id,
-          input.id,
-          Exit.isSuccess(output) ? output.value.toString() : "failed"
-        ]
+>()(
+  "DoSomething",
+  {
+    id: S.String
+  },
+  {
+    success: S.FiniteFromString
+  },
+  (queryKey, { Something }, input, output) => {
+    return [
+      { filters: { queryKey } },
+      {
+        filters: {
+          queryKey: [
+            Something["GetSomething2"].id,
+            input.id,
+            Exit.isSuccess(output) ? output.value.toString() : "failed"
+          ]
+        }
       }
-    }
-  ]
-}) {}
+    ]
+  }
+) {}
 
 // success schema has encoded shape { a: string | null } — used to test projection constraints
-class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullable>()("GetStructNullable", {}, {
-  success: S.Struct({ a: S.NullOr(S.String) })
-}) {}
+class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullable>()(
+  "GetStructNullable",
+  {},
+  {
+    success: S.Struct({ a: S.NullOr(S.String) })
+  }
+) {}
 
-class SomethingStreamQuery extends SomethingQuery<SomethingStreamQuery>()("StreamQuery", {
-  id: S.String
-}, {
-  stream: true,
-  success: S.FiniteFromString
-}) {}
+class SomethingStreamQuery extends SomethingQuery<SomethingStreamQuery>()(
+  "StreamQuery",
+  {
+    id: S.String
+  },
+  {
+    stream: true,
+    success: S.FiniteFromString
+  }
+) {}
 
 /** Stream event: intermediate progress update. */
 export class OperationProgress extends S.TaggedClass<OperationProgress>()("OperationProgress", {
@@ -219,21 +254,29 @@ export class ExportComplete extends S.TaggedClass<ExportComplete>()("ExportCompl
 }) {}
 
 /** Stream with no `final` schema — execute resolves with `void`. */
-class SomethingStreamWithoutFinal extends SomethingCommand<SomethingStreamWithoutFinal>()("StreamWithoutFinal", {
-  id: S.String
-}, {
-  stream: true,
-  success: S.Union([OperationProgress, ExportComplete])
-}) {}
+class SomethingStreamWithoutFinal extends SomethingCommand<SomethingStreamWithoutFinal>()(
+  "StreamWithoutFinal",
+  {
+    id: S.String
+  },
+  {
+    stream: true,
+    success: S.Union([OperationProgress, ExportComplete])
+  }
+) {}
 
 /** Stream with a `final` schema — execute resolves with `ExportComplete`. */
-class SomethingStreamWithFinal extends SomethingCommand<SomethingStreamWithFinal>()("StreamWithFinal", {
-  id: S.String
-}, {
-  stream: true,
-  success: S.Union([OperationProgress, ExportComplete]),
-  final: ExportComplete
-}) {}
+class SomethingStreamWithFinal extends SomethingCommand<SomethingStreamWithFinal>()(
+  "StreamWithFinal",
+  {
+    id: S.String
+  },
+  {
+    stream: true,
+    success: S.Union([OperationProgress, ExportComplete]),
+    final: ExportComplete
+  }
+) {}
 
 export const Something = {
   GetSomething2: SomethingGetSomething2,
@@ -254,27 +297,34 @@ export const Something = {
 export const SomethingElseReq = TaggedRequestFor("SomethingElse")
 const SomethingElseQuery = SomethingElseReq.Query
 
-class SomethingElseGetSomething2 extends SomethingElseQuery<SomethingElseGetSomething2>()("GetSomething2", {
-  id: S.String
-}, { success: S.FiniteFromString }) {}
-
-class SomethingElseGetSomething2WithDependencies
-  extends SomethingElseQuery<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
+class SomethingElseGetSomething2 extends SomethingElseQuery<SomethingElseGetSomething2>()(
+  "GetSomething2",
+  {
     id: S.String
-  }, {
+  },
+  { success: S.FiniteFromString }
+) {}
+
+class SomethingElseGetSomething2WithDependencies extends SomethingElseQuery<SomethingElseGetSomething2WithDependencies>()(
+  "GetSomething2",
+  {
+    id: S.String
+  },
+  {
     success: S.FiniteFromString,
     error: S.String
-  })
-{}
+  }
+) {}
 
 export const SomethingElse = {
   GetSomething2: SomethingElseGetSomething2,
   GetSomething2WithDependencies: SomethingElseGetSomething2WithDependencies
 }
 
-export const useClient = (
-  options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
-) => {
+export const useClient = (options?: {
+  messages?: Record<string, string> | Record<string, MessageFormatElement[]>
+  toasts: any[]
+}) => {
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
@@ -292,7 +342,7 @@ export const useClient = (
   const vueApp = createApp({})
 
   const origClientFor = rawClient.clientFor
-  const clientFor: typeof origClientFor = function(m, ...args) {
+  const clientFor: typeof origClientFor = function (m, ...args) {
     const proxy = origClientFor(m, ...args)
     // Warm up lazy mutation-hook initialisation inside the Vue injection context.
     // After the first property access, useMutation() is cached and subsequent

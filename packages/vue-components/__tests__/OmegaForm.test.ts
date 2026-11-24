@@ -183,8 +183,8 @@ describe("OmegaForm UI", () => {
     const wrapper = mount(OmegaFormWithProvider)
 
     // Find the input elements
-    const firstInput = wrapper.find("input[id=\"first\"]")
-    const secondInput = wrapper.find("input[id=\"second\"]")
+    const firstInput = wrapper.find('input[id="first"]')
+    const secondInput = wrapper.find('input[id="second"]')
 
     console.log(firstInput)
 
@@ -197,7 +197,7 @@ describe("OmegaForm UI", () => {
     await secondInput.trigger("change")
 
     // Get the element showing the sum
-    const sumElement = wrapper.find("[data-testid=\"valuez\"]")
+    const sumElement = wrapper.find('[data-testid="valuez"]')
 
     // Assert the sum is correct (10 + 20 = 30)
     expect(sumElement.text()).toBe("30")

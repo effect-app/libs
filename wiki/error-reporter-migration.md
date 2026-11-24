@@ -58,9 +58,7 @@ For the browser package use the same shape with `@sentry/browser` and without se
 Provide the layer at runtime/bootstrap, not at every call site:
 
 ```ts
-const RuntimeLive = AppLayer.pipe(
-  Layer.provideMerge(ErrorReporterLive)
-)
+const RuntimeLive = AppLayer.pipe(Layer.provideMerge(ErrorReporterLive))
 ```
 
 Use `{ mergeWithExisting: true }` only when adding a reporter without replacing already configured reporters.
@@ -100,13 +98,13 @@ self.pipe(Effect.withErrorReporting({ defectsOnly: true }))
 Current places that already have a cause and should keep going:
 
 ```ts
-yield* reportRuntimeError(cause, extra)
+yield * reportRuntimeError(cause, extra)
 ```
 
 Become:
 
 ```ts
-yield* ErrorReporter.report(cause)
+yield * ErrorReporter.report(cause)
 ```
 
 If the extra data is important, attach it at the source error with `ErrorReporter.attributes`. If the data is call-site-only, keep a small helper that logs/sends a message separately; do not rebuild a parallel cause reporter.

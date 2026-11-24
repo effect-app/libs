@@ -1,12 +1,7 @@
 <template>
-  <v-btn @click="role = role === 'user' ? 'admin' : 'user'">
-    Switch to {{ role === "user" ? "admin" : "user" }}
-  </v-btn>
+  <v-btn @click="role = role === 'user' ? 'admin' : 'user'"> Switch to {{ role === "user" ? "admin" : "user" }} </v-btn>
   <v-table>
-    <tr
-      v-for="item of items"
-      :key="item"
-    >
+    <tr v-for="item of items" :key="item">
       <td>{{ item }}</td>
       <td>
         <CommandButton :command="updateName(item)" />
@@ -17,10 +12,7 @@
   </v-table>
 
   <v-table>
-    <tr
-      v-for="item of items"
-      :key="item"
-    >
+    <tr v-for="item of items" :key="item">
       <td>{{ item }}</td>
       <td>
         <CommandButton :command="updateName2(item)" />
@@ -41,21 +33,18 @@ const Command = useCommand({
   "confirm.remove_item": "Are you sure you want to remove {item}?"
 })
 
-const items = [
-  "one",
-  "two"
-]
+const items = ["one", "two"]
 
 const role = ref<"user" | "admin">("user")
 
 const updateMutation = Object.assign(
-  Effect.fn(function*(_item: string, _props: { name?: string; state?: number }) {
+  Effect.fn(function* (_item: string, _props: { name?: string; state?: number }) {
     yield* Effect.sleep(1000)
   }),
   { id: "update_thing" }
 )
 const removeMutation = Object.assign(
-  Effect.fn(function*(_item: string) {
+  Effect.fn(function* (_item: string) {
     yield* Effect.sleep(1000)
   }),
   { id: "remove_thing" }
@@ -67,7 +56,7 @@ const updateName = makeFamily((item: string) =>
     waitKey: (id) => `${id}.${item}.name`,
     blockKey: () => `modify_thing.${item}`
   })(
-    function*() {
+    function* () {
       yield* updateMutation(item, { name: `New name for ${item}` })
     },
     Command.withDefaultToast({ stableToastId: (id) => `${id}.${item}.name` })
@@ -80,7 +69,7 @@ const updateName2 = makeFamily((item: string) =>
     waitKey: (id) => `${id}.${item}.name`,
     blockKey: () => `modify_thing.${item}`
   })(
-    function*() {
+    function* () {
       yield* updateMutation(item, { name: `New name for ${item}` })
     },
     Command.withDefaultToast({ stableToastId: (id) => `${id}.${item}.name` })
@@ -93,7 +82,7 @@ const updateState = makeFamily((item: string) =>
     waitKey: (id) => `${id}.${item}.state`,
     blockKey: () => `modify_thing.${item}`
   })(
-    function*() {
+    function* () {
       yield* updateMutation(item, { state: Math.floor(Math.random() * 100) })
     },
     Command.withDefaultToast({ stableToastId: (id) => `${id}.${item}.state` })
@@ -107,7 +96,7 @@ const remove = makeFamily((item: string) =>
     blockKey: () => `modify_thing.${item}`,
     allowed: () => role.value === "admin"
   })(
-    function*() {
+    function* () {
       yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
       yield* removeMutation(item)
     },

@@ -106,7 +106,7 @@ Instead of writing:
 
 ```ts
 const fn = (param: string) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     // ...
   })
 ```
@@ -114,7 +114,7 @@ const fn = (param: string) =>
 Prefer:
 
 ```ts
-const fn = Effect.fnUntraced(function*(param: string) {
+const fn = Effect.fnUntraced(function* (param: string) {
   // ...
 })
 ```
@@ -126,9 +126,12 @@ Prefer the class syntax when working with `Context.Service`. For example:
 ```ts
 import { Context } from "effect-app"
 
-class MyService extends Context.Service<MyService, {
-  readonly doSomething: (input: string) => number
-}>()("MyService") {}
+class MyService extends Context.Service<
+  MyService,
+  {
+    readonly doSomething: (input: string) => number
+  }
+>()("MyService") {}
 ```
 
 ## Checking Array is not empty

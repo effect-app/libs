@@ -12,15 +12,7 @@
 import * as Effect from "effect-app/Effect"
 import * as Metric from "effect/Metric"
 
-export type DbSystem =
-  | "postgresql"
-  | "sqlite"
-  | "cosmosdb"
-  | "mongodb"
-  | "redis"
-  | "other_sql"
-  | "memory"
-  | "disk"
+export type DbSystem = "postgresql" | "sqlite" | "cosmosdb" | "mongodb" | "redis" | "other_sql" | "memory" | "disk"
 
 export interface DbSpanOptions {
   /** OTel `db.operation.name` (e.g. `find`, `all`, `filter`, `set`). */
@@ -53,24 +45,29 @@ const dbOperationDuration = Metric.histogram("db.client.operation.duration", {
   description: "Caller-observed database operation duration in milliseconds"
 })
 
-const timeDbOperation = (a: DbSpanOptions) => <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  Effect.clockWith((clock) => {
-    const startedAt = clock.currentTimeNanosUnsafe()
-    return Effect.onExit(self, () => {
-      const durationMs = Number(clock.currentTimeNanosUnsafe() - startedAt) / 1_000_000
-      return Effect.all([
-        Effect.annotateCurrentSpan({ "db.operation.duration_ms": durationMs }),
-        Metric.update(
-          Metric.withAttributes(dbOperationDuration, {
-            "db.system.name": a.system,
-            "db.operation.name": a.operation,
-            ...(a.entity !== undefined && { "app.entity": a.entity })
-          }),
-          durationMs
+const timeDbOperation =
+  (a: DbSpanOptions) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.clockWith((clock) => {
+      const startedAt = clock.currentTimeNanosUnsafe()
+      return Effect.onExit(self, () => {
+        const durationMs = Number(clock.currentTimeNanosUnsafe() - startedAt) / 1_000_000
+        return Effect.all(
+          [
+            Effect.annotateCurrentSpan({ "db.operation.duration_ms": durationMs }),
+            Metric.update(
+              Metric.withAttributes(dbOperationDuration, {
+                "db.system.name": a.system,
+                "db.operation.name": a.operation,
+                ...(a.entity !== undefined && { "app.entity": a.entity })
+              }),
+              durationMs
+            )
+          ],
+          { discard: true }
         )
-      ], { discard: true })
+      })
     })
-  })
 
 /**
  * Wrap an effect with an OTel-semconv database span.
@@ -92,8 +89,10 @@ export const withDbSpan = (a: DbSpanOptions) =>
  * Annotates before running so attrs persist even on failure.
  * No-op if there is no current span.
  */
-export const annotateDb = (a: DbSpanOptions) => <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  Effect.flatMap(Effect.annotateCurrentSpan(dbAttributes(a)), () => self.pipe(timeDbOperation(a)))
+export const annotateDb =
+  (a: DbSpanOptions) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.flatMap(Effect.annotateCurrentSpan(dbAttributes(a)), () => self.pipe(timeDbOperation(a)))
 
 /** Annotate the current span with response metrics from a DB call. */
 export const annotateDbResponse = (m: {
@@ -119,19 +118,9 @@ export const annotateCosmosResponse = (m: {
     ...(m.responseBytes !== undefined && { "db.response.body.size": m.responseBytes })
   })
 
-export type MessagingSystem =
-  | "servicebus"
-  | "rabbitmq"
-  | "kafka"
-  | "memory"
-  | "sql"
+export type MessagingSystem = "servicebus" | "rabbitmq" | "kafka" | "memory" | "sql"
 
-export type MessagingOperation =
-  | "publish"
-  | "create"
-  | "receive"
-  | "process"
-  | "settle"
+export type MessagingOperation = "publish" | "create" | "receive" | "process" | "settle"
 
 export interface MessagingSpanOptions {
   readonly operation: MessagingOperation
@@ -155,10 +144,7 @@ const messagingAttributes = (a: MessagingSpanOptions): Record<string, unknown> =
 })
 
 /** Wrap an effect with an OTel-semconv messaging span. */
-export const withMessagingSpan = (
-  a: MessagingSpanOptions,
-  kind: "producer" | "consumer"
-) =>
+export const withMessagingSpan = (a: MessagingSpanOptions, kind: "producer" | "consumer") =>
   Effect.withSpan(
     `${a.operation} ${a.destination}`,
     { kind, attributes: messagingAttributes(a) },
@@ -166,10 +152,7 @@ export const withMessagingSpan = (
   )
 
 /** Build messaging span options without wrapping (for Effect.fn / setupRequestContextWithCustomSpan). */
-export const messagingSpanArgs = (
-  a: MessagingSpanOptions,
-  kind: "producer" | "consumer"
-) =>
+export const messagingSpanArgs = (a: MessagingSpanOptions, kind: "producer" | "consumer") =>
   ({
     name: `${a.operation} ${a.destination}`,
     kind,

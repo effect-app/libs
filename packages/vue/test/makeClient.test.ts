@@ -55,11 +55,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   })
 
   const { clientFor } = useClient()
-  const client = clientFor(
-    Something,
-    undefined,
-    somethingInvalidationResources
-  )
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
 
   // only queries, no commands, and no commands who require resources; shouldn't require invalidation resources args!
   clientFor({ GetSomething: Something.GetSomething2 })
@@ -83,15 +79,20 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
   const SomethingCommand = SomethingReq.Command
 
-  class TypeInferenceWithSuccess extends SomethingCommand<TypeInferenceWithSuccess>()("TypeInferenceWithSuccess", {
-    id: S.String
-  }, {
-    success: S.FiniteFromString
-  }, (_queryKey, _resources, input, result) => {
-    expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
-    expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
-    return []
-  }) {}
+  class TypeInferenceWithSuccess extends SomethingCommand<TypeInferenceWithSuccess>()(
+    "TypeInferenceWithSuccess",
+    {
+      id: S.String
+    },
+    {
+      success: S.FiniteFromString
+    },
+    (_queryKey, _resources, input, result) => {
+      expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
+      expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
+      return []
+    }
+  ) {}
   void TypeInferenceWithSuccess
 
   class TypeInferenceWithoutSuccess extends SomethingCommand<TypeInferenceWithoutSuccess>()(
@@ -116,24 +117,26 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
     }
   }
 
-  class TypeInferenceResourceFiltering extends SomethingCommand<
-    TypeInferenceResourceFiltering,
-    MixedResources
-  >()("TypeInferenceResourceFiltering", {
-    id: S.String
-  }, {
-    success: S.FiniteFromString
-  }, (_queryKey, resources, _input, _result) => {
-    expectTypeOf(resources.Something.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
-    expectTypeOf(resources.Misc.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
+  class TypeInferenceResourceFiltering extends SomethingCommand<TypeInferenceResourceFiltering, MixedResources>()(
+    "TypeInferenceResourceFiltering",
+    {
+      id: S.String
+    },
+    {
+      success: S.FiniteFromString
+    },
+    (_queryKey, resources, _input, _result) => {
+      expectTypeOf(resources.Something.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
+      expectTypeOf(resources.Misc.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
 
-    // @ts-expect-error commands must be filtered from invalidation resources
-    void resources.Something.DoSomething
-    // @ts-expect-error non-query values must be filtered from invalidation resources
-    void resources.Misc.value
+      // @ts-expect-error commands must be filtered from invalidation resources
+      void resources.Something.DoSomething
+      // @ts-expect-error non-query values must be filtered from invalidation resources
+      void resources.Misc.value
 
-    return []
-  }) {}
+      return []
+    }
+  ) {}
   void TypeInferenceResourceFiltering
 
   type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries> // @ts-expect-error input should be required when command payload is non-empty
@@ -142,11 +145,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
 it("clientFor handler shape — props variants", () => {
   const { clientFor } = useClient()
-  const client = clientFor(
-    Something,
-    undefined,
-    somethingInvalidationResources
-  )
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
   expect(client).toBeDefined()
 
   // no-props (no fields): handler is (i: void) => Effect — callable without arg
@@ -182,7 +181,7 @@ it("clientFor handler shape — props variants", () => {
 })
 
 it.effect("mutation invalidation awaits the injected query invalidator", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const recorded: Array<readonly [string, ReadonlyArray<unknown>]> = []
     const keys = [["$Something"], ["$Something", "GetSomething2"]]
     const queryInvalidator = combineQueryInvalidators(
@@ -206,15 +205,12 @@ it.effect("mutation invalidation awaits the injected query invalidator", () =>
       ["tanstack", keys[0]],
       ["tanstack", keys[1]]
     ])
-  }))
+  })
+)
 
 it("client[Key].Input — extracted input type per props variant", () => {
   const { clientFor } = useClient()
-  const client = clientFor(
-    Something,
-    undefined,
-    somethingInvalidationResources
-  )
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
 
   // Input mirrors HandlerInput<typeof Request> — the same type the handler accepts.
   expectTypeOf(client.GetSomething2.Input).toEqualTypeOf<HandlerInput<typeof Something.GetSomething2>>()
@@ -237,9 +233,10 @@ it("client[Key].Input — extracted input type per props variant", () => {
 
   // Stream handlers — Input now extracts via RequestStreamHandlerWithInput fallback.
   expectTypeOf(client.StreamQuery.Input).toEqualTypeOf<{ readonly id: string; readonly _tag?: "StreamQuery" }>()
-  expectTypeOf(client.StreamWithoutFinal.Input).toEqualTypeOf<
-    { readonly id: string; readonly _tag?: "StreamWithoutFinal" }
-  >()
+  expectTypeOf(client.StreamWithoutFinal.Input).toEqualTypeOf<{
+    readonly id: string
+    readonly _tag?: "StreamWithoutFinal"
+  }>()
   expectTypeOf(client.StreamWithFinal.Input).toEqualTypeOf<{ readonly id: string; readonly _tag?: "StreamWithFinal" }>()
 
   const assertStreamQueryTypes = () => {
@@ -298,10 +295,7 @@ it.skip("query type tests", () => {
         { filters: { queryKey } },
         {
           filters: {
-            queryKey: makeQueryKey(
-              SomethingElse
-                .GetSomething2
-            )
+            queryKey: makeQueryKey(SomethingElse.GetSomething2)
           }
         }
       ]
@@ -338,11 +332,7 @@ it.skip("query type tests", () => {
 
 it("additive atom query api type tests", () => {
   const { clientFor } = useClient()
-  const client = clientFor(
-    Something,
-    undefined,
-    somethingInvalidationResources
-  )
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
 
   if (false as boolean) {
     const family = client.GetSomething2.family

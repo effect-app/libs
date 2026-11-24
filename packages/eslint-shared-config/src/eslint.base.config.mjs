@@ -70,11 +70,11 @@ export function baseConfig(dirName, forceTS = false) {
         "unused-imports/no-unused-vars": [
           "warn",
           {
-            "vars": "all",
-            "varsIgnorePattern": "^_",
-            "args": "after-used",
-            "argsIgnorePattern": "^_",
-            "ignoreRestSiblings": true
+            vars: "all",
+            varsIgnorePattern: "^_",
+            args: "after-used",
+            argsIgnorePattern: "^_",
+            ignoreRestSiblings: true
           }
         ],
         "sort-destructure-keys/sort-destructure-keys": "error",

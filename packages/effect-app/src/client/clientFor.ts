@@ -11,39 +11,19 @@ import { type Req } from "./apiClientFactory.ts"
 
 export function makePathWithQuery(
   path: Path,
-  pars: Record<
-    string,
-    | string
-    | number
-    | boolean
-    | readonly string[]
-    | readonly number[]
-    | readonly boolean[]
-    | null
-  >
+  pars: Record<string, string | number | boolean | readonly string[] | readonly number[] | readonly boolean[] | null>
 ) {
   const forQs = Record.filter(pars, (_, k) => !path.params.includes(k))
   const q = forQs // { ...forQs, _: JSON.stringify(forQs) } // TODO: drop completely individual keys from query?, sticking to json only
   return (
-    path.build(pars, { ignoreSearch: true, ignoreConstraints: true })
-    + (Object.keys(q).length
-      ? "?" + qs.stringify(q)
-      : "")
+    path.build(pars, { ignoreSearch: true, ignoreConstraints: true }) +
+    (Object.keys(q).length ? "?" + qs.stringify(q) : "")
   )
 }
 
 export function makePathWithBody(
   path: Path,
-  pars: Record<
-    string,
-    | string
-    | number
-    | boolean
-    | readonly string[]
-    | readonly number[]
-    | readonly boolean[]
-    | null
-  >
+  pars: Record<string, string | number | boolean | readonly string[] | readonly number[] | readonly boolean[] | null>
 ) {
   return path.build(pars, { ignoreSearch: true, ignoreConstraints: true })
 }
@@ -51,25 +31,17 @@ export function makePathWithBody(
 export type Requests = RequestsAny
 export type RequestsAny = Record<string, any>
 
-export type ExtractModuleName<M extends RequestsAny> =
-  { [K in keyof M]: M[K] extends { moduleName: infer N extends string } ? N : never }[keyof M] extends
-    infer R extends string ? R
-    : string
+export type ExtractModuleName<M extends RequestsAny> = {
+  [K in keyof M]: M[K] extends { moduleName: infer N extends string } ? N : never
+}[keyof M] extends infer R extends string
+  ? R
+  : string
 
-export type Client<M extends RequestsAny, ModuleName extends string> = RequestHandlers<
-  never,
-  never,
-  M,
-  ModuleName
->
+export type Client<M extends RequestsAny, ModuleName extends string> = RequestHandlers<never, never, M, ModuleName>
 
-export type ExtractResponse<T> = T extends S.Codec<any> ? T["Type"]
-  : T extends unknown ? void
-  : never
+export type ExtractResponse<T> = T extends S.Codec<any> ? T["Type"] : T extends unknown ? void : never
 
-export type ExtractEResponse<T> = T extends S.Codec<any> ? T["Encoded"]
-  : T extends unknown ? void
-  : never
+export type ExtractEResponse<T> = T extends S.Codec<any> ? T["Encoded"] : T extends unknown ? void : never
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
@@ -129,17 +101,25 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
 }
 
 /** Type alias: a no-input stream handler is simply `RequestStreamHandlerWithInput<void, …>`. */
-export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> =
-  RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
+export type RequestStreamHandler<
+  A,
+  E,
+  R,
+  Request extends Req,
+  Id extends string,
+  Final = A
+> = RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
-  [] ? void : Parameters<I["make"]>[0]
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
+  Parameters<I["make"]> extends [] ? void : Parameters<I["make"]>[0]
 
 // Has no input only when the request schema declares no payload fields (the auto-added
 // `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.
 type HasNoFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields }
-  ? [Exclude<keyof F, "_tag">] extends [never] ? true : false
+  ? [Exclude<keyof F, "_tag">] extends [never]
+    ? true
+    : false
   : false
 
 type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]>[0]
@@ -148,12 +128,11 @@ type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parame
  * Caller-facing input type for a request. `void` when the request schema has no fields;
  * otherwise `make`'s first param type.
  */
-export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> = HasNoFields<I> extends true ? void
-  : RequestInput<I>
+export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
+  HasNoFields<I> extends true ? void : RequestInput<I>
 
 /** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
-type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? F["Type"]
-  : T["success"]["Type"]
+type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? F["Type"] : T["success"]["Type"]
 
 // `T["success"]` / `T["error"]` are constrained to `S.Top` via `Req`, so we
 // can read `["DecodingServices"]` directly. Avoids the conditional in
@@ -162,22 +141,22 @@ type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.
 // `unknown`, polluting the `R` channel of every client handler.
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
   ? RequestStreamHandlerWithInput<
-    HandlerInput<T>,
-    T["success"]["Type"],
-    T["error"]["Type"] | E,
-    R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
-    T,
-    Id,
-    FinalTypeOf<T>
-  >
+      HandlerInput<T>,
+      T["success"]["Type"],
+      T["error"]["Type"] | E,
+      R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
+      T,
+      Id,
+      FinalTypeOf<T>
+    >
   : RequestHandlerWithInput<
-    HandlerInput<T>,
-    T["success"]["Type"],
-    T["error"]["Type"] | E,
-    R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
-    T,
-    Id
-  >
+      HandlerInput<T>,
+      T["success"]["Type"],
+      T["error"]["Type"] | E,
+      R | T["success"]["DecodingServices"] | T["error"]["DecodingServices"],
+      T,
+      Id
+    >
 
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
   [K in keyof M as M[K] extends Req ? K : never]: Extract<M[K], Req> extends infer T extends Req

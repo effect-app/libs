@@ -13,14 +13,14 @@ const truthy = (v) => {
 export const isCodingAgent = (env = process.env) => {
   if (truthy(env["SKIP_AGENT_PREPUSH"])) return false
   return (
-    truthy(env["GROK_AGENT"])
-    || truthy(env["T3_AGENT"])
-    || truthy(env["AI_AGENT"])
-    || truthy(env["CLAUDECODE"])
-    || truthy(env["CLAUDE_CODE"])
-    || truthy(env["CURSOR_AGENT"])
-    || truthy(env["CURSOR_TRACE_ID"])
-    || truthy(env["CODEX_CI"])
-    || truthy(env["CODEX_SANDBOX"])
+    truthy(env["GROK_AGENT"]) ||
+    truthy(env["T3_AGENT"]) ||
+    truthy(env["AI_AGENT"]) ||
+    truthy(env["CLAUDECODE"]) ||
+    truthy(env["CLAUDE_CODE"]) ||
+    truthy(env["CURSOR_AGENT"]) ||
+    truthy(env["CURSOR_TRACE_ID"]) ||
+    truthy(env["CODEX_CI"]) ||
+    truthy(env["CODEX_SANDBOX"])
   )
 }

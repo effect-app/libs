@@ -1,9 +1,5 @@
 <template>
-  <slot
-    v-if="tag"
-    :name="`${name ? `${name}.` : ''}${tag}`"
-    v-bind="{ field, tag }"
-  />
+  <slot v-if="tag" :name="`${name ? `${name}.` : ''}${tag}`" v-bind="{ field, tag }" />
 </template>
 
 <script
@@ -26,16 +22,20 @@ const props = defineProps<{
 const values = props.form.useStore(({ values }) => values)
 
 // Watch for _tag changes
-watch(() => props.tag, (newTag, oldTag) => {
-  if (newTag === null) {
-    props.field.setValue(null as DeepValue<From, Name>)
-  }
+watch(
+  () => props.tag,
+  (newTag, oldTag) => {
+    if (newTag === null) {
+      props.field.setValue(null as DeepValue<From, Name>)
+    }
 
-  if (newTag !== oldTag) {
-    props.form.reset(values.value)
-    setTimeout(() => {
-      void props.field.validate("change")
-    }, 0)
-  }
-}, { immediate: true })
+    if (newTag !== oldTag) {
+      props.form.reset(values.value)
+      setTimeout(() => {
+        void props.field.validate("change")
+      }, 0)
+    }
+  },
+  { immediate: true }
+)
 </script>

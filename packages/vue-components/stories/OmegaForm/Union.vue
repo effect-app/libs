@@ -1,10 +1,7 @@
 <template>
   <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: subscribedValues } }">
-      <form.Input
-        label="title"
-        name="title"
-      />
+      <form.Input label="title" name="title" />
       <form.Input
         label="union"
         name="union._tag"
@@ -14,19 +11,9 @@
           { title: 'B', value: 'B' }
         ]"
       />
-      <form.Input
-        v-if="subscribedValues.union._tag === 'A'"
-        label="union a value"
-        name="union.a"
-      />
-      <form.Input
-        v-else
-        label="union b value"
-        name="union.b"
-      />
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <form.Input v-if="subscribedValues.union._tag === 'A'" label="union a value" name="union.a" />
+      <form.Input v-else label="union b value" name="union.b" />
+      <v-btn type="submit"> submit </v-btn>
       <form.Errors />
     </template>
   </form.Form>
@@ -43,11 +30,10 @@ class A extends S.TaggedClass<A>()("A", {
 class B extends S.TaggedClass<B>()("B", {
   b: S.Finite
 }) {}
-const schema = S
-  .Struct({
-    title: S.String,
-    union: S.Union([A, B])
-  })
+const schema = S.Struct({
+  title: S.String,
+  union: S.Union([A, B])
+})
 
 const defaultValues: typeof schema.Encoded = {
   title: "filicimo",
@@ -68,10 +54,14 @@ const form = useOmegaForm(schema, {
 // test; try to reset form when union type changes.
 // sadly doesn't help :S
 const values = form.useStore((_) => _.values)
-watch(values, (cur, prev) => {
-  if (cur.union._tag !== prev.union._tag) {
-    console.log("resetting form")
-    form.reset(cur)
-  }
-}, { deep: true })
+watch(
+  values,
+  (cur, prev) => {
+    if (cur.union._tag !== prev.union._tag) {
+      console.log("resetting form")
+      form.reset(cur)
+    }
+  },
+  { deep: true }
+)
 </script>

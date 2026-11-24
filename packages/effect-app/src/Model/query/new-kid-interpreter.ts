@@ -18,97 +18,95 @@ export type AggregateIrExpression =
   | { readonly _tag: "agg-min"; readonly field: string }
   | { readonly _tag: "agg-max"; readonly field: string }
 
-export type AggregateIrItem =
-  | AggregateIrExpression
-  | { readonly _tag: "agg-field"; readonly path: string }
+export type AggregateIrItem = AggregateIrExpression | { readonly _tag: "agg-field"; readonly path: string }
 
 export type ComputedProjectionMathIrExpression =
   | {
-    readonly _tag: "field"
-    readonly field: string
-  }
+      readonly _tag: "field"
+      readonly field: string
+    }
   | {
-    readonly _tag: "mul"
-    readonly left: ComputedProjectionMathIrExpression
-    readonly right: ComputedProjectionMathIrExpression
-  }
+      readonly _tag: "mul"
+      readonly left: ComputedProjectionMathIrExpression
+      readonly right: ComputedProjectionMathIrExpression
+    }
 
 export type ComputedProjectionIrExpression =
   | {
-    readonly _tag: "relation-count"
-    readonly path: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-count"
+      readonly path: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-any"
-    readonly path: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-any"
+      readonly path: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-every"
-    readonly path: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-every"
+      readonly path: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-distinct-count"
-    readonly path: string
-    readonly field: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-distinct-count"
+      readonly path: string
+      readonly field: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-sum"
-    readonly path: string
-    readonly field: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-sum"
+      readonly path: string
+      readonly field: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-sum-expr"
-    readonly path: string
-    readonly expression: ComputedProjectionMathIrExpression
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-sum-expr"
+      readonly path: string
+      readonly expression: ComputedProjectionMathIrExpression
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-sum-expr-by"
-    readonly path: string
-    readonly expression: ComputedProjectionMathIrExpression
-    readonly unit: string
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-sum-expr-by"
+      readonly path: string
+      readonly expression: ComputedProjectionMathIrExpression
+      readonly unit: string
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-sum-expr-normalized"
-    readonly path: string
-    readonly expression: ComputedProjectionMathIrExpression
-    readonly unit: string
-    readonly toBase: string
-    readonly factors: Readonly<Record<string, number>>
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-sum-expr-normalized"
+      readonly path: string
+      readonly expression: ComputedProjectionMathIrExpression
+      readonly unit: string
+      readonly toBase: string
+      readonly factors: Readonly<Record<string, number>>
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-collect"
-    readonly path: string
-    readonly field: string
-    readonly distinct: boolean
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-collect"
+      readonly path: string
+      readonly field: string
+      readonly distinct: boolean
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-collect-fields"
-    readonly path: string
-    readonly fields: readonly string[]
-    readonly distinct: boolean
-    readonly filter: readonly FilterResult[]
-  }
+      readonly _tag: "relation-collect-fields"
+      readonly path: string
+      readonly fields: readonly string[]
+      readonly distinct: boolean
+      readonly filter: readonly FilterResult[]
+    }
   | {
-    readonly _tag: "relation-length"
-    readonly path: string
-  }
+      readonly _tag: "relation-length"
+      readonly path: string
+    }
 
 type SelectItem<TFieldValues extends FieldValues> =
   | keyof TFieldValues
   | { key: string; subKeys: string[] }
   | {
-    key: string
-    computed: ComputedProjectionIrExpression
-  }
+      key: string
+      computed: ComputedProjectionIrExpression
+    }
 
 const isArraySelect = <TFieldValues extends FieldValues>(
   item: SelectItem<TFieldValues>
@@ -156,7 +154,9 @@ const interpret = <
   TFieldValuesRefined extends TFieldValues = TFieldValues,
   A = TFieldValues,
   R = never
->(_: QAll<TFieldValues, TFieldValuesRefined, A, R>) => {
+>(
+  _: QAll<TFieldValues, TFieldValuesRefined, A, R>
+) => {
   const a = _ as Q<TFieldValues>
 
   const data: Result<TFieldValues, any, any> = {
@@ -171,9 +171,7 @@ const interpret = <
     aggregateMap: undefined
   }
 
-  const upd = (
-    v: Result<TFieldValues, any, any>
-  ) => {
+  const upd = (v: Result<TFieldValues, any, any>) => {
     data.filter.push(...v.filter)
     data.order.push(...v.order)
     if (v.limit !== undefined) data.limit = v.limit
@@ -185,10 +183,12 @@ const interpret = <
     if (v.aggregateMap !== undefined) data.aggregateMap = v.aggregateMap
   }
 
-  const applyPath = (path: string) => (_: FilterResult): FilterResult =>
-    _.t === "where" || _.t === "and" || _.t === "or"
-      ? { ..._, path: `${path}.-1.${_.path}` }
-      : { ..._, result: _.result.map(applyPath(path)) }
+  const applyPath =
+    (path: string) =>
+    (_: FilterResult): FilterResult =>
+      _.t === "where" || _.t === "and" || _.t === "or"
+        ? { ..._, path: `${path}.-1.${_.path}` }
+        : { ..._, result: _.result.map(applyPath(path)) }
 
   switch (a._tag) {
     case "value":
@@ -197,22 +197,18 @@ const interpret = <
       const { current, operation, relation, subPath } = a
       upd(interpret(current))
       if (typeof operation === "function") {
-        data.filter.push(
-          {
-            t: "where-scope",
-            result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
-            relation
-          }
-        )
+        data.filter.push({
+          t: "where-scope",
+          result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
+          relation
+        })
       } else {
-        data.filter.push(
-          {
-            t: "where",
-            path: operation[0],
-            op: operation.length === 2 ? "eq" : operation[1],
-            value: operation.length === 2 ? operation[1] : operation[2]
-          }
-        )
+        data.filter.push({
+          t: "where",
+          path: operation[0],
+          op: operation.length === 2 ? "eq" : operation[1],
+          value: operation.length === 2 ? operation[1] : operation[2]
+        })
       }
       break
     }
@@ -220,18 +216,14 @@ const interpret = <
       const { current, operation, relation } = a
       upd(interpret(current))
       if (typeof operation === "function") {
-        data.filter.push(
-          { t: "and-scope", result: interpret(operation(make())).filter, relation }
-        )
+        data.filter.push({ t: "and-scope", result: interpret(operation(make())).filter, relation })
       } else {
-        data.filter.push(
-          {
-            t: "and",
-            path: operation[0],
-            op: operation.length === 2 ? "eq" : operation[1],
-            value: operation.length === 2 ? operation[1] : operation[2]
-          }
-        )
+        data.filter.push({
+          t: "and",
+          path: operation[0],
+          op: operation.length === 2 ? "eq" : operation[1],
+          value: operation.length === 2 ? operation[1] : operation[2]
+        })
       }
       break
     }
@@ -239,18 +231,14 @@ const interpret = <
       const { current, operation, relation } = a
       upd(interpret(current))
       if (typeof operation === "function") {
-        data.filter.push(
-          { t: "or-scope", result: interpret(operation(make())).filter, relation }
-        )
+        data.filter.push({ t: "or-scope", result: interpret(operation(make())).filter, relation })
       } else {
-        data.filter.push(
-          {
-            t: "or",
-            path: operation[0],
-            op: operation.length === 2 ? "eq" : operation[1],
-            value: operation.length === 2 ? operation[1] : operation[2]
-          }
-        )
+        data.filter.push({
+          t: "or",
+          path: operation[0],
+          op: operation.length === 2 ? "eq" : operation[1],
+          value: operation.length === 2 ? operation[1] : operation[2]
+        })
       }
       break
     }
@@ -308,82 +296,74 @@ const interpret = <
         throw new Error("Computed projections require mode 'project' or 'collect', not 'transform'")
       }
       data.schema = a.schema
-      data.mode = a.computed
-        ? a.mode === "collect" ? "collect" : "project"
-        : a.mode
+      data.mode = a.computed ? (a.mode === "collect" ? "collect" : "project") : a.mode
       data.computed = a.computed
         ? Object.fromEntries(
-          Object.entries(a.computed).map(([key, expression]) => {
-            const e = expression
-            const op = "operation" in e ? e.operation : undefined
-            const filter = op ? interpret(op(make())).filter.map(applyPath(e.path)) : []
-            switch (e._tag) {
-              case "relation-count":
-              case "relation-any":
-              case "relation-every":
-                return [key, { _tag: e._tag, path: e.path, filter }]
-              case "relation-distinct-count":
-              case "relation-sum":
-                return [
-                  key,
-                  { _tag: e._tag, path: e.path, field: e.field, filter }
-                ]
-              case "relation-sum-expr":
-                return [
-                  key,
-                  { _tag: e._tag, path: e.path, expression: e.expression, filter }
-                ]
-              case "relation-sum-expr-by":
-                return [
-                  key,
-                  {
-                    _tag: e._tag,
-                    path: e.path,
-                    expression: e.expression,
-                    unit: e.unit,
-                    filter
-                  }
-                ]
-              case "relation-sum-expr-normalized":
-                return [
-                  key,
-                  {
-                    _tag: e._tag,
-                    path: e.path,
-                    expression: e.expression,
-                    unit: e.unit,
-                    toBase: e.toBase,
-                    factors: e.factors,
-                    filter
-                  }
-                ]
-              case "relation-collect":
-                return [
-                  key,
-                  {
-                    _tag: e._tag,
-                    path: e.path,
-                    field: e.field,
-                    distinct: e.distinct,
-                    filter
-                  }
-                ]
-              case "relation-collect-fields":
-                return [
-                  key,
-                  {
-                    _tag: e._tag,
-                    path: e.path,
-                    fields: e.fields,
-                    distinct: e.distinct,
-                    filter
-                  }
-                ]
-              case "relation-length":
-                return [key, { _tag: e._tag, path: e.path }]
-            }
-          })
-        )
+            Object.entries(a.computed).map(([key, expression]) => {
+              const e = expression
+              const op = "operation" in e ? e.operation : undefined
+              const filter = op ? interpret(op(make())).filter.map(applyPath(e.path)) : []
+              switch (e._tag) {
+                case "relation-count":
+                case "relation-any":
+                case "relation-every":
+                  return [key, { _tag: e._tag, path: e.path, filter }]
+                case "relation-distinct-count":
+                case "relation-sum":
+                  return [key, { _tag: e._tag, path: e.path, field: e.field, filter }]
+                case "relation-sum-expr":
+                  return [key, { _tag: e._tag, path: e.path, expression: e.expression, filter }]
+                case "relation-sum-expr-by":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      expression: e.expression,
+                      unit: e.unit,
+                      filter
+                    }
+                  ]
+                case "relation-sum-expr-normalized":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      expression: e.expression,
+                      unit: e.unit,
+                      toBase: e.toBase,
+                      factors: e.factors,
+                      filter
+                    }
+                  ]
+                case "relation-collect":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      field: e.field,
+                      distinct: e.distinct,
+                      filter
+                    }
+                  ]
+                case "relation-collect-fields":
+                  return [
+                    key,
+                    {
+                      _tag: e._tag,
+                      path: e.path,
+                      fields: e.fields,
+                      distinct: e.distinct,
+                      filter
+                    }
+                  ]
+                case "relation-length":
+                  return [key, { _tag: e._tag, path: e.path }]
+              }
+            })
+          )
         : undefined
       break
     }
@@ -463,12 +443,9 @@ export const toFilter = <
           // TODO; be more strict, can't support arrays with unions that have non TypeLiteral members etc..
           const arraySelect = {
             key: prop.name as string,
-            subKeys: Array.flatMap(
-              prop.type.rest,
-              (x) => {
-                return objectKeys(x)
-              }
-            )
+            subKeys: Array.flatMap(prop.type.rest, (x) => {
+              return objectKeys(x)
+            })
           }
           if (arraySelect.subKeys.length > 0) {
             mergeArraySelect(select, arraySelect)
@@ -524,8 +501,6 @@ export const toFilter = <
     order: Option.getOrUndefined(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(a.order)),
     ttype: a.ttype,
     mode: a.mode ?? "transform",
-    filter: a.filter.length
-      ? a.filter
-      : undefined
+    filter: a.filter.length ? a.filter : undefined
   })
 }

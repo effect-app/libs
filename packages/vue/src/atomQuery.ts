@@ -34,9 +34,21 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import type * as Tracer from "effect/Tracer"
-import { clearQueryReadDependencies, getQueryReadDependencies, type QueryInvalidationMode, registerQueryInvalidationMode, setQueryReadDependencies } from "./dependencyMetadata.ts"
+import {
+  clearQueryReadDependencies,
+  getQueryReadDependencies,
+  type QueryInvalidationMode,
+  registerQueryInvalidationMode,
+  setQueryReadDependencies
+} from "./dependencyMetadata.ts"
 import { reportRuntimeError } from "./lib.ts"
-import { acquireLiveQueryFetch, awaitLiveQueryFetch, type LiveQueryOptions, registerLiveQuery, releaseLiveQueryFetch } from "./liveQueryInvalidation.ts"
+import {
+  acquireLiveQueryFetch,
+  awaitLiveQueryFetch,
+  type LiveQueryOptions,
+  registerLiveQuery,
+  releaseLiveQueryFetch
+} from "./liveQueryInvalidation.ts"
 import { atomsToRefetch, observeQueryAtom } from "./queryLifetime.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
@@ -64,20 +76,24 @@ const keyAtoms = MutableHashMap.empty<ReadonlyArray<unknown>, Set<Atom.Atom<Asyn
 const trackByKeys =
   (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
-    Atom.transform(atom, (get) => {
-      for (const key of keys) {
-        let set = Option.getOrUndefined(MutableHashMap.get(keyAtoms, key))
-        if (!set) MutableHashMap.set(keyAtoms, key, set = new Set())
-        set.add(atom)
-        get.addFinalizer(() => {
-          set.delete(atom)
-          if (set.size === 0 && Option.getOrUndefined(MutableHashMap.get(keyAtoms, key)) === set) {
-            MutableHashMap.remove(keyAtoms, key)
-          }
-        })
-      }
-      return get(atom)
-    }, { initialValueTarget: atom })
+    Atom.transform(
+      atom,
+      (get) => {
+        for (const key of keys) {
+          let set = Option.getOrUndefined(MutableHashMap.get(keyAtoms, key))
+          if (!set) MutableHashMap.set(keyAtoms, key, (set = new Set()))
+          set.add(atom)
+          get.addFinalizer(() => {
+            set.delete(atom)
+            if (set.size === 0 && Option.getOrUndefined(MutableHashMap.get(keyAtoms, key)) === set) {
+              MutableHashMap.remove(keyAtoms, key)
+            }
+          })
+        }
+        return get(atom)
+      },
+      { initialValueTarget: atom }
+    )
 
 const trackWritableByKeys =
   (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
@@ -103,34 +119,38 @@ const trackWritableByKeys =
 const trackReadDependencies =
   (key: ReadonlyArray<unknown>, getReads: () => DataDependencies.DataDependencies) =>
   <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
-    Atom.transform(atom, (get) => {
-      const reads = getReads()
-      if (DataDependencies.isNonEmpty(reads)) setQueryReadDependencies(key, reads)
-      get.addFinalizer(() => clearQueryReadDependencies(key))
-      return get(atom)
-    }, { initialValueTarget: atom })
+    Atom.transform(
+      atom,
+      (get) => {
+        const reads = getReads()
+        if (DataDependencies.isNonEmpty(reads)) setQueryReadDependencies(key, reads)
+        get.addFinalizer(() => clearQueryReadDependencies(key))
+        return get(atom)
+      },
+      { initialValueTarget: atom }
+    )
 
 const atomsForKeys = (keys: ReadonlyArray<unknown>): ReadonlyArray<Atom.Atom<AsyncResult.AsyncResult<any, any>>> => {
   const atoms = new Set<Atom.Atom<AsyncResult.AsyncResult<any, any>>>()
   for (const key of keys) {
     const set = Option.getOrUndefined(MutableHashMap.get(keyAtoms, key))
-    if (set) { for (const a of set) atoms.add(a) }
+    if (set) {
+      for (const a of set) atoms.add(a)
+    }
   }
   return [...atoms]
 }
 
 /** Refresh observed query atoms without making the triggering mutation await them. */
 export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
-  Effect
-    .gen(function*() {
-      const atoms = atomsToRefetch(atomsForKeys(keys))
-      yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
-      if (atoms.length === 0) return
-      yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
-        discard: true
-      })
+  Effect.gen(function* () {
+    const atoms = atomsToRefetch(atomsForKeys(keys))
+    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
+    if (atoms.length === 0) return
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+      discard: true
     })
-    .pipe(Effect.orDie)
+  }).pipe(Effect.orDie)
 
 /**
  * Invalidate the given keys and AWAIT the result. `keyAtoms` resolves all matching hierarchical
@@ -144,18 +164,16 @@ export const invalidateSoft = (keys: ReadonlyArray<unknown>): Effect.Effect<void
  * invalidation (`invalidateSoft`) still fires without awaiting.
  */
 export const invalidateAndAwait = (keys: ReadonlyArray<unknown>): Effect.Effect<void> =>
-  Effect
-    .gen(function*() {
-      const atoms = atomsToRefetch(atomsForKeys(keys))
-      yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
-      if (atoms.length === 0) return
-      yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
-        discard: true
-      })
-      // Contract: observers > 0 ⇒ wait for this refresh to finish.
-      yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
+  Effect.gen(function* () {
+    const atoms = atomsToRefetch(atomsForKeys(keys))
+    yield* Effect.forEach(atoms, captureAtomQueryParentSpan, { discard: true, concurrency: "unbounded" })
+    if (atoms.length === 0) return
+    yield* Effect.forEach(atoms, (atom) => Effect.sync(() => defaultRegistry.refresh(atom)), {
+      discard: true
     })
-    .pipe(Effect.orDie)
+    // Contract: observers > 0 ⇒ wait for this refresh to finish.
+    yield* Effect.forEach(atoms, (a) => awaitAtomResult(defaultRegistry, a).pipe(Effect.exit))
+  }).pipe(Effect.orDie)
 
 const isPlainObject = (o: unknown): o is Record<string, unknown> => {
   if (typeof o !== "object" || o === null) return false
@@ -194,16 +212,20 @@ export const replaceEqualDeep = (prev: any, next: any): any => {
 const structuralShare = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
-  Atom.transform(self, (get) => {
-    const next = get(self)
-    if (next._tag !== "Success") return next
-    const prev = Option.flatMap(get.self<AsyncResult.AsyncResult<A, E>>(), AsyncResult.value)
-    if (Option.isNone(prev)) return next
-    const shared = replaceEqualDeep(prev.value, next.value)
-    return shared === next.value
-      ? next
-      : AsyncResult.success(shared, { waiting: next.waiting, timestamp: next.timestamp })
-  }, { initialValueTarget: self })
+  Atom.transform(
+    self,
+    (get) => {
+      const next = get(self)
+      if (next._tag !== "Success") return next
+      const prev = Option.flatMap(get.self<AsyncResult.AsyncResult<A, E>>(), AsyncResult.value)
+      if (Option.isNone(prev)) return next
+      const shared = replaceEqualDeep(prev.value, next.value)
+      return shared === next.value
+        ? next
+        : AsyncResult.success(shared, { waiting: next.waiting, timestamp: next.timestamp })
+    },
+    { initialValueTarget: self }
+  )
 
 export interface AtomClientRuntime {
   readonly runtime: Atom.AtomRuntime<any, never>
@@ -225,9 +247,9 @@ export const makeAtomClientRuntime = <R>(
 }
 
 const isRetryable = (e: unknown): boolean =>
-  isHttpClientError(e)
-  || S.is(ServiceUnavailableError)(e)
-  || (typeof e === "object" && e !== null && (e as any)._tag === "RpcClientError")
+  isHttpClientError(e) ||
+  S.is(ServiceUnavailableError)(e) ||
+  (typeof e === "object" && e !== null && (e as any)._tag === "RpcClientError")
 
 export interface AtomQueryOptions {
   /** background-refresh threshold (TanStack staleTime; default 5s) */
@@ -282,16 +304,11 @@ const takeAtomQueryParentSpan = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A
   return span
 }
 
-const setAtomQueryParentSpan = <A, E>(
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  span: Tracer.AnySpan
-) => {
+const setAtomQueryParentSpan = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, span: Tracer.AnySpan) => {
   atomQueryParentSpans.set(atomSpanTarget(atom), span)
 }
 
-export const captureAtomQueryParentSpan = <A, E>(
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
-): Effect.Effect<void> =>
+export const captureAtomQueryParentSpan = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Effect.Effect<void> =>
   Effect.currentParentSpan.pipe(
     Effect.tap((span) => Effect.sync(() => setAtomQueryParentSpan(atom, span))),
     Effect.ignore
@@ -301,14 +318,9 @@ export const refreshAtomWithCurrentSpan = <A, E>(
   registry: AtomRegistry.AtomRegistry,
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
 ): Effect.Effect<void> =>
-  captureAtomQueryParentSpan(atom).pipe(
-    Effect.andThen(Effect.sync(() => registry.refresh(atom)))
-  )
+  captureAtomQueryParentSpan(atom).pipe(Effect.andThen(Effect.sync(() => registry.refresh(atom))))
 
-const setAtomQueryMetadata = <A, E>(
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  opts: AtomQueryOptions = {}
-) => {
+const setAtomQueryMetadata = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, opts: AtomQueryOptions = {}) => {
   const staleTimeMs = staleTimeMsOf(opts)
   const previous = atomQueryMetadata.get(atom)
   atomQueryMetadata.set(atom, {
@@ -324,11 +336,12 @@ export const getAtomQueryMetadata = <A, E>(
 /** Exported so the vue hook can do refetch-on-mount-per-observer with the same rule as swr. */
 export const isStaleResult = (r: AsyncResult.AsyncResult<any, any>, staleTimeMs: number): boolean => {
   if (r.waiting) return false
-  const ts = r._tag === "Success"
-    ? r.timestamp
-    : r._tag === "Failure"
-    ? Option.getOrUndefined(Option.map(r.previousSuccess, (s) => s.timestamp))
-    : undefined
+  const ts =
+    r._tag === "Success"
+      ? r.timestamp
+      : r._tag === "Failure"
+        ? Option.getOrUndefined(Option.map(r.previousSuccess, (s) => s.timestamp))
+        : undefined
   if (ts === undefined) return r._tag !== "Initial"
   return Date.now() - ts >= staleTimeMs
 }
@@ -363,31 +376,39 @@ export const queryFetchStates = new WeakMap<Atom.Atom<any>, QueryFetchState>()
 const recoverStuckWaitingOnMount =
   <A, E>(familyAtom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) =>
   (wrapped: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
-    Atom.transform(wrapped, (get) => {
-      const current = get.once(wrapped)
-      get.subscribe(wrapped, (value) => get.setSelf(value))
-      const state = queryFetchStates.get(familyAtom)
-      const waiting = current?.waiting === true
-      // Stuck: the result says `waiting` yet nothing is in-flight — an interrupt was hidden and left
-      // `waiting` dangling. Treat it as not-yet-fetched and refetch; a live fetch (`inFlight > 0`) is
-      // joined, not superseded. `recovering` prevents concurrent mounts from issuing more than one
-      // recovery fetch (cleared once a fetch is actually running again).
-      if (state && waiting && state.inFlight === 0 && !state.recovering) {
-        state.recovering = true
-        get.refresh(familyAtom)
-      }
-      return current
-    }, { initialValueTarget: wrapped })
+    Atom.transform(
+      wrapped,
+      (get) => {
+        const current = get.once(wrapped)
+        get.subscribe(wrapped, (value) => get.setSelf(value))
+        const state = queryFetchStates.get(familyAtom)
+        const waiting = current?.waiting === true
+        // Stuck: the result says `waiting` yet nothing is in-flight — an interrupt was hidden and left
+        // `waiting` dangling. Treat it as not-yet-fetched and refetch; a live fetch (`inFlight > 0`) is
+        // joined, not superseded. `recovering` prevents concurrent mounts from issuing more than one
+        // recovery fetch (cleared once a fetch is actually running again).
+        if (state && waiting && state.inFlight === 0 && !state.recovering) {
+          state.recovering = true
+          get.refresh(familyAtom)
+        }
+        return current
+      },
+      { initialValueTarget: wrapped }
+    )
 
 /** Runs `setup` once per mount (not per result change) and forwards the wrapped atom's results. */
 const withMountLifetime =
   <A, E>(setup: (get: Atom.AtomContext) => void) =>
   (atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<AsyncResult.AsyncResult<A, E>> =>
-    Atom.transform(atom, (get) => {
-      setup(get)
-      get.subscribe(atom, (value) => get.setSelf(value))
-      return get.once(atom)
-    }, { initialValueTarget: atom })
+    Atom.transform(
+      atom,
+      (get) => {
+        setup(get)
+        get.subscribe(atom, (value) => get.setSelf(value))
+        return get.once(atom)
+      },
+      { initialValueTarget: atom }
+    )
 
 export const withQueryOptions = <A, E>(
   self: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -480,9 +501,8 @@ export const buildQueryFamily = <I, A, E>(
   return Atom.family((input: I) => {
     const fullKey = [...baseKey, input]
     // metadata/live identity: projections of one handler read different data
-    const projectedFullKey = self.queryKeyProjectionHash === undefined
-      ? fullKey
-      : [...baseKey, self.queryKeyProjectionHash, input]
+    const projectedFullKey =
+      self.queryKeyProjectionHash === undefined ? fullKey : [...baseKey, self.queryKeyProjectionHash, input]
     // Record the repository/server read-dependencies seen while fetching, keyed by `fullKey`, so a
     // later mutation whose writes intersect them can derive this query as an invalidation target.
     // The last recorded reads are retained on the (memoized) family atom so `trackReadDependencies`
@@ -498,51 +518,48 @@ export const buildQueryFamily = <I, A, E>(
         // A fetch is now running: the atom is not stuck, and any pending recovery is fulfilled.
         fetchState.recovering = false
         fetchState.inFlight++
-        const recordReads = Effect
-          .gen(function*() {
-            const readsRef = yield* Ref.make(DataDependencies.empty())
-            const writesRef = yield* Ref.make(DataDependencies.empty())
-            const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
-            return yield* self
-              .handler(input)
-              .pipe(
-                Effect.provideService(DataDependencies.DataDependencyRecorder, recorder),
-                // a failure (e.g. not found) still depends on what it read; keep a displayed success's reads
-                Effect.onExit((exit) =>
-                  Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)
-                    ? Effect.void
-                    : Ref.get(readsRef).pipe(Effect.map((reads) => {
+        const recordReads = Effect.gen(function* () {
+          const readsRef = yield* Ref.make(DataDependencies.empty())
+          const writesRef = yield* Ref.make(DataDependencies.empty())
+          const recorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
+          return yield* self.handler(input).pipe(
+            Effect.provideService(DataDependencies.DataDependencyRecorder, recorder),
+            // a failure (e.g. not found) still depends on what it read; keep a displayed success's reads
+            Effect.onExit((exit) =>
+              Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)
+                ? Effect.void
+                : Ref.get(readsRef).pipe(
+                    Effect.map((reads) => {
                       lastReads = Exit.isSuccess(exit) ? reads : DataDependencies.merge(lastReads, reads)
                       setQueryReadDependencies(projectedFullKey, lastReads)
-                    }))
-                )
-              )
-          })
-        const effect = Effect
-          .acquireUseRelease(
-            Effect.sync(() => acquireLiveQueryFetch(projectedFullKey)),
-            (live) =>
-              (live === undefined ? Effect.void : Effect.promise((signal) => awaitLiveQueryFetch(live, signal))).pipe(
-                Effect.andThen(recordReads.pipe(Effect.retry({ times: 5, while: isRetryable })))
-              ),
-            (live) =>
-              Effect.sync(() => {
-                if (live !== undefined) releaseLiveQueryFetch(live)
-              })
+                    })
+                  )
+            )
           )
-          .pipe(
-            Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-            // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
-            // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that
-            // reads as "stuck", so the next mount recovers it (`recoverStuckWaitingOnMount`). We do not
-            // re-fire here — the interrupt was intentional; recovery is driven by a genuine (re)mount.
-            Effect.onExit(() =>
-              Effect.sync(() => {
-                fetchState.inFlight = Math.max(0, fetchState.inFlight - 1)
-              })
+        })
+        const effect = Effect.acquireUseRelease(
+          Effect.sync(() => acquireLiveQueryFetch(projectedFullKey)),
+          (live) =>
+            (live === undefined ? Effect.void : Effect.promise((signal) => awaitLiveQueryFetch(live, signal))).pipe(
+              Effect.andThen(recordReads.pipe(Effect.retry({ times: 5, while: isRetryable })))
             ),
-            Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
-          )
+          (live) =>
+            Effect.sync(() => {
+              if (live !== undefined) releaseLiveQueryFetch(live)
+            })
+        ).pipe(
+          Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+          // On exit, the compute is no longer in-flight. An interrupt (subscriber lost interest / a
+          // superseding refresh) may leave the result at `waiting`; with `inFlight` back at 0 that
+          // reads as "stuck", so the next mount recovers it (`recoverStuckWaitingOnMount`). We do not
+          // re-fire here — the interrupt was intentional; recovery is driven by a genuine (re)mount.
+          Effect.onExit(() =>
+            Effect.sync(() => {
+              fetchState.inFlight = Math.max(0, fetchState.inFlight - 1)
+            })
+          ),
+          Effect.withSpan(`query ${self.id}`, {}, { captureStackTrace: false })
+        )
         const parentSpan = takeAtomQueryParentSpan(atom)
         return parentSpan === undefined
           ? effect
@@ -595,14 +612,13 @@ export const buildStreamQueryFamily = <I, A, E>(
 
   return Atom.family((input: I) => {
     let atom = rt.runtime.pull(
-      self.handler(input).pipe(
-        Stream.tapCause((cause) => Cause.hasDies(cause) ? reportRuntimeError(cause) : Effect.void)
-      )
+      self
+        .handler(input)
+        .pipe(Stream.tapCause((cause) => (Cause.hasDies(cause) ? reportRuntimeError(cause) : Effect.void)))
     )
     const fullKey = [...baseKey, input]
-    const projectedFullKey = self.queryKeyProjectionHash === undefined
-      ? fullKey
-      : [...baseKey, self.queryKeyProjectionHash, input]
+    const projectedFullKey =
+      self.queryKeyProjectionHash === undefined ? fullKey : [...baseKey, self.queryKeyProjectionHash, input]
     const reactivityKeys = uniqueKeys([...prefixesOf(fullKey), ...prefixesOf(projectedFullKey)])
     atom = rt.factory.withReactivity(reactivityKeys)(atom)
     atom = trackWritableByKeys(reactivityKeys)(atom)

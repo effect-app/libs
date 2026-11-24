@@ -30,10 +30,10 @@ const mountForm = <T>(setupForm: () => T): T => {
 describe("handleSubmitEffect", () => {
   it("succeeds with void on valid input (no checkErrors)", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "ok" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "ok" },
+        onSubmit: async () => undefined
+      })
     )
     const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect()))
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -41,10 +41,10 @@ describe("handleSubmitEffect", () => {
 
   it("succeeds with void even on invalid input without checkErrors", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => undefined
+      })
     )
     const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect()))
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -52,14 +52,12 @@ describe("handleSubmitEffect", () => {
 
   it("fails with FormErrors when checkErrors and validation fails", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => undefined
+      })
     )
-    const exit = await Effect.runPromise(
-      Effect.exit(form.handleSubmitEffect({ checkErrors: true }))
-    )
+    const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect({ checkErrors: true })))
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failReason = exit.cause.reasons.find(Cause.isFailReason)
@@ -70,15 +68,12 @@ describe("handleSubmitEffect", () => {
   it("delivers decoded To to onSubmit (not raw From)", async () => {
     let received: unknown
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ n: S.FiniteFromString }),
-        {
-          defaultValues: { n: "42" },
-          onSubmit: async ({ value }) => {
-            received = value
-          }
+      useOmegaForm(S.Struct({ n: S.FiniteFromString }), {
+        defaultValues: { n: "42" },
+        onSubmit: async ({ value }) => {
+          received = value
         }
-      )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(received).toEqual({ n: 42 })
@@ -87,16 +82,13 @@ describe("handleSubmitEffect", () => {
   it("awaits Promise-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: async () => {
-            await new Promise((r) => setTimeout(r, 5))
-            resolved = true
-          }
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => {
+          await new Promise((r) => setTimeout(r, 5))
+          resolved = true
         }
-      )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)
@@ -105,16 +97,13 @@ describe("handleSubmitEffect", () => {
   it("awaits Effect-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: () =>
-            Effect.sync(() => {
-              resolved = true
-            })
-        }
-      )
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: () =>
+          Effect.sync(() => {
+            resolved = true
+          })
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)
@@ -123,18 +112,15 @@ describe("handleSubmitEffect", () => {
   it("awaits Fiber-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: () =>
-            Effect.runFork(
-              Effect.sync(() => {
-                resolved = true
-              })
-            )
-        }
-      )
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: () =>
+          Effect.runFork(
+            Effect.sync(() => {
+              resolved = true
+            })
+          )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)

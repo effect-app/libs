@@ -19,16 +19,16 @@ export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
       Effect.flatMap(level, (l) =>
         l === "info" || l === "debug" || l === "warn"
           ? Effect.logWarning(...message).pipe(withLogNamespace)
-          : Effect.void),
+          : Effect.void
+      ),
     logError: (...message: ReadonlyArray<any>) => Effect.logError(...message).pipe(withLogNamespace),
     logFatal: (...message: ReadonlyArray<any>) => Effect.logFatal(...message).pipe(withLogNamespace),
     logInfo: (...message: ReadonlyArray<any>) =>
-      Effect.flatMap(
-        level,
-        (l) => l === "info" || l === "debug" ? Effect.logInfo(...message).pipe(withLogNamespace) : Effect.void
+      Effect.flatMap(level, (l) =>
+        l === "info" || l === "debug" ? Effect.logInfo(...message).pipe(withLogNamespace) : Effect.void
       ),
     logDebug: (...message: ReadonlyArray<any>) =>
-      Effect.flatMap(level, (l) => l === "debug" ? Effect.logDebug(...message).pipe(withLogNamespace) : Effect.void),
+      Effect.flatMap(level, (l) => (l === "debug" ? Effect.logDebug(...message).pipe(withLogNamespace) : Effect.void)),
     // for now always log
     logWithLevel: (level: LogLevel.Severity, ...message: ReadonlyArray<any>) =>
       Effect.logWithLevel(level)(...message).pipe(withLogNamespace)

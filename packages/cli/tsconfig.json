@@ -1,17 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "esnext"
-    ],
+    "lib": ["esnext"],
     "moduleResolution": "Node16",
     "outDir": "./dist",
     "rootDir": "./src",
     "verbatimModuleSyntax": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "include": [
-    "./src/**/*.ts"
-  ],
+  "include": ["./src/**/*.ts"],
   "references": []
 }

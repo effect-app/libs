@@ -1,30 +1,12 @@
 <template>
   <exampleForm.Form>
     <div>isDirty: {{ isDirty }}</div>
-    <exampleForm.Input
-      label="aString"
-      name="aString"
-    />
-    <exampleForm.Input
-      label="aStringMin2Max3Optional"
-      name="aStringMin2Max3Optional"
-    />
-    <exampleForm.Input
-      label="aNumberMin2Max4Nullable"
-      name="aNumberMin2Max4Nullable"
-    />
-    <v-btn type="submit">
-      Submit
-    </v-btn>
-    <v-btn
-      type="reset"
-      @click.prevent="exampleForm.clear()"
-    >
-      Clear
-    </v-btn>
-    <v-btn @click="exampleForm.reset()">
-      Reset
-    </v-btn>
+    <exampleForm.Input label="aString" name="aString" />
+    <exampleForm.Input label="aStringMin2Max3Optional" name="aStringMin2Max3Optional" />
+    <exampleForm.Input label="aNumberMin2Max4Nullable" name="aNumberMin2Max4Nullable" />
+    <v-btn type="submit"> Submit </v-btn>
+    <v-btn type="reset" @click.prevent="exampleForm.clear()"> Clear </v-btn>
+    <v-btn @click="exampleForm.reset()"> Reset </v-btn>
     <exampleForm.Errors />
   </exampleForm.Form>
 </template>
@@ -37,9 +19,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 const exampleForm = useOmegaForm(
   S.Struct({
     aString: S.String,
-    aStringMin2Max3Optional: S.UndefinedOr(
-      S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
-    ),
+    aStringMin2Max3Optional: S.UndefinedOr(S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))),
     aNumberMin2Max4Nullable: S.NullOr(S.Finite.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 }))))
   }),
   {

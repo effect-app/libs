@@ -138,7 +138,10 @@ export function createModelTypeResolver(args: {
       const printer = makePrinter(ts, checker, wanted)
       const blocks: Array<string> = []
       const facadeType = (body: string) =>
-        body.replace(/\.Type\b/g, "").replace(/\n    /g, "\n  ").replace(/\n  }$/, "\n}")
+        body
+          .replace(/\.Type\b/g, "")
+          .replace(/\n    /g, "\n  ")
+          .replace(/\n  }$/, "\n}")
       for (const name of modelNames) {
         const nameNode = schemaByName.get(name)
         if (!nameNode) return null
@@ -149,9 +152,7 @@ export function createModelTypeResolver(args: {
         if (encoded === null) return null
         const emitType = opts.facade || opts.type || opts.make
         const emitMake = opts.facade || opts.make
-        const lines = opts.facade
-          ? []
-          : [`export namespace ${name} {`, `  export interface Encoded ${encoded}`]
+        const lines = opts.facade ? [] : [`export namespace ${name} {`, `  export interface Encoded ${encoded}`]
         if (emitType) {
           const typ = printer.member(schemaType, "Type", nameNode)
           if (typ === null) return null
@@ -208,7 +209,7 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
   // with a const reference, when one is available.
   const FIELD_REDIRECT_LIMIT = 200
 
-  const skipAlias = (s: Symbol_): Symbol_ => (s.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(s) : s
+  const skipAlias = (s: Symbol_): Symbol_ => ((s.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(s) : s)
 
   // Prefix a model symbol with its enclosing namespace(s): a model `Label` nested in
   // `namespace ProcessingStates` is referenced as `ProcessingStates.Label`. Walks up
@@ -218,7 +219,7 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
     let p = (sym as Symbol_ & { parent?: Symbol_ }).parent
     while (p) {
       if ((p.flags & (ts.SymbolFlags.ValueModule | ts.SymbolFlags.NamespaceModule)) === 0) break
-      if (!p.name || p.name.startsWith("\"") || p.name.startsWith("'")) break
+      if (!p.name || p.name.startsWith('"') || p.name.startsWith("'")) break
       name = `${p.name}.${name}`
       p = (p as Symbol_ & { parent?: Symbol_ }).parent
     }
@@ -229,7 +230,14 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
   // models, or any imported class/interface/namespace.
   function isModelParent(p: Symbol_): boolean {
     if (modelNames.has(p.name)) return true
-    return (p.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface | ts.SymbolFlags.ValueModule | ts.SymbolFlags.NamespaceModule)) !== 0
+    return (
+      (p.flags &
+        (ts.SymbolFlags.Class |
+          ts.SymbolFlags.Interface |
+          ts.SymbolFlags.ValueModule |
+          ts.SymbolFlags.NamespaceModule)) !==
+      0
+    )
   }
 
   // If `t` is a model's `Encoded` namespace interface -> "Ns.Name.Encoded".
@@ -285,8 +293,7 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
   // can be replaced by `X.Encoded` / `typeof X.Encoded` / a union/wrapper of those ---
 
   const PASSTHROUGH = new Set(["withConstructorDefault", "withDefault", "withDecodingDefault", "annotations"])
-  const isPassthrough = (n: Node | undefined): boolean =>
-    !!n && ts.isIdentifier(n) && PASSTHROUGH.has(n.text)
+  const isPassthrough = (n: Node | undefined): boolean => !!n && ts.isIdentifier(n) && PASSTHROUGH.has(n.text)
 
   function wrapperKind(name: string): "" | "nonempty" | "array" | "nullor" {
     switch (name) {
@@ -403,7 +410,12 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
           let s = checker.getSymbolAtLocation(c.expression)
           if (s) {
             s = skipAlias(s)
-            if (!visited.has(s) && s.valueDeclaration && ts.isVariableDeclaration(s.valueDeclaration) && s.valueDeclaration.initializer) {
+            if (
+              !visited.has(s) &&
+              s.valueDeclaration &&
+              ts.isVariableDeclaration(s.valueDeclaration) &&
+              s.valueDeclaration.initializer
+            ) {
               visited.add(s)
               walk(s.valueDeclaration.initializer)
             }
@@ -430,7 +442,8 @@ function makePrinter(ts: TS, checker: TypeChecker, modelNames: ReadonlySet<strin
         return `typeof ${name}.Encoded`
       case "Type":
         // A class/interface/alias name already denotes the decoded type directly.
-        if ((sym.flags & (ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Class | ts.SymbolFlags.Interface)) !== 0) return name
+        if ((sym.flags & (ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Class | ts.SymbolFlags.Interface)) !== 0)
+          return name
         return `typeof ${name}.Type`
       case "Make":
         if (exports?.has("Make" as import("typescript").__String)) return `${name}.Make`

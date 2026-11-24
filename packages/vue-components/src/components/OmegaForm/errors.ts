@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type Component, computed, type ComputedRef, type ConcreteComponent, h, onUnmounted, type Ref, ref, watch } from "vue"
+import {
+  type Component,
+  computed,
+  type ComputedRef,
+  type ConcreteComponent,
+  h,
+  onUnmounted,
+  type Ref,
+  ref,
+  watch
+} from "vue"
 import { useIntl } from "../../utils"
 import type { OmegaError } from "./types"
 import type { OF } from "./useOmegaForm"
@@ -27,13 +37,8 @@ export const useErrorLabel = (form: OF<any, any>) => {
   return i18n
 }
 
-export const eHoc = (errorProps: {
-  form: OF<any, any>
-  fieldMap: Ref<Map<string, { id: string; label: string }>>
-}) => {
-  return function FormHoc<P>(
-    WrappedComponent: Component<P>
-  ): ConcreteComponent<P> {
+export const eHoc = (errorProps: { form: OF<any, any>; fieldMap: Ref<Map<string, { id: string; label: string }>> }) => {
+  return function FormHoc<P>(WrappedComponent: Component<P>): ConcreteComponent<P> {
     return {
       setup() {
         const { fieldMap, form } = errorProps
@@ -72,9 +77,7 @@ export const eHoc = (errorProps: {
           const submitErrors: OmegaError[] = []
           const submitIssueMaps = [errorMap.value.onDynamic, errorMap.value.onSubmit].filter(
             Boolean
-          ) as unknown as Array<
-            Record<string, unknown>
-          >
+          ) as unknown as Array<Record<string, unknown>>
           const seenPaths = new Set<string>()
           for (const issuesByPath of submitIssueMaps) {
             for (const [_, issues] of Object.entries(issuesByPath)) {
@@ -108,11 +111,15 @@ export const eHoc = (errorProps: {
         }
       },
       render({ errors, generalErrors }: any) {
-        return h(WrappedComponent, {
-          errors,
-          generalErrors,
-          ...this.$attrs
-        }, this.$slots)
+        return h(
+          WrappedComponent,
+          {
+            errors,
+            generalErrors,
+            ...this.$attrs
+          },
+          this.$slots
+        )
       }
     }
   }
@@ -121,9 +128,13 @@ export const eHoc = (errorProps: {
 export const makeFieldMap = () => {
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
   const registerField = (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-    watch(field, (f) => {
-      fieldMap.value.set(normalizePath(f.name), { label: f.label, id: f.id })
-    }, { immediate: true })
+    watch(
+      field,
+      (f) => {
+        fieldMap.value.set(normalizePath(f.name), { label: f.label, id: f.id })
+      },
+      { immediate: true }
+    )
     onUnmounted(() => {
       // Only delete if we still own this entry (id matches)
       // This prevents old components from deleting entries registered by new components

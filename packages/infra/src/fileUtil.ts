@@ -26,12 +26,13 @@ export function createReadableStream(fileName: string) {
 }
 
 export function openFile(fileName: string) {
-  return Effect.acquireRelease(tryFs(() => fs.open(fileName)), (f) => Effect.promise(() => f.close()))
+  return Effect.acquireRelease(
+    tryFs(() => fs.open(fileName)),
+    (f) => Effect.promise(() => f.close())
+  )
 }
 
-export function tempFile(
-  folder: string
-) {
+export function tempFile(folder: string) {
   return (prefix: string) => (data: Data, options?: FileOptions) => tempFile_(folder, prefix, data, options)
 }
 
@@ -44,27 +45,20 @@ type Data =
 
 export type FileOptions =
   | (ObjectEncodingOptions & {
-    mode?: Mode | undefined
-    flag?: OpenMode | undefined
-  } & Abortable)
+      mode?: Mode | undefined
+      flag?: OpenMode | undefined
+    } & Abortable)
   | BufferEncoding
   | null
-export function tempFile_(
-  folder: string,
-  prefix: string,
-  data: Data,
-  options?: FileOptions
-) {
+export function tempFile_(folder: string, prefix: string, data: Data, options?: FileOptions) {
   return Effect.flatMap(
-    Effect
-      .sync(() => path.join(os.tmpdir(), folder, `${prefix}-` + crypto.randomUUID())),
+    Effect.sync(() => path.join(os.tmpdir(), folder, `${prefix}-` + crypto.randomUUID())),
     (fp) =>
       Effect.acquireRelease(
-        Effect
-          .map(
-            tryFs(() => fs.writeFile(fp, data, options)),
-            (_) => fp
-          ),
+        Effect.map(
+          tryFs(() => fs.writeFile(fp, data, options)),
+          (_) => fp
+        ),
         (p) => Effect.promise(() => fs.unlink(p))
       )
   )
@@ -98,33 +92,28 @@ export function readTextFile(fileName: string) {
  * @param action - The Effect to execute while holding the lock
  * @returns The result of the action
  */
-export function withFileLock<A, E, R>(
-  filePath: string,
-  action: Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> {
-  return Effect
-    .gen(function*() {
-      // get lock
-      const release = yield* Effect.promise(() =>
-        lockfile.lock(filePath, {
-          retries: {
-            retries: 100, // retry up to 100 times
-            minTimeout: 50, // start with 50ms delay
-            maxTimeout: 2000, // max 2s delay between retries
-            randomize: true // add randomness to avoid thundering herd
-          },
-          stale: 10000, // lock is stale after 10s (process crashed)
-          realpath: false // don't resolve symlinks
-        })
-      )
+export function withFileLock<A, E, R>(filePath: string, action: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> {
+  return Effect.gen(function* () {
+    // get lock
+    const release = yield* Effect.promise(() =>
+      lockfile.lock(filePath, {
+        retries: {
+          retries: 100, // retry up to 100 times
+          minTimeout: 50, // start with 50ms delay
+          maxTimeout: 2000, // max 2s delay between retries
+          randomize: true // add randomness to avoid thundering herd
+        },
+        stale: 10000, // lock is stale after 10s (process crashed)
+        realpath: false // don't resolve symlinks
+      })
+    )
 
-      // ensure lock is released
-      yield* Effect.addFinalizer(() =>
-        // we have to make sure we use a thunk, or the library will cause problems because effect passes abortsignal as first argument
-        Effect.promise(() => release())
-      )
+    // ensure lock is released
+    yield* Effect.addFinalizer(() =>
+      // we have to make sure we use a thunk, or the library will cause problems because effect passes abortsignal as first argument
+      Effect.promise(() => release())
+    )
 
-      return yield* action
-    })
-    .pipe(Effect.scoped)
+    return yield* action
+  }).pipe(Effect.scoped)
 }

@@ -14,7 +14,13 @@ import * as Stream from "effect/Stream"
 import { TestClock } from "effect/testing"
 import { createApp, effectScope, ref } from "vue"
 import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime } from "../src/atomQuery.js"
-import { clearQueryReadDependencies, getDerivedInvalidationKeys, partitionInvalidationKeys, registerQueryInvalidationMode, setQueryReadDependencies } from "../src/dependencyMetadata.js"
+import {
+  clearQueryReadDependencies,
+  getDerivedInvalidationKeys,
+  partitionInvalidationKeys,
+  registerQueryInvalidationMode,
+  setQueryReadDependencies
+} from "../src/dependencyMetadata.js"
 import { makeTanstackQuery, makeTanstackQueryInvalidator } from "../src/internal/tanstackQuery.js"
 import { invalidateQueries, makeStreamMutation2, type MutationOptionsBase } from "../src/mutate.js"
 
@@ -22,7 +28,7 @@ const repo = DataDependencies.repo("FrontendRepo")
 const otherRepo = DataDependencies.repo("OtherRepo")
 
 it.live("stream mutations accumulate repeated server keys and invalidate once when settled", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const key: InvalidationKey = ["$PickList", "List"]
     const calls: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
     const queryInvalidator = {
@@ -39,10 +45,11 @@ it.live("stream mutations accumulate repeated server keys and invalidate once wh
     yield* mutation(undefined).pipe(Stream.runDrain)
 
     expect(calls).toEqual([[key]])
-  }))
+  })
+)
 
 it.live("stream mutations flush write-deps once when they first arrive, then again on settle", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const jobKey: InvalidationKey = ["$PickList", "GetActiveJob"]
     const listKey: InvalidationKey = ["$PickList", "List"]
     const jobRepo = DataDependencies.repo("PickJob")
@@ -55,13 +62,9 @@ it.live("stream mutations flush write-deps once when they first arrive, then aga
     const gate = yield* Deferred.make<void>()
     const queryInvalidator = {
       invalidateAndAwait: (keys: ReadonlyArray<ReadonlyArray<unknown>>) =>
-        Effect
-          .sync(() => {
-            calls.push(keys)
-          })
-          .pipe(
-            Effect.flatMap(() => calls.length === 1 ? Deferred.succeed(firstFlush, undefined) : Effect.void)
-          )
+        Effect.sync(() => {
+          calls.push(keys)
+        }).pipe(Effect.flatMap(() => (calls.length === 1 ? Deferred.succeed(firstFlush, undefined) : Effect.void)))
     }
     const mutation = makeStreamMutation2(queryInvalidator)({
       id: "PickList.StartBatchPrint",
@@ -69,7 +72,7 @@ it.live("stream mutations flush write-deps once when they first arrive, then aga
         Stream.make(1).pipe(
           Stream.tap(() => DataDependencies.write(jobRepo)),
           Stream.concat(Stream.fromEffect(Deferred.await(gate).pipe(Effect.as(2)))),
-          Stream.tap((n) => n === 2 ? DataDependencies.write(itemRepo) : Effect.void)
+          Stream.tap((n) => (n === 2 ? DataDependencies.write(itemRepo) : Effect.void))
         )
     })
 
@@ -85,7 +88,8 @@ it.live("stream mutations flush write-deps once when they first arrive, then aga
       clearQueryReadDependencies(jobKey)
       clearQueryReadDependencies(listKey)
     }
-  }))
+  })
+)
 
 // --- shared registry + derivation logic --------------------------------------------------------
 
@@ -161,7 +165,7 @@ it("derivation intersects when any one of multiple reads matches a write", () =>
 })
 
 it.effect("a command's write deps invalidate active queries whose recorded reads intersect", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const inventoryKey = ["$Inventory", "List", undefined]
     setQueryReadDependencies(inventoryKey, new Set([repo]))
 
@@ -183,7 +187,8 @@ it.effect("a command's write deps invalidate active queries whose recorded reads
 
     expect(result).toBe(123)
     expect(recorded).toContainEqual(inventoryKey)
-  }))
+  })
+)
 
 // --- atom engine: recording wires through buildQueryFamily ---------------------------------------
 
@@ -366,8 +371,11 @@ const makeAtomHarness = (queryRepo: DataDependencies.DataDependency): EngineHarn
     runs: () => runs,
     runCommand: (options, command) =>
       Effect.runPromise(
-        invalidateQueries({ id: "MatrixAtom.Save" }, options, invalidator)(command, { id: "x" })
-          .pipe(Effect.andThen(awaitAtomResult(defaultRegistry, atom).pipe(Effect.exit)))
+        invalidateQueries(
+          { id: "MatrixAtom.Save" },
+          options,
+          invalidator
+        )(command, { id: "x" }).pipe(Effect.andThen(awaitAtomResult(defaultRegistry, atom).pipe(Effect.exit)))
       ),
     dispose: () => {
       unmount()

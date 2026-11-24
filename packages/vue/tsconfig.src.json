@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "esnext",
-      "DOM"
-    ],
+    "lib": ["esnext", "DOM"],
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "esModuleInterop": true,
     "rootDir": "./src",
@@ -12,9 +9,7 @@
     "moduleResolution": "Node16",
     "outDir": "./dist"
   },
-  "include": [
-    "./src/**/*.ts"
-  ],
+  "include": ["./src/**/*.ts"],
   "exclude": [
     "./dist",
     "*.test.ts",

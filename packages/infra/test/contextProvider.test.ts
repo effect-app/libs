@@ -9,91 +9,79 @@ import { ContextProvider, mergeContextProviders, MergedContextProvider } from ".
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Context.Service<MyContextProvider>()(
-  "MyContextProvider",
-  {
-    make: Effect.gen(function*() {
-      yield* SomeService
-      if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider extends Context.Service<MyContextProvider>()("MyContextProvider", {
+  make: Effect.gen(function* () {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.gen(function*() {
-        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-        yield* Scope.Scope
+    return Effect.gen(function* () {
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+      yield* Scope.Scope
 
-        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-        yield* Effect.succeed("this is a generator")
+      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+      yield* Effect.succeed("this is a generator")
 
-        return Some.context({ a: 1 })
-      })
+      return Some.context({ a: 1 })
     })
-  }
-) {
+  })
+}) {
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2 extends Context.Service<MyContextProvider2>()(
-  "MyContextProvider2",
-  {
-    make: Effect.gen(function*() {
-      if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2 extends Context.Service<MyContextProvider2>()("MyContextProvider2", {
+  make: Effect.gen(function* () {
+    if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.gen(function*() {
-        // we test without dependencies, so that we end up with an R of never.
+    return Effect.gen(function* () {
+      // we test without dependencies, so that we end up with an R of never.
 
-        return SomeElse.context({ b: 2 })
-      })
+      return SomeElse.context({ b: 2 })
     })
-  }
-) {
+  })
+}) {
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2Gen extends Context.Service<MyContextProvider2Gen>()(
-  "MyContextProvider2Gen",
-  {
-    make: Effect.gen(function*() {
-      if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2Gen extends Context.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
+  make: Effect.gen(function* () {
+    if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return function*() {
-        // we test without dependencies, so that we end up with an R of never
+    return function* () {
+      // we test without dependencies, so that we end up with an R of never
 
-        return SomeElse.context({ b: 2 })
-      }
-    })
-  }
-) {
+      return SomeElse.context({ b: 2 })
+    }
+  })
+}) {
   static readonly Default = Layer.effect(this, this.make)
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProviderGen extends Context.Service<MyContextProviderGen>()(
-  "MyContextProviderGen",
-  {
-    make: Effect.gen(function*() {
-      yield* SomeService
-      if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProviderGen extends Context.Service<MyContextProviderGen>()("MyContextProviderGen", {
+  make: Effect.gen(function* () {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return function*() {
-        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-        yield* Scope.Scope
+    return function* () {
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+      yield* Scope.Scope
 
-        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-        yield* Effect.succeed("this is a generator")
+      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+      yield* Effect.succeed("this is a generator")
 
-        return Some.context({ a: 1 })
-      }
-    })
-  }
-) {
+      return Some.context({ a: 1 })
+    }
+  })
+}) {
   static readonly Default = Layer.effect(this, this.make)
 }
 
 export const someContextProvider = ContextProvider({
-  effect: Effect.gen(function*() {
+  effect: Effect.gen(function* () {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.gen(function*() {
+    return Effect.gen(function* () {
       // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
@@ -108,11 +96,11 @@ export const someContextProvider = ContextProvider({
   })
 })
 export const someContextProviderGen = ContextProvider({
-  effect: Effect.gen(function*() {
+  effect: Effect.gen(function* () {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return function*() {
+    return function* () {
       // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 

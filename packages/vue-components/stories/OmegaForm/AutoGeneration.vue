@@ -2,45 +2,38 @@
   <form.Form>
     <form.AutoGen
       :pick="['string', 'number', 'email']"
-      :sort="Order.mapInput(
-        Order.String,
-        (
-          x: Meta
-        ) => x.name
-      )"
-      :label-map="(a) =>
-      Match.value(a).pipe(
-        Match.when('string', () => 'a beautiful string'),
-        Match.when('number', () => 'a big number'),
-        Match.orElse(constUndefined)
-      )"
-      :filter-map="(a, b) => {
-        switch (a) {
-          case 'string':
-            return {
-              ...b,
-              label: 'a VERY beautiful string',
-              clearable: true
-            }
-          case 'email':
-            return false
-          default:
-            return { ...b, clearable: true }
+      :sort="Order.mapInput(Order.String, (x: Meta) => x.name)"
+      :label-map="
+        (a) =>
+          Match.value(a).pipe(
+            Match.when('string', () => 'a beautiful string'),
+            Match.when('number', () => 'a big number'),
+            Match.orElse(constUndefined)
+          )
+      "
+      :filter-map="
+        (a, b) => {
+          switch (a) {
+            case 'string':
+              return {
+                ...b,
+                label: 'a VERY beautiful string',
+                clearable: true
+              }
+            case 'email':
+              return false
+            default:
+              return { ...b, clearable: true }
+          }
         }
-      }"
+      "
     />
     <v-container>
       <v-row>
-        <form.AutoGen
-          :omit="['string', 'number', 'email']"
-          :order="['date', 'url']"
-        >
+        <form.AutoGen :omit="['string', 'number', 'email']" :order="['date', 'url']">
           <template #default="{ child }">
             <v-col cols="4">
-              <form.Input
-                :name="child.name"
-                :label="child.label"
-              />
+              <form.Input :name="child.name" :label="child.label" />
             </v-col>
           </template>
         </form.AutoGen>
@@ -65,10 +58,6 @@ const schema = S.Struct({
   url: S.Url,
   date: S.DateFromString
 })
-type Meta = OmegaAutoGenMeta<
-  typeof schema.Encoded,
-  typeof schema.Type,
-  DeepKeys<typeof schema.Encoded>
->
+type Meta = OmegaAutoGenMeta<typeof schema.Encoded, typeof schema.Type, DeepKeys<typeof schema.Encoded>>
 const form = useOmegaForm(schema)
 </script>

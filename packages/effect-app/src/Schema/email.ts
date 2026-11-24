@@ -9,24 +9,22 @@ export interface EmailBrand extends Simplify<NonEmptyStringBrand & B.Brand<"Emai
 
 export type Email = string & EmailBrand
 
-export const Email = S
-  .String
-  .pipe(
-    S.annotate({
-      title: "Email",
-      description: "an email according to RFC 5322",
-      format: "email"
-    }),
-    S.check(S.isMinLength(3), /* a@b */ S.isMaxLength(998)),
-    S.refine(isValidEmail as Refinement<string, Email>, {
-      identifier: "Email",
-      description: "an email according to RFC 5322",
-      // JSON Schema minLength counts code points; isMinLength(3) is UTF-16 units (ceil(3/2)=2).
-      jsonSchema: { format: "email", minLength: 2, maxLength: 998 },
-      // Native Arbitrary cannot invert `isValidEmail`; without a constraint, rejection sampling
-      // discards (almost) every random string.
-      arbitraryConstraint: {
-        patterns: [{ source: "^[a-z]{3,10}@[a-z]{3,10}\\.(?:com|net|org|de)$", flags: "" }]
-      }
-    })
-  )
+export const Email = S.String.pipe(
+  S.annotate({
+    title: "Email",
+    description: "an email according to RFC 5322",
+    format: "email"
+  }),
+  S.check(S.isMinLength(3), /* a@b */ S.isMaxLength(998)),
+  S.refine(isValidEmail as Refinement<string, Email>, {
+    identifier: "Email",
+    description: "an email according to RFC 5322",
+    // JSON Schema minLength counts code points; isMinLength(3) is UTF-16 units (ceil(3/2)=2).
+    jsonSchema: { format: "email", minLength: 2, maxLength: 998 },
+    // Native Arbitrary cannot invert `isValidEmail`; without a constraint, rejection sampling
+    // discards (almost) every random string.
+    arbitraryConstraint: {
+      patterns: [{ source: "^[a-z]{3,10}@[a-z]{3,10}\\.(?:com|net|org|de)$", flags: "" }]
+    }
+  })
+)

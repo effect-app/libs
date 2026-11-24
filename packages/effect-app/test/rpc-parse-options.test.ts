@@ -82,29 +82,29 @@ const postUsers = (annotate: boolean) => {
     success: S.Array(S.String)
   })
   const group = annotate ? annotateRpcParseOptions(RpcGroup.make(rpc)) : RpcGroup.make(rpc)
-  return Effect
-    .gen(function*() {
-      const httpEffect = yield* RpcServer.toHttpEffect(group).pipe(
-        Effect.provide(Layer.mergeAll(
+  return Effect.gen(function* () {
+    const httpEffect = yield* RpcServer.toHttpEffect(group).pipe(
+      Effect.provide(
+        Layer.mergeAll(
           group.toLayer({
             getUsers: ({ users }) => Effect.succeed(users)
           }),
           RpcSerialization.layerNdjson
-        ))
-      )
-      const handler = HttpEffect.toWebHandler(httpEffect)
-      const response = yield* Effect.promise(() =>
-        handler(
-          new Request("http://test/rpc", {
-            method: "POST",
-            body: `{"_tag":"Request","id":1,"tag":"getUsers","payload":{"users":[1,2,3]},"headers":[]}\n`
-          })
         )
       )
-      const body = yield* Effect.promise(() => response.text())
-      return { batches, body, exits: readExits(body) }
-    })
-    .pipe(Effect.scoped)
+    )
+    const handler = HttpEffect.toWebHandler(httpEffect)
+    const response = yield* Effect.promise(() =>
+      handler(
+        new Request("http://test/rpc", {
+          method: "POST",
+          body: `{"_tag":"Request","id":1,"tag":"getUsers","payload":{"users":[1,2,3]},"headers":[]}\n`
+        })
+      )
+    )
+    const body = yield* Effect.promise(() => response.text())
+    return { batches, body, exits: readExits(body) }
+  }).pipe(Effect.scoped)
 }
 
 test("schema constructors do not carry parseOptions concurrency", () => {
@@ -164,9 +164,13 @@ test("annotateRpcParseOptions sets DefaultParseOptions after prefix and middlewa
 test("makeRpcGroupFromRequestsAndModuleName annotates every rpc", () => {
   const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
   const Query = TaggedRequestFor("Users").Query
-  class GetStats extends Query<GetStats>()("GetStats", { ids: S.Array(S.String) }, {
-    success: S.Array(S.String)
-  }) {}
+  class GetStats extends Query<GetStats>()(
+    "GetStats",
+    { ids: S.Array(S.String) },
+    {
+      success: S.Array(S.String)
+    }
+  ) {}
 
   const group = makeRpcGroupFromRequestsAndModuleName({ GetStats }, "Users")
   const rpcs = [...group.requests.values()]
@@ -178,16 +182,20 @@ test("makeRpcGroupFromRequestsAndModuleName annotates every rpc", () => {
 
 test("Rpc.ParseOptions makes server payload decode batch Effect.request calls", async () => {
   const sequential = await Effect.runPromise(postUsers(false))
-  expect(sequential.exits, sequential.body).toEqual([{
-    _tag: "Success",
-    value: ["user-1", "user-2", "user-3"]
-  }])
+  expect(sequential.exits, sequential.body).toEqual([
+    {
+      _tag: "Success",
+      value: ["user-1", "user-2", "user-3"]
+    }
+  ])
   expect(sequential.batches).toEqual([[1], [2], [3]])
 
   const concurrent = await Effect.runPromise(postUsers(true))
-  expect(concurrent.exits, concurrent.body).toEqual([{
-    _tag: "Success",
-    value: ["user-1", "user-2", "user-3"]
-  }])
+  expect(concurrent.exits, concurrent.body).toEqual([
+    {
+      _tag: "Success",
+      value: ["user-1", "user-2", "user-3"]
+    }
+  ])
   expect(concurrent.batches).toEqual([[1, 2, 3]])
 })

@@ -1,22 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "esnext"
-    ],
+    "lib": ["esnext"],
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "esModuleInterop": true,
     "rootDir": "./src",
     // keep in here, cause madge can't detect it from extended tsconfig
     "moduleResolution": "Node16",
-    "types": [
-      "./types/modules"
-    ],
+    "types": ["./types/modules"],
     "outDir": "./dist"
   },
-  "include": [
-    "./src/**/*.ts"
-  ],
+  "include": ["./src/**/*.ts"],
   "exclude": [
     "./dist",
     "*.test.ts",

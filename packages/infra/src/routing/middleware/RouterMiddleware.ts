@@ -18,10 +18,8 @@ export type RouterMiddleware<
   ContextProviderE, // what the context provider may fail with
   _ContextProviderR, // what the context provider requires
   RequestContextId
-> =
-  & Context.Service<Self, RpcMiddlewareV4<ContextProviderA, ContextProviderE, never>>
-  & {
-    readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
-    readonly requestContext: Context.Service<RequestContextId, GetContextConfig<RequestContextMap>>
-    readonly requestContextMap: RequestContextMap
-  }
+> = Context.Service<Self, RpcMiddlewareV4<ContextProviderA, ContextProviderE, never>> & {
+  readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
+  readonly requestContext: Context.Service<RequestContextId, GetContextConfig<RequestContextMap>>
+  readonly requestContextMap: RequestContextMap
+}

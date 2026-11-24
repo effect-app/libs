@@ -2,9 +2,7 @@
   "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
     "module": "Node16",
-    "lib": [
-      "ES2023"
-    ],
+    "lib": ["ES2023"],
     "target": "ES2022",
     // inline source maps stay better in sync with the source, which should aid with watchers.
     // "sourceMap": true,
@@ -35,27 +33,10 @@
     //     // Poll files for updates more frequently
     //     // when they're updated a lot.
     "fallbackPolling": "dynamicPriority",
-    "excludeDirectories": [
-      "**/node_modules",
-      "**/dist",
-      "**/.build",
-      "**/.git",
-      "**/.data",
-      "**/.logs",
-      "**/.*"
-    ],
-    "excludeFiles": [
-      "**/*.tmp",
-      "openapi.json",
-      "*.json"
-    ]
+    "excludeDirectories": ["**/node_modules", "**/dist", "**/.build", "**/.git", "**/.data", "**/.logs", "**/.*"],
+    "excludeFiles": ["**/*.tmp", "openapi.json", "*.json"]
   },
   "files": [],
   "include": [],
-  "exclude": [
-    "**/node_modules",
-    "**/build",
-    "**/dist",
-    "**/.*"
-  ]
+  "exclude": ["**/node_modules", "**/build", "**/dist", "**/.*"]
 }

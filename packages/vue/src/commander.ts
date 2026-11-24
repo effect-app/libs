@@ -35,11 +35,7 @@ type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, stri
  */
 export type Progress = string | { readonly text: string; readonly percentage: number }
 
-type FnOptions<
-  Id extends string,
-  I18nCustomKey extends string,
-  State extends IntlRecord | undefined
-> = {
+type FnOptions<Id extends string, I18nCustomKey extends string, State extends IntlRecord | undefined> = {
   i18nCustomKey?: I18nCustomKey
   /**
    * passed to the i18n formatMessage calls so you can use it in translation messagee
@@ -92,17 +88,18 @@ export const DefaultIntl = {
   }
 }
 
-export class CommandContext extends Context.Service<CommandContext, {
-  id: string
-  i18nKey: string
-  action: string
-  label: string
-  namespace: string
-  namespaced: (key: string) => string
-  state?: IntlRecord | undefined
-}>()(
-  "CommandContext"
-) {}
+export class CommandContext extends Context.Service<
+  CommandContext,
+  {
+    id: string
+    i18nKey: string
+    action: string
+    label: string
+    namespace: string
+    namespaced: (key: string) => string
+    state?: IntlRecord | undefined
+  }
+>()("CommandContext") {}
 
 /**
  * Service available inside `streamFn` stream handlers that lets you imperatively push
@@ -139,19 +136,14 @@ export type EmitWithCallback<A, Event extends string> = (event: Event, value: A,
  * Use to wrap emit calls with a callback to signal completion.
  * Useful when the publisher wants to wait for the subscriber to finish processing.
  */
-export const wrapEmit = <A, Event extends string>(
-  emit: EmitWithCallback<A, NoInfer<Event>>,
-  event: Event
-) =>
-(value: A) => new Promise<void>((resolve) => emit(event, value, resolve))
+export const wrapEmit =
+  <A, Event extends string>(emit: EmitWithCallback<A, NoInfer<Event>>, event: Event) =>
+  (value: A) =>
+    new Promise<void>((resolve) => emit(event, value, resolve))
 
 export declare namespace Commander {
   export type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
-  export type FnOptions<
-    Id extends string,
-    I18nKey extends string,
-    State extends IntlRecord | undefined
-  > = {
+  export type FnOptions<Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     i18nCustomKey?: I18nKey
     state?: ComputedRef<State> | (() => State)
     blockKey?: (id: Id) => string | undefined
@@ -159,16 +151,23 @@ export declare namespace Commander {
     allowed?: (id: Id, state: ComputedRef<State>) => boolean
   }
 
-  export type CommanderBase<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
-    & Gen<RT, Id, I18nKey, State>
-    & NonGen<RT, Id, I18nKey, State>
-    & CommandContextLocal<Id, I18nKey>
-    & {
+  export type CommanderBase<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = Gen<
+    RT,
+    Id,
+    I18nKey,
+    State
+  > &
+    NonGen<RT, Id, I18nKey, State> &
+    CommandContextLocal<Id, I18nKey> & {
       state: Context.Service<`Commander.Command.${Id}.state`, State>
     }
 
-  export type CommanderFn<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
-    CommanderBase<RT, Id, I18nKey, State>
+  export type CommanderFn<
+    RT,
+    Id extends string,
+    I18nKey extends string,
+    State extends IntlRecord | undefined
+  > = CommanderBase<RT, Id, I18nKey, State>
 
   export type CommanderWrap<
     RT,
@@ -179,11 +178,9 @@ export declare namespace Commander {
     A,
     E,
     R
-  > =
-    & CommandContextLocal<Id, I18nCustomKey>
-    & GenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
-    & NonGenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
-    & {
+  > = CommandContextLocal<Id, I18nCustomKey> &
+    GenWrap<RT, Id, I18nCustomKey, I, A, E, R, State> &
+    NonGenWrap<RT, Id, I18nCustomKey, I, A, E, R, State> & {
       state: Context.Service<`Commander.Command.${Id}.state`, State>
     }
 
@@ -231,7 +228,7 @@ export declare namespace Commander {
     I18nKey extends string,
     State extends IntlRecord | undefined
   > extends CommandProps<A, E, Id, I18nKey, State> {
-    new(): {}
+    new (): {}
 
     /** click handlers */
     handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>>) & {
@@ -255,9 +252,11 @@ export declare namespace Commander {
     // exec: (arg: Arg) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
   }
 
-  export interface CommandContextLocal2<Id extends string, I18nKey extends string, State extends IntlRecord | undefined>
-    extends CommandContextLocal<Id, I18nKey>
-  {
+  export interface CommandContextLocal2<
+    Id extends string,
+    I18nKey extends string,
+    State extends IntlRecord | undefined
+  > extends CommandContextLocal<Id, I18nKey> {
     state: State
   }
 
@@ -269,32 +268,16 @@ export declare namespace Commander {
     Id extends string,
     I18nKey extends string,
     State extends IntlRecord | undefined
-  > = CommandOut<
-    Arg,
-    Effect.Success<Eff>,
-    Effect.Error<Eff>,
-    Effect.Services<Eff>,
-    Id,
-    I18nKey,
-    State
-  >
+  > = CommandOut<Arg, Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>, Id, I18nKey, State>
 
   export type Gen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      AEff,
-      Arg = void
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, AEff, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>
     ): CommandOut<
       Arg,
       AEff,
-      [Eff] extends [never] ? never
-        : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-        : never,
-      [Eff] extends [never] ? never
-        : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-        : never,
+      [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+      [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never,
       Id,
       I18nKey,
       State
@@ -309,12 +292,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -331,12 +310,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -359,12 +334,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -393,12 +364,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -433,12 +400,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -479,12 +442,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -531,12 +490,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -589,12 +544,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -653,12 +604,8 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           AEff,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never,
-          [Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
@@ -707,17 +654,10 @@ export declare namespace Commander {
   }
 
   export type NonGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Arg = void
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      A,
-      Arg = void
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, A, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (
         _: A,
@@ -725,12 +665,7 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      A,
-      B,
-      Arg = void
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, A, B, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (
         _: A,
@@ -743,13 +678,7 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      A,
-      B,
-      C,
-      Arg = void
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, A, B, C, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (
         _: A,
@@ -1049,39 +978,19 @@ export declare namespace Commander {
     REff,
     State extends IntlRecord | undefined
   > = {
-    (): Exclude<REff, RT> extends never ? CommandOut<
-        Arg,
-        AEff,
-        EEff,
-        REff,
-        Id,
-        I18nKey,
-        State
-      >
+    (): Exclude<REff, RT> extends never
+      ? CommandOut<Arg, AEff, EEff, REff, Id, I18nKey, State>
       : MissingDependencies<RT, REff> & {}
-    <
-      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A
     ): CommandOutHelper<Arg, A, Id, I18nKey, State>
-    <
-      A,
-      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1091,17 +1000,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B
     ): CommandOutHelper<Arg, B, Id, I18nKey, State>
-    <
-      A,
-      B,
-      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B, C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1116,18 +1017,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => C
     ): CommandOutHelper<Arg, C, Id, I18nKey, State>
-    <
-      A,
-      B,
-      C,
-      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B, C, D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1147,19 +1039,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => D
     ): CommandOutHelper<Arg, D, Id, I18nKey, State>
-    <
-      A,
-      B,
-      C,
-      D,
-      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B, C, D, E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1184,20 +1066,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => E
     ): CommandOutHelper<Arg, E, Id, I18nKey, State>
-    <
-      A,
-      B,
-      C,
-      D,
-      E,
-      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B, C, D, E, F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1227,21 +1098,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => F
     ): CommandOutHelper<Arg, F, Id, I18nKey, State>
-    <
-      A,
-      B,
-      C,
-      D,
-      E,
-      F,
-      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-    >(
+    <A, B, C, D, E, F, G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1278,11 +1137,7 @@ export declare namespace Commander {
     ): CommandOutHelper<Arg, G, Id, I18nKey, State>
     <A, B, C, D, E, F, G, H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1324,11 +1179,7 @@ export declare namespace Commander {
     ): CommandOutHelper<Arg, H, Id, I18nKey, State>
     <A, B, C, D, E, F, G, H, I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
@@ -1385,33 +1236,19 @@ export declare namespace Commander {
     REff,
     State extends IntlRecord | undefined
   > = {
-    (): Exclude<REff, RT> extends never ? CommandOutHelper<Arg, Effect.Effect<AEff, EEff, REff>, Id, I18nKey, State>
+    (): Exclude<REff, RT> extends never
+      ? CommandOutHelper<Arg, Effect.Effect<AEff, EEff, REff>, Id, I18nKey, State>
       : MissingDependencies<RT, REff> & {}
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1421,18 +1258,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      C,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, C, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1447,19 +1275,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      C,
-      D,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, C, D, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1479,20 +1297,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      C,
-      D,
-      E,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, C, D, E, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1517,21 +1324,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      C,
-      D,
-      E,
-      F,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, C, D, E, F, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1561,22 +1356,9 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
-    <
-      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      B,
-      C,
-      D,
-      E,
-      F,
-      G,
-      Arg
-    >(
+    <Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, B, C, D, E, F, G, Arg>(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1623,11 +1405,7 @@ export declare namespace Commander {
       Arg
     >(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1680,11 +1458,7 @@ export declare namespace Commander {
       Arg
     >(
       a: (
-        _: Effect.Effect<
-          AEff,
-          EEff,
-          REff
-        >,
+        _: Effect.Effect<AEff, EEff, REff>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
@@ -1750,14 +1524,8 @@ export declare namespace Commander {
     ): CommandOut<
       Arg,
       SA,
-      | SE
-      | ([Eff] extends [never] ? never
-        : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-        : never),
-      | SR
-      | ([Eff] extends [never] ? never
-        : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-        : never),
+      SE | ([Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never),
+      SR | ([Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never),
       Id,
       I18nKey,
       State
@@ -1777,20 +1545,17 @@ export declare namespace Commander {
       a: (
         _: Effect.Effect<
           Stream.Stream<SA, SE, SR>,
-          ([Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
-            : never),
-          ([Eff] extends [never] ? never
-            : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
-            : never)
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E : never,
+          [Eff] extends [never] ? never : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R : never
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B
-    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2>
+      ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
       : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
         ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
-      : never
+        : never
   }
 
   /**
@@ -1798,21 +1563,10 @@ export declare namespace Commander {
    * or an `Effect` that resolves to a `Stream`.
    */
   export type NonGenStream<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
-    <
-      SA,
-      SE,
-      SR extends RT | CommandContext | `Commander.Command.${Id}.state`,
-      Arg = void
-    >(
+    <SA, SE, SR extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
     ): CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
-    <
-      SA,
-      SE,
-      SR,
-      A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Arg = void
-    >(
+    <SA, SE, SR, A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>, Arg = void>(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>,
       a: (
         _: Stream.Stream<SA, SE, SR>,
@@ -1820,28 +1574,13 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A
     ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
-    <
-      SA,
-      SE,
-      SR,
-      EE,
-      ER extends RT | CommandContext | `Commander.Command.${Id}.state`,
-      Arg = void
-    >(
+    <SA, SE, SR, EE, ER extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       body: (
         arg: Arg,
         ctx: CommandContextLocal2<Id, I18nKey, State>
       ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>
     ): CommandOut<Arg, SA, SE | EE, SR | ER, Id, I18nKey, State>
-    <
-      SA,
-      SE,
-      SR,
-      EE,
-      ER,
-      B,
-      Arg = void
-    >(
+    <SA, SE, SR, EE, ER, B, Arg = void>(
       body: (
         arg: Arg,
         ctx: CommandContextLocal2<Id, I18nKey, State>
@@ -1851,10 +1590,11 @@ export declare namespace Commander {
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B
-    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2>
+      ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
       : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
         ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
-      : never
+        : never
   }
 
   /**
@@ -1870,83 +1610,69 @@ export declare namespace Commander {
     SA,
     SE,
     SR
-  > =
-    & CommandContextLocal<Id, I18nKey>
-    & { readonly state: Context.Service<`Commander.Command.${Id}.state`, State> }
-    & {
-      (): Exclude<SR, RT> extends never ? CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
-        : MissingDependencies<RT, SR> & {}
-      <A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
-        a: (
-          _: Stream.Stream<SA, SE, SR>,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => A
-      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
-      <
-        B,
-        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-      >(
-        a: (
-          _: Stream.Stream<SA, SE, SR>,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => B,
-        b: (
-          _: B,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => A
-      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
-      <
-        B,
-        C,
-        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-      >(
-        a: (
-          _: Stream.Stream<SA, SE, SR>,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => B,
-        b: (
-          _: B,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => C,
-        c: (
-          _: C,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => A
-      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
-      <
-        B,
-        C,
-        D,
-        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
-      >(
-        a: (
-          _: Stream.Stream<SA, SE, SR>,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => B,
-        b: (
-          _: B,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => C,
-        c: (
-          _: C,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => D,
-        d: (
-          _: D,
-          arg: ArgForCombinator<Arg>,
-          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-        ) => A
-      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
-    }
+  > = CommandContextLocal<Id, I18nKey> & { readonly state: Context.Service<`Commander.Command.${Id}.state`, State> } & {
+    (): Exclude<SR, RT> extends never
+      ? CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
+      : MissingDependencies<RT, SR> & {}
+    <A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
+      a: (
+        _: Stream.Stream<SA, SE, SR>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => A
+    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+    <B, A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
+      a: (
+        _: Stream.Stream<SA, SE, SR>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => B,
+      b: (
+        _: B,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => A
+    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+    <B, C, A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
+      a: (
+        _: Stream.Stream<SA, SE, SR>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => B,
+      b: (
+        _: B,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => C,
+      c: (
+        _: C,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => A
+    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+    <B, C, D, A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
+      a: (
+        _: Stream.Stream<SA, SE, SR>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => B,
+      b: (
+        _: B,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => C,
+      c: (
+        _: C,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => D,
+      d: (
+        _: D,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => A
+    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+  }
 }
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
@@ -1968,11 +1694,10 @@ export const makeRegisteredErrorRenderer = <A>(
   render
 })
 
-const renderErrorMaker = Effect.gen(function*() {
+const renderErrorMaker = Effect.gen(function* () {
   const { intl } = yield* I18n
   const registeredRenderers = yield* CommanderErrorRenderers
-  return (
-    <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
+  return <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
     (e: E, ...args: Args): string => {
       if (errorRenderer) {
         const m = errorRenderer(e, action, ...args)
@@ -2010,7 +1735,6 @@ const renderErrorMaker = Effect.gen(function*() {
       }
       return e2.message ?? e2._tag ?? e2
     }
-  )
 })
 
 const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
@@ -2020,7 +1744,7 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
     | ((o: Option.Option<E>, ...args: Args) => Effect.Effect<string, AME, AMR>),
   errorRenderer?: ErrorRenderer<E, Args>
 ) =>
-  Effect.fnUntraced(function*(o: Option.Option<E>, ...args: Args) {
+  Effect.fnUntraced(function* (o: Option.Option<E>, ...args: Args) {
     const action = yield* wrapEffect(actionMaker)(o, ...args)
     const { intl } = yield* I18n
     const renderError = yield* renderErrorMaker
@@ -2038,22 +1762,17 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
         const rendered = renderError(action, errorRenderer)(e, ...args)
         return {
           level: "warn" as const,
-          message: `${
-            intl.formatMessage(
-              { id: "handle.with_errors" },
-              { action }
-            )
-          }:\n` + rendered
+          message: `${intl.formatMessage({ id: "handle.with_errors" }, { action })}:\n` + rendered
         }
       }
     })
   })
 
 export const CommanderStatic = {
-  accessArgs: <In, Out, Arg2, Arg = void>(
-    cb: (a: NoInfer<Arg>, b: NoInfer<Arg2>) => (self: NoInfer<In>) => Out
-  ) =>
-  (self: In, arg: Arg, arg2: Arg2) => cb(arg, arg2)(self),
+  accessArgs:
+    <In, Out, Arg2, Arg = void>(cb: (a: NoInfer<Arg>, b: NoInfer<Arg2>) => (self: NoInfer<In>) => Out) =>
+    (self: In, arg: Arg, arg2: Arg2) =>
+      cb(arg, arg2)(self),
 
   /**
    * Stream pipe operator that maps each emitted value to a `Progress` entry and updates the
@@ -2128,49 +1847,30 @@ export const CommanderStatic = {
   suspendWaiting,
 
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
-  confirmOrInterrupt: Effect.fnUntraced(function*(
-    message?: string
-  ) {
+  confirmOrInterrupt: Effect.fnUntraced(function* (message?: string) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
 
     yield* Confirm.confirmOrInterrupt(
-      message
-        ?? intl.formatMessage(
-          { id: "handle.confirmation" },
-          { action: context.action }
-        )
+      message ?? intl.formatMessage({ id: "handle.confirmation" }, { action: context.action })
     )
   }),
   /** Version of @see confirm that automatically includes the action name in the default messages */
-  confirm: Effect.fnUntraced(function*(
-    message?: string
-  ) {
+  confirm: Effect.fnUntraced(function* (message?: string) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
     return yield* Confirm.confirm(
-      message
-        ?? intl.formatMessage(
-          { id: "handle.confirmation" },
-          { action: context.action }
-        )
+      message ?? intl.formatMessage({ id: "handle.confirmation" }, { action: context.action })
     )
   }),
   updateAction:
     <Args extends Array<unknown>>(update: (currentActionId: string, ...args: Args) => string) =>
     <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) =>
-      Effect.updateService(
-        _,
-        CommandContext,
-        (c) => ({ ...c, action: update(c.action, ...input) })
-      ),
-  registerErrorRenderer: <A>(
-    guard: Predicate.Refinement<unknown, A>,
-    render: (guarded: A) => string | undefined
-  ) =>
+      Effect.updateService(_, CommandContext, (c) => ({ ...c, action: update(c.action, ...input) })),
+  registerErrorRenderer: <A>(guard: Predicate.Refinement<unknown, A>, render: (guarded: A) => string | undefined) =>
     Layer.effect(
       CommanderErrorRenderers,
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const current = yield* CommanderErrorRenderers
         return [...current, makeRegisteredErrorRenderer(guard, render)]
       })
@@ -2188,34 +1888,29 @@ export const CommanderStatic = {
    * If you provide a string or function, it will be used instead of the i18n message.
    * If you provide an `errorRenderer`, it will be used to render errors in the failure message.
    */
-  withDefaultToast: <A, E, R, Args extends Array<unknown>>(
-    options?: {
-      /**
-       * if true, previous toasts with this key will be replaced
-       */
-      stableToastId?:
-        | undefined
-        | true
-        | string
-        | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => true | string | undefined)
-      errorRenderer?: (e: E, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | undefined
-      showSpanInfo?: false
-      onWaiting?:
-        | null
-        | undefined
-        | string
-        | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
-      onSuccess?:
-        | null
-        | undefined
-        | string
-        | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
-    }
-  ) =>
-    Effect.fnUntraced(function*(
-      self: Effect.Effect<A, E, R>,
-      ...args: Args
-    ) {
+  withDefaultToast: <A, E, R, Args extends Array<unknown>>(options?: {
+    /**
+     * if true, previous toasts with this key will be replaced
+     */
+    stableToastId?:
+      | undefined
+      | true
+      | string
+      | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => true | string | undefined)
+    errorRenderer?: (e: E, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | undefined
+    showSpanInfo?: false
+    onWaiting?:
+      | null
+      | undefined
+      | string
+      | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
+    onSuccess?:
+      | null
+      | undefined
+      | string
+      | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
+  }) =>
+    Effect.fnUntraced(function* (self: Effect.Effect<A, E, R>, ...args: Args) {
       const cc = yield* CommandContext
       const { intl } = yield* I18n
       const withToast = yield* WithToast
@@ -2229,44 +1924,44 @@ export const CommanderStatic = {
         ? typeof options.stableToastId === "string"
           ? options.stableToastId
           : typeof options.stableToastId === "boolean"
-          ? cc.id
-          : typeof options.stableToastId === "function"
-          ? (...args: Args) => {
-            const r = (options.stableToastId as any)(cc.id, ...args)
-            if (typeof r === "string") return r
-            if (r === true) return cc.id
-            return undefined
-          }
-          : undefined
+            ? cc.id
+            : typeof options.stableToastId === "function"
+              ? (...args: Args) => {
+                  const r = (options.stableToastId as any)(cc.id, ...args)
+                  if (typeof r === "string") return r
+                  if (r === true) return cc.id
+                  return undefined
+                }
+              : undefined
         : undefined
-      return yield* self.pipe(
-        (_) =>
-          withToast<A, E, Args, R, never, never, I18n>({
-            onWaiting: options?.onWaiting === null ? null : hasCustomWaiting
-              ? intl.formatMessage({
-                id: customWaiting
-              }, cc.state)
-              : intl.formatMessage(
-                { id: "handle.waiting" },
-                { action: cc.action }
-              ),
-            onSuccess: options?.onSuccess === null
+      return yield* self.pipe((_) =>
+        withToast<A, E, Args, R, never, never, I18n>({
+          onWaiting:
+            options?.onWaiting === null
               ? null
-              : (_a, ..._args) =>
-                hasCustomSuccess
-                  ? intl.formatMessage(
-                    { id: customSuccess },
+              : hasCustomWaiting
+                ? intl.formatMessage(
+                    {
+                      id: customWaiting
+                    },
                     cc.state
                   )
-                  : intl.formatMessage({ id: "handle.success" }, { action: cc.action }),
-            onFailure: defaultFailureMessageHandler(
-              hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
-              options?.errorRenderer as ErrorRenderer<E, Args> | undefined
-            ),
-            stableToastId,
-            groupId: cc.id,
-            ...options?.showSpanInfo === false ? { showSpanInfo: options.showSpanInfo } : {}
-          })(_, ...args)
+                : intl.formatMessage({ id: "handle.waiting" }, { action: cc.action }),
+          onSuccess:
+            options?.onSuccess === null
+              ? null
+              : (_a, ..._args) =>
+                  hasCustomSuccess
+                    ? intl.formatMessage({ id: customSuccess }, cc.state)
+                    : intl.formatMessage({ id: "handle.success" }, { action: cc.action }),
+          onFailure: defaultFailureMessageHandler(
+            hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
+            options?.errorRenderer as ErrorRenderer<E, Args> | undefined
+          ),
+          stableToastId,
+          groupId: cc.id,
+          ...(options?.showSpanInfo === false ? { showSpanInfo: options.showSpanInfo } : {})
+        })(_, ...args)
       )
     }),
 
@@ -2296,8 +1991,8 @@ export const CommanderStatic = {
    * )
    * ```
    */
-  withDefaultToastStream: <A, E, R, Args extends Array<unknown>>(
-    options?: {
+  withDefaultToastStream:
+    <A, E, R, Args extends Array<unknown>>(options?: {
       stableToastId?:
         | undefined
         | true
@@ -2317,163 +2012,172 @@ export const CommanderStatic = {
         | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
       /** Map each stream element to a progress label. When non-`undefined`, updates both the active waiting toast and the `CommandProgress` service (for CommandButton progress display). */
       progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
-    }
-  ) =>
-  (
-    self: Stream.Stream<A, E, R> | Effect.Effect<Stream.Stream<A, E, R>, any, any>,
-    ...args: Args
-  ): Stream.Stream<A, E, R | I18n | Toast | CommandContext> => {
-    const rawStream: Stream.Stream<A, E, R> = Stream.isStream(self)
-      ? self
-      : Stream.unwrap(self)
+    }) =>
+    (
+      self: Stream.Stream<A, E, R> | Effect.Effect<Stream.Stream<A, E, R>, any, any>,
+      ...args: Args
+    ): Stream.Stream<A, E, R | I18n | Toast | CommandContext> => {
+      const rawStream: Stream.Stream<A, E, R> = Stream.isStream(self) ? self : Stream.unwrap(self)
 
-    return Stream.unwrap(Effect.gen(function*() {
-      const cc = yield* CommandContext
-      const { intl } = yield* I18n
-      const toast = yield* Toast
+      return Stream.unwrap(
+        Effect.gen(function* () {
+          const cc = yield* CommandContext
+          const { intl } = yield* I18n
+          const toast = yield* Toast
 
-      const customWaiting = cc.namespaced("waiting")
-      const hasCustomWaiting = !!intl.messages[customWaiting]
-      const customSuccess = cc.namespaced("success")
-      const hasCustomSuccess = !!intl.messages[customSuccess]
-      const customFailure = cc.namespaced("failure")
-      const hasCustomFailure = !!intl.messages[customFailure]
+          const customWaiting = cc.namespaced("waiting")
+          const hasCustomWaiting = !!intl.messages[customWaiting]
+          const customSuccess = cc.namespaced("success")
+          const hasCustomSuccess = !!intl.messages[customSuccess]
+          const customFailure = cc.namespaced("failure")
+          const hasCustomFailure = !!intl.messages[customFailure]
 
-      const stableToastId: string | undefined = options?.stableToastId
-        ? typeof options.stableToastId === "string"
-          ? options.stableToastId
-          : typeof options.stableToastId === "boolean"
-          ? cc.id
-          : typeof options.stableToastId === "function"
-          ? (() => {
-            const r = (options.stableToastId as (...a: any[]) => true | string | undefined)(cc.id, ...args)
-            if (typeof r === "string") return r
-            if (r === true) return cc.id
-            return undefined
-          })()
-          : undefined
-        : undefined
+          const stableToastId: string | undefined = options?.stableToastId
+            ? typeof options.stableToastId === "string"
+              ? options.stableToastId
+              : typeof options.stableToastId === "boolean"
+                ? cc.id
+                : typeof options.stableToastId === "function"
+                  ? (() => {
+                      const r = (options.stableToastId as (...a: any[]) => true | string | undefined)(cc.id, ...args)
+                      if (typeof r === "string") return r
+                      if (r === true) return cc.id
+                      return undefined
+                    })()
+                  : undefined
+            : undefined
 
-      const baseTimeout = 3_000
+          const baseTimeout = 3_000
 
-      const waitingMsg: string | null = options?.onWaiting === null
-        ? null
-        : typeof options?.onWaiting === "string"
-        ? options.onWaiting
-        : typeof options?.onWaiting === "function"
-        ? (options.onWaiting as (...a: any[]) => string | null | undefined)(cc.id, ...args) ?? null
-        : hasCustomWaiting
-        ? intl.formatMessage({ id: customWaiting }, cc.state)
-        : intl.formatMessage({ id: "handle.waiting" }, { action: cc.action })
+          const waitingMsg: string | null =
+            options?.onWaiting === null
+              ? null
+              : typeof options?.onWaiting === "string"
+                ? options.onWaiting
+                : typeof options?.onWaiting === "function"
+                  ? ((options.onWaiting as (...a: any[]) => string | null | undefined)(cc.id, ...args) ?? null)
+                  : hasCustomWaiting
+                    ? intl.formatMessage({ id: customWaiting }, cc.state)
+                    : intl.formatMessage({ id: "handle.waiting" }, { action: cc.action })
 
-      const toastId: string | number | undefined = waitingMsg === null
-        ? stableToastId
-        : stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`
+          const toastId: string | number | undefined =
+            waitingMsg === null ? stableToastId : (stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`)
 
-      const requestId: string = yield* Effect.currentSpan.pipe(
-        Effect.map((span) => span.traceId),
-        Effect.orElseSucceed(() => S.StringId.make())
-      )
-      const meta = { groupId: cc.id, requestId }
-
-      if (waitingMsg !== null) {
-        yield* toast.info(waitingMsg, { id: toastId!, timeout: Infinity, ...meta })
-      }
-
-      const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
-        hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
-        options?.errorRenderer as ErrorRenderer<E, []> | undefined
-      )
-
-      let lastValue: A | undefined = undefined
-      let didFail = false
-
-      const composed = rawStream.pipe(
-        Stream.tap((v) =>
-          Effect.gen(function*() {
-            lastValue = v
-            if (options?.progress !== undefined) {
-              const p = options.progress(AsyncResult.success(v, { waiting: true }))
-              if (p !== undefined) {
-                // Update CommandProgress so CommandButton progress indicator is also driven
-                yield* CommandProgress.use((s) => s.update(p))
-                if (toastId !== undefined) {
-                  const progressText = typeof p === "string" ? p : p.text
-                  const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
-                  yield* toast.info(msg, { id: toastId, timeout: Infinity, ...meta })
-                }
-              }
-            }
-          })
-        ),
-        Stream.tapCause(Effect.fnUntraced(function*(cause) {
-          didFail = true
-          if (Cause.hasInterruptsOnly(cause)) {
-            if (toastId !== undefined) yield* toast.dismiss(toastId)
-            return
-          }
-
-          const spanInfo = options?.showSpanInfo !== false
-            ? yield* Effect.currentSpan.pipe(
-              Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
-              Effect.orElseSucceed(() => "")
-            )
-            : ""
-
-          const t = yield* failureHandler(Cause.findErrorOption(cause))
-          const opts = { timeout: baseTimeout * 2, ...meta }
-
-          if (typeof t === "object") {
-            const message = t.message + spanInfo
-            yield* t.level === "warn"
-              ? toast.warning(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
-              : toast.error(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
-          } else {
-            yield* toast.error(t + spanInfo, toastId !== undefined ? { ...opts, id: toastId } : opts)
-          }
-        }, Effect.uninterruptible)),
-        Stream.ensuring(Effect.suspend(() => {
-          if (didFail) return Effect.void
-
-          if (options?.onSuccess === null) return Effect.void
-
-          const successMsg: string | null = typeof options?.onSuccess === "string"
-            ? options.onSuccess
-            : typeof options?.onSuccess === "function"
-            ? (options.onSuccess as (...a: any[]) => string | null | undefined)(lastValue, cc.action, ...args) ?? null
-            : hasCustomSuccess
-            ? intl.formatMessage({ id: customSuccess }, cc.state)
-            : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
-
-          if (successMsg === null) return Effect.void
-
-          return toast.success(
-            successMsg,
-            toastId !== undefined
-              ? { id: toastId, timeout: baseTimeout, ...meta }
-              : { timeout: baseTimeout, ...meta }
+          const requestId: string = yield* Effect.currentSpan.pipe(
+            Effect.map((span) => span.traceId),
+            Effect.orElseSucceed(() => S.StringId.make())
           )
-        }))
-      )
+          const meta = { groupId: cc.id, requestId }
 
-      return (toastId !== undefined
-        ? composed.pipe(Stream.provideService(CurrentToastId, CurrentToastId.of({ toastId })))
-        : composed) as unknown as Stream.Stream<A, E, R>
-    }))
-  },
+          if (waitingMsg !== null) {
+            yield* toast.info(waitingMsg, { id: toastId!, timeout: Infinity, ...meta })
+          }
+
+          const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
+            hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
+            options?.errorRenderer as ErrorRenderer<E, []> | undefined
+          )
+
+          let lastValue: A | undefined = undefined
+          let didFail = false
+
+          const composed = rawStream.pipe(
+            Stream.tap((v) =>
+              Effect.gen(function* () {
+                lastValue = v
+                if (options?.progress !== undefined) {
+                  const p = options.progress(AsyncResult.success(v, { waiting: true }))
+                  if (p !== undefined) {
+                    // Update CommandProgress so CommandButton progress indicator is also driven
+                    yield* CommandProgress.use((s) => s.update(p))
+                    if (toastId !== undefined) {
+                      const progressText = typeof p === "string" ? p : p.text
+                      const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
+                      yield* toast.info(msg, { id: toastId, timeout: Infinity, ...meta })
+                    }
+                  }
+                }
+              })
+            ),
+            Stream.tapCause(
+              Effect.fnUntraced(function* (cause) {
+                didFail = true
+                if (Cause.hasInterruptsOnly(cause)) {
+                  if (toastId !== undefined) yield* toast.dismiss(toastId)
+                  return
+                }
+
+                const spanInfo =
+                  options?.showSpanInfo !== false
+                    ? yield* Effect.currentSpan.pipe(
+                        Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
+                        Effect.orElseSucceed(() => "")
+                      )
+                    : ""
+
+                const t = yield* failureHandler(Cause.findErrorOption(cause))
+                const opts = { timeout: baseTimeout * 2, ...meta }
+
+                if (typeof t === "object") {
+                  const message = t.message + spanInfo
+                  yield* t.level === "warn"
+                    ? toast.warning(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                    : toast.error(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                } else {
+                  yield* toast.error(t + spanInfo, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                }
+              }, Effect.uninterruptible)
+            ),
+            Stream.ensuring(
+              Effect.suspend(() => {
+                if (didFail) return Effect.void
+
+                if (options?.onSuccess === null) return Effect.void
+
+                const successMsg: string | null =
+                  typeof options?.onSuccess === "string"
+                    ? options.onSuccess
+                    : typeof options?.onSuccess === "function"
+                      ? ((options.onSuccess as (...a: any[]) => string | null | undefined)(
+                          lastValue,
+                          cc.action,
+                          ...args
+                        ) ?? null)
+                      : hasCustomSuccess
+                        ? intl.formatMessage({ id: customSuccess }, cc.state)
+                        : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
+
+                if (successMsg === null) return Effect.void
+
+                return toast.success(
+                  successMsg,
+                  toastId !== undefined
+                    ? { id: toastId, timeout: baseTimeout, ...meta }
+                    : { timeout: baseTimeout, ...meta }
+                )
+              })
+            )
+          )
+
+          return (toastId !== undefined
+            ? composed.pipe(Stream.provideService(CurrentToastId, CurrentToastId.of({ toastId })))
+            : composed) as unknown as Stream.Stream<A, E, R>
+        })
+      )
+    },
 
   /** borrowing the idea from Families in Effect Atom */
   family: <T extends object, Arg, ArgIn = Arg>(
     maker: (arg: Arg) => T,
     keyMaker?: (arg: ArgIn) => Arg
-  ): (arg: ArgIn) => T => {
+  ): ((arg: ArgIn) => T) => {
     const commands = MutableHashMap.empty<Arg, WeakRef<T>>()
     const registry = new FinalizationRegistry<Arg>((arg) => {
       MutableHashMap.remove(commands, arg)
     })
 
     return (_k: ArgIn) => {
-      const k = keyMaker ? keyMaker(_k) : _k as unknown as Arg
+      const k = keyMaker ? keyMaker(_k) : (_k as unknown as Arg)
       // we want to compare structurally, unless custom equal/hash has been implemented
       const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullishOr(r.deref())))
       if (item.value) {
@@ -2493,7 +2197,7 @@ const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id
   options?: Pick<FnOptionsInternal<I18nKey>, "i18nCustomKey">
 ) => {
   if (!id) throw new Error("must specify an id")
-  const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
+  const i18nKey: I18nKey = options?.i18nCustomKey ?? (id as unknown as I18nKey)
 
   const namespace = `action.${i18nKey}` as const
 
@@ -2526,11 +2230,7 @@ const unregisterWait = (id: string) => {
  * `waiting` is the spinner. It drops while `suspendWaiting` is parked.
  * `blocked` stays on for the whole run, including that pause.
  */
-const commandChrome = (
-  ownRunning: () => boolean,
-  waitId: string | undefined,
-  blockId: string | undefined
-) => {
+const commandChrome = (ownRunning: () => boolean, waitId: string | undefined, blockId: string | undefined) => {
   const quiet = ref(0)
   const gate = makeWaitingGate((depth) => {
     quiet.value = depth
@@ -2539,24 +2239,18 @@ const commandChrome = (
   const waiting = computed(() => running.value && quiet.value === 0)
   const blocked = computed(() => running.value || (blockId !== undefined && (waitState.value[blockId] ?? 0) > 0))
   const provide = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       if (gate.depth !== 0) yield* gate.add(-gate.depth)
       return yield* self.pipe(Effect.provideService(WaitingGate, gate))
     })
   return { waiting, blocked, provide }
 }
 
-const getStateValues = <
-  const Id extends string,
-  const I18nKey extends string,
-  State extends IntlRecord | undefined
->(
+const getStateValues = <const Id extends string, const I18nKey extends string, State extends IntlRecord | undefined>(
   options?: FnOptions<Id, I18nKey, State>
 ): ComputedRef<State> => {
   const state_ = options?.state
-  const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
-    ? computed(state_)
-    : state_
+  const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function" ? computed(state_) : state_
   return state
 }
 
@@ -2566,11 +2260,7 @@ export class CommanderImpl<RT, RTHooks> {
   private readonly intl: I18n
   private readonly hooks: Layer.Layer<RTHooks, never, RT>
 
-  constructor(
-    rt: Context.Context<RT>,
-    intl: I18n,
-    hooks: Layer.Layer<RTHooks, never, RT>
-  ) {
+  constructor(rt: Context.Context<RT>, intl: I18n, hooks: Layer.Layer<RTHooks, never, RT>) {
     this.rt = rt
     this.intl = intl
     this.hooks = hooks
@@ -2581,20 +2271,26 @@ export class CommanderImpl<RT, RTHooks> {
     options?: FnOptionsInternal<I18nKey>
   ) => {
     if (!id) throw new Error("must specify an id")
-    const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
+    const i18nKey: I18nKey = options?.i18nCustomKey ?? (id as unknown as I18nKey)
 
     const namespace = `action.${i18nKey}` as const
 
     // must remain stable through out single call
-    const action = this.intl.formatMessage({
-      id: namespace,
-      defaultMessage: id
-    }, { ...options?.state, _isLabel: false })
+    const action = this.intl.formatMessage(
+      {
+        id: namespace,
+        defaultMessage: id
+      },
+      { ...options?.state, _isLabel: false }
+    )
 
-    const label = this.intl.formatMessage({
-      id: namespace,
-      defaultMessage: id
-    }, { ...options?.state, _isLabel: true })
+    const label = this.intl.formatMessage(
+      {
+        id: namespace,
+        defaultMessage: id
+      },
+      { ...options?.state, _isLabel: true }
+    )
 
     const context = CommandContext.of({
       ...makeBaseInfo(id, options),
@@ -2643,7 +2339,7 @@ export class CommanderImpl<RT, RTHooks> {
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(
             Effect.tapCause(
-              Effect.fnUntraced(function*(cause) {
+              Effect.fnUntraced(function* (cause) {
                 if (Cause.hasInterruptsOnly(cause)) {
                   console.info(`Interrupted while trying to ${id}`)
                   return
@@ -2682,10 +2378,7 @@ export class CommanderImpl<RT, RTHooks> {
           handler,
           errorReporter,
           // all must be within the Effect.fn to fit within the Span
-          Effect.provideServiceEffect(
-            stateTag,
-            currentState
-          ),
+          Effect.provideServiceEffect(stateTag, currentState),
           Effect.provideServiceEffect(
             CommandContext,
             Effect.sync(() => makeContext_())
@@ -2697,24 +2390,23 @@ export class CommanderImpl<RT, RTHooks> {
         const [result, exec_] = asResult(theHandler)
         const chrome = commandChrome(() => result.value.waiting, waitId, blockId)
 
-        const exec = Effect
-          .fnUntraced(
-            function*(...args: [any, any]) {
-              if (waitId !== undefined) registerWait(waitId)
+        const exec = Effect.fnUntraced(
+          function* (...args: [any, any]) {
+            if (waitId !== undefined) registerWait(waitId)
+            if (blockId !== undefined && blockId !== waitId) {
+              registerWait(blockId)
+            }
+            return yield* chrome.provide(exec_(...args))
+          },
+          Effect.onExit(() =>
+            Effect.sync(() => {
+              if (waitId !== undefined) unregisterWait(waitId)
               if (blockId !== undefined && blockId !== waitId) {
-                registerWait(blockId)
+                unregisterWait(blockId)
               }
-              return yield* chrome.provide(exec_(...args))
-            },
-            Effect.onExit(() =>
-              Effect.sync(() => {
-                if (waitId !== undefined) unregisterWait(waitId)
-                if (blockId !== undefined && blockId !== waitId) {
-                  unregisterWait(blockId)
-                }
-              })
-            )
+            })
           )
+        )
 
         const { blocked, waiting } = chrome
 
@@ -2724,60 +2416,61 @@ export class CommanderImpl<RT, RTHooks> {
         const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
         const runFork = Effect.runForkWith(rt)
 
-        const handle = Object.assign((arg: Arg) => {
-          arg = toRaw(arg) // remove outside vue proxy bs
-          // we capture the call site stack here
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          Error.stackTraceLimit = limit
+        const handle = Object.assign(
+          (arg: Arg) => {
+            arg = toRaw(arg) // remove outside vue proxy bs
+            // we capture the call site stack here
+            const limit = Error.stackTraceLimit
+            Error.stackTraceLimit = 2
+            const errorCall = new Error()
+            Error.stackTraceLimit = limit
 
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            // in case of an error, we want to append the definition stack to the call site stack,
-            // so we can see where the handler was defined too
+            let cache: false | string = false
+            const captureStackTrace = () => {
+              // in case of an error, we want to append the definition stack to the call site stack,
+              // so we can see where the handler was defined too
 
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef!.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              if (cache !== false) {
+                return cache
               }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
-
-          const command = currentState.pipe(Effect.flatMap((state) => {
-            const rawArg = deepToRaw(arg)
-            const rawState = deepToRaw(state)
-            return Effect.withSpan(
-              exec(arg, { ...context.value, state } as any),
-              id,
-              {
-                captureStackTrace,
-                attributes: {
-                  input: rawArg,
-                  state: rawState,
-                  action: initialContext.action,
-                  label: initialContext.label,
-                  id: initialContext.id,
-                  i18nKey: initialContext.i18nKey
+              if (errorCall.stack) {
+                const stackDef = errorDef!.stack!.trim().split("\n")
+                const stackCall = errorCall.stack.trim().split("\n")
+                let endStackDef = stackDef.slice(2).join("\n").trim()
+                if (!endStackDef.includes(`(`)) {
+                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
                 }
+                let endStackCall = stackCall.slice(2).join("\n").trim()
+                if (!endStackCall.includes(`(`)) {
+                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                }
+                cache = `${endStackDef}\n${endStackCall}`
+                return cache
               }
-            )
-          }))
+            }
 
-          return runFork(command)
-        }, { action, label })
+            const command = currentState.pipe(
+              Effect.flatMap((state) => {
+                const rawArg = deepToRaw(arg)
+                const rawState = deepToRaw(state)
+                return Effect.withSpan(exec(arg, { ...context.value, state } as any), id, {
+                  captureStackTrace,
+                  attributes: {
+                    input: rawArg,
+                    state: rawState,
+                    action: initialContext.action,
+                    label: initialContext.label,
+                    id: initialContext.id,
+                    i18nKey: initialContext.i18nKey
+                  }
+                })
+              })
+            )
+
+            return runFork(command)
+          },
+          { action, label }
+        )
 
         return reactive({
           /** static */
@@ -2893,43 +2586,41 @@ export class CommanderImpl<RT, RTHooks> {
    * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
    * the `result` inline for custom UI feedback.
    */
-  fn = <
-    const Id extends string,
-    const State extends IntlRecord = IntlRecord,
-    const I18nKey extends string = Id
-  >(
+  fn = <const Id extends string, const State extends IntlRecord = IntlRecord, const I18nKey extends string = Id>(
     id: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>
-  ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
-    state: Context.Service<`Commander.Command.${Id}.state`, State>
-  } => {
+  ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> &
+    Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
+      state: Context.Service<`Commander.Command.${Id}.state`, State>
+    } => {
     const resolvedId: Id = typeof id === "string" ? id : id.id
     return Object.assign(
-      (
-        fn: any,
-        ...combinators: any[]
-      ): any => {
+      (fn: any, ...combinators: any[]): any => {
         // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
 
-        return this.makeCommand(resolvedId, options, errorDef)(
+        return this.makeCommand(
+          resolvedId,
+          options,
+          errorDef
+        )(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
-            isGeneratorFunction(fn) ? fn : function*(...args) {
-              return yield* fn(...args)
-            },
-            ...combinators as [any]
+            isGeneratorFunction(fn)
+              ? fn
+              : function* (...args) {
+                  return yield* fn(...args)
+                },
+            ...(combinators as [any])
           ) as any
         )
       },
       makeBaseInfo(resolvedId, options),
       {
-        state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${resolvedId}.state`
-        )
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(`Commander.Command.${resolvedId}.state`)
       }
     )
   }
@@ -2986,7 +2677,7 @@ export class CommanderImpl<RT, RTHooks> {
         const streamErrorReporter = <A, E, R>(self: Stream.Stream<A, E, R>) =>
           self.pipe(
             Stream.tapCause(
-              Effect.fnUntraced(function*(cause) {
+              Effect.fnUntraced(function* (cause) {
                 if (Cause.hasInterruptsOnly(cause)) {
                   console.info(`Interrupted while trying to ${id}`)
                   return
@@ -3017,7 +2708,10 @@ export class CommanderImpl<RT, RTHooks> {
             streamErrorReporter,
             Stream.provideService(CommandProgress, commandProgressService),
             Stream.provideServiceEffect(stateTag, currentState),
-            Stream.provideServiceEffect(CommandContext, Effect.sync(() => makeContext_()))
+            Stream.provideServiceEffect(
+              CommandContext,
+              Effect.sync(() => makeContext_())
+            )
           )
 
         const waitId = options?.waitKey ? options.waitKey(id) : undefined
@@ -3026,24 +2720,23 @@ export class CommanderImpl<RT, RTHooks> {
         const [result, exec_] = asStreamResult(theStreamHandler)
         const chrome = commandChrome(() => result.value.waiting, waitId, blockId)
 
-        const exec = Effect
-          .fnUntraced(
-            function*(...args: [any, any]) {
-              if (waitId !== undefined) registerWait(waitId)
+        const exec = Effect.fnUntraced(
+          function* (...args: [any, any]) {
+            if (waitId !== undefined) registerWait(waitId)
+            if (blockId !== undefined && blockId !== waitId) {
+              registerWait(blockId)
+            }
+            return yield* chrome.provide(exec_(...args))
+          },
+          Effect.onExit(() =>
+            Effect.sync(() => {
+              if (waitId !== undefined) unregisterWait(waitId)
               if (blockId !== undefined && blockId !== waitId) {
-                registerWait(blockId)
+                unregisterWait(blockId)
               }
-              return yield* chrome.provide(exec_(...args))
-            },
-            Effect.onExit(() =>
-              Effect.sync(() => {
-                if (waitId !== undefined) unregisterWait(waitId)
-                if (blockId !== undefined && blockId !== waitId) {
-                  unregisterWait(blockId)
-                }
-              })
-            )
+            })
           )
+        )
 
         const { blocked, waiting } = chrome
 
@@ -3055,57 +2748,58 @@ export class CommanderImpl<RT, RTHooks> {
 
         const progress = progressRef
 
-        const handle = Object.assign((arg: Arg) => {
-          arg = toRaw(arg)
-          progressRef.value = undefined // reset progress on new invocation
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          Error.stackTraceLimit = limit
+        const handle = Object.assign(
+          (arg: Arg) => {
+            arg = toRaw(arg)
+            progressRef.value = undefined // reset progress on new invocation
+            const limit = Error.stackTraceLimit
+            Error.stackTraceLimit = 2
+            const errorCall = new Error()
+            Error.stackTraceLimit = limit
 
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef!.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+            let cache: false | string = false
+            const captureStackTrace = () => {
+              if (cache !== false) {
+                return cache
               }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
-
-          const command = currentState.pipe(Effect.flatMap((state) => {
-            const rawArg = deepToRaw(arg)
-            const rawState = deepToRaw(state)
-            return Effect.withSpan(
-              exec(arg, { ...context.value, state } as any),
-              id,
-              {
-                captureStackTrace,
-                attributes: {
-                  input: rawArg,
-                  state: rawState,
-                  action: initialContext.action,
-                  label: initialContext.label,
-                  id: initialContext.id,
-                  i18nKey: initialContext.i18nKey
+              if (errorCall.stack) {
+                const stackDef = errorDef!.stack!.trim().split("\n")
+                const stackCall = errorCall.stack.trim().split("\n")
+                let endStackDef = stackDef.slice(2).join("\n").trim()
+                if (!endStackDef.includes(`(`)) {
+                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
                 }
+                let endStackCall = stackCall.slice(2).join("\n").trim()
+                if (!endStackCall.includes(`(`)) {
+                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                }
+                cache = `${endStackDef}\n${endStackCall}`
+                return cache
               }
-            )
-          }))
+            }
 
-          return runFork(command as any)
-        }, { action, label })
+            const command = currentState.pipe(
+              Effect.flatMap((state) => {
+                const rawArg = deepToRaw(arg)
+                const rawState = deepToRaw(state)
+                return Effect.withSpan(exec(arg, { ...context.value, state } as any), id, {
+                  captureStackTrace,
+                  attributes: {
+                    input: rawArg,
+                    state: rawState,
+                    action: initialContext.action,
+                    label: initialContext.label,
+                    id: initialContext.id,
+                    i18nKey: initialContext.i18nKey
+                  }
+                })
+              })
+            )
+
+            return runFork(command as any)
+          },
+          { action, label }
+        )
 
         return reactive({
           id,
@@ -3184,27 +2878,20 @@ export class CommanderImpl<RT, RTHooks> {
    * **Returned Properties**: `action`, `label`, `result`, `progress`, `waiting`, `blocked`,
    * `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.
    */
-  streamFn = <
-    const Id extends string,
-    const State extends IntlRecord = IntlRecord,
-    const I18nKey extends string = Id
-  >(
+  streamFn = <const Id extends string, const State extends IntlRecord = IntlRecord, const I18nKey extends string = Id>(
     id: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>
-  ):
-    & Commander.StreamGen<RT | RTHooks, Id, I18nKey, State>
-    & Commander.NonGenStream<RT | RTHooks, Id, I18nKey, State>
-    & {
+  ): Commander.StreamGen<RT | RTHooks, Id, I18nKey, State> &
+    Commander.NonGenStream<RT | RTHooks, Id, I18nKey, State> & {
       state: Context.Service<`Commander.Command.${Id}.state`, State>
-    } =>
-  {
+    } => {
     const resolvedId = typeof id === "string" ? id : id.id
 
     type StreamOrEffect = Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any>
 
-    const toRawHandler = (fn: any): (arg: any, ctx: any) => StreamOrEffect => {
+    const toRawHandler = (fn: any): ((arg: any, ctx: any) => StreamOrEffect) => {
       if (isGeneratorFunction(fn)) {
-        return Effect.fnUntraced(function*(arg: any, ctx: any) {
+        return Effect.fnUntraced(function* (arg: any, ctx: any) {
           return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>>)(arg, ctx)
         })
       }
@@ -3234,9 +2921,7 @@ export class CommanderImpl<RT, RTHooks> {
       },
       makeBaseInfo(resolvedId, options),
       {
-        state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${resolvedId}.state`
-        )
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(`Commander.Command.${resolvedId}.state`)
       }
     )
   }
@@ -3255,44 +2940,47 @@ export class CommanderImpl<RT, RTHooks> {
     id:
       | Id
       | { id: Id; mutate: (arg: MutArg) => Effect.Effect<MutA, MutE, MutR> }
-      | ((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
+      | (((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id }),
     options?: FnOptions<Id, I18nKey, State>
-  ) =>
-    & Commander.CommandContextLocal<Id, I18nKey>
-    & (<A, E, R extends RT | RTHooks | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
+  ) => Commander.CommandContextLocal<Id, I18nKey> &
+    (<A, E, R extends RT | RTHooks | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (
-        ctx: Effect.fn.Traced & Effect.fn.Untraced & Commander.CommandContextLocal<Id, I18nKey> & {
-          // todo: only if we passed in one
-          mutate: (arg: Arg) => Effect.Effect<MutA, MutE, MutR>
-        }
+        ctx: Effect.fn.Traced &
+          Effect.fn.Untraced &
+          Commander.CommandContextLocal<Id, I18nKey> & {
+            // todo: only if we passed in one
+            mutate: (arg: Arg) => Effect.Effect<MutA, MutE, MutR>
+          }
       ) => (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
-    ) => Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>) = (
-      _id,
-      options?
-    ) => {
-      const isObject = Predicate.isObjectKeyword(_id)
-      const id = isObject ? _id.id : _id
-      const baseInfo = makeBaseInfo(id, options)
-      const idCmd = this.makeCommand(id, options)
-      // TODO: implement proper tracing stack
-      return Object.assign((cb: any) =>
-        idCmd(cb(
-          Object.assign(
-            (fn: any, ...combinators: any[]) =>
-              Effect.fnUntraced(
-                // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                isGeneratorFunction(fn) ? fn : function*(...args) {
-                  return yield* fn(...args)
-                },
-                ...combinators as [any]
-              ),
-            baseInfo,
-            isObject
-              ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
-              : {}
+    ) => Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>) = (_id, options?) => {
+    const isObject = Predicate.isObjectKeyword(_id)
+    const id = isObject ? _id.id : _id
+    const baseInfo = makeBaseInfo(id, options)
+    const idCmd = this.makeCommand(id, options)
+    // TODO: implement proper tracing stack
+    return Object.assign(
+      (cb: any) =>
+        idCmd(
+          cb(
+            Object.assign(
+              (fn: any, ...combinators: any[]) =>
+                Effect.fnUntraced(
+                  // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                  isGeneratorFunction(fn)
+                    ? fn
+                    : function* (...args) {
+                        return yield* fn(...args)
+                      },
+                  ...(combinators as [any])
+                ),
+              baseInfo,
+              isObject ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined } : {}
+            )
           )
-        )), baseInfo) as any
-    }
+        ),
+      baseInfo
+    ) as any
+  }
 
   alt = this.makeCommand as unknown as <
     const Id extends string,
@@ -3301,9 +2989,8 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     id: Id,
     customI18nKey?: I18nKey
-  ) =>
-    & Commander.CommandContextLocal<Id, I18nKey>
-    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
+  ) => Commander.CommandContextLocal<Id, I18nKey> &
+    (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
     ) => Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>)
 
@@ -3353,23 +3040,25 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
-        return this.makeStreamCommand(id, options, errorDef)(
+        return this.makeStreamCommand(
+          id,
+          options,
+          errorDef
+        )(
           combinators.length === 0
             ? handler
             : (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => {
-              let current: any = handler(arg, ctx)
-              for (const combinator of combinators) {
-                current = combinator(current, arg, ctx)
+                let current: any = handler(arg, ctx)
+                for (const combinator of combinators) {
+                  current = combinator(current, arg, ctx)
+                }
+                return current
               }
-              return current
-            }
         )
       },
       makeBaseInfo(id, options),
       {
-        state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${id}.state`
-        )
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(`Commander.Command.${id}.state`)
       }
     )
   }
@@ -3385,38 +3074,38 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     mutation:
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
-      | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
+      | (((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id }),
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     const callMutation = mutation
     return Object.assign(
-      (
-        ...combinators: any[]
-      ): any => {
+      (...combinators: any[]): any => {
         // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
-        const mutate = "mutate" in callMutation
-          ? callMutation.mutate
-          : callMutation
+        const mutate = "mutate" in callMutation ? callMutation.mutate : callMutation
 
-        return this.makeCommand(callMutation.id, options, errorDef)(
+        return this.makeCommand(
+          callMutation.id,
+          options,
+          errorDef
+        )(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
-            isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
-              return yield* mutate(arg)
-            },
-            ...combinators as [any]
+            isGeneratorFunction(mutate)
+              ? mutate
+              : function* (arg: Arg) {
+                  return yield* mutate(arg)
+                },
+            ...(combinators as [any])
           ) as any
         )
       },
       makeBaseInfo(callMutation.id, options),
       {
-        state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${callMutation.id}.state`
-        )
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(`Commander.Command.${callMutation.id}.state`)
       }
     )
   }
@@ -3424,7 +3113,7 @@ export class CommanderImpl<RT, RTHooks> {
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Context.Service<Commander>()("Commander", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     const i18n = yield* I18n
     return <RT, RTHooks>(rt: Context.Context<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
       new CommanderImpl(rt, i18n, rtHooks)

@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type DeepKeys, type DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import {
+  type DeepKeys,
+  type DeepValue,
+  type FormAsyncValidateOrFn,
+  type FormValidateOrFn,
+  revalidateLogic,
+  type StandardSchemaV1,
+  useForm
+} from "@tanstack/vue-form"
 import * as Context from "effect-app/Context"
 import * as S from "effect-app/Schema"
 import { type InjectionKey, watch } from "vue"
@@ -60,10 +68,7 @@ export const useOmegaForm = <
   const formAst = unwrapDeclaration(formCompatibleSchema.ast)
   const normalizeFormValue = (value: unknown) => fillNestedDefaults(formAst, value)
 
-  const baseStandardSchema = toLocalizedStandardSchemaV1(
-    localizedSchema,
-    trans
-  )
+  const baseStandardSchema = toLocalizedStandardSchemaV1(localizedSchema, trans)
   const standardSchema: typeof baseStandardSchema = {
     ...baseStandardSchema,
     "~standard": {

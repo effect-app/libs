@@ -4,10 +4,14 @@ import type * as S from "effect-app/Schema"
 import type { Redacted } from "effect/Redacted"
 
 // Recursively replace Redacted<A> with its inner type so DeepKeys treats it as a leaf
-type StripRedacted<T> = T extends Redacted<any> ? string
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<StripRedacted<U>>
-  : T extends Record<string, any> ? { [K in keyof T]: StripRedacted<T[K]> }
-  : T
+type StripRedacted<T> =
+  T extends Redacted<any>
+    ? string
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<StripRedacted<U>>
+      : T extends Record<string, any>
+        ? { [K in keyof T]: StripRedacted<T[K]> }
+        : T
 
 export type NestedKeyOf<T> = DeepKeys<StripRedacted<T>>
 

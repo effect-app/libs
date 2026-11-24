@@ -1,14 +1,8 @@
 <template>
   <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values } }">
-      <form.Input
-        label="aString"
-        name="aString"
-      />
-      <form.Input
-        label="bString"
-        name="bString"
-      />
+      <form.Input label="aString" name="aString" />
+      <form.Input label="bString" name="bString" />
       <pre>{{ values }}</pre>
       <button>submit</button>
 

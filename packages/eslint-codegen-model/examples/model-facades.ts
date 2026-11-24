@@ -184,23 +184,32 @@ export interface OrderLine {
   readonly item: CatalogItem
   readonly quantity: S.Int
   readonly unitPrice: { readonly amount: number; readonly currency: "EUR" | "USD" | "GBP" }
-  readonly adjustments:
-    readonly ({ readonly code: string; readonly amount: number; readonly reason?: undefined | string })[]
+  readonly adjustments: readonly {
+    readonly code: string
+    readonly amount: number
+    readonly reason?: undefined | string
+  }[]
 }
 export namespace OrderLine {
   export interface Encoded {
     readonly item: CatalogItem.Encoded
     readonly quantity: number
     readonly unitPrice: { readonly amount: number; readonly currency: "EUR" | "USD" | "GBP" }
-    readonly adjustments:
-      readonly ({ readonly code: string; readonly amount: number; readonly reason?: undefined | string })[]
+    readonly adjustments: readonly {
+      readonly code: string
+      readonly amount: number
+      readonly reason?: undefined | string
+    }[]
   }
   export interface Make {
     readonly item: CatalogItem.Make
     readonly quantity: S.Int
     readonly unitPrice: { readonly amount: number; readonly currency: "EUR" | "USD" | "GBP" }
-    readonly adjustments:
-      readonly ({ readonly code: string; readonly amount: number; readonly reason?: undefined | string })[]
+    readonly adjustments: readonly {
+      readonly code: string
+      readonly amount: number
+      readonly reason?: undefined | string
+    }[]
   }
   export type DecodingServices = CatalogDecodingServices
   export type EncodingServices = CatalogEncodingServices
@@ -223,16 +232,19 @@ export interface OrderAggregate {
     }
   }
   readonly lines: readonly [OrderLine, ...OrderLine[]]
-  readonly fulfillment: { readonly _tag: "Pending"; readonly requestedAt: Date } | {
-    readonly _tag: "Packed"
-    readonly packedAt: Date
-    readonly packageIds: readonly [S.StringId, ...S.StringId[]]
-  } | {
-    readonly _tag: "Shipped"
-    readonly shippedAt: Date
-    readonly carrier: S.NonEmptyString255
-    readonly trackingNumber: S.NonEmptyString255
-  }
+  readonly fulfillment:
+    | { readonly _tag: "Pending"; readonly requestedAt: Date }
+    | {
+        readonly _tag: "Packed"
+        readonly packedAt: Date
+        readonly packageIds: readonly [S.StringId, ...S.StringId[]]
+      }
+    | {
+        readonly _tag: "Shipped"
+        readonly shippedAt: Date
+        readonly carrier: S.NonEmptyString255
+        readonly trackingNumber: S.NonEmptyString255
+      }
   readonly audit: readonly {
     readonly at: Date
     readonly actorId: S.StringId
@@ -259,16 +271,19 @@ export namespace OrderAggregate {
       }
     }
     readonly lines: readonly [OrderLine.Encoded, ...OrderLine.Encoded[]]
-    readonly fulfillment: { readonly _tag: "Pending"; readonly requestedAt: string } | {
-      readonly _tag: "Packed"
-      readonly packedAt: string
-      readonly packageIds: readonly [string, ...string[]]
-    } | {
-      readonly _tag: "Shipped"
-      readonly shippedAt: string
-      readonly carrier: string
-      readonly trackingNumber: string
-    }
+    readonly fulfillment:
+      | { readonly _tag: "Pending"; readonly requestedAt: string }
+      | {
+          readonly _tag: "Packed"
+          readonly packedAt: string
+          readonly packageIds: readonly [string, ...string[]]
+        }
+      | {
+          readonly _tag: "Shipped"
+          readonly shippedAt: string
+          readonly carrier: string
+          readonly trackingNumber: string
+        }
     readonly audit: readonly {
       readonly at: string
       readonly actorId: string
@@ -294,16 +309,19 @@ export namespace OrderAggregate {
       }
     }
     readonly lines: readonly [OrderLine.Make, ...OrderLine.Make[]]
-    readonly fulfillment: { readonly _tag: "Pending"; readonly requestedAt: Date } | {
-      readonly _tag: "Packed"
-      readonly packedAt: Date
-      readonly packageIds: readonly [S.StringId, ...S.StringId[]]
-    } | {
-      readonly _tag: "Shipped"
-      readonly shippedAt: Date
-      readonly carrier: S.NonEmptyString255
-      readonly trackingNumber: S.NonEmptyString255
-    }
+    readonly fulfillment:
+      | { readonly _tag: "Pending"; readonly requestedAt: Date }
+      | {
+          readonly _tag: "Packed"
+          readonly packedAt: Date
+          readonly packageIds: readonly [S.StringId, ...S.StringId[]]
+        }
+      | {
+          readonly _tag: "Shipped"
+          readonly shippedAt: Date
+          readonly carrier: S.NonEmptyString255
+          readonly trackingNumber: S.NonEmptyString255
+        }
     readonly audit: readonly {
       readonly at: Date
       readonly actorId: S.StringId

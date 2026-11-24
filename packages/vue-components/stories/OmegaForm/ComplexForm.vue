@@ -1,52 +1,16 @@
 <template>
   <exampleForm.Form>
     <div>isDirty: {{ isDirty }}</div>
-    <exampleForm.Input
-      label="aString"
-      name="aString"
-    />
-    <exampleForm.Input
-      label="aStringMin2"
-      name="aStringMin2"
-    />
-    <exampleForm.Input
-      label="aStringMin2Max4"
-      name="aStringMin2Max4"
-    />
-    <exampleForm.Input
-      label="aStringMin2Max3Optional"
-      name="aStringMin2Max3Optional"
-    />
-    <exampleForm.Input
-      label="aNumber"
-      name="aNumber"
-      type="range"
-      :step="0.1"
-    />
-    <exampleForm.Input
-      label="aNumberMin2"
-      name="aNumberMin2"
-    />
-    <exampleForm.Input
-      label="aNumberMin2Max"
-      name="aNumberMin2Max"
-    />
-    <exampleForm.Input
-      label="aNumberMin2Max4Nullable"
-      name="aNumberMin2Max4Nullable"
-      clearable
-    />
-    <exampleForm.Input
-      label="aSelect"
-      name="aSelect"
-      :options="options"
-    />
-    <exampleForm.Input
-      label="aMultiple"
-      name="aMultiple"
-      type="autocompletemultiple"
-      :options="options"
-    />
+    <exampleForm.Input label="aString" name="aString" />
+    <exampleForm.Input label="aStringMin2" name="aStringMin2" />
+    <exampleForm.Input label="aStringMin2Max4" name="aStringMin2Max4" />
+    <exampleForm.Input label="aStringMin2Max3Optional" name="aStringMin2Max3Optional" />
+    <exampleForm.Input label="aNumber" name="aNumber" type="range" :step="0.1" />
+    <exampleForm.Input label="aNumberMin2" name="aNumberMin2" />
+    <exampleForm.Input label="aNumberMin2Max" name="aNumberMin2Max" />
+    <exampleForm.Input label="aNumberMin2Max4Nullable" name="aNumberMin2Max4Nullable" clearable />
+    <exampleForm.Input label="aSelect" name="aSelect" :options="options" />
+    <exampleForm.Input label="aMultiple" name="aMultiple" type="autocompletemultiple" :options="options" />
     <exampleForm.Input
       v-if="autocompleteToggle"
       label="aSingle"
@@ -54,21 +18,10 @@
       type="autocomplete"
       :options="options"
     />
-    <v-btn type="submit">
-      Submit
-    </v-btn>
-    <v-btn @click="autocompleteToggle = !autocompleteToggle">
-      Toggle aSingle
-    </v-btn>
-    <v-btn
-      type="reset"
-      @click.prevent="exampleForm.clear()"
-    >
-      Clear
-    </v-btn>
-    <v-btn @click="exampleForm.reset()">
-      Reset
-    </v-btn>
+    <v-btn type="submit"> Submit </v-btn>
+    <v-btn @click="autocompleteToggle = !autocompleteToggle"> Toggle aSingle </v-btn>
+    <v-btn type="reset" @click.prevent="exampleForm.clear()"> Clear </v-btn>
+    <v-btn @click="exampleForm.reset()"> Reset </v-btn>
     <exampleForm.Errors />
   </exampleForm.Form>
 </template>
@@ -85,9 +38,7 @@ const exampleForm = useOmegaForm(
     aString: S.String,
     aStringMin2: S.String.pipe(S.check(S.isMinLength(2))),
     aStringMin2Max4: S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(4))),
-    aStringMin2Max3Optional: S.UndefinedOr(
-      S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
-    ),
+    aStringMin2Max3Optional: S.UndefinedOr(S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))),
     aNumber: S.Finite,
     aNumberMin2: S.Finite.pipe(S.check(S.isGreaterThan(2))),
     aNumberMin2Max: S.Finite.pipe(S.check(S.isGreaterThan(2), S.isLessThan(4))),

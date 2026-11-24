@@ -1,7 +1,10 @@
-type PresetFn<T = Record<string, unknown>> = (args: {
-  meta: { filename: string; existingContent: string }
-  options: T
-}, context?: unknown) => string
+type PresetFn<T = Record<string, unknown>> = (
+  args: {
+    meta: { filename: string; existingContent: string }
+    options: T
+  },
+  context?: unknown
+) => string
 
 type MetaPresetOptions = {
   sourcePrefix?: string

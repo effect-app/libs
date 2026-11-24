@@ -3,24 +3,13 @@
     <h1>Using OmegaForm</h1>
     <p>
       OmegaForm is a powerful and flexible form library that wraps
-      <a
-        href="https://tanstack.com/form/latest"
-        target="_blank"
-      >TanStack Form</a>
+      <a href="https://tanstack.com/form/latest" target="_blank">TanStack Form</a>
       and uses
-      <a
-        href="https://effect.website/docs/schema/introduction/"
-        target="_blank"
-      >
-        Effect Schema
-      </a>
+      <a href="https://effect.website/docs/schema/introduction/" target="_blank"> Effect Schema </a>
       as the schema definition. This allows you to create forms in a declarative way using the compound component
       pattern. We also use
-      <a
-        href="https://vuetifyjs.com/"
-        target="_blank"
-      >Vuetify</a> as peer dependency for the UI components, but you can use any other UI library you want or custom
-      inputs.
+      <a href="https://vuetifyjs.com/" target="_blank">Vuetify</a> as peer dependency for the UI components, but you can
+      use any other UI library you want or custom inputs.
     </p>
     <p>For our examples, we will use the following dependencies:</p>
     <pre v-highlightjs>
@@ -47,14 +36,8 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
 
     <h3>Live Example</h3>
     <form.Form>
-      <form.Input
-        label="name"
-        name="name"
-      />
-      <form.Input
-        label="age"
-        name="age"
-      />
+      <form.Input label="name" name="name" />
+      <form.Input label="age" name="age" />
     </form.Form>
 
     <h2>Subscribing to Form Values</h2>
@@ -71,22 +54,14 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
     <h3>Live Example with Subscribed Values</h3>
     <form.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values } }">
-        <form.Input
-          label="name"
-          name="name"
-        />
-        <form.Input
-          label="age"
-          name="age"
-        />
+        <form.Input label="name" name="name" />
+        <form.Input label="age" name="age" />
         <pre>{{ values }}</pre>
       </template>
     </form.Form>
 
     <h2>Using Custom Inputs</h2>
-    <p>
-      You can use custom inputs by providing a default slot to <code>form.Input</code>:
-    </p>
+    <p>You can use custom inputs by providing a default slot to <code>form.Input</code>:</p>
     <pre v-highlightjs>
 <code class="vue">{{ `<form.Form>
   <form.Input label="name" name="name">
@@ -106,10 +81,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
 
     <h3>Live Example with Custom Input</h3>
     <form.Form>
-      <form.Input
-        label="name"
-        name="name"
-      >
+      <form.Input label="name" name="name">
         <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>
           <input
@@ -119,7 +91,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
             style="border: 1px solid red"
             @change="(e: any) => field.handleChange(e.target.value)"
             @blur="field.handleBlur"
-          >
+          />
         </template>
       </form.Input>
     </form.Form>
@@ -201,9 +173,7 @@ const form = useForm(schema, {
 </template>` }}</code></pre>
 
     <h3>Advanced: Custom Input Props</h3>
-    <p>
-      You can extend the input props to add custom properties like custom types or options:
-    </p>
+    <p>You can extend the input props to add custom properties like custom types or options:</p>
     <pre v-highlightjs>
 <code class="typescript">{{ `import type { InputProps as OmegaInputProps } from "@effect-app/vue-components"
 
@@ -269,7 +239,9 @@ form {
   padding: 0 1rem;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   text-wrap: balance;
 }
 

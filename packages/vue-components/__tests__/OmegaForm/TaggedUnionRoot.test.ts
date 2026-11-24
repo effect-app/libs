@@ -6,9 +6,7 @@ import { defaultsValueFromSchema, generateMetaFromSchema } from "../../src/compo
 
 const schema = S.Union([
   S.TaggedStruct("A", {
-    a: S.NonEmptyString255.pipe(
-      S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))
-    ),
+    a: S.NonEmptyString255.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))),
     common: S.NonEmptyString255
   }),
   S.TaggedStruct("B", {

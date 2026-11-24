@@ -53,7 +53,12 @@ describe("deepToRaw", () => {
     expect(Array.isArray(rootArray)).toBe(true)
 
     const rootMap = deepToRaw(
-      reactive(new Map<string, unknown>([["k", reactive({ n: 1 })], ["r", ref(2)]]))
+      reactive(
+        new Map<string, unknown>([
+          ["k", reactive({ n: 1 })],
+          ["r", ref(2)]
+        ])
+      )
     )
     expect(rootMap).toBeInstanceOf(Map)
     expect(rootMap.get("k")).toEqual({ n: 1 })
@@ -104,10 +109,7 @@ describe("deepToRaw", () => {
       ])
     )
     const set = reactive(
-      new Set<DeepSetValue>([
-        reactive(new Map([["deep", reactive({ value: 3 })]])),
-        reactive([{ value: 4 }])
-      ])
+      new Set<DeepSetValue>([reactive(new Map([["deep", reactive({ value: 3 })]])), reactive([{ value: 4 }])])
     )
     const source = reactive({
       map,

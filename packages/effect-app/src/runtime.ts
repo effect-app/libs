@@ -7,11 +7,8 @@ import { type Context } from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as Layer from "./Layer.ts"
 
-export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
-  const l = layer.pipe(
-    Layer.provide(Logger.layer([Logger.consolePretty()])),
-    Layer.orDie
-  )
+export const makeAppRuntime = Effect.fnUntraced(function* <A, E>(layer: Layer.Layer<A, E>) {
+  const l = layer.pipe(Layer.provide(Logger.layer([Logger.consolePretty()])), Layer.orDie)
   const mrt = ManagedRuntime.make(l)
   yield* mrt.contextEffect
   return Object.assign(mrt, {
@@ -31,8 +28,7 @@ export function initializeSync<A, E>(layer: Layer.Layer<A, E>) {
 }
 
 export function initializeAsync<A, E>(layer: Layer.Layer<A, E>) {
-  return Effect
-    .runPromise(makeAppRuntime(layer))
+  return Effect.runPromise(makeAppRuntime(layer))
 }
 
 // we wrap into CauseException because we want to keep the full cause of the failure.
@@ -43,7 +39,8 @@ export const makeRunPromise = <T>(services: Context<T>) =>
         onFailure: (cause) => Promise.reject(new CauseException(cause, "runPromise")),
         onSuccess: (value) => Promise.resolve(value)
       })
-    ))
+    )
+  )
 
 export const makeRunSync = <T>(services: Context<T>) =>
   flow(

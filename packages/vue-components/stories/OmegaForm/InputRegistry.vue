@@ -4,27 +4,15 @@
       <pre>{{ values }}</pre>
 
       <!-- new type: renders RatingInput -->
-      <form.Input
-        name="score"
-        type="rating"
-        label="Score"
-      />
+      <form.Input name="score" type="rating" label="Score" />
 
       <!-- overridden built-in: string fields use CustomInput -->
-      <form.Input
-        name="nickname"
-        label="Nickname"
-      />
+      <form.Input name="nickname" label="Nickname" />
 
       <!-- not registered: built-in renderer -->
-      <form.Input
-        name="age"
-        label="Age"
-      />
+      <form.Input name="age" label="Age" />
 
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <v-btn type="submit"> submit </v-btn>
       <form.Errors />
     </template>
   </form.Form>
@@ -35,37 +23,18 @@
   -->
   <template v-if="false">
     <!-- built-ins stay valid alongside a registry -->
-    <form.Input
-      name="nickname"
-      type="select"
-      :options="[{ title: 'a', value: 1 }]"
-    />
+    <form.Input name="nickname" type="select" :options="[{ title: 'a', value: 1 }]" />
     <!-- @vue-expect-error unregistered type is rejected -->
-    <form.Input
-      name="nickname"
-      type="unregistered"
-    />
+    <form.Input name="nickname" type="unregistered" />
     <!-- no-config: built-ins valid... -->
-    <plainForm.Input
-      name="x"
-      type="search"
-    />
+    <plainForm.Input name="x" type="search" />
     <!-- ...bogus custom type rejected -->
     <!-- @vue-expect-error -->
-    <plainForm.Input
-      name="x"
-      type="totally-bogus-type"
-    />
+    <plainForm.Input name="x" type="totally-bogus-type" />
     <!-- createUseFormWithCustomInput threads the registry into the typed `type` union too -->
-    <customForm.Input
-      name="x"
-      type="rating"
-    />
+    <customForm.Input name="x" type="rating" />
     <!-- @vue-expect-error -->
-    <customForm.Input
-      name="x"
-      type="totally-bogus-type"
-    />
+    <customForm.Input name="x" type="totally-bogus-type" />
   </template>
 </template>
 
@@ -101,9 +70,7 @@ const plainForm = useOmegaForm(S.Struct({ x: S.String }))
 
 // createUseFormWithCustomInput: universal CustomInput as default + per-type override,
 // with the same typed `type` inference from `inputs`.
-const customForm = createUseFormWithCustomInput(CustomInput)(
-  S.Struct({ x: S.String }),
-  undefined,
-  { inputs: { rating: RatingInput } }
-)
+const customForm = createUseFormWithCustomInput(CustomInput)(S.Struct({ x: S.String }), undefined, {
+  inputs: { rating: RatingInput }
+})
 </script>

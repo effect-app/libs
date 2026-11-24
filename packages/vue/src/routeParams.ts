@@ -14,16 +14,16 @@ export function getQueryParam(search: ParsedQuery, param: string) {
 
 export const getQueryParamO = flow(getQueryParam, Option.fromNullishOr)
 
-export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, any>>>(query: Record<string, any>, t: NER // enforce non empty
+export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, any>>>(
+  query: Record<string, any>,
+  t: NER // enforce non empty
 ): {
   [K in keyof NER]: Option.Option<NER[K]["Type"]>
 } {
   return Struct.keys(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      prev[cur] = getQueryParamO(query, cur).pipe(
-        Option.flatMap(S.decodeUnknownOption(t[cur]!))
-      )
+      prev[cur] = getQueryParamO(query, cur).pipe(Option.flatMap(S.decodeUnknownOption(t[cur]!)))
 
       return prev
     },
@@ -42,9 +42,7 @@ export function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(
   return Struct.keys(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      prev[cur] = S.decodeUnknownSync(t[cur]!)(
-        (query as any)[cur]
-      )
+      prev[cur] = S.decodeUnknownSync(t[cur]!)((query as any)[cur])
 
       return prev
     },

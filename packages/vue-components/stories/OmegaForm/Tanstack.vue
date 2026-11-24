@@ -2,64 +2,27 @@
   <form @submit="form.handleSubmit">
     <div>
       <label for="age">Age</label>
-      <form.Field
-        id="age"
-        name="age"
-        type="number"
-      >
+      <form.Field id="age" name="age" type="number">
         <template #default="{ field, state }">
           <div class="field">
             <input
               :value="state.value"
               type="number"
-              @input="(e) =>
-              field.handleChange(
-                Number((e.target as HTMLInputElement).value)
-              )"
-            >
-            <em
-              v-if="field.state.meta.errors.length > 0"
-              role="alert"
-            >
-              {{
-                state
-                .meta
-                .errors
-                .map((e) => e?.message)
-                .join(", ")
-              }}
+              @input="(e) => field.handleChange(Number((e.target as HTMLInputElement).value))"
+            />
+            <em v-if="field.state.meta.errors.length > 0" role="alert">
+              {{ state.meta.errors.map((e) => e?.message).join(", ") }}
             </em>
           </div>
         </template>
       </form.Field>
       <label for="email">Email</label>
-      <form.Field
-        id="email"
-        name="email"
-        type="text"
-      >
+      <form.Field id="email" name="email" type="text">
         <template #default="{ field, state }">
           <div class="field">
-            <input
-              :value="state.value"
-              @input="(e) =>
-              field.handleChange(
-                (e.target as HTMLInputElement)
-                  .value
-              )"
-            >
-            <em
-              v-if="field.state.meta.errors.length > 0"
-              role="alert"
-            >
-              {{
-                field
-                .state
-                .meta
-                .errors
-                .map((e) => e?.message)
-                .join(", ")
-              }}
+            <input :value="state.value" @input="(e) => field.handleChange((e.target as HTMLInputElement).value)" />
+            <em v-if="field.state.meta.errors.length > 0" role="alert">
+              {{ field.state.meta.errors.map((e) => e?.message).join(", ") }}
             </em>
           </div>
         </template>
@@ -86,22 +49,10 @@
             <input
               :value="state.value"
               type="number"
-              @input="(e) =>
-              field.handleChange(
-                Number((e.target as HTMLInputElement).value)
-              )"
-            >
-            <em
-              v-if="state.meta.errors.length > 0"
-              role="alert"
-            >
-              {{
-                state
-                .meta
-                .errors
-                .map((e) => e?.message)
-                .join(", ")
-              }}
+              @input="(e) => field.handleChange(Number((e.target as HTMLInputElement).value))"
+            />
+            <em v-if="state.meta.errors.length > 0" role="alert">
+              {{ state.meta.errors.map((e) => e?.message).join(", ") }}
             </em>
           </div>
         </template>
@@ -120,24 +71,10 @@
             <input
               :value="state.value"
               @blur="field.handleBlur"
-              @input="(e) =>
-              field.handleChange(
-                (e.target as HTMLInputElement)
-                  .value
-              )"
-            >
-            <em
-              v-if="field.state.meta.errors.length > 0"
-              role="alert"
-            >
-              {{
-                field
-                .state
-                .meta
-                .errors
-                .map((e) => e?.message)
-                .join(", ")
-              }}
+              @input="(e) => field.handleChange((e.target as HTMLInputElement).value)"
+            />
+            <em v-if="field.state.meta.errors.length > 0" role="alert">
+              {{ field.state.meta.errors.map((e) => e?.message).join(", ") }}
             </em>
           </div>
         </template>

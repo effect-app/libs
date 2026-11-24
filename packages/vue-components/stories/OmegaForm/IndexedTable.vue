@@ -5,11 +5,13 @@ import { VDataTable } from "vuetify/components"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  rows: S.Array(S.Struct({
-    id: S.String,
-    name: S.String,
-    text: S.String.pipe(S.check(S.isMinLength(2)))
-  }))
+  rows: S.Array(
+    S.Struct({
+      id: S.String,
+      name: S.String,
+      text: S.String.pipe(S.check(S.isMinLength(2)))
+    })
+  )
 })
 
 const submitted = ref(false)
@@ -51,26 +53,12 @@ const headers = [
       :sort-by="[{ key: 'name', order: 'desc' }]"
     >
       <template #item.text="{ item }">
-        <form.Input
-          :name="`rows[${item.sourceIndex}].text`"
-          :label="`${item.name} text`"
-        />
+        <form.Input :name="`rows[${item.sourceIndex}].text`" :label="`${item.name} text`" />
       </template>
     </VDataTable>
     <form.Errors />
-    <v-btn
-      type="submit"
-      class="my-4"
-      @click="submitted = false"
-    >
-      Submit
-    </v-btn>
-    <p
-      v-if="submitted"
-      role="status"
-    >
-      All rows are valid.
-    </p>
+    <v-btn type="submit" class="my-4" @click="submitted = false"> Submit </v-btn>
+    <p v-if="submitted" role="status">All rows are valid.</p>
     <details>
       <summary>Current form values (original row order)</summary>
       <pre>{{ values }}</pre>

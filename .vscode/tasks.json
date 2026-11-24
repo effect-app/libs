@@ -18,10 +18,7 @@
       "problemMatcher": [
         {
           "base": "$tsc-watch",
-          "fileLocation": [
-            "relative",
-            "${workspaceRoot}"
-          ]
+          "fileLocation": ["relative", "${workspaceRoot}"]
         }
       ]
     },

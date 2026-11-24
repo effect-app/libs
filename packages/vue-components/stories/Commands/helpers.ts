@@ -22,12 +22,15 @@ import { Router } from "./useEffectRouter"
 
 export const useCommand = (messages: {}) => {
   const locale = ref("en" as const)
-  const { useIntl } = makeIntl({
-    en: {
-      ...DefaultIntl.en,
-      ...messages
-    }
-  }, locale)
+  const { useIntl } = makeIntl(
+    {
+      en: {
+        ...DefaultIntl.en,
+        ...messages
+      }
+    },
+    locale
+  )
 
   const intlLayer = I18n.toLayer(Effect.sync(useIntl))
   // TODO: use optional CurrentToastId to auto assign toastId when not null?
@@ -44,22 +47,18 @@ export const useCommand = (messages: {}) => {
       return Toast_.wrap(toast)
     })
   )
-  const commanderLayer = Commander.Default.pipe(
-    Layer.provide([intlLayer, toastLayer])
-  )
+  const commanderLayer = Commander.Default.pipe(Layer.provide([intlLayer, toastLayer]))
 
   const api = ApiClientFactory.layer({ url: "bogus", headers: Option.none() }).pipe(
     Layer.provide(FetchHttpClient.layer)
   )
   const viewLayers = Layer.mergeAll(Router.Default, intlLayer, toastLayer)
-  const provideLayers = Layer
-    .mergeAll(
-      commanderLayer,
-      viewLayers,
-      WithToast.Default.pipe(Layer.provide(toastLayer)),
-      Confirm.Default.pipe(Layer.provide(intlLayer))
-    )
-    .pipe(Layer.provideMerge(api))
+  const provideLayers = Layer.mergeAll(
+    commanderLayer,
+    viewLayers,
+    WithToast.Default.pipe(Layer.provide(toastLayer)),
+    Confirm.Default.pipe(Layer.provide(intlLayer))
+  ).pipe(Layer.provideMerge(api))
 
   const mrt = ManagedRuntime.make(provideLayers)
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)

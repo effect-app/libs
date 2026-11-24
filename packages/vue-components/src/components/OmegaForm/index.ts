@@ -5,15 +5,55 @@ export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFrom
 export type { CreateMeta, FilterItems } from "./meta/createMeta"
 export { defaultsValueFromSchema } from "./meta/defaults"
 export { toFormSchema } from "./meta/redacted"
-export type { BaseFieldMeta, BooleanFieldMeta, DateFieldMeta, FieldMeta, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta, SelectFieldMeta, StringFieldMeta, UnknownFieldMeta } from "./meta/types"
+export type {
+  BaseFieldMeta,
+  BooleanFieldMeta,
+  DateFieldMeta,
+  FieldMeta,
+  MetaRecord,
+  MultipleFieldMeta,
+  NestedKeyOf,
+  NumberFieldMeta,
+  SelectFieldMeta,
+  StringFieldMeta,
+  UnknownFieldMeta
+} from "./meta/types"
 export { deepMerge } from "./persistency"
-export type { BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride, TypesWithOptions } from "./types"
+export type {
+  BaseProps,
+  DefaultTypeProps,
+  FieldPath,
+  FieldPath_,
+  FieldValidators,
+  FormComponent,
+  FormProps,
+  FormType,
+  OmegaArrayProps,
+  OmegaAutoGenMeta,
+  OmegaError,
+  OmegaFormApi,
+  OmegaFormParams,
+  OmegaFormState,
+  OmegaInputProps,
+  OmegaInputPropsBase,
+  PrefixFromDepth,
+  TypeOverride,
+  TypesWithOptions
+} from "./types"
 export { makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 export { FormErrors, OmegaFormKey, useErrorLabel, useOmegaForm } from "./useOmegaForm"
 export type { defaultValuesPriorityUnion, OF, OmegaConfig, OmegaFormReturn, Policies } from "./useOmegaForm"
 
-export { type ExtractTagValue, type ExtractUnionBranch, type InputProps, type MergedInputProps, type TaggedUnionOption, type TaggedUnionOptionsArray, type TaggedUnionProps } from "./InputProps"
+export {
+  type ExtractTagValue,
+  type ExtractUnionBranch,
+  type InputProps,
+  type MergedInputProps,
+  type TaggedUnionOption,
+  type TaggedUnionOptionsArray,
+  type TaggedUnionProps
+} from "./InputProps"
 export type { VuetifyInputProps, VuetifyInputProps as OmegaRendererProps } from "./InputProps"
 export { default as OmegaInput } from "./OmegaInput.vue"
 export { default as OmegaVuetifyInput } from "./OmegaInternalInput.vue"

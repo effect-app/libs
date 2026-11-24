@@ -31,9 +31,7 @@ import { postProcessJsonSchema } from "./SpecialJsonSchema.ts"
  *
  * Designed to be used as the `transform` option in `OpenApi.annotations`.
  */
-export function deduplicateOpenApiSchemas(
-  spec: Record<string, any>
-): Record<string, any> {
+export function deduplicateOpenApiSchemas(spec: Record<string, any>): Record<string, any> {
   const components = spec["components"] as Record<string, any> | undefined
   if (!components) return spec
   const schemas = components["schemas"] as Record<string, any> | undefined

@@ -20,7 +20,7 @@ const makeToken = () =>
 describe("checkJWTI", () => {
   it.effect(
     "validates a bearer token from headers",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const token = yield* Effect.promise(() => makeToken())
 
       yield* checkJWTI({
@@ -35,7 +35,7 @@ describe("checkJWTI", () => {
 
   it.effect(
     "fails on malformed authorization headers",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const error = yield* Effect.flip(
         checkJWTI({
           audience,
@@ -52,7 +52,7 @@ describe("checkJWTI", () => {
 
   it.effect(
     "fails when the token is missing",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const error = yield* Effect.flip(
         checkJWTI({
           audience,
@@ -69,7 +69,7 @@ describe("checkJWTI", () => {
 
   it.effect(
     "allows missing tokens when auth is optional",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       yield* checkJWTI({
         audience,
         authRequired: false,
@@ -82,7 +82,7 @@ describe("checkJWTI", () => {
 
   it.effect(
     "fails when the token signature is invalid",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const token = yield* Effect.promise(() => makeToken())
 
       const error = yield* Effect.flip(

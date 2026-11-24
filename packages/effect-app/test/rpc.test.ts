@@ -18,15 +18,19 @@ const stubMiddleware = {
 const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
 const TaggedRequest = TaggedRequestFor("Test").Query
 
-export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
-  allowedRoles: ["manager"],
-  success: {
-    usersActive24Hours: S.Finite,
-    usersActiveLastWeek: S.Finite,
-    newUsersLast24Hours: S.Finite,
-    newUsersLastWeek: S.Finite
+export class Stats extends TaggedRequest<Stats>()(
+  "Stats",
+  {},
+  {
+    allowedRoles: ["manager"],
+    success: {
+      usersActive24Hours: S.Finite,
+      usersActiveLastWeek: S.Finite,
+      newUsersLast24Hours: S.Finite,
+      newUsersLastWeek: S.Finite
+    }
   }
-}) {}
+) {}
 
 declare const _stats: typeof Stats.Type
 declare const _statsSuccess: typeof Stats.success.Type

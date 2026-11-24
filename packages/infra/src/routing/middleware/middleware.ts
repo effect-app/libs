@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import {
+  ConfigureInterruptibilityMiddleware,
+  DevMode,
+  DevModeMiddleware,
+  LoggerMiddleware,
+  RequestCacheMiddleware
+} from "effect-app/middleware"
 import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Array from "effect/Array"
@@ -41,47 +47,49 @@ const summarizePayloadValue = (key: string, value: unknown, depth: number): unkn
   if (typeof value === "object") {
     return depth >= PAYLOAD_MAX_DEPTH
       ? `Object[${Object.keys(value).length}]`
-      : Object.entries(value).reduce((prev, [k, v]) => {
-        prev[k] = summarizePayloadValue(k, v, depth + 1)
-        return prev
-      }, {} as Record<string, unknown>)
+      : Object.entries(value).reduce(
+          (prev, [k, v]) => {
+            prev[k] = summarizePayloadValue(k, v, depth + 1)
+            return prev
+          },
+          {} as Record<string, unknown>
+        )
   }
   return typeof value
 }
 
 const summarizePayload = (payload: unknown): unknown =>
   typeof payload === "object" && payload !== null
-    ? Object.entries(payload).reduce((prev, [key, value]) => {
-      prev[key] = summarizePayloadValue(key, value, 1)
-      return prev
-    }, {} as Record<string, unknown>)
+    ? Object.entries(payload).reduce(
+        (prev, [key, value]) => {
+          prev[key] = summarizePayloadValue(key, value, 1)
+          return prev
+        },
+        {} as Record<string, unknown>
+      )
     : payload
 
 // TODO: do we need this as middleware or just as layer?
 export const DevModeLive = Layer.effect(
   DevMode,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const env = yield* Config.String("env").pipe(Config.withDefault("local-dev"))
     return env !== "prod"
   })
 )
 
-export const RequestCacheMiddlewareLive = Layer.succeed(
-  RequestCacheMiddleware,
-  (effect) => effect
-)
+export const RequestCacheMiddlewareLive = Layer.succeed(RequestCacheMiddleware, (effect) => effect)
 
 const isOptimisticConcurrencyException = (input: unknown) =>
   typeof input === "object" && input !== null && "_tag" in input && input._tag === "OptimisticConcurrencyException"
 
-export const RequestType = Context.Reference<"command" | "query">(
-  "@effect-app/infra/routing/RequestType",
-  { defaultValue: () => "query" }
-)
+export const RequestType = Context.Reference<"command" | "query">("@effect-app/infra/routing/RequestType", {
+  defaultValue: () => "query"
+})
 
 export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
   ConfigureInterruptibilityMiddleware,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     return (effect, { rpc }) => {
       const requestType = Context.get(rpc.annotations, RequestType)
       const isCommand = requestType === "command"
@@ -95,59 +103,53 @@ export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
   })
 )
 
-export const LoggerMiddlewareLive = Layer
-  .effect(
-    LoggerMiddleware,
-    Effect.gen(function*() {
-      const devMode = yield* DevMode
-      return (effect, { headers, payload, rpc }) =>
-        Effect
-          .annotateCurrentSpan({
-            "rpc.method": rpc._tag,
-            "rpc.request.payload": summarizePayload(payload)
-          })
-          .pipe(
-            Effect.andThen(effect),
-            // TODO: support SchemaError if the error channel of the request allows it.. but who would want that?
-            Effect.catch((_) => Schema.isSchemaError(_) ? Effect.die(_) : Effect.fail(_)),
-            Effect.tapCause((cause) => Cause.hasFails(cause) ? logRequestError(cause) : Effect.void),
-            Effect.tapCauseIf(Cause.hasDies, (cause) =>
-              Effect
-                .all([
-                  reportRequestError(cause, {
-                    action: rpc._tag
-                  }),
-                  InfraLogger
-                    .logError("Finished request", cause)
-                    .pipe(Effect.annotateLogs({
-                      action: rpc._tag,
-                      req: pretty(payload),
-                      headers: pretty(headers)
-                      // resHeaders: pretty(
-                      //   Object
-                      //     .entries(headers)
-                      //     .reduce((prev, [key, value]) => {
-                      //       prev[key] = value && typeof value === "string" ? snipString(value) : value
-                      //       return prev
-                      //     }, {} as Record<string, any>)
-                      // )
-                    }))
-                ])),
-            devMode ? (_) => _ : Effect.catchDefect(() => Effect.die("Internal Server Error"))
-          )
-    })
-  )
-  .pipe(Layer.provide(DevModeLive))
+export const LoggerMiddlewareLive = Layer.effect(
+  LoggerMiddleware,
+  Effect.gen(function* () {
+    const devMode = yield* DevMode
+    return (effect, { headers, payload, rpc }) =>
+      Effect.annotateCurrentSpan({
+        "rpc.method": rpc._tag,
+        "rpc.request.payload": summarizePayload(payload)
+      }).pipe(
+        Effect.andThen(effect),
+        // TODO: support SchemaError if the error channel of the request allows it.. but who would want that?
+        Effect.catch((_) => (Schema.isSchemaError(_) ? Effect.die(_) : Effect.fail(_))),
+        Effect.tapCause((cause) => (Cause.hasFails(cause) ? logRequestError(cause) : Effect.void)),
+        Effect.tapCauseIf(Cause.hasDies, (cause) =>
+          Effect.all([
+            reportRequestError(cause, {
+              action: rpc._tag
+            }),
+            InfraLogger.logError("Finished request", cause).pipe(
+              Effect.annotateLogs({
+                action: rpc._tag,
+                req: pretty(payload),
+                headers: pretty(headers)
+                // resHeaders: pretty(
+                //   Object
+                //     .entries(headers)
+                //     .reduce((prev, [key, value]) => {
+                //       prev[key] = value && typeof value === "string" ? snipString(value) : value
+                //       return prev
+                //     }, {} as Record<string, any>)
+                // )
+              })
+            )
+          ])
+        ),
+        devMode ? (_) => _ : Effect.catchDefect(() => Effect.die("Internal Server Error"))
+      )
+  })
+).pipe(Layer.provide(DevModeLive))
 
-export const DevModeMiddlewareLive = Layer
-  .effect(
-    DevModeMiddleware,
-    Effect.gen(function*() {
-      const devMode = yield* DevMode
-      return (effect) => Effect.provideService(effect, DevMode, devMode)
-    })
-  )
-  .pipe(Layer.provide(DevModeLive))
+export const DevModeMiddlewareLive = Layer.effect(
+  DevModeMiddleware,
+  Effect.gen(function* () {
+    const devMode = yield* DevMode
+    return (effect) => Effect.provideService(effect, DevMode, devMode)
+  })
+).pipe(Layer.provide(DevModeLive))
 
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   RequestCacheMiddlewareLive,
@@ -183,9 +185,9 @@ export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never
  * )
  * ```
  */
-export const makeSqlTransactionMiddleware = Effect.fnUntraced(function*(
-  rcm: { getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean } }
-) {
+export const makeSqlTransactionMiddleware = Effect.fnUntraced(function* (rcm: {
+  getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean }
+}) {
   const withTx = yield* WithNsTransaction
   const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
     const { requiresTransaction } = rcm.getConfig(rpc)

@@ -1,25 +1,11 @@
 <template>
-  <v-dialog
-    v-model="open"
-    persistent
-    @click:outside="onCancel"
-  >
+  <v-dialog v-model="open" persistent @click:outside="onCancel">
     <template #default="{ isActive }">
-      <slot
-        :open="open"
-        :cancel="onCancel"
-        :is-active="isActive"
-      />
+      <slot :open="open" :cancel="onCancel" :is-active="isActive" />
     </template>
     <!-- pass down slots -->
-    <template
-      v-for="(_, name) in otherSlots"
-      #[name]="slotData"
-    >
-      <slot
-        :name="name"
-        v-bind="slotData"
-      />
+    <template v-for="(_, name) in otherSlots" #[name]="slotData">
+      <slot :name="name" v-bind="slotData" />
     </template>
   </v-dialog>
 </template>
@@ -42,7 +28,7 @@ const otherSlots = computed(() => {
 })
 
 const onCancel = useOnClose(() => {
-  return open.value = false
+  return (open.value = false)
 })
 
 onMountedWithCleanup(() => {

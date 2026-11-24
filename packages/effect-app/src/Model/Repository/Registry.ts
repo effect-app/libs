@@ -14,11 +14,7 @@ const make = Effect.sync(() => {
     },
     seedNamespace: (namespace: string) =>
       Effect.suspend(() =>
-        Effect.forEach(
-          repos.values(),
-          (r) => r.seedNamespace(namespace),
-          { concurrency: "unbounded", discard: true }
-        )
+        Effect.forEach(repos.values(), (r) => r.seedNamespace(namespace), { concurrency: "unbounded", discard: true })
       ),
     get entries(): ReadonlyMap<string, RegisteredRepository> {
       return repos
@@ -26,10 +22,13 @@ const make = Effect.sync(() => {
   }
 })
 
-export class RepositoryRegistry extends Context.Opaque<RepositoryRegistry, {
-  readonly register: (modelName: string, repo: RegisteredRepository) => void
-  readonly seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
-  readonly entries: ReadonlyMap<string, RegisteredRepository>
-}>()("effect-app/RepositoryRegistry", { make }) {}
+export class RepositoryRegistry extends Context.Opaque<
+  RepositoryRegistry,
+  {
+    readonly register: (modelName: string, repo: RegisteredRepository) => void
+    readonly seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
+    readonly entries: ReadonlyMap<string, RegisteredRepository>
+  }
+>()("effect-app/RepositoryRegistry", { make }) {}
 
 export const RepositoryRegistryLive = RepositoryRegistry.toLayer(RepositoryRegistry.make)

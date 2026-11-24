@@ -7,39 +7,22 @@
            decimal (e.g. 1.5) or an out-of-range value (e.g. 21) shows the schema
            validation error; the bounds are exposed to assistive tech via
            aria-valuemin/valuemax -->
-      <form.Input
-        name="quantity"
-        label="Quantity (1-20)"
-      />
+      <form.Input name="quantity" label="Quantity (1-20)" />
 
       <!-- S.Number: free decimals (precision null is automatic), clearing sets undefined -->
-      <form.Input
-        name="price"
-        label="Price (optional, decimals)"
-      />
+      <form.Input name="price" label="Price (optional, decimals)" />
 
       <!-- extra VNumberInput props pass through attrs and win over OmegaForm's
            defaults: OmegaForm renders stacked controls, here overridden back to
            Vuetify's "default" split buttons, with a custom step -->
-      <form.Input
-        name="steps"
-        label="Steps of 5, default controls"
-        :step="5"
-        control-variant="default"
-      />
+      <form.Input name="steps" label="Steps of 5, default controls" :step="5" control-variant="default" />
 
       <!-- decimal separator follows the Vuetify locale (this Storybook is "en", so "." elsewhere);
            it can be forced per field, here comma. Typing either "." or "," works: the wrong
            one is translated to the active separator instead of being rejected -->
-      <form.Input
-        name="commaPrice"
-        label="Comma price (decimal-separator ,)"
-        decimal-separator=","
-      />
+      <form.Input name="commaPrice" label="Comma price (decimal-separator ,)" decimal-separator="," />
 
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <v-btn type="submit"> submit </v-btn>
       <form.Errors />
     </template>
   </form.Form>

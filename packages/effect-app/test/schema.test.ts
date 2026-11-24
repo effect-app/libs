@@ -114,10 +114,12 @@ test("Opaque preserves optional Struct.make input", () => {
     readonly b?: number | undefined
   }
 
-  const schema = S.Opaque<User>()(S.Struct({
-    a: S.optional(S.String),
-    b: S.optional(S.Number)
-  }))
+  const schema = S.Opaque<User>()(
+    S.Struct({
+      a: S.optional(S.String),
+      b: S.optional(S.Number)
+    })
+  )
 
   const made = schema.make()
   expect(made).toEqual({})
@@ -136,7 +138,7 @@ test("Opaque preserves optional TaggedStruct.make input", () => {
   expectTypeOf(made).toEqualTypeOf<OnlyTag>()
 })
 
-test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
+test('S.Literals(["A", "B"]).Default is typed as "A"', () => {
   const l = S.Literals(["A", "B"])
   expect(l.Default).toBe("A")
   expectTypeOf(l.Default).toEqualTypeOf<"A">()
@@ -208,10 +210,7 @@ test("tagged union derives tag map and tags from v4 literal ast", () => {
 })
 
 test("TaggedUnion tags returns a Literals schema with correct literal values", () => {
-  const schema = S.TaggedUnion([
-    S.TaggedStruct("X", { x: S.String }),
-    S.TaggedStruct("Y", { y: S.Finite })
-  ])
+  const schema = S.TaggedUnion([S.TaggedStruct("X", { x: S.String }), S.TaggedStruct("Y", { y: S.Finite })])
 
   expect(schema.tags.literals).toEqual(["X", "Y"])
   expectTypeOf(schema.tags.literals).toMatchTypeOf<readonly ["X", "Y"]>()
@@ -232,10 +231,7 @@ test("TaggedUnion tags.pick returns a subset of the tag literals", () => {
 })
 
 test("tags standalone function extracts tags from member schemas", () => {
-  const members = [
-    S.TaggedStruct("Foo", { foo: S.String }),
-    S.TaggedStruct("Bar", { bar: S.Finite })
-  ] as const
+  const members = [S.TaggedStruct("Foo", { foo: S.String }), S.TaggedStruct("Bar", { bar: S.Finite })] as const
 
   const tagSchema = S.tags(members)
   expect(tagSchema.literals).toEqual(["Foo", "Bar"])
@@ -245,10 +241,7 @@ test("tags standalone function extracts tags from member schemas", () => {
 })
 
 test("ExtendTaggedUnion adds tags to an existing Union", () => {
-  const union = S.Union([
-    S.TaggedStruct("P", { p: S.String }),
-    S.TaggedStruct("Q", { q: S.Finite })
-  ])
+  const union = S.Union([S.TaggedStruct("P", { p: S.String }), S.TaggedStruct("Q", { q: S.Finite })])
   const extended = S.ExtendTaggedUnion(union)
 
   expect(extended.tags.literals).toEqual(["P", "Q"])
@@ -261,10 +254,7 @@ test("ExtendTaggedUnion adds tags to an existing Union", () => {
 })
 
 test("TaggedUnion match dispatches on _tag", () => {
-  const schema = S.TaggedUnion([
-    S.TaggedStruct("A", { a: S.String }),
-    S.TaggedStruct("B", { b: S.Finite })
-  ])
+  const schema = S.TaggedUnion([S.TaggedStruct("A", { a: S.String }), S.TaggedStruct("B", { b: S.Finite })])
 
   const matcher = schema.match({
     A: (v) => `got A: ${v.a}`,
@@ -275,9 +265,7 @@ test("TaggedUnion match dispatches on _tag", () => {
 })
 
 test("TaggedUnion with single member", () => {
-  const schema = S.TaggedUnion([
-    S.TaggedStruct("Only", { val: S.String })
-  ])
+  const schema = S.TaggedUnion([S.TaggedStruct("Only", { val: S.String })])
 
   expect(schema.tags.literals).toEqual(["Only"])
   expect(S.decodeSync(schema.tags)("Only")).toBe("Only")
@@ -297,12 +285,8 @@ test("TaggedUnion tags type is narrowed to the exact tag literals", () => {
 })
 
 test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
-  const MemberA = S.TaggedStruct("A", { firstName: S.String }).pipe(
-    S.encodeKeys({ firstName: "first_name" })
-  )
-  const MemberB = S.TaggedStruct("B", { lastName: S.Finite }).pipe(
-    S.encodeKeys({ lastName: "last_name" })
-  )
+  const MemberA = S.TaggedStruct("A", { firstName: S.String }).pipe(S.encodeKeys({ firstName: "first_name" }))
+  const MemberB = S.TaggedStruct("B", { lastName: S.Finite }).pipe(S.encodeKeys({ lastName: "last_name" }))
 
   const schema = S.TaggedUnion([MemberA, MemberB])
 
@@ -386,46 +370,102 @@ describe("ReadonlySetFromArray", () => {
 describe("ReadonlyMapFromArray", () => {
   test("decodes an array of tuples to a Map", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
-    const decoded = S.decodeUnknownSync(schema)([["a", 1], ["b", 2]])
-    expect(decoded).toEqual(new Map([["a", 1], ["b", 2]]))
+    const decoded = S.decodeUnknownSync(schema)([
+      ["a", 1],
+      ["b", 2]
+    ])
+    expect(decoded).toEqual(
+      new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+    )
   })
 
   test("encodes a Map back to an array of tuples", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
-    const encoded = S.encodeSync(schema)(new Map([["a", 1], ["b", 2]]))
-    expect(encoded).toEqual([["a", 1], ["b", 2]])
+    const encoded = S.encodeSync(schema)(
+      new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+    )
+    expect(encoded).toEqual([
+      ["a", 1],
+      ["b", 2]
+    ])
   })
 
   test("decodes with NumberFromString as key", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
-    const decoded = S.decodeUnknownSync(schema)([["1", "one"], ["2", "two"]])
-    expect(decoded).toEqual(new Map([[1, "one"], [2, "two"]]))
+    const decoded = S.decodeUnknownSync(schema)([
+      ["1", "one"],
+      ["2", "two"]
+    ])
+    expect(decoded).toEqual(
+      new Map([
+        [1, "one"],
+        [2, "two"]
+      ])
+    )
     expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, string>>()
   })
 
   test("encodes with NumberFromString as key", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
-    const encoded = S.encodeSync(schema)(new Map([[1, "one"], [2, "two"]]))
-    expect(encoded).toEqual([["1", "one"], ["2", "two"]])
+    const encoded = S.encodeSync(schema)(
+      new Map([
+        [1, "one"],
+        [2, "two"]
+      ])
+    )
+    expect(encoded).toEqual([
+      ["1", "one"],
+      ["2", "two"]
+    ])
   })
 
   test("decodes with NumberFromString as value", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
-    const decoded = S.decodeUnknownSync(schema)([["a", "10"], ["b", "20"]])
-    expect(decoded).toEqual(new Map([["a", 10], ["b", 20]]))
+    const decoded = S.decodeUnknownSync(schema)([
+      ["a", "10"],
+      ["b", "20"]
+    ])
+    expect(decoded).toEqual(
+      new Map([
+        ["a", 10],
+        ["b", 20]
+      ])
+    )
     expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<string, number>>()
   })
 
   test("encodes with NumberFromString as value", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
-    const encoded = S.encodeSync(schema)(new Map([["a", 10], ["b", 20]]))
-    expect(encoded).toEqual([["a", "10"], ["b", "20"]])
+    const encoded = S.encodeSync(schema)(
+      new Map([
+        ["a", 10],
+        ["b", 20]
+      ])
+    )
+    expect(encoded).toEqual([
+      ["a", "10"],
+      ["b", "20"]
+    ])
   })
 
   test("decodes with NumberFromString as both key and value", () => {
     const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.NumberFromString })
-    const decoded = S.decodeUnknownSync(schema)([["1", "10"], ["2", "20"]])
-    expect(decoded).toEqual(new Map([[1, 10], [2, 20]]))
+    const decoded = S.decodeUnknownSync(schema)([
+      ["1", "10"],
+      ["2", "20"]
+    ])
+    expect(decoded).toEqual(
+      new Map([
+        [1, 10],
+        [2, 20]
+      ])
+    )
     expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, number>>()
   })
 
@@ -484,7 +524,7 @@ describe("JSON Schema", () => {
     const doc = S.toJsonSchemaDocument(S.Email)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/Email" },
+      schema: { $ref: "#/$defs/Email" },
       definitions: {
         Email: {
           type: "string",
@@ -502,7 +542,7 @@ describe("JSON Schema", () => {
     const doc = specialJsonSchemaDocument(S.Email)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/Email" },
+      schema: { $ref: "#/$defs/Email" },
       definitions: {
         Email: {
           type: "string",
@@ -530,7 +570,7 @@ describe("JSON Schema", () => {
     const doc = S.toJsonSchemaDocument(S.DateFromString)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/DateOrInvalid" },
+      schema: { $ref: "#/$defs/DateOrInvalid" },
       definitions: {
         DateOrInvalid: {
           type: "string",
@@ -545,7 +585,7 @@ describe("JSON Schema", () => {
     const doc = specialJsonSchemaDocument(S.PhoneNumber)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/PhoneNumber" },
+      schema: { $ref: "#/$defs/PhoneNumber" },
       definitions: {
         PhoneNumber: {
           type: "string",
@@ -561,7 +601,7 @@ describe("JSON Schema", () => {
     const doc = specialJsonSchemaDocument(S.Url)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: { "$ref": "#/$defs/Url" },
+      schema: { $ref: "#/$defs/Url" },
       definitions: {
         Url: {
           type: "string",
@@ -666,10 +706,7 @@ describe("generateGuardsFor", () => {
   })
 
   test("ExtendTaggedUnion also exposes generateGuardsFor", () => {
-    const union = S.Union([
-      S.TaggedStruct("X", { x: S.String }),
-      S.TaggedStruct("Y", { y: S.Finite })
-    ])
+    const union = S.Union([S.TaggedStruct("X", { x: S.String }), S.TaggedStruct("Y", { y: S.Finite })])
     const extended = S.ExtendTaggedUnion(union)
     type Obj = { readonly field: S.Schema.Type<typeof extended> }
     const { isX, isY } = extended.generateGuardsFor<Obj>()("field")

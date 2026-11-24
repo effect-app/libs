@@ -68,10 +68,8 @@ export function GMUA_<W, S, S2, GR, GE, GA, MR, ME, MA, UR, UE, UA>(
 }
 
 export function GMUA<W, S, S2, GA, MR, ME, MA>(modify: (i: GA) => Pure<W, S, S2, MR, ME, readonly [GA, MA]>) {
-  return <GR, GE, UR, UE, UA>(
-    get: Pure<W, S, S2, GR, GE, GA>,
-    update: (i: GA) => Pure<W, S, S2, UR, UE, UA>
-  ) => GMUA_(get, modify, update)
+  return <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) =>
+    GMUA_(get, modify, update)
 }
 
 export function GMU_<W, S, S2, GR, GE, GA, MR, ME, UR, UE, UA>(
@@ -83,10 +81,8 @@ export function GMU_<W, S, S2, GR, GE, GA, MR, ME, UR, UE, UA>(
 }
 
 export function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, ME, GA>) {
-  return <GR, GE, UR, UE, UA>(
-    get: Pure<W, S, S2, GR, GE, GA>,
-    update: (i: GA) => Pure<W, S, S2, UR, UE, UA>
-  ) => GMU_(get, modify, update)
+  return <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) =>
+    GMU_(get, modify, update)
 }
 
 const tagg = Context.Service<{ env: PureEnv<never, unknown, never> }>("PureEnv")
@@ -120,11 +116,11 @@ export interface PureEnvEnv<W, S, S2> extends ServiceTagged<typeof PureEnvEnv> {
 }
 
 export function get<S>(): Pure<never, S, S, never, never, S> {
-  return (castTag<never, S, S>()).useSync((_) => _.env.state)
+  return castTag<never, S, S>().useSync((_) => _.env.state)
 }
 
 export function set<S>(s: S): Pure<never, S, S, never, never, void> {
-  return (castTag<never, S, S>()).useSync((_) => {
+  return castTag<never, S, S>().useSync((_) => {
     _.env.state = s
   })
 }
@@ -132,13 +128,13 @@ export function set<S>(s: S): Pure<never, S, S, never, never, void> {
 export type PureLogT<W> = Pure<W, unknown, never, never, never, void>
 
 export function log<W>(w: W): PureLogT<W> {
-  return (castTag<W, unknown, never>()).useSync((_) => {
+  return castTag<W, unknown, never>().useSync((_) => {
     _.env.log = Chunk.append(_.env.log, w)
   })
 }
 
 export function logMany<W>(w: Iterable<W>): PureLogT<W> {
-  return (castTag<W, unknown, never>()).useSync((_) => {
+  return castTag<W, unknown, never>().useSync((_) => {
     _.env.log = Chunk.appendAll(_.env.log, Chunk.fromIterable(w))
   })
 }
@@ -151,35 +147,26 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
   never,
   Exclude<R, { env: PureEnv<W3, S1, S3> }>
 > {
-  const a = Effect
-    .flatMap(self, (x) =>
-      (castTag<W3, S1, S3>())
-        .useSync(
-          ({ env: _ }) => ({ log: _.log, state: _.state })
-        )
-        .pipe(
-          Effect.map(
-            ({ log, state }) => Tuple.make(log, Result.succeed(Tuple.make(state, x)))
-          )
-        ))
-    .pipe(Effect.catch((err: any) => tagg.useSync((env) => Tuple.make(env.env.log, Result.fail(err)))))
+  const a = Effect.flatMap(self, (x) =>
+    castTag<W3, S1, S3>()
+      .useSync(({ env: _ }) => ({ log: _.log, state: _.state }))
+      .pipe(Effect.map(({ log, state }) => Tuple.make(log, Result.succeed(Tuple.make(state, x)))))
+  ).pipe(Effect.catch((err: any) => tagg.useSync((env) => Tuple.make(env.env.log, Result.fail(err)))))
   return Effect.provide(a, Layer.succeed(tagg, { env: makePureEnv<W3, S3, S4>(s) as any }) as any) as any
 }
 
-export function runResult<R, E, A, W3, S1, S3, S4 extends S1>(
-  self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
-  s: S4
-) {
-  return Effect.map(runAll(self, s), ([log, r]) => Tuple.make(log, Result.map(r, ([s]) => s)))
+export function runResult<R, E, A, W3, S1, S3, S4 extends S1>(self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>, s: S4) {
+  return Effect.map(runAll(self, s), ([log, r]) =>
+    Tuple.make(
+      log,
+      Result.map(r, ([s]) => s)
+    )
+  )
 }
 
-export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(
-  self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
-  s: S4
-) {
-  return Effect.flatMap(
-    runAll(self, s),
-    ([evts, r]) => Effect.map(Effect.fromResult(r), ([s3, a]) => Tuple.make(s3, Chunk.toArray(evts), a))
+export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>, s: S4) {
+  return Effect.flatMap(runAll(self, s), ([evts, r]) =>
+    Effect.map(Effect.fromResult(r), ([s3, a]) => Tuple.make(s3, Chunk.toArray(evts), a))
   )
 }
 
@@ -190,17 +177,19 @@ export function runTermDiscard<R, E, A, W3, S1, S3, S4 extends S1>(
   return Effect.map(runTerm(self, s), ([s3, w3]) => Tuple.make(s3, w3))
 }
 
-export function runA<R, E, A, W3, S1, S3, S4 extends S1>(
-  self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
-  s: S4
-) {
-  return Effect.map(runAll(self, s), ([log, r]) => Tuple.make(log, Result.map(r, ([, a]) => a)))
+export function runA<R, E, A, W3, S1, S3, S4 extends S1>(self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>, s: S4) {
+  return Effect.map(runAll(self, s), ([log, r]) =>
+    Tuple.make(
+      log,
+      Result.map(r, ([, a]) => a)
+    )
+  )
 }
 
 export function modify<S2, A, S3>(
   mod: (s: S2) => readonly [S3, A]
 ): Effect.Effect<A, never, { env: PureEnv<never, S2, S3> }> {
-  return (castTag<never, S3, S2>()).useSync((_) => {
+  return castTag<never, S3, S2>().useSync((_) => {
     const [s, a] = mod(_.env.state)
     _.env.state = s as any
     return a
@@ -212,7 +201,7 @@ export function modifyM<W, R, E, A, S2, S3>(
 ): Effect.Effect<A, E, FixEnv<R, W, S2, S3>> {
   // return serviceWithEffect(_ => Ref.modifyM_(_.state, mod))
   return Effect.flatMap(
-    (castTag<W, S3, S2>()).useSync((_) => _),
+    castTag<W, S3, S2>().useSync((_) => _),
     (_: any) =>
       Effect.map(mod(_.env.state), ([s, a]: any) => {
         _.env.state = s
@@ -234,9 +223,7 @@ export function updateWithEffect<W, R, E, S2, S3>(
   return modifyM((_: S2) => Effect.map(upd(_, log), (_) => Tuple.make(_, _)))
 }
 
-export type FixEnv<R, W, S, S2> =
-  | Exclude<R, PureEnvEnv<any, any, any>>
-  | PureEnvEnv<W, S, S2>
+export type FixEnv<R, W, S, S2> = Exclude<R, PureEnvEnv<any, any, any>> | PureEnvEnv<W, S, S2>
 
 // export function getMA<W, S, A>(self: (s: S) => A): Pure<W, S, never, never, A> {
 //   return Effect.accessM((_: PureState<S>) => Ref.get(_.state).map(self))

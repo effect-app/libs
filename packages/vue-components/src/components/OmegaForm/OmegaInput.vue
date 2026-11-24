@@ -1,9 +1,5 @@
 <template>
-  <component
-    :is="form.Field"
-    :name="name"
-    :validators="validators"
-  >
+  <component :is="form.Field" :name="name" :validators="validators">
     <!--
       Read `state` from `field.state`, not the Field slot's `state` prop.
       Since @tanstack/vue-form 1.32 the slot `state` is a one-time snapshot
@@ -20,14 +16,8 @@
         :label="label ?? errori18n(propsName)"
         :meta="meta"
       >
-        <template
-          v-if="$slots.label"
-          #label="labelProps"
-        >
-          <slot
-            name="label"
-            v-bind="labelProps"
-          />
+        <template v-if="$slots.label" #label="labelProps">
+          <slot name="label" v-bind="labelProps" />
         </template>
         <template #default="inputProps">
           <slot v-bind="inputProps" />
@@ -79,16 +69,12 @@ const computedClass = computed(() => {
   return attrs.class as string | undefined
 })
 
-const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
-  "getMetaFromArray",
-  null
-)
+const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>("getMetaFromArray", null)
 
 const meta = computed(() => {
   const fromArray = getMetaFromArray?.value?.(propsName.value)
   if (fromArray) return fromArray
-  return props.form.meta[propsName.value]
-    ?? props.form.meta[propsName.value.replace(/\[\d+\]/g, "") as DeepKeys<From>]
+  return props.form.meta[propsName.value] ?? props.form.meta[propsName.value.replace(/\[\d+\]/g, "") as DeepKeys<From>]
 })
 
 const errori18n = useErrorLabel(props.form)

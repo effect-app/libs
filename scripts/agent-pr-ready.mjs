@@ -36,15 +36,11 @@ if (prState.mode === "ready") {
 }
 
 // draft → gate then undraft
-console.error(
-  `agent pr:ready: ship gate then ready PR${prState.pr?.number != null ? ` #${prState.pr.number}` : ""}`
-)
+console.error(`agent pr:ready: ship gate then ready PR${prState.pr?.number != null ? ` #${prState.pr.number}` : ""}`)
 await runAgentShipGate({ root })
 
 const env = { ...process.env, AGENT_PR_SHIP: "1" }
-const readyArgs = prState.pr?.number != null
-  ? ["pr", "ready", String(prState.pr.number)]
-  : ["pr", "ready"]
+const readyArgs = prState.pr?.number != null ? ["pr", "ready", String(prState.pr.number)] : ["pr", "ready"]
 
 console.error("agent pr:ready: marking PR ready for review")
 const result = spawnSync("gh", readyArgs, {

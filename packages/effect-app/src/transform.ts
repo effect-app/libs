@@ -16,23 +16,25 @@ import type * as SET from "./Set.ts"
 // type test0 = Transform<SomeObject>
 // type test1 = Transform<SomeObject[]>
 
-type OptOf<A> = Union.Exclude<
-  A extends Option.Some<infer X> ? X | null : A,
-  Option.None<any>
->
+type OptOf<A> = Union.Exclude<A extends Option.Some<infer X> ? X | null : A, Option.None<any>>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
-export type TransformRoot<O> = O extends Option.Option<any> ? Transform<OptOf<O>>
-  : Transform<O>
-export type Transform<O> = O extends Misc.BuiltIn | Misc.Primitive ? O
+export type TransformRoot<O> = O extends Option.Option<any> ? Transform<OptOf<O>> : Transform<O>
+export type Transform<O> = O extends Misc.BuiltIn | Misc.Primitive
+  ? O
   : {
-    [K in keyof O]: OptOf<O[K]> extends infer X ? X extends (infer Y)[] ? OptOf<Transform<Y>>[]
-      : X extends NonEmptyReadonlyArray<infer Y> ? NonEmptyReadonlyArray<OptOf<Transform<Y>>>
-      : X extends SET.Set<infer Y> ? SET.Set<OptOf<Transform<Y>>>
-      : X extends readonly (infer Y)[] ? readonly OptOf<Transform<Y>>[]
-      : Transform<X>
-      : never
-  }
+      [K in keyof O]: OptOf<O[K]> extends infer X
+        ? X extends (infer Y)[]
+          ? OptOf<Transform<Y>>[]
+          : X extends NonEmptyReadonlyArray<infer Y>
+            ? NonEmptyReadonlyArray<OptOf<Transform<Y>>>
+            : X extends SET.Set<infer Y>
+              ? SET.Set<OptOf<Transform<Y>>>
+              : X extends readonly (infer Y)[]
+                ? readonly OptOf<Transform<Y>>[]
+                : Transform<X>
+        : never
+    }
 
 export const encodeOptsAsNullable = <T>(root: T): TransformRoot<T> => encodeOptsAsNullable_(root, new Map())
 
@@ -50,9 +52,9 @@ const encodeOptsAsNullable_ = (value: any, cacheMap: Map<any, any>): any => {
   }
 
   if (
-    value instanceof Date
-    || typeof value === "function"
-    || (typeof value === "object" && value !== null && "then" in value && typeof value.then === "function")
+    value instanceof Date ||
+    typeof value === "function" ||
+    (typeof value === "object" && value !== null && "then" in value && typeof value.then === "function")
   ) {
     return value
   }

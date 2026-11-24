@@ -4,7 +4,26 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
-import { and, computed, count, expr, make, one, or, order, page, project, type ProjectableFromDomain, projectComputed, type QueryEnd, type QueryProjection, type QueryWhere, relation, toFilter, where } from "effect-app/Model/query"
+import {
+  and,
+  computed,
+  count,
+  expr,
+  make,
+  one,
+  or,
+  order,
+  page,
+  project,
+  type ProjectableFromDomain,
+  projectComputed,
+  type QueryEnd,
+  type QueryProjection,
+  type QueryWhere,
+  relation,
+  toFilter,
+  where
+} from "effect-app/Model/query"
 import { makeRepo } from "effect-app/Model/Repository"
 import { RepositoryRegistryLive } from "effect-app/Model/Repository/Registry"
 import * as Option from "effect-app/Option"
@@ -42,28 +61,25 @@ export declare namespace Something {
   export interface Encoded extends S.Codec.Encoded<typeof Something> {}
 }
 
-const q = make<Something.Encoded>()
-  .pipe( // provided automatically inside Repo.q2()
-    where("displayName", "Verona"),
-    or(
-      where("displayName", "Riley"),
-      and("n", "gt", new Date("2021-01-01T00:00:00Z"))
-    ),
-    order("displayName"),
-    page({ take: 10 }),
-    // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
-    project(
-      S.transformToOrFail(
-        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
-        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
-        (_) =>
-          Effect.gen(function*() {
-            yield* SomeService
-            return _
-          })
-      )
+const q = make<Something.Encoded>().pipe(
+  // provided automatically inside Repo.q2()
+  where("displayName", "Verona"),
+  or(where("displayName", "Riley"), and("n", "gt", new Date("2021-01-01T00:00:00Z"))),
+  order("displayName"),
+  page({ take: 10 }),
+  // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
+  project(
+    S.transformToOrFail(
+      S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
+      S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
+      (_) =>
+        Effect.gen(function* () {
+          yield* SomeService
+          return _
+        })
     )
   )
+)
 
 const items = [
   new Something({ displayName: S.NonEmptyString255("Verona"), n: new Date("2020-01-01T00:00:00Z") }),
@@ -82,7 +98,11 @@ it("merge", () => {
   const a = make().pipe(where("a", "b"), or("c", "d"))
   const b = make().pipe(where("d", "e"), or("f", "g"))
 
-  const merge = (b: any) => (a: any) => pipe(a, and(() => b))
+  const merge = (b: any) => (a: any) =>
+    pipe(
+      a,
+      and(() => b)
+    )
 
   const r = pipe(a, merge(b), toFilter, (_) => _.filter)
 
@@ -104,123 +124,125 @@ it("works", () => {
   const interpreted = toFilter(q)
   console.log("interpreted", inspect(interpreted, undefined, 25))
 
-  const processed = memFilter(interpreted)(items.map((_) =>
-    S.encodeUnknownSync(S.Struct({
-      ...Struct.omit(Something.fields, ["displayName"]),
-      displayName: S.Literals(["Verona", "Riley"])
-    }))(_)
-  ))
+  const processed = memFilter(interpreted)(
+    items.map((_) =>
+      S.encodeUnknownSync(
+        S.Struct({
+          ...Struct.omit(Something.fields, ["displayName"]),
+          displayName: S.Literals(["Verona", "Riley"])
+        })
+      )(_)
+    )
+  )
 
-  expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
+  expect(processed).toEqual(
+    items
+      .slice(0, 2)
+      .toReversed()
+      .map(Struct.pick(["id", "displayName"]))
+  )
 })
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class SomethingRepo extends Context.Service<SomethingRepo>()("SomethingRepo", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     return yield* makeRepo("Something", Something, {})
   })
 }) {
-  static readonly Test = Layer
-    .effect(
-      SomethingRepo,
-      Effect.gen(function*() {
-        return SomethingRepo.of(yield* makeRepo("Something", Something, { makeInitial: Effect.sync(() => items) }))
-      })
-    )
-    .pipe(
-      Layer.provide(TestStoreLive)
-    )
+  static readonly Test = Layer.effect(
+    SomethingRepo,
+    Effect.gen(function* () {
+      return SomethingRepo.of(yield* makeRepo("Something", Something, { makeInitial: Effect.sync(() => items) }))
+    })
+  ).pipe(Layer.provide(TestStoreLive))
 }
 
 it("works with repo", () =>
-  Effect
-    .gen(function*() {
-      const somethingRepo = yield* SomethingRepo
-      yield* somethingRepo.saveAndPublish(items)
+  Effect.gen(function* () {
+    const somethingRepo = yield* SomethingRepo
+    yield* somethingRepo.saveAndPublish(items)
 
-      const q0 = yield* somethingRepo.query(one)
-      expectTypeOf(q0).toEqualTypeOf<Something>()
+    const q0 = yield* somethingRepo.query(one)
+    expectTypeOf(q0).toEqualTypeOf<Something>()
 
-      const q1 = yield* somethingRepo.query(() => q)
-      const q2 = yield* somethingRepo
-        .query(
-          where("displayName", "Verona"),
-          or(
-            where("displayName", "Riley"),
-            and("n", "gt", new Date("2021-01-01T00:00:00Z"))
-          ),
-          order("displayName"),
-          page({ take: 10 }),
-          // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
-          project(
-            S.transformToOrFail(
-              S.Struct(Struct.pick(Something.fields, ["displayName"])),
-              S.Struct(Struct.pick(Something.fields, ["displayName"])),
-              (_) =>
-                Effect.gen(function*() {
-                  yield* SomeService
-                  return _
-                })
-            )
-          )
+    const q1 = yield* somethingRepo.query(() => q)
+    const q2 = yield* somethingRepo.query(
+      where("displayName", "Verona"),
+      or(where("displayName", "Riley"), and("n", "gt", new Date("2021-01-01T00:00:00Z"))),
+      order("displayName"),
+      page({ take: 10 }),
+      // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
+      project(
+        S.transformToOrFail(
+          S.Struct(Struct.pick(Something.fields, ["displayName"])),
+          S.Struct(Struct.pick(Something.fields, ["displayName"])),
+          (_) =>
+            Effect.gen(function* () {
+              yield* SomeService
+              return _
+            })
         )
-
-      const smtArr = yield* somethingRepo
-        .query(
-          flow(where("displayName", "Verona"))
-        )
-
-      expectTypeOf(smtArr).toEqualTypeOf<readonly Something[]>()
-
-      expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
-      expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
-
-      const byDate = yield* somethingRepo.query(
-        where("n", new Date("2020-01-01T00:00:00.000Z"))
       )
-      expect(byDate.map((_) => _.displayName)).toEqual(["Verona", "Riley"])
-    })
-    .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
-      setupRequestContextFromCurrent(),
-      Effect.scoped,
-      Effect.runPromise
-    ))
+    )
+
+    const smtArr = yield* somethingRepo.query(flow(where("displayName", "Verona")))
+
+    expectTypeOf(smtArr).toEqualTypeOf<readonly Something[]>()
+
+    expect(q1).toEqual(
+      items
+        .slice(0, 2)
+        .toReversed()
+        .map(Struct.pick(["id", "displayName"]))
+    )
+    expect(q2).toEqual(
+      items
+        .slice(0, 2)
+        .toReversed()
+        .map(Struct.pick(["displayName"]))
+    )
+
+    const byDate = yield* somethingRepo.query(where("n", new Date("2020-01-01T00:00:00.000Z")))
+    expect(byDate.map((_) => _.displayName)).toEqual(["Verona", "Riley"])
+  }).pipe(
+    Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
+    setupRequestContextFromCurrent(),
+    Effect.scoped,
+    Effect.runPromise
+  ))
 
 it("memory store round-trips Date/Set/Map via JSON codecs", () =>
-  Effect
-    .gen(function*() {
-      class Doc extends S.Class<Doc>("JsonCodecDoc")({
-        id: S.String,
-        at: S.Date,
-        tags: S.ReadonlySet(S.String),
-        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
-      }) {}
-      const at = new Date("2024-06-01T00:00:00.000Z")
-      const saved = new Doc({
-        id: "d1",
-        at,
-        tags: new Set(["a", "b"]),
-        meta: new Map([["n", 1]])
-      })
-      const repo = yield* makeRepo("JsonCodecDoc", Doc, { makeInitial: Effect.succeed([saved]) })
-      const found = yield* repo.find("d1")
-      expect(Option.isSome(found)).toBe(true)
-      if (Option.isSome(found)) {
-        expect(found.value.at.toISOString()).toBe(at.toISOString())
-        expect(found.value.tags).toEqual(new Set(["a", "b"]))
-        expect(found.value.meta).toEqual(new Map([["n", 1]]))
-      }
-      const byDate = yield* repo.query(where("at", at))
-      expect(byDate.map((_) => _.id)).toEqual(["d1"])
-      const byTag = yield* repo.query(where("tags", "includes", "b"))
-      expect(byTag.map((_) => _.id)).toEqual(["d1"])
-      const byKey = yield* repo.query(where("meta", "hasKey", "n"))
-      expect(byKey.map((_) => _.id)).toEqual(["d1"])
-      const byPair = yield* repo.query(where("meta", "hasKeyValue", ["n", 1]))
-      expect(byPair.map((_) => _.id)).toEqual(["d1"])
+  Effect.gen(function* () {
+    class Doc extends S.Class<Doc>("JsonCodecDoc")({
+      id: S.String,
+      at: S.Date,
+      tags: S.ReadonlySet(S.String),
+      meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+    }) {}
+    const at = new Date("2024-06-01T00:00:00.000Z")
+    const saved = new Doc({
+      id: "d1",
+      at,
+      tags: new Set(["a", "b"]),
+      meta: new Map([["n", 1]])
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    const repo = yield* makeRepo("JsonCodecDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+    const found = yield* repo.find("d1")
+    expect(Option.isSome(found)).toBe(true)
+    if (Option.isSome(found)) {
+      expect(found.value.at.toISOString()).toBe(at.toISOString())
+      expect(found.value.tags).toEqual(new Set(["a", "b"]))
+      expect(found.value.meta).toEqual(new Map([["n", 1]]))
+    }
+    const byDate = yield* repo.query(where("at", at))
+    expect(byDate.map((_) => _.id)).toEqual(["d1"])
+    const byTag = yield* repo.query(where("tags", "includes", "b"))
+    expect(byTag.map((_) => _.id)).toEqual(["d1"])
+    const byKey = yield* repo.query(where("meta", "hasKey", "n"))
+    expect(byKey.map((_) => _.id)).toEqual(["d1"])
+    const byPair = yield* repo.query(where("meta", "hasKeyValue", ["n", 1]))
+    expect(byPair.map((_) => _.id)).toEqual(["d1"])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 class Day {
   readonly ymd: string
@@ -232,55 +254,48 @@ class Day {
 const DayFromSelf = S.declare((u): u is Day => u instanceof Day, {
   expected: "Day",
   toCodecJson: () =>
-    S.link<Day>()(
-      S.String,
-      {
-        decode: Getter.transform((s: string) => new Day(s)),
-        encode: Getter.transform((d: Day) => d.ymd)
-      }
-    )
+    S.link<Day>()(S.String, {
+      decode: Getter.transform((s: string) => new Day(s)),
+      encode: Getter.transform((d: Day) => d.ymd)
+    })
 })
 
 it("memory store round-trips app native Encoded values via the document schema", () =>
-  Effect
-    .gen(function*() {
-      class Doc extends S.Class<Doc>("JsonCodecDayDoc")({
-        id: S.String,
-        day: DayFromSelf
-      }) {}
-      const day = new Day("2024-06-01")
-      const saved = new Doc({ id: "d1", day })
-      const repo = yield* makeRepo("JsonCodecDayDoc", Doc, { makeInitial: Effect.succeed([saved]) })
-      const found = yield* repo.find("d1")
-      expect(Option.isSome(found)).toBe(true)
-      if (Option.isSome(found)) {
-        expect(found.value.day).toBeInstanceOf(Day)
-        expect(found.value.day.ymd).toBe("2024-06-01")
-      }
-      expect(S.encodeSync(DayFromSelf)(day)).toBe(day)
-      expect(S.encodeSync(S.toCodecJson(DayFromSelf))(day)).toBe("2024-06-01")
-      const byDay = yield* repo.query(where("day", day))
-      expect(byDay.map((_) => _.id)).toEqual(["d1"])
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+  Effect.gen(function* () {
+    class Doc extends S.Class<Doc>("JsonCodecDayDoc")({
+      id: S.String,
+      day: DayFromSelf
+    }) {}
+    const day = new Day("2024-06-01")
+    const saved = new Doc({ id: "d1", day })
+    const repo = yield* makeRepo("JsonCodecDayDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+    const found = yield* repo.find("d1")
+    expect(Option.isSome(found)).toBe(true)
+    if (Option.isSome(found)) {
+      expect(found.value.day).toBeInstanceOf(Day)
+      expect(found.value.day.ymd).toBe("2024-06-01")
+    }
+    expect(S.encodeSync(DayFromSelf)(day)).toBe(day)
+    expect(S.encodeSync(S.toCodecJson(DayFromSelf))(day)).toBe("2024-06-01")
+    const byDay = yield* repo.query(where("day", day))
+    expect(byDay.map((_) => _.id)).toEqual(["d1"])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("memory store queries encodeKeys-renamed native Encoded fields", () =>
-  Effect
-    .gen(function*() {
-      class Doc extends S.Class<Doc>("JsonCodecEncodeKeysDayDoc")({
-        id: S.String,
-        day: DayFromSelf
-      }) {}
-      const schema = Doc.pipe(S.encodeKeys({ day: "the_day" }))
-      const day = new Day("2024-06-01")
-      const saved = new Doc({ id: "d1", day })
-      const repo = yield* makeRepo("JsonCodecEncodeKeysDayDoc", schema, { makeInitial: Effect.succeed([saved]) })
-      const byDay = yield* repo.query(where("the_day", day))
-      expect(byDay.map((_) => _.id)).toEqual(["d1"])
-      const byId = yield* repo.query(where("id", "in", ["d1"]))
-      expect(byId.map((_) => _.id)).toEqual(["d1"])
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+  Effect.gen(function* () {
+    class Doc extends S.Class<Doc>("JsonCodecEncodeKeysDayDoc")({
+      id: S.String,
+      day: DayFromSelf
+    }) {}
+    const schema = Doc.pipe(S.encodeKeys({ day: "the_day" }))
+    const day = new Day("2024-06-01")
+    const saved = new Doc({ id: "d1", day })
+    const repo = yield* makeRepo("JsonCodecEncodeKeysDayDoc", schema, { makeInitial: Effect.succeed([saved]) })
+    const byDay = yield* repo.query(where("the_day", day))
+    expect(byDay.map((_) => _.id)).toEqual(["d1"])
+    const byId = yield* repo.query(where("id", "in", ["d1"]))
+    expect(byId.map((_) => _.id)).toEqual(["d1"])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("disk store round-trips Date/Set/Map via JSON codecs", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "effect-app-disk-json-"))
@@ -288,86 +303,77 @@ it("disk store round-trips Date/Set/Map via JSON codecs", () => {
     DiskStoreLayer({ url: Redacted.make(`disk://${dir}`), prefix: "", dbName: "test" }, dir),
     RepositoryRegistryLive
   )
-  return Effect
-    .gen(function*() {
-      class Doc extends S.Class<Doc>("JsonCodecDiskDoc")({
-        id: S.String,
-        at: S.Date,
-        tags: S.ReadonlySet(S.String),
-        meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
-      }) {}
-      const at = new Date("2024-06-01T00:00:00.000Z")
-      const saved = new Doc({
-        id: "d1",
-        at,
-        tags: new Set(["a", "b"]),
-        meta: new Map([["n", 1]])
-      })
-      const repo = yield* makeRepo("JsonCodecDiskDoc", Doc, { makeInitial: Effect.succeed([saved]) })
-      const found = yield* repo.find("d1")
-      expect(Option.isSome(found)).toBe(true)
-      if (Option.isSome(found)) {
-        expect(found.value.at.toISOString()).toBe(at.toISOString())
-        expect(found.value.tags).toEqual(new Set(["a", "b"]))
-        expect(found.value.meta).toEqual(new Map([["n", 1]]))
-      }
-      const jsonFile = fs.readdirSync(dir).find((f) => f.endsWith(".json"))
-      expect(jsonFile).toBeDefined()
-      const raw = JSON.parse(fs.readFileSync(path.join(dir, jsonFile!), "utf8")) as Array<{
-        at: unknown
-        tags: unknown
-        meta: unknown
-      }>
-      expect(raw[0]?.at).toBe(at.toISOString())
-      expect(raw[0]?.tags).toEqual(["a", "b"])
-      expect(raw[0]?.meta).toEqual([["n", 1]])
+  return Effect.gen(function* () {
+    class Doc extends S.Class<Doc>("JsonCodecDiskDoc")({
+      id: S.String,
+      at: S.Date,
+      tags: S.ReadonlySet(S.String),
+      meta: S.ReadonlyMap({ key: S.String, value: S.Finite })
+    }) {}
+    const at = new Date("2024-06-01T00:00:00.000Z")
+    const saved = new Doc({
+      id: "d1",
+      at,
+      tags: new Set(["a", "b"]),
+      meta: new Map([["n", 1]])
     })
-    .pipe(
-      Effect.provide(diskLive),
-      setupRequestContextFromCurrent(),
-      Effect.scoped,
-      Effect.runPromise
-    )
+    const repo = yield* makeRepo("JsonCodecDiskDoc", Doc, { makeInitial: Effect.succeed([saved]) })
+    const found = yield* repo.find("d1")
+    expect(Option.isSome(found)).toBe(true)
+    if (Option.isSome(found)) {
+      expect(found.value.at.toISOString()).toBe(at.toISOString())
+      expect(found.value.tags).toEqual(new Set(["a", "b"]))
+      expect(found.value.meta).toEqual(new Map([["n", 1]]))
+    }
+    const jsonFile = fs.readdirSync(dir).find((f) => f.endsWith(".json"))
+    expect(jsonFile).toBeDefined()
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, jsonFile!), "utf8")) as Array<{
+      at: unknown
+      tags: unknown
+      meta: unknown
+    }>
+    expect(raw[0]?.at).toBe(at.toISOString())
+    expect(raw[0]?.tags).toEqual(["a", "b"])
+    expect(raw[0]?.meta).toEqual([["n", 1]])
+  })
+    .pipe(Effect.provide(diskLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
     .finally(() => fs.rmSync(dir, { recursive: true, force: true }))
 })
 
 it("collect", () =>
-  Effect
-    .gen(function*() {
-      const somethingRepo = yield* SomethingRepo
-      yield* somethingRepo.saveAndPublish(items)
+  Effect.gen(function* () {
+    const somethingRepo = yield* SomethingRepo
+    yield* somethingRepo.saveAndPublish(items)
 
-      expect(
-        yield* somethingRepo
-          .query(
-            where("displayName", "Riley"), // TODO: work with To type translation, so Date?
-            // one,
-            // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
-            project(
-              S.transformTo(
-                S.toEncoded(S.Struct({
-                  ...Struct.pick(Something.fields, ["n"]),
-                  displayName: S.String
-                })),
-                S.toType(S.Option(S.String)),
-                (_) =>
-                  _.displayName === "Riley" && _.n.toISOString() === "2020-01-01T00:00:00.000Z"
-                    ? Option.some(`${_.displayName}-${_.n.toISOString()}`)
-                    : Option.none()
-              ),
-              "collect"
-            )
-          )
+    expect(
+      yield* somethingRepo.query(
+        where("displayName", "Riley"), // TODO: work with To type translation, so Date?
+        // one,
+        // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
+        project(
+          S.transformTo(
+            S.toEncoded(
+              S.Struct({
+                ...Struct.pick(Something.fields, ["n"]),
+                displayName: S.String
+              })
+            ),
+            S.toType(S.Option(S.String)),
+            (_) =>
+              _.displayName === "Riley" && _.n.toISOString() === "2020-01-01T00:00:00.000Z"
+                ? Option.some(`${_.displayName}-${_.n.toISOString()}`)
+                : Option.none()
+          ),
+          "collect"
+        )
       )
-        .toEqual(["Riley-2020-01-01T00:00:00.000Z"])
+    ).toEqual(["Riley-2020-01-01T00:00:00.000Z"])
 
-      const queryRes = make<Something.Encoded>().pipe(
-        where("union._tag", "string"),
-        one
-      )
+    const queryRes = make<Something.Encoded>().pipe(where("union._tag", "string"), one)
 
-      expectTypeOf(queryRes).toEqualTypeOf<
-        QueryEnd<{
+    expectTypeOf(queryRes).toEqualTypeOf<
+      QueryEnd<
+        {
           readonly id: string
           readonly displayName: string
           readonly n: Date
@@ -376,32 +382,33 @@ it("collect", () =>
             readonly value: string
           }
           readonly name: string | null
-        }, "one">
-      >()
+        },
+        "one"
+      >
+    >()
 
-      const fromRepo = yield* somethingRepo.query(
-        where("union._tag", "string"),
-        one,
-        project(
-          S.Struct({
-            union: S.Struct({
-              _tag: S.Literal("string"),
-              value: S.String
-            })
+    const fromRepo = yield* somethingRepo.query(
+      where("union._tag", "string"),
+      one,
+      project(
+        S.Struct({
+          union: S.Struct({
+            _tag: S.Literal("string"),
+            value: S.String
           })
-        )
+        })
       )
-      const value = fromRepo.union.value
+    )
+    const value = fromRepo.union.value
 
-      expectTypeOf(value).toEqualTypeOf<string>()
-      expect(value).toEqual("hi")
-    })
-    .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
-      setupRequestContextFromCurrent(),
-      Effect.scoped,
-      Effect.runPromise
-    ))
+    expectTypeOf(value).toEqualTypeOf<string>()
+    expect(value).toEqual("hi")
+  }).pipe(
+    Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
+    setupRequestContextFromCurrent(),
+    Effect.scoped,
+    Effect.runPromise
+  ))
 
 class Person extends S.TaggedClass<Person, Person.Encoded>()("person", {
   id: S.String,
@@ -416,13 +423,13 @@ class Test extends S.TaggedClass<Test, Test.Encoded>()("test", {
 }) {}
 
 namespace Person {
-  export interface Encoded extends S.Struct.Encoded<typeof Person["fields"]> {}
+  export interface Encoded extends S.Struct.Encoded<(typeof Person)["fields"]> {}
 }
 namespace Animal {
-  export interface Encoded extends S.Struct.Encoded<typeof Animal["fields"]> {}
+  export interface Encoded extends S.Struct.Encoded<(typeof Animal)["fields"]> {}
 }
 namespace Test {
-  export interface Encoded extends S.Struct.Encoded<typeof Test["fields"]> {}
+  export interface Encoded extends S.Struct.Encoded<(typeof Test)["fields"]> {}
 }
 
 const TestUnion = S.Union([Person, Animal, Test])
@@ -431,320 +438,214 @@ namespace TestUnion {
   export type Encoded = typeof TestUnion.Encoded
 }
 
-it(
-  "refine",
-  () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("test", TestUnion, {})
-        const result = yield* repo.query(where("id", "123"), and("_tag", "animal"))
-        const result2 = yield* repo.query(where("_tag", "animal"))
+it("refine", () =>
+  Effect.gen(function* () {
+    const repo = yield* makeRepo("test", TestUnion, {})
+    const result = yield* repo.query(where("id", "123"), and("_tag", "animal"))
+    const result2 = yield* repo.query(where("_tag", "animal"))
 
-        expectTypeOf(result).toEqualTypeOf<readonly Animal[]>()
-        expectTypeOf(result2).toEqualTypeOf<readonly Animal[]>()
+    expectTypeOf(result).toEqualTypeOf<readonly Animal[]>()
+    expectTypeOf(result2).toEqualTypeOf<readonly Animal[]>()
 
-        expect(result).toEqual([])
-        expect(result2).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toEqual([])
+    expect(result2).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "refine2",
-  () =>
-    Effect
-      .gen(function*() {
-        class AA extends S.TaggedClass<AA>()("AA", {
-          id: S.String,
-          a: S.Unknown
-        }) {}
+it("refine2", () =>
+  Effect.gen(function* () {
+    class AA extends S.TaggedClass<AA>()("AA", {
+      id: S.String,
+      a: S.Unknown
+    }) {}
 
-        class BB extends S.TaggedClass<BB>()("BB", {
-          id: S.String,
-          b: S.Unknown
-        }) {}
+    class BB extends S.TaggedClass<BB>()("BB", {
+      id: S.String,
+      b: S.Unknown
+    }) {}
 
-        class CC extends S.TaggedClass<CC>()("CC", {
-          id: S.String,
-          c: S.Unknown
-        }) {}
+    class CC extends S.TaggedClass<CC>()("CC", {
+      id: S.String,
+      c: S.Unknown
+    }) {}
 
-        class DD extends S.TaggedClass<DD>()("DD", {
-          id: S.String,
-          d: S.Unknown
-        }) {}
+    class DD extends S.TaggedClass<DD>()("DD", {
+      id: S.String,
+      d: S.Unknown
+    }) {}
 
-        // const repo = yield* makeRepo("test", S.Union(AA, BB, CC, DD), {})
+    // const repo = yield* makeRepo("test", S.Union(AA, BB, CC, DD), {})
 
-        type Union = AA | BB | CC | DD
+    type Union = AA | BB | CC | DD
 
-        const query1 = make<Union>().pipe(
-          where("id", "bla"),
-          and("_tag", "AA")
-        )
-        expectTypeOf(query1).toEqualTypeOf<
-          QueryWhere<Union, AA, true>
-        >()
+    const query1 = make<Union>().pipe(where("id", "bla"), and("_tag", "AA"))
+    expectTypeOf(query1).toEqualTypeOf<QueryWhere<Union, AA, true>>()
 
-        const query2 = make<Union>().pipe(
-          where("_tag", "AA")
-        )
-        expectTypeOf(query2).toEqualTypeOf<QueryWhere<Union, AA, true>>()
+    const query2 = make<Union>().pipe(where("_tag", "AA"))
+    expectTypeOf(query2).toEqualTypeOf<QueryWhere<Union, AA, true>>()
 
-        const query2a = make<Union>().pipe(
-          where("c", "something")
-        )
-        expectTypeOf(query2a).toEqualTypeOf<
-          QueryWhere<Union, {
-            readonly id: string
-            readonly _tag: "CC"
-            readonly c: {} // from unknown to {} because "something" means that it's not null or undefined
-          }>
-        >()
+    const query2a = make<Union>().pipe(where("c", "something"))
+    expectTypeOf(query2a).toEqualTypeOf<
+      QueryWhere<
+        Union,
+        {
+          readonly id: string
+          readonly _tag: "CC"
+          readonly c: {} // from unknown to {} because "something" means that it's not null or undefined
+        }
+      >
+    >()
 
-        const query3 = make<Union>().pipe(
-          where("_tag", "AA"),
-          or(
-            where("id", "test"),
-            and("_tag", "BB")
-          )
-        )
-        expectTypeOf(query3).toEqualTypeOf<
-          QueryWhere<
-            Union,
-            AA | BB
-          >
-        >()
+    const query3 = make<Union>().pipe(where("_tag", "AA"), or(where("id", "test"), and("_tag", "BB")))
+    expectTypeOf(query3).toEqualTypeOf<QueryWhere<Union, AA | BB>>()
 
-        const query3b = make<Union>().pipe(
-          where("_tag", "AA"),
-          or(
-            where("_tag", "BB")
-          )
-        )
-        expectTypeOf(query3b).toEqualTypeOf<QueryWhere<Union, AA | BB>>()
+    const query3b = make<Union>().pipe(where("_tag", "AA"), or(where("_tag", "BB")))
+    expectTypeOf(query3b).toEqualTypeOf<QueryWhere<Union, AA | BB>>()
 
-        const query4 = make<Union>().pipe(
-          where("_tag", "AA"),
-          project(S.Struct({ id: S.String, a: S.Unknown }))
-        )
-        expectTypeOf(query4).toEqualTypeOf<
-          QueryProjection<
-            AA,
-            {
-              readonly id: string
-              readonly a: unknown
-            },
-            never,
-            "many",
-            true
-          >
-        >()
+    const query4 = make<Union>().pipe(where("_tag", "AA"), project(S.Struct({ id: S.String, a: S.Unknown })))
+    expectTypeOf(query4).toEqualTypeOf<
+      QueryProjection<
+        AA,
+        {
+          readonly id: string
+          readonly a: unknown
+        },
+        never,
+        "many",
+        true
+      >
+    >()
 
-        // eslint-disable-next-line unused-imports/no-unused-vars
-        const query5 = make<Union>().pipe(
-          where("id", "bla"),
-          project(S.Struct({ id: S.String, a: S.Unknown }))
-        )
-        console.log(query5)
+    // eslint-disable-next-line unused-imports/no-unused-vars
+    const query5 = make<Union>().pipe(where("id", "bla"), project(S.Struct({ id: S.String, a: S.Unknown })))
+    console.log(query5)
 
-        const query6 = make<Union>().pipe(
-          where("_tag", "neq", "AA")
-        )
-        expectTypeOf(query6).toEqualTypeOf<QueryWhere<Union, BB | CC | DD>>()
+    const query6 = make<Union>().pipe(where("_tag", "neq", "AA"))
+    expectTypeOf(query6).toEqualTypeOf<QueryWhere<Union, BB | CC | DD>>()
 
-        const query7 = make<Union>().pipe(
-          where("_tag", "AA"),
-          or(
-            where("id", "test"),
-            and("_tag", "neq", "BB")
-          )
-        )
-        expectTypeOf(query7).toEqualTypeOf<
-          QueryWhere<
-            Union,
-            AA | CC | DD
-          >
-        >()
+    const query7 = make<Union>().pipe(where("_tag", "AA"), or(where("id", "test"), and("_tag", "neq", "BB")))
+    expectTypeOf(query7).toEqualTypeOf<QueryWhere<Union, AA | CC | DD>>()
 
-        const query8 = make<Union>().pipe(
-          where("_tag", "neq", "AA"),
-          and("_tag", "AA")
-        )
-        expectTypeOf(query8).toEqualTypeOf<QueryWhere<Union, never, true>>()
+    const query8 = make<Union>().pipe(where("_tag", "neq", "AA"), and("_tag", "AA"))
+    expectTypeOf(query8).toEqualTypeOf<QueryWhere<Union, never, true>>()
 
-        const query9 = make<Union>().pipe(
-          where("id", "AA"),
-          and("_tag", "AA"),
-          or(
-            where("_tag", "BB"),
-            or(
-              where("id", "test"),
-              and("_tag", "CC")
-            )
-          )
-        )
-        expectTypeOf(query9).toEqualTypeOf<
-          QueryWhere<
-            Union,
-            AA | BB | CC
-          >
-        >()
+    const query9 = make<Union>().pipe(
+      where("id", "AA"),
+      and("_tag", "AA"),
+      or(where("_tag", "BB"), or(where("id", "test"), and("_tag", "CC")))
+    )
+    expectTypeOf(query9).toEqualTypeOf<QueryWhere<Union, AA | BB | CC>>()
 
-        const query10 = make<Union>().pipe(
-          where("id", "AA"),
-          and("_tag", "AA"),
-          or(
-            where("id", "test"),
-            and("_tag", "BB")
-          ),
-          order("id", "ASC"),
-          page({ take: 10 }),
-          count
-        )
-        expectTypeOf(query10).toEqualTypeOf<
-          QueryProjection<
-            AA | BB,
-            S.NonNegativeInt,
-            never,
-            "count"
-          >
-        >()
+    const query10 = make<Union>().pipe(
+      where("id", "AA"),
+      and("_tag", "AA"),
+      or(where("id", "test"), and("_tag", "BB")),
+      order("id", "ASC"),
+      page({ take: 10 }),
+      count
+    )
+    expectTypeOf(query10).toEqualTypeOf<QueryProjection<AA | BB, S.NonNegativeInt, never, "count">>()
 
-        const query11 = make<Union>().pipe(
-          where("id", "AA"),
-          and("_tag", "AA"),
-          or(
-            where("id", "test"),
-            and("_tag", "BB")
-          ),
-          order("id", "ASC"),
-          page({ take: 10 }),
-          one
-        )
-        expectTypeOf(query11).toEqualTypeOf<
-          QueryEnd<
-            AA | BB,
-            "one"
-          >
-        >()
+    const query11 = make<Union>().pipe(
+      where("id", "AA"),
+      and("_tag", "AA"),
+      or(where("id", "test"), and("_tag", "BB")),
+      order("id", "ASC"),
+      page({ take: 10 }),
+      one
+    )
+    expectTypeOf(query11).toEqualTypeOf<QueryEnd<AA | BB, "one">>()
 
-        expect([]).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect([]).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "refine2",
-  () =>
-    Effect
-      .gen(function*() {
-        class AA extends S.Class<AA>("AA")({
-          id: S.Literal("AA"),
-          a: S.Unknown
-        }) {}
+it("refine2", () =>
+  Effect.gen(function* () {
+    class AA extends S.Class<AA>("AA")({
+      id: S.Literal("AA"),
+      a: S.Unknown
+    }) {}
 
-        class BB extends S.Class<BB>("BB")({
-          id: S.Literal("BB"),
-          b: S.Unknown
-        }) {}
+    class BB extends S.Class<BB>("BB")({
+      id: S.Literal("BB"),
+      b: S.Unknown
+    }) {}
 
-        class CC extends S.Class<CC>("CC")({
-          id: S.Literal("CC"),
-          c: S.Unknown
-        }) {}
+    class CC extends S.Class<CC>("CC")({
+      id: S.Literal("CC"),
+      c: S.Unknown
+    }) {}
 
-        class DD extends S.Class<DD>("DD")({
-          id: S.Literal("DD"),
-          d: S.Unknown
-        }) {}
+    class DD extends S.Class<DD>("DD")({
+      id: S.Literal("DD"),
+      d: S.Unknown
+    }) {}
 
-        type Union = AA | BB | CC | DD
+    type Union = AA | BB | CC | DD
 
-        const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
+    const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
 
-        const query1 = make<Union>().pipe(
-          where("id", "AA")
-        )
-        expectTypeOf(query1).toEqualTypeOf<QueryWhere<Union, AA>>()
+    const query1 = make<Union>().pipe(where("id", "AA"))
+    expectTypeOf(query1).toEqualTypeOf<QueryWhere<Union, AA>>()
 
-        const res = yield* repo.query(() => query1)
+    const res = yield* repo.query(() => query1)
 
-        expectTypeOf(res).toEqualTypeOf<readonly AA[]>()
+    expectTypeOf(res).toEqualTypeOf<readonly AA[]>()
 
-        expect([]).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect([]).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "project",
-  () =>
-    Effect
-      .gen(function*() {
-        const schema = S.Struct({
-          id: S.String,
-          createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date())),
-            S.withConstructorDefault(Effect.sync(() => new Date()))
-          )
-        })
-        const repo = yield* makeRepo(
-          "test",
-          schema,
-          {}
-        )
+it("project", () =>
+  Effect.gen(function* () {
+    const schema = S.Struct({
+      id: S.String,
+      createdAt: S.Date.pipe(
+        S.withDecodingDefault(Effect.sync(() => new Date())),
+        S.withConstructorDefault(Effect.sync(() => new Date()))
+      )
+    })
+    const repo = yield* makeRepo("test", schema, {})
 
-        const outputSchema = S.Struct({
-          id: S.Literal("123"),
-          createdAt: S.Date.pipe(
-            S.withDecodingDefault(Effect.sync(() => new Date())),
-            S.withConstructorDefault(Effect.sync(() => new Date()))
-          )
-        })
+    const outputSchema = S.Struct({
+      id: S.Literal("123"),
+      createdAt: S.Date.pipe(
+        S.withDecodingDefault(Effect.sync(() => new Date())),
+        S.withConstructorDefault(Effect.sync(() => new Date()))
+      )
+    })
 
-        const result = yield* repo.query(where("id", "123"), project(outputSchema))
+    const result = yield* repo.query(where("id", "123"), project(outputSchema))
 
-        expect(result).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "project with encodeKeys in projection maps encoded keys",
-  () =>
-    Effect
-      .gen(function*() {
-        const schema = S.Struct({
-          id: S.String,
-          a: S.Number
-        })
+it("project with encodeKeys in projection maps encoded keys", () =>
+  Effect.gen(function* () {
+    const schema = S.Struct({
+      id: S.String,
+      a: S.Number
+    })
 
-        const repo = yield* makeRepo(
-          "test",
-          schema,
-          {
-            makeInitial: Effect.sync(() => [{ id: "1", a: 1 }])
-          }
-        )
+    const repo = yield* makeRepo("test", schema, {
+      makeInitial: Effect.sync(() => [{ id: "1", a: 1 }])
+    })
 
-        const outputSchema = S.Struct({ b: S.Number }).pipe(S.encodeKeys({ b: "a" }))
+    const outputSchema = S.Struct({ b: S.Number }).pipe(S.encodeKeys({ b: "a" }))
 
-        const result = yield* repo.query(project(outputSchema))
+    const result = yield* repo.query(project(outputSchema))
 
-        expect(result).toStrictEqual([{ b: 1 }])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toStrictEqual([{ b: 1 }])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("projectComputed sets computed IR and forces project mode", () => {
   const baseSchema = S.Struct({
     id: S.String,
-    items: S.Array(S.Struct({
-      state: S.Struct({
-        _tag: S.String
+    items: S.Array(
+      S.Struct({
+        state: S.Struct({
+          _tag: S.String
+        })
       })
-    }))
+    )
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
     projectComputed(
@@ -822,20 +723,12 @@ it("projectComputed constrains projection schema to encoded repo fields and comp
   )
 
   // Key presence only (not Encoded value types) — name: number is still projectable.
-  make<Encoded>().pipe(
-    projectComputed(
-      S.Struct({ name: S.Number }),
-      computed({})
-    )
-  )
+  make<Encoded>().pipe(projectComputed(S.Struct({ name: S.Number }), computed({})))
 
   // Computed field *value* types are not yet constrained against the expression
   // result (only key presence). Keeping this as a documentation call site.
   make<Encoded>().pipe(
-    projectComputed(
-      S.Struct({ itemCount: S.String }),
-      computed({ itemCount: relation<Encoded>("items").count() })
-    )
+    projectComputed(S.Struct({ itemCount: S.String }), computed({ itemCount: relation<Encoded>("items").count() }))
   )
 
   make<Encoded>().pipe(
@@ -1119,10 +1012,12 @@ it("projectComputed.collect / collectDistinct emit relation-collect IR", () => {
 it("projectComputed.sumExpr emits relation-sum-expr IR", () => {
   const baseSchema = S.Struct({
     id: S.String,
-    items: S.Array(S.Struct({
-      weight: S.Number,
-      tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
-    }))
+    items: S.Array(
+      S.Struct({
+        weight: S.Number,
+        tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
+      })
+    )
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
     projectComputed(
@@ -1147,10 +1042,12 @@ it("projectComputed.sumExpr emits relation-sum-expr IR", () => {
 it("projectComputed.sumExprBy emits relation-sum-expr-by IR", () => {
   const baseSchema = S.Struct({
     id: S.String,
-    items: S.Array(S.Struct({
-      weight: S.Number,
-      tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
-    }))
+    items: S.Array(
+      S.Struct({
+        weight: S.Number,
+        tradeUnit: S.Struct({ amount: S.Number, unit: S.String })
+      })
+    )
   })
   const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
     projectComputed(
@@ -1171,698 +1068,622 @@ it("projectComputed.sumExprBy emits relation-sum-expr-by IR", () => {
   expect((ir as { unit: string } | undefined)?.unit).toBe("tradeUnit.unit")
 })
 
-it(
-  "doesn't mess when refining fields",
-  () =>
-    Effect
-      .gen(function*() {
-        const schema = S.Struct({
-          id: S.String,
-          literals: S.Literals(["a", "b", "c"])
-        })
+it("doesn't mess when refining fields", () =>
+  Effect.gen(function* () {
+    const schema = S.Struct({
+      id: S.String,
+      literals: S.Literals(["a", "b", "c"])
+    })
 
-        type Schema = typeof schema.Type
+    type Schema = typeof schema.Type
 
-        const repo = yield* makeRepo(
-          "test",
-          schema,
-          {}
-        )
+    const repo = yield* makeRepo("test", schema, {})
 
-        const result = yield* repo.query(
-          where("id", "123"),
-          and("literals", "a")
-        )
+    const result = yield* repo.query(where("id", "123"), and("literals", "a"))
 
-        expectTypeOf(result).toEqualTypeOf<readonly Schema[]>()
+    expectTypeOf(result).toEqualTypeOf<readonly Schema[]>()
 
-        expect(result).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "remove null 1",
-  () =>
-    Effect
-      .gen(function*() {
-        const schema = S.Struct({
-          id: S.String,
-          literals: S.Union([S.Literals(["a", "b", "c"]), S.Null])
-        })
+it("remove null 1", () =>
+  Effect.gen(function* () {
+    const schema = S.Struct({
+      id: S.String,
+      literals: S.Union([S.Literals(["a", "b", "c"]), S.Null])
+    })
 
-        type Schema = typeof schema.Type
+    type Schema = typeof schema.Type
 
-        const repo = yield* makeRepo(
-          "test",
-          schema,
-          {}
-        )
+    const repo = yield* makeRepo("test", schema, {})
 
-        const expected = make<Schema>().pipe(
-          where("literals", "neq", null)
-        )
-        expectTypeOf(expected).toEqualTypeOf<
-          QueryWhere<Schema, {
-            readonly id: string
-            readonly literals: "a" | "b" | "c"
-          }>
-        >()
+    const expected = make<Schema>().pipe(where("literals", "neq", null))
+    expectTypeOf(expected).toEqualTypeOf<
+      QueryWhere<
+        Schema,
+        {
+          readonly id: string
+          readonly literals: "a" | "b" | "c"
+        }
+      >
+    >()
 
-        const result = yield* repo.query(
-          where("literals", "neq", null)
-        )
+    const result = yield* repo.query(where("literals", "neq", null))
 
-        expectTypeOf(result).toEqualTypeOf<
-          readonly {
-            readonly id: string
-            readonly literals: "a" | "b" | "c"
-          }[]
-        >()
+    expectTypeOf(result).toEqualTypeOf<
+      readonly {
+        readonly id: string
+        readonly literals: "a" | "b" | "c"
+      }[]
+    >()
 
-        expect(result).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
-it(
-  "remove null 2",
-  () =>
-    Effect
-      .gen(function*() {
-        const schema = S.Struct({
-          id: S.String,
-          literals: S.Union([S.String, S.Null])
-        })
+it("remove null 2", () =>
+  Effect.gen(function* () {
+    const schema = S.Struct({
+      id: S.String,
+      literals: S.Union([S.String, S.Null])
+    })
 
-        type Schema = typeof schema.Type
+    type Schema = typeof schema.Type
 
-        const repo = yield* makeRepo(
-          "test",
-          schema,
-          {}
-        )
+    const repo = yield* makeRepo("test", schema, {})
 
-        const expected = make<Schema>().pipe(
-          where("literals", "ciao")
-        )
-        expectTypeOf(expected).toEqualTypeOf<
-          QueryWhere<Schema, {
-            readonly id: string
-            readonly literals: string
-          }>
-        >()
+    const expected = make<Schema>().pipe(where("literals", "ciao"))
+    expectTypeOf(expected).toEqualTypeOf<
+      QueryWhere<
+        Schema,
+        {
+          readonly id: string
+          readonly literals: string
+        }
+      >
+    >()
 
-        const result = yield* repo.query(
-          where("literals", "neq", null)
-        )
+    const result = yield* repo.query(where("literals", "neq", null))
 
-        expectTypeOf(result).toEqualTypeOf<
-          readonly {
-            readonly id: string
-            readonly literals: string
-          }[]
-        >()
+    expectTypeOf(result).toEqualTypeOf<
+      readonly {
+        readonly id: string
+        readonly literals: string
+      }[]
+    >()
 
-        expect(result).toEqual([])
-      })
-      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise)
-)
+    expect(result).toEqual([])
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("remove null from one constituent of a tagged union", () =>
-  Effect
-    .gen(function*() {
-      class AA extends S.Class<AA>("AA")({
-        id: S.Literal("AA"),
-        a: S.String
-      }) {}
+  Effect.gen(function* () {
+    class AA extends S.Class<AA>("AA")({
+      id: S.Literal("AA"),
+      a: S.String
+    }) {}
 
-      class BB extends S.Class<BB>("BB")({
-        id: S.Literal("BB"),
-        b: S.NullOr(S.Finite)
-      }) {}
+    class BB extends S.Class<BB>("BB")({
+      id: S.Literal("BB"),
+      b: S.NullOr(S.Finite)
+    }) {}
 
-      type Union = AA | BB
+    type Union = AA | BB
 
-      const repo = yield* makeRepo("test", S.Union([AA, BB]), {})
+    const repo = yield* makeRepo("test", S.Union([AA, BB]), {})
 
-      const query1 = make<Union>().pipe(
-        where("id", "AA"),
-        or(
-          where("b", "neq", null)
-        )
-      )
+    const query1 = make<Union>().pipe(where("id", "AA"), or(where("b", "neq", null)))
 
-      expectTypeOf(query1).toEqualTypeOf<
-        QueryWhere<
-          Union,
-          AA | {
+    expectTypeOf(query1).toEqualTypeOf<
+      QueryWhere<
+        Union,
+        | AA
+        | {
             readonly id: "BB"
             readonly b: number
           }
-        >
-      >()
+      >
+    >()
 
-      const resQuer1 = yield* repo.query(() => query1)
+    const resQuer1 = yield* repo.query(() => query1)
 
-      expectTypeOf(resQuer1).toEqualTypeOf<
-        readonly ({
-          readonly id: "AA"
-          readonly a: string
-        } | {
-          readonly id: "BB"
-          readonly b: number
-        })[]
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    expectTypeOf(resQuer1).toEqualTypeOf<
+      readonly (
+        | {
+            readonly id: "AA"
+            readonly a: string
+          }
+        | {
+            readonly id: "BB"
+            readonly b: number
+          }
+      )[]
+    >()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine 3", () =>
-  Effect
-    .gen(function*() {
-      class AA extends S.Class<AA>("AA")({
-        id: S.Literal("AA"),
-        a: S.Unknown
-      }) {}
+  Effect.gen(function* () {
+    class AA extends S.Class<AA>("AA")({
+      id: S.Literal("AA"),
+      a: S.Unknown
+    }) {}
 
-      class BB extends S.Class<BB>("BB")({
-        id: S.Literal("BB"),
-        b: S.Unknown
-      }) {}
+    class BB extends S.Class<BB>("BB")({
+      id: S.Literal("BB"),
+      b: S.Unknown
+    }) {}
 
-      class CC extends S.Class<CC>("CC")({
-        id: S.Literal("CC"),
-        c: S.Unknown
-      }) {}
+    class CC extends S.Class<CC>("CC")({
+      id: S.Literal("CC"),
+      c: S.Unknown
+    }) {}
 
-      class DD extends S.Class<DD>("DD")({
-        id: S.Literal("DD"),
-        d: S.Unknown
-      }) {}
+    class DD extends S.Class<DD>("DD")({
+      id: S.Literal("DD"),
+      d: S.Unknown
+    }) {}
 
-      type Union = AA | BB | CC | DD
+    type Union = AA | BB | CC | DD
 
-      const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
+    const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
 
-      const query1 = make<Union>().pipe(
-        where("id", "AA")
-      )
+    const query1 = make<Union>().pipe(where("id", "AA"))
 
-      expectTypeOf(query1).toEqualTypeOf<QueryWhere<Union, AA>>()
+    expectTypeOf(query1).toEqualTypeOf<QueryWhere<Union, AA>>()
 
-      const resQuer1 = yield* repo.query(where("id", "AA"))
-      expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    const resQuer1 = yield* repo.query(where("id", "AA"))
+    expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("my test", () =>
-  Effect
-    .gen(function*() {
-      class AA extends S.Class<AA>("AA")({
-        id: S.String,
-        as: S.Array(S.String)
-      }) {}
+  Effect.gen(function* () {
+    class AA extends S.Class<AA>("AA")({
+      id: S.String,
+      as: S.Array(S.String)
+    }) {}
 
-      const repo = yield* makeRepo("test", AA, {})
+    const repo = yield* makeRepo("test", AA, {})
 
-      const resQuer1 = yield* repo.query(
-        where("id", "in", ["id1", "id2"]),
-        and(`as.-1`, "startsWith", "a")
-      )
-      expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    const resQuer1 = yield* repo.query(where("id", "in", ["id1", "id2"]), and(`as.-1`, "startsWith", "a"))
+    expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine inner without imposing a projection", () =>
-  Effect
-    .gen(function*() {
-      class AA extends S.TaggedClass<AA>()("AA", {
-        a: S.Unknown
-      }) {}
+  Effect.gen(function* () {
+    class AA extends S.TaggedClass<AA>()("AA", {
+      a: S.Unknown
+    }) {}
 
-      class BB extends S.TaggedClass<BB>()("BB", {
-        b: S.Unknown
-      }) {}
+    class BB extends S.TaggedClass<BB>()("BB", {
+      b: S.Unknown
+    }) {}
 
-      class Data extends S.Class<Data>("Data")({
-        id: S.String,
-        union: S.Union([AA, BB])
-      }) {}
+    class Data extends S.Class<Data>("Data")({
+      id: S.String,
+      union: S.Union([AA, BB])
+    }) {}
 
-      const repo = yield* makeRepo("data", Data, {})
+    const repo = yield* makeRepo("data", Data, {})
 
-      const query1 = make<Data>().pipe(
-        where("union._tag", "AA"),
-        // I can refine the overall output by providing a proper projection
-        // that mimics the internal refinement of the encoding type
-        project(S.Struct({ union: AA }))
-      )
-      expectTypeOf(query1).toEqualTypeOf<
-        QueryProjection<
-          {
-            readonly id: string
-            readonly union: AA
-          },
-          {
-            readonly union: AA
-          },
-          never,
-          "many"
-        >
-      >()
-
-      const query2 = make<Data>().pipe(
-        where("union._tag", "AA"),
-        // But if I wanna the whole Data as output ignoring the inner refinement
-        // I wanna be able to do so
-        project(Data.mapFields(Struct.pick(["union"])))
-      )
-
-      expectTypeOf(query2).toEqualTypeOf<
-        QueryProjection<
-          {
-            readonly id: string
-            readonly union: AA
-          },
-          {
-            readonly union: AA | BB
-          },
-          never,
-          "many"
-        >
-      >()
-
-      const resQuer1 = yield* repo.query(() => query1)
-      expectTypeOf(resQuer1).toEqualTypeOf<
-        readonly {
+    const query1 = make<Data>().pipe(
+      where("union._tag", "AA"),
+      // I can refine the overall output by providing a proper projection
+      // that mimics the internal refinement of the encoding type
+      project(S.Struct({ union: AA }))
+    )
+    expectTypeOf(query1).toEqualTypeOf<
+      QueryProjection<
+        {
+          readonly id: string
           readonly union: AA
-        }[]
-      >()
+        },
+        {
+          readonly union: AA
+        },
+        never,
+        "many"
+      >
+    >()
 
-      const resQuer2 = yield* repo.query(() => query2)
-      expectTypeOf(resQuer2).toEqualTypeOf<
-        readonly {
+    const query2 = make<Data>().pipe(
+      where("union._tag", "AA"),
+      // But if I wanna the whole Data as output ignoring the inner refinement
+      // I wanna be able to do so
+      project(Data.mapFields(Struct.pick(["union"])))
+    )
+
+    expectTypeOf(query2).toEqualTypeOf<
+      QueryProjection<
+        {
+          readonly id: string
+          readonly union: AA
+        },
+        {
           readonly union: AA | BB
-        }[]
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+        },
+        never,
+        "many"
+      >
+    >()
+
+    const resQuer1 = yield* repo.query(() => query1)
+    expectTypeOf(resQuer1).toEqualTypeOf<
+      readonly {
+        readonly union: AA
+      }[]
+    >()
+
+    const resQuer2 = yield* repo.query(() => query2)
+    expectTypeOf(resQuer2).toEqualTypeOf<
+      readonly {
+        readonly union: AA | BB
+      }[]
+    >()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("does not allow string queries on arrays", () =>
-  Effect
-    .gen(function*() {
-      type Some = {
-        readonly id: string
-        readonly id2: `${string}:${string}`
-        readonly items: string[]
-      }
-      const base = make<Some>()
+  Effect.gen(function* () {
+    type Some = {
+      readonly id: string
+      readonly id2: `${string}:${string}`
+      readonly items: string[]
+    }
+    const base = make<Some>()
 
-      // @ts-expect-error cannot query with contains on arrays
-      const bad1 = base.pipe(where("items", "contains", "a"))
-      // @ts-expect-error cannot query with startsWith on arrays
-      const bad2 = base.pipe(where("items", "startsWith", "a"))
-      // @ts-expect-error cannot query with endsWith on arrays
-      const bad3 = base.pipe(where("items", "endsWith", "a"))
-      // @ts-expect-error cannot query with notContains on arrays
-      const bad4 = base.pipe(where("items", "notContains", "a"))
-      // @ts-expect-error cannot query with notStartsWith on arrays
-      const bad5 = base.pipe(where("items", "notStartsWith", "a"))
-      // @ts-expect-error cannot query with notEndsWith on arrays
-      const bad6 = base.pipe(where("items", "notEndsWith", "a"))
+    // @ts-expect-error cannot query with contains on arrays
+    const bad1 = base.pipe(where("items", "contains", "a"))
+    // @ts-expect-error cannot query with startsWith on arrays
+    const bad2 = base.pipe(where("items", "startsWith", "a"))
+    // @ts-expect-error cannot query with endsWith on arrays
+    const bad3 = base.pipe(where("items", "endsWith", "a"))
+    // @ts-expect-error cannot query with notContains on arrays
+    const bad4 = base.pipe(where("items", "notContains", "a"))
+    // @ts-expect-error cannot query with notStartsWith on arrays
+    const bad5 = base.pipe(where("items", "notStartsWith", "a"))
+    // @ts-expect-error cannot query with notEndsWith on arrays
+    const bad6 = base.pipe(where("items", "notEndsWith", "a"))
 
-      const good1 = base.pipe(where("items", "includes", "a"))
-      const good2 = base.pipe(where("items", "includes-any", ["a"]))
-      const good3 = base.pipe(where("id", "startsWith", "a"))
-      const good4 = base.pipe(where("id2", "startsWith", "a"))
+    const good1 = base.pipe(where("items", "includes", "a"))
+    const good2 = base.pipe(where("items", "includes-any", ["a"]))
+    const good3 = base.pipe(where("id", "startsWith", "a"))
+    const good4 = base.pipe(where("id2", "startsWith", "a"))
 
-      expectTypeOf(good1).toEqualTypeOf<QueryWhere<Some, Some>>()
-      expectTypeOf(good2).toEqualTypeOf<QueryWhere<Some, Some>>()
-      expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
-      expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
+    expectTypeOf(good1).toEqualTypeOf<QueryWhere<Some, Some>>()
+    expectTypeOf(good2).toEqualTypeOf<QueryWhere<Some, Some>>()
+    expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
+    expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
 
-      type Native = {
-        readonly id: string
-        readonly dates: Date[]
-        readonly dateSet: ReadonlySet<Date>
-        readonly tags: ReadonlySet<string>
-      }
-      const native = make<Native>()
-      const d = new Date("2020-01-01T00:00:00.000Z")
-      const n1 = native.pipe(where("dates", "includes", d))
-      const n2 = native.pipe(where("dateSet", "includes", d))
-      const n3 = native.pipe(where("tags", "includes", "a"))
-      const n4 = native.pipe(where("dates", "includes-any", [d]))
-      const n5 = native.pipe(where("dateSet", "includes-any", new Set([d])))
-      const n6 = native.pipe(where("id", "in", new Set(["x"])))
-      expectTypeOf(n1).toEqualTypeOf<QueryWhere<Native, Native>>()
-      expectTypeOf(n2).toEqualTypeOf<QueryWhere<Native, Native>>()
-      expectTypeOf(n3).toEqualTypeOf<QueryWhere<Native, Native>>()
-      expectTypeOf(n4).toEqualTypeOf<QueryWhere<Native, Native>>()
-      expectTypeOf(n5).toEqualTypeOf<QueryWhere<Native, Native>>()
-      expectTypeOf(n6).toEqualTypeOf<QueryWhere<Native, Native>>()
+    type Native = {
+      readonly id: string
+      readonly dates: Date[]
+      readonly dateSet: ReadonlySet<Date>
+      readonly tags: ReadonlySet<string>
+    }
+    const native = make<Native>()
+    const d = new Date("2020-01-01T00:00:00.000Z")
+    const n1 = native.pipe(where("dates", "includes", d))
+    const n2 = native.pipe(where("dateSet", "includes", d))
+    const n3 = native.pipe(where("tags", "includes", "a"))
+    const n4 = native.pipe(where("dates", "includes-any", [d]))
+    const n5 = native.pipe(where("dateSet", "includes-any", new Set([d])))
+    const n6 = native.pipe(where("id", "in", new Set(["x"])))
+    expectTypeOf(n1).toEqualTypeOf<QueryWhere<Native, Native>>()
+    expectTypeOf(n2).toEqualTypeOf<QueryWhere<Native, Native>>()
+    expectTypeOf(n3).toEqualTypeOf<QueryWhere<Native, Native>>()
+    expectTypeOf(n4).toEqualTypeOf<QueryWhere<Native, Native>>()
+    expectTypeOf(n5).toEqualTypeOf<QueryWhere<Native, Native>>()
+    expectTypeOf(n6).toEqualTypeOf<QueryWhere<Native, Native>>()
 
-      type WithMap = {
-        readonly id: string
-        readonly meta: ReadonlyMap<string, number>
-      }
-      const mapped = make<WithMap>()
-      const m1 = mapped.pipe(where("meta", "hasKey", "n"))
-      const m2 = mapped.pipe(where("meta", "hasValue", 1))
-      const m3 = mapped.pipe(where("meta", "hasKeyValue", ["n", 1] as const))
-      const m4 = mapped.pipe(where("meta", "hasKey-any", ["n", "x"]))
-      const m5 = mapped.pipe(where("meta", "hasValue-all", new Set([1, 2])))
-      const m6 = mapped.pipe(where("meta", "hasKeyValue-any", [["n", 1] as const, ["x", 2] as const]))
-      expectTypeOf(m1).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      expectTypeOf(m2).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      expectTypeOf(m3).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      expectTypeOf(m4).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      expectTypeOf(m5).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      expectTypeOf(m6).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
-      // @ts-expect-error cannot hasKey on a string field
-      mapped.pipe(where("id", "hasKey", "n"))
-      // @ts-expect-error hasKey value must be the map key type
-      mapped.pipe(where("meta", "hasKey", 1))
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    type WithMap = {
+      readonly id: string
+      readonly meta: ReadonlyMap<string, number>
+    }
+    const mapped = make<WithMap>()
+    const m1 = mapped.pipe(where("meta", "hasKey", "n"))
+    const m2 = mapped.pipe(where("meta", "hasValue", 1))
+    const m3 = mapped.pipe(where("meta", "hasKeyValue", ["n", 1] as const))
+    const m4 = mapped.pipe(where("meta", "hasKey-any", ["n", "x"]))
+    const m5 = mapped.pipe(where("meta", "hasValue-all", new Set([1, 2])))
+    const m6 = mapped.pipe(where("meta", "hasKeyValue-any", [["n", 1] as const, ["x", 2] as const]))
+    expectTypeOf(m1).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    expectTypeOf(m2).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    expectTypeOf(m3).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    expectTypeOf(m4).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    expectTypeOf(m5).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    expectTypeOf(m6).toEqualTypeOf<QueryWhere<WithMap, WithMap>>()
+    // @ts-expect-error cannot hasKey on a string field
+    mapped.pipe(where("id", "hasKey", "n"))
+    // @ts-expect-error hasKey value must be the map key type
+    mapped.pipe(where("meta", "hasKey", 1))
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("test array.length", () =>
-  Effect
-    .gen(function*() {
-      type Something = {
-        readonly id: string
-        readonly items: string[]
-        readonly tuple: [string, string]
-      }
-      const base = make<Something>()
+  Effect.gen(function* () {
+    type Something = {
+      readonly id: string
+      readonly items: string[]
+      readonly tuple: [string, string]
+    }
+    const base = make<Something>()
 
-      const query1 = base.pipe(
-        where("items.length", 0)
-      )
+    const query1 = base.pipe(where("items.length", 0))
 
-      const query2 = base.pipe(
-        where("items.length", "gt", 2)
-      )
+    const query2 = base.pipe(where("items.length", "gt", 2))
 
-      const query3 = base.pipe(
-        where("tuple.length", 2)
-      )
+    const query3 = base.pipe(where("tuple.length", 2))
 
-      base.pipe(
-        // @ts-expect-error tuple.length is not valid
-        where("tuple.length", 3)
-      )
+    base.pipe(
+      // @ts-expect-error tuple.length is not valid
+      where("tuple.length", 3)
+    )
 
-      expectTypeOf(query1).toEqualTypeOf<
-        QueryWhere<Something, Something>
-      >()
+    expectTypeOf(query1).toEqualTypeOf<QueryWhere<Something, Something>>()
 
-      expectTypeOf(query2).toEqualTypeOf<
-        QueryWhere<Something, Something>
-      >()
+    expectTypeOf(query2).toEqualTypeOf<QueryWhere<Something, Something>>()
 
-      expectTypeOf(query3).toEqualTypeOf<
-        QueryWhere<Something, Something>
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    expectTypeOf(query3).toEqualTypeOf<QueryWhere<Something, Something>>()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("distribution over union", () =>
-  Effect
-    .gen(function*() {
-      const repo = yield* makeRepo("test", TestUnion, {})
+  Effect.gen(function* () {
+    const repo = yield* makeRepo("test", TestUnion, {})
 
-      const res = yield* repo.query(
-        where("_tag", Math.random() > 0.5 ? "animal" : "person")
-      )
+    const res = yield* repo.query(where("_tag", Math.random() > 0.5 ? "animal" : "person"))
 
-      expectTypeOf(res).toEqualTypeOf<
-        | readonly ({
+    expectTypeOf(res).toEqualTypeOf<
+      | readonly {
           readonly id: string
           readonly surname: string
           readonly _tag: "person"
-        })[]
-        | readonly ({
+        }[]
+      | readonly {
           readonly id: string
           readonly surname: string
           readonly _tag: "animal"
-        })[]
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+        }[]
+    >()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine nested union", () =>
-  Effect
-    .gen(function*() {
-      class TestNested extends S.Class<TestNested>("TestNested")({ id: S.String, nested: TestUnion }) {}
+  Effect.gen(function* () {
+    class TestNested extends S.Class<TestNested>("TestNested")({ id: S.String, nested: TestUnion }) {}
 
-      const repo = yield* makeRepo("test", TestNested, {})
+    const repo = yield* makeRepo("test", TestNested, {})
 
-      const base = make<TestNested>()
+    const base = make<TestNested>()
 
-      const res_query = base.pipe(
-        where("nested._tag", Math.random() > 0.5 ? "animal" : "person")
-      )
+    const res_query = base.pipe(where("nested._tag", Math.random() > 0.5 ? "animal" : "person"))
 
-      expectTypeOf(res_query).toEqualTypeOf<
-        QueryWhere<TestNested, {
+    expectTypeOf(res_query).toEqualTypeOf<
+      QueryWhere<
+        TestNested,
+        {
           readonly id: string
-          readonly nested: {
-            readonly _tag: "person"
-            readonly id: string
-            readonly surname: string
-          } | {
-            readonly _tag: "animal"
-            readonly id: string
-            readonly surname: string
-          }
-        }, false>
-      >()
+          readonly nested:
+            | {
+                readonly _tag: "person"
+                readonly id: string
+                readonly surname: string
+              }
+            | {
+                readonly _tag: "animal"
+                readonly id: string
+                readonly surname: string
+              }
+        },
+        false
+      >
+    >()
 
-      const res = yield* repo.query(
-        () => res_query
-      )
+    const res = yield* repo.query(() => res_query)
 
-      expectTypeOf(res).toEqualTypeOf<
-        readonly {
-          readonly id: string
-          readonly nested: Person | Animal
-        }[]
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    expectTypeOf(res).toEqualTypeOf<
+      readonly {
+        readonly id: string
+        readonly nested: Person | Animal
+      }[]
+    >()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("find with transformed id", () =>
-  Effect
-    .gen(function*() {
-      const ConfiguratorId = S.NonEmptyString255
+  Effect.gen(function* () {
+    const ConfiguratorId = S.NonEmptyString255
 
-      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
-        configuratorId: ConfiguratorId,
-        label: S.NonEmptyString50
-      }) {}
+    class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+      configuratorId: ConfiguratorId,
+      label: S.NonEmptyString50
+    }) {}
 
-      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
-        S.decodeTo(
-          S.toType(PreconfigurationId),
-          SchemaTransformation.transformEffect({
-            decode: Effect.fnUntraced(function*(value) {
-              const values = value.split("_")
-              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
-                values.join("_")
-              )
-              return new PreconfigurationId({ configuratorId, label })
-            }),
-            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
-          })
-        ),
-        S.revealCodec
-      )
-
-      const Preconfiguration = S.Struct({
-        id: PreconfigurationIdFromString,
-        name: S.String
-      })
-
-      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, { idKey: "id" as const })
-
-      const id = new PreconfigurationId({
-        configuratorId: S.NonEmptyString255("myConfigurator"),
-        label: S.NonEmptyString50("myLabel")
-      })
-      const item = { id, name: "test preconfig" }
-
-      yield* repo.saveAndPublish([item])
-
-      const found = yield* repo.find(id)
-      expect(Option.isSome(found)).toBe(true)
-      expect(Option.getOrThrow(found).name).toBe("test preconfig")
-      expect(Option.getOrThrow(found).id).toEqual(id)
-
-      const notFound = yield* repo.find(
-        new PreconfigurationId({
-          configuratorId: S.NonEmptyString255("other"),
-          label: S.NonEmptyString50("nope")
+    const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+      S.decodeTo(
+        S.toType(PreconfigurationId),
+        SchemaTransformation.transformEffect({
+          decode: Effect.fnUntraced(function* (value) {
+            const values = value.split("_")
+            const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+            const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+            return new PreconfigurationId({ configuratorId, label })
+          }),
+          encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
         })
-      )
-      expect(Option.isNone(notFound)).toBe(true)
+      ),
+      S.revealCodec
+    )
+
+    const Preconfiguration = S.Struct({
+      id: PreconfigurationIdFromString,
+      name: S.String
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+
+    const repo = yield* makeRepo("Preconfiguration", Preconfiguration, { idKey: "id" as const })
+
+    const id = new PreconfigurationId({
+      configuratorId: S.NonEmptyString255("myConfigurator"),
+      label: S.NonEmptyString50("myLabel")
+    })
+    const item = { id, name: "test preconfig" }
+
+    yield* repo.saveAndPublish([item])
+
+    const found = yield* repo.find(id)
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).name).toBe("test preconfig")
+    expect(Option.getOrThrow(found).id).toEqual(id)
+
+    const notFound = yield* repo.find(
+      new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("other"),
+        label: S.NonEmptyString50("nope")
+      })
+    )
+    expect(Option.isNone(notFound)).toBe(true)
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("find with transformed id in tagged union", () =>
-  Effect
-    .gen(function*() {
-      const ConfiguratorId = S.NonEmptyString255
+  Effect.gen(function* () {
+    const ConfiguratorId = S.NonEmptyString255
 
-      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
-        configuratorId: ConfiguratorId,
-        label: S.NonEmptyString50
-      }) {}
+    class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+      configuratorId: ConfiguratorId,
+      label: S.NonEmptyString50
+    }) {}
 
-      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
-        S.decodeTo(
-          S.toType(PreconfigurationId),
-          SchemaTransformation.transformEffect({
-            decode: Effect.fnUntraced(function*(value) {
-              const values = value.split("_")
-              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
-                values.join("_")
-              )
-              return new PreconfigurationId({ configuratorId, label })
-            }),
-            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
-          })
-        ),
-        S.revealCodec
-      )
-
-      class Draft extends S.TaggedClass<Draft>()("Draft", {
-        id: PreconfigurationIdFromString,
-        name: S.String
-      }) {}
-
-      class Published extends S.TaggedClass<Published>()("Published", {
-        id: PreconfigurationIdFromString,
-        name: S.String,
-        publishedAt: S.String
-      }) {}
-
-      class Archived extends S.TaggedClass<Archived>()("Archived", {
-        id: PreconfigurationIdFromString,
-        name: S.String,
-        archivedAt: S.String
-      }) {}
-
-      const Preconfiguration = S.Union([Draft, Published, Archived])
-
-      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, {})
-
-      const id1 = new PreconfigurationId({
-        configuratorId: S.NonEmptyString255("conf1"),
-        label: S.NonEmptyString50("draft1")
-      })
-      const id2 = new PreconfigurationId({
-        configuratorId: S.NonEmptyString255("conf2"),
-        label: S.NonEmptyString50("pub1")
-      })
-      const id3 = new PreconfigurationId({
-        configuratorId: S.NonEmptyString255("conf3"),
-        label: S.NonEmptyString50("arch1")
-      })
-
-      const draft = new Draft({ id: id1, name: "my draft" })
-      const published = new Published({ id: id2, name: "my published", publishedAt: "2024-01-01" })
-      const archived = new Archived({ id: id3, name: "my archived", archivedAt: "2024-06-01" })
-
-      yield* repo.saveAndPublish([draft, published, archived])
-
-      // find each by their PreconfigurationId instance
-      const foundDraft = yield* repo.find(id1)
-      expect(Option.isSome(foundDraft)).toBe(true)
-      expect(Option.getOrThrow(foundDraft)._tag).toBe("Draft")
-      expect(Option.getOrThrow(foundDraft).name).toBe("my draft")
-
-      const foundPublished = yield* repo.find(id2)
-      expect(Option.isSome(foundPublished)).toBe(true)
-      expect(Option.getOrThrow(foundPublished)._tag).toBe("Published")
-
-      const foundArchived = yield* repo.find(id3)
-      expect(Option.isSome(foundArchived)).toBe(true)
-      expect(Option.getOrThrow(foundArchived)._tag).toBe("Archived")
-
-      // not found
-      const notFound = yield* repo.find(
-        new PreconfigurationId({
-          configuratorId: S.NonEmptyString255("nope"),
-          label: S.NonEmptyString50("nope")
+    const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+      S.decodeTo(
+        S.toType(PreconfigurationId),
+        SchemaTransformation.transformEffect({
+          decode: Effect.fnUntraced(function* (value) {
+            const values = value.split("_")
+            const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+            const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+            return new PreconfigurationId({ configuratorId, label })
+          }),
+          encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
         })
-      )
-      expect(Option.isNone(notFound)).toBe(true)
+      ),
+      S.revealCodec
+    )
+
+    class Draft extends S.TaggedClass<Draft>()("Draft", {
+      id: PreconfigurationIdFromString,
+      name: S.String
+    }) {}
+
+    class Published extends S.TaggedClass<Published>()("Published", {
+      id: PreconfigurationIdFromString,
+      name: S.String,
+      publishedAt: S.String
+    }) {}
+
+    class Archived extends S.TaggedClass<Archived>()("Archived", {
+      id: PreconfigurationIdFromString,
+      name: S.String,
+      archivedAt: S.String
+    }) {}
+
+    const Preconfiguration = S.Union([Draft, Published, Archived])
+
+    const repo = yield* makeRepo("Preconfiguration", Preconfiguration, {})
+
+    const id1 = new PreconfigurationId({
+      configuratorId: S.NonEmptyString255("conf1"),
+      label: S.NonEmptyString50("draft1")
     })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    const id2 = new PreconfigurationId({
+      configuratorId: S.NonEmptyString255("conf2"),
+      label: S.NonEmptyString50("pub1")
+    })
+    const id3 = new PreconfigurationId({
+      configuratorId: S.NonEmptyString255("conf3"),
+      label: S.NonEmptyString50("arch1")
+    })
+
+    const draft = new Draft({ id: id1, name: "my draft" })
+    const published = new Published({ id: id2, name: "my published", publishedAt: "2024-01-01" })
+    const archived = new Archived({ id: id3, name: "my archived", archivedAt: "2024-06-01" })
+
+    yield* repo.saveAndPublish([draft, published, archived])
+
+    // find each by their PreconfigurationId instance
+    const foundDraft = yield* repo.find(id1)
+    expect(Option.isSome(foundDraft)).toBe(true)
+    expect(Option.getOrThrow(foundDraft)._tag).toBe("Draft")
+    expect(Option.getOrThrow(foundDraft).name).toBe("my draft")
+
+    const foundPublished = yield* repo.find(id2)
+    expect(Option.isSome(foundPublished)).toBe(true)
+    expect(Option.getOrThrow(foundPublished)._tag).toBe("Published")
+
+    const foundArchived = yield* repo.find(id3)
+    expect(Option.isSome(foundArchived)).toBe(true)
+    expect(Option.getOrThrow(foundArchived)._tag).toBe("Archived")
+
+    // not found
+    const notFound = yield* repo.find(
+      new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("nope"),
+        label: S.NonEmptyString50("nope")
+      })
+    )
+    expect(Option.isNone(notFound)).toBe(true)
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 it("refine union with nested union", () =>
-  Effect
-    .gen(function*() {
-      class A extends S.TaggedClass<A>()("A", {
-        a: S.String
-      }) {}
+  Effect.gen(function* () {
+    class A extends S.TaggedClass<A>()("A", {
+      a: S.String
+    }) {}
 
-      class B extends S.TaggedClass<B>()("B", {
-        b: S.String
-      }) {}
+    class B extends S.TaggedClass<B>()("B", {
+      b: S.String
+    }) {}
 
-      class C extends S.TaggedClass<C>()("C", {
-        c: S.String
-      }) {}
+    class C extends S.TaggedClass<C>()("C", {
+      c: S.String
+    }) {}
 
-      class D extends S.TaggedClass<D>()("D", {
-        d: S.String
-      }) {}
+    class D extends S.TaggedClass<D>()("D", {
+      d: S.String
+    }) {}
 
-      class E extends S.TaggedClass<E>()("E", {
-        e: S.String
-      }) {}
+    class E extends S.TaggedClass<E>()("E", {
+      e: S.String
+    }) {}
 
-      class Container1 extends S.TaggedClass<Container1>()("Container1", {
-        id: S.String,
-        nested: S.Union([A, B, C])
-      }) {}
+    class Container1 extends S.TaggedClass<Container1>()("Container1", {
+      id: S.String,
+      nested: S.Union([A, B, C])
+    }) {}
 
-      class Container2 extends S.TaggedClass<Container2>()("Container2", {
-        id: S.String,
-        nested: S.Union([B, C, D])
-      }) {}
+    class Container2 extends S.TaggedClass<Container2>()("Container2", {
+      id: S.String,
+      nested: S.Union([B, C, D])
+    }) {}
 
-      class Container3 extends S.TaggedClass<Container3>()("Container3", {
-        id: S.String,
-        nested: S.Union([C, D, E])
-      }) {}
+    class Container3 extends S.TaggedClass<Container3>()("Container3", {
+      id: S.String,
+      nested: S.Union([C, D, E])
+    }) {}
 
-      const Containers = S.Union([Container1, Container2, Container3])
-      type Containers = typeof Containers.Type
+    const Containers = S.Union([Container1, Container2, Container3])
+    type Containers = typeof Containers.Type
 
-      const repo = yield* makeRepo("containers", Containers, {})
+    const repo = yield* makeRepo("containers", Containers, {})
 
-      const base = make<Containers>()
+    const base = make<Containers>()
 
-      const res_query = base.pipe(
-        where("nested._tag", "D")
-      )
+    const res_query = base.pipe(where("nested._tag", "D"))
 
-      expectTypeOf(res_query).toEqualTypeOf<
-        QueryWhere<
-          Containers,
-          {
+    expectTypeOf(res_query).toEqualTypeOf<
+      QueryWhere<
+        Containers,
+        | {
             readonly id: string
             readonly _tag: "Container2"
             readonly nested: {
               readonly _tag: "D"
               readonly d: string
             }
-          } | {
+          }
+        | {
             readonly id: string
             readonly _tag: "Container3"
             readonly nested: {
@@ -1870,25 +1691,24 @@ it("refine union with nested union", () =>
               readonly d: string
             }
           },
-          false
-        >
-      >()
+        false
+      >
+    >()
 
-      const res_query2 = base.pipe(
-        where("nested._tag", "in", ["D"])
-      )
+    const res_query2 = base.pipe(where("nested._tag", "in", ["D"]))
 
-      expectTypeOf(res_query2).toEqualTypeOf<
-        QueryWhere<
-          Containers,
-          {
+    expectTypeOf(res_query2).toEqualTypeOf<
+      QueryWhere<
+        Containers,
+        | {
             readonly id: string
             readonly _tag: "Container2"
             readonly nested: {
               readonly _tag: "D"
               readonly d: string
             }
-          } | {
+          }
+        | {
             readonly id: string
             readonly _tag: "Container3"
             readonly nested: {
@@ -1896,27 +1716,27 @@ it("refine union with nested union", () =>
               readonly d: string
             }
           },
-          false
-        >
-      >()
+        false
+      >
+    >()
 
-      const res = yield* repo.query(
-        () => res_query
-      )
+    const res = yield* repo.query(() => res_query)
 
-      expectTypeOf(res).toEqualTypeOf<
-        readonly ({
-          readonly _tag: "Container2"
-          readonly id: string
-          readonly nested: D
-        } | {
-          readonly _tag: "Container3"
-          readonly id: string
-          readonly nested: D
-        })[]
-      >()
-    })
-    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
+    expectTypeOf(res).toEqualTypeOf<
+      readonly (
+        | {
+            readonly _tag: "Container2"
+            readonly id: string
+            readonly nested: D
+          }
+        | {
+            readonly _tag: "Container3"
+            readonly id: string
+            readonly nested: D
+          }
+      )[]
+    >()
+  }).pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
 // ---------------------------------------------------------------------------
 // memFilter: computed projection execution (in-memory) and code filter coverage
@@ -1925,12 +1745,14 @@ it("refine union with nested union", () =>
 const computedBaseSchema = S.Struct({
   id: S.String,
   status: S.Literals(["active", "archived"]),
-  items: S.Array(S.Struct({
-    id: S.String,
-    tag: S.Literals(["a", "b", "c"]),
-    qty: S.Finite,
-    note: S.String
-  }))
+  items: S.Array(
+    S.Struct({
+      id: S.String,
+      tag: S.Literals(["a", "b", "c"]),
+      qty: S.Finite,
+      note: S.String
+    })
+  )
 })
 type ComputedBase = S.Codec.Encoded<typeof computedBaseSchema>
 
@@ -2052,12 +1874,7 @@ it("memFilter: computed projection with multi-statement relation filter", () => 
     projectComputed(
       S.Struct({ id: S.String, hits: S.NonNegativeInt }),
       computed({
-        hits: relation<ComputedBase>("items").count(
-          flow(
-            where("tag", "a"),
-            and("qty", "gt", 10)
-          )
-        )
+        hits: relation<ComputedBase>("items").count(flow(where("tag", "a"), and("qty", "gt", 10)))
       })
     )
   )
@@ -2071,10 +1888,12 @@ it("memFilter: computed projection with multi-statement relation filter", () => 
 it("memFilter: relation-sum-expr / sum-expr-by / sum-expr-normalized", () => {
   const schema = S.Struct({
     id: S.String,
-    items: S.Array(S.Struct({
-      weight: S.Finite,
-      tradeUnit: S.Struct({ amount: S.Finite, unit: S.String })
-    }))
+    items: S.Array(
+      S.Struct({
+        weight: S.Finite,
+        tradeUnit: S.Struct({ amount: S.Finite, unit: S.String })
+      })
+    )
   })
   type Row = S.Codec.Encoded<typeof schema>
   const rows: Row[] = [
@@ -2100,11 +1919,15 @@ it("memFilter: relation-sum-expr / sum-expr-by / sum-expr-normalized", () => {
       computed({
         totalRaw: relation<Row>("items").sumExpr(weighted, where("weight", "gte", 0)),
         totalsByUnit: relation<Row>("items").sumExprBy(weighted, { unit: "tradeUnit.unit" }, where("weight", "gte", 0)),
-        totalKg: relation<Row>("items").sumExprNormalized(weighted, {
-          unit: "tradeUnit.unit",
-          toBase: "kg",
-          factors: { g: 0.001 }
-        }, where("weight", "gte", 0))
+        totalKg: relation<Row>("items").sumExprNormalized(
+          weighted,
+          {
+            unit: "tradeUnit.unit",
+            toBase: "kg",
+            factors: { g: 0.001 }
+          },
+          where("weight", "gte", 0)
+        )
       })
     )
   )
@@ -2112,7 +1935,10 @@ it("memFilter: relation-sum-expr / sum-expr-by / sum-expr-normalized", () => {
     {
       id: "r1",
       totalRaw: 4013,
-      totalsByUnit: [{ unit: "kg", total: 13 }, { unit: "g", total: 4000 }],
+      totalsByUnit: [
+        { unit: "kg", total: 13 },
+        { unit: "g", total: 4000 }
+      ],
       totalKg: 17
     },
     { id: "r2", totalRaw: 0, totalsByUnit: [], totalKg: 0 }
@@ -2146,9 +1972,7 @@ it("memFilter: computed projection with order/limit/skip applied to base rows", 
       })
     )
   )
-  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([
-    { id: "r2", total: 0 }
-  ])
+  expect(memFilter(toFilter(q, computedBaseSchema))(computedRows)).toEqual([{ id: "r2", total: 0 }])
 })
 
 it("memFilter: computed projection - relation missing on row returns empty value", () => {
@@ -2191,9 +2015,7 @@ it("memFilter: rejects extra computed keys not in projection schema", () => {
       })
     )
   )
-  expect(() => toFilter(q, computedBaseSchema)).toThrowError(
-    "Computed projection keys must exist in projection schema"
-  )
+  expect(() => toFilter(q, computedBaseSchema)).toThrowError("Computed projection keys must exist in projection schema")
 })
 
 // ---------------------------------------------------------------------------
@@ -2219,29 +2041,17 @@ const cfRows: CFRow[] = [
 const runCF = (q: any) => (memFilter(toFilter(q))(cfRows) as unknown as readonly CFRow[]).map((_) => _.id)
 
 it("codeFilter: where + and chain", () => {
-  const q = make<CFRow>().pipe(
-    where("tag", "y"),
-    and("qty", "gt", 25)
-  )
+  const q = make<CFRow>().pipe(where("tag", "y"), and("qty", "gt", 25))
   expect(runCF(q)).toEqual(["4"])
 })
 
 it("codeFilter: where + or chain", () => {
-  const q = make<CFRow>().pipe(
-    where("tag", "x"),
-    or("tag", "z")
-  )
+  const q = make<CFRow>().pipe(where("tag", "x"), or("tag", "z"))
   expect(runCF(q).sort()).toEqual(["1", "3"])
 })
 
 it("codeFilter: nested scope precedence (a AND (b OR c))", () => {
-  const q = make<CFRow>().pipe(
-    where("tag", "y"),
-    and(
-      where("qty", "gt", 25),
-      or("desc", "contains", "good")
-    )
-  )
+  const q = make<CFRow>().pipe(where("tag", "y"), and(where("qty", "gt", 25), or("desc", "contains", "good")))
   // tag=y AND (qty>25 OR desc contains "good") → row 2 (Goodbye) and row 4 (qty 30)
   expect(runCF(q).sort()).toEqual(["2", "4"])
 })
@@ -2254,11 +2064,7 @@ it("codeFilter: contains/startsWith/endsWith are case-insensitive", () => {
 
 it("codeFilter: array includes / includes-any / includes-all", () => {
   expect(runCF(make<CFRow>().pipe(where("tags", "includes", "red"))).sort()).toEqual(["1", "3"])
-  expect(runCF(make<CFRow>().pipe(where("tags", "includes-any", ["blue", "green"]))).sort()).toEqual([
-    "1",
-    "2",
-    "3"
-  ])
+  expect(runCF(make<CFRow>().pipe(where("tags", "includes-any", ["blue", "green"]))).sort()).toEqual(["1", "2", "3"])
   expect(runCF(make<CFRow>().pipe(where("tags", "includes-all", ["red", "blue"])))).toEqual(["3"])
 })
 
@@ -2280,10 +2086,7 @@ it("codeFilter: Date array / Set includes and in", () => {
   expect(run(make<DateRow>().pipe(where("dates", "includes", d1)))).toEqual(["2"])
   expect(run(make<DateRow>().pipe(where("dateSet", "includes", d0)))).toEqual(["1"])
   expect(run(make<DateRow>().pipe(where("dates", "includes-any", [d1])))).toEqual(["2"])
-  expect(run(make<DateRow>().pipe(where("dateSet", "includes-any", new Set([d0, d1])))).sort()).toEqual([
-    "1",
-    "2"
-  ])
+  expect(run(make<DateRow>().pipe(where("dateSet", "includes-any", new Set([d0, d1])))).sort()).toEqual(["1", "2"])
   expect(run(make<DateRow>().pipe(where("tag", "in", new Set(["a"]))))).toEqual(["1"])
 })
 
@@ -2293,7 +2096,13 @@ it("codeFilter: Map hasKey / hasValue / hasKeyValue", () => {
     readonly meta: ReadonlyMap<string, number>
   }
   const rows: MapRow[] = [
-    { id: "1", meta: new Map([["n", 1], ["x", 2]]) },
+    {
+      id: "1",
+      meta: new Map([
+        ["n", 1],
+        ["x", 2]
+      ])
+    },
     { id: "2", meta: new Map([["n", 9]]) },
     { id: "3", meta: new Map([["z", 2]]) }
   ]
@@ -2309,8 +2118,26 @@ it("codeFilter: Map hasKey / hasValue / hasKeyValue", () => {
   expect(run(make<MapRow>().pipe(where("meta", "notHasKey-all", ["n", "x"]))).sort()).toEqual(["2", "3"])
   expect(run(make<MapRow>().pipe(where("meta", "hasValue-any", [9, 99])))).toEqual(["2"])
   expect(run(make<MapRow>().pipe(where("meta", "hasValue-all", [1, 2])))).toEqual(["1"])
-  expect(run(make<MapRow>().pipe(where("meta", "hasKeyValue-any", [["n", 9], ["missing", 0]])))).toEqual(["2"])
-  expect(run(make<MapRow>().pipe(where("meta", "hasKeyValue-all", [["n", 1], ["x", 2]])))).toEqual(["1"])
+  expect(
+    run(
+      make<MapRow>().pipe(
+        where("meta", "hasKeyValue-any", [
+          ["n", 9],
+          ["missing", 0]
+        ])
+      )
+    )
+  ).toEqual(["2"])
+  expect(
+    run(
+      make<MapRow>().pipe(
+        where("meta", "hasKeyValue-all", [
+          ["n", 1],
+          ["x", 2]
+        ])
+      )
+    )
+  ).toEqual(["1"])
 })
 
 it("codeFilter: in / notIn", () => {
@@ -2328,15 +2155,7 @@ it("codeFilter: gt / gte / lt / lte / neq", () => {
 
 it("codeFilter: nested path access through dot notation", () => {
   expect(runCF(make<CFRow>().pipe(where("nested.kind", "k1"))).sort()).toEqual(["1", "3"])
-  expect(
-    runCF(
-      make<CFRow>().pipe(
-        where("nested.kind", "k2"),
-        and("nested.v", "gt", 0)
-      )
-    )
-  )
-    .toEqual(["2"])
+  expect(runCF(make<CFRow>().pipe(where("nested.kind", "k2"), and("nested.v", "gt", 0)))).toEqual(["2"])
 })
 
 it("codeFilter: array length predicates", () => {
@@ -2345,11 +2164,7 @@ it("codeFilter: array length predicates", () => {
 })
 
 it("codeFilter: order + skip + limit applied after filter", () => {
-  const q = make<CFRow>().pipe(
-    where("tag", "neq", "z"),
-    order("qty", "DESC"),
-    page({ skip: 1, take: 2 })
-  )
+  const q = make<CFRow>().pipe(where("tag", "neq", "z"), order("qty", "DESC"), page({ skip: 1, take: 2 }))
   expect(runCF(q)).toEqual(["2", "1"])
 })
 

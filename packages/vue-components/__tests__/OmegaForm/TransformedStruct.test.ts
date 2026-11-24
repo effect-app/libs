@@ -12,10 +12,12 @@ describe("OmegaForm TransformedStruct", () => {
     b: S.Finite
   })
 
-  const transformedSchema = baseSchema.pipe(S.decodeTo(baseSchema, {
-    decode: SchemaGetter.passthrough({ strict: false }),
-    encode: SchemaGetter.passthrough({ strict: false })
-  }))
+  const transformedSchema = baseSchema.pipe(
+    S.decodeTo(baseSchema, {
+      decode: SchemaGetter.passthrough({ strict: false }),
+      encode: SchemaGetter.passthrough({ strict: false })
+    })
+  )
 
   it("should work with a basic transformed struct schema", async () => {
     const wrapper = mount({
@@ -36,7 +38,7 @@ describe("OmegaForm TransformedStruct", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
@@ -46,10 +48,12 @@ describe("OmegaForm TransformedStruct", () => {
   })
 
   it("should work with a double-transformed struct schema", async () => {
-    const doubleTransformed = transformedSchema.pipe(S.decodeTo(baseSchema, {
-      decode: SchemaGetter.passthrough({ strict: false }),
-      encode: SchemaGetter.passthrough({ strict: false })
-    }))
+    const doubleTransformed = transformedSchema.pipe(
+      S.decodeTo(baseSchema, {
+        decode: SchemaGetter.passthrough({ strict: false }),
+        encode: SchemaGetter.passthrough({ strict: false })
+      })
+    )
 
     const wrapper = mount({
       components: { OmegaIntlProvider },
@@ -69,7 +73,7 @@ describe("OmegaForm TransformedStruct", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
@@ -84,14 +88,18 @@ describe("OmegaForm TransformedStruct", () => {
       data: S.NonEmptyString
     })
     const doubleTransformedMember = memberSchema
-      .pipe(S.decodeTo(memberSchema, {
-        decode: SchemaGetter.passthrough({ strict: false }),
-        encode: SchemaGetter.passthrough({ strict: false })
-      }))
-      .pipe(S.decodeTo(memberSchema, {
-        decode: SchemaGetter.passthrough({ strict: false }),
-        encode: SchemaGetter.passthrough({ strict: false })
-      }))
+      .pipe(
+        S.decodeTo(memberSchema, {
+          decode: SchemaGetter.passthrough({ strict: false }),
+          encode: SchemaGetter.passthrough({ strict: false })
+        })
+      )
+      .pipe(
+        S.decodeTo(memberSchema, {
+          decode: SchemaGetter.passthrough({ strict: false }),
+          encode: SchemaGetter.passthrough({ strict: false })
+        })
+      )
 
     const unionSchema = S.Union([
       doubleTransformedMember,
@@ -119,7 +127,7 @@ describe("OmegaForm TransformedStruct", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toHaveProperty("_tag", "option1")
@@ -127,12 +135,11 @@ describe("OmegaForm TransformedStruct", () => {
 
   it("should work with a transformed struct inside a union", async () => {
     const unionSchema = S.Union([
-      S
-        .Struct({
-          _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
-          data: S.NonEmptyString
-        })
-        .pipe(S.decodeTo(
+      S.Struct({
+        _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
+        data: S.NonEmptyString
+      }).pipe(
+        S.decodeTo(
           S.Struct({
             _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
             data: S.NonEmptyString
@@ -141,7 +148,8 @@ describe("OmegaForm TransformedStruct", () => {
             decode: SchemaGetter.passthrough({ strict: false }),
             encode: SchemaGetter.passthrough({ strict: false })
           }
-        )),
+        )
+      ),
       S.Struct({
         _tag: S.Literal("option2"),
         value: S.Finite
@@ -166,7 +174,7 @@ describe("OmegaForm TransformedStruct", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toHaveProperty("_tag", "option1")

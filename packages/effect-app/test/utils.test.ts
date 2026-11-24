@@ -17,10 +17,7 @@ test("works with class", () => {
 
   const original = new Banana({ name: "banana", state: { a: "a", _tag: "a" } })
 
-  const res1 = copyBanana(
-    original,
-    (_) => ({ state: { b: 1, _tag: "b" } })
-  ) satisfies Banana // must be assignable to Banana
+  const res1 = copyBanana(original, (_) => ({ state: { b: 1, _tag: "b" } })) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res1).toEqualTypeOf<{
     name: string
@@ -37,10 +34,7 @@ test("works with class", () => {
 
   expect(Object.getPrototypeOf(res1)).toEqual(Banana.prototype)
 
-  const res2 = copyBanana(
-    original,
-    { state: { b: 1, _tag: "b" } }
-  ) satisfies Banana // must be assignable to Banana
+  const res2 = copyBanana(original, { state: { b: 1, _tag: "b" } }) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res2).toEqualTypeOf<{
     name: string
@@ -57,10 +51,7 @@ test("works with class", () => {
 
   expect(Object.getPrototypeOf(res2)).toEqual(Banana.prototype)
 
-  const res3 = copyBanana(
-    res2,
-    { state: { a: "a", _tag: "a" } }
-  ) satisfies Banana // must be assignable to Banana
+  const res3 = copyBanana(res2, { state: { a: "a", _tag: "a" } }) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res3).toEqualTypeOf<{
     name: string
@@ -89,40 +80,33 @@ test("works with class", () => {
     { extraProp: "whatever" }
   )
 
-  const res4 = copyBanana(
-    original,
-    (o) => o
-  ) satisfies Banana // must be assignable to Banana
+  const res4 = copyBanana(original, (o) => o) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res4).toEqualTypeOf<{
     name: string
-    state: {
-      a: string
-      _tag: "a"
-    } | {
-      b: number
-      _tag: "b"
-    }
+    state:
+      | {
+          a: string
+          _tag: "a"
+        }
+      | {
+          b: number
+          _tag: "b"
+        }
   }>()
 })
 
 test("works with schema class", () => {
   class Banana extends S.Class<Banana>("Banana")({
     name: S.String,
-    state: S.Union([
-      S.Struct({ a: S.String, _tag: S.tag("a") }),
-      S.Struct({ b: S.Finite, _tag: S.tag("b") })
-    ])
+    state: S.Union([S.Struct({ a: S.String, _tag: S.tag("a") }), S.Struct({ b: S.Finite, _tag: S.tag("b") })])
   }) {}
 
   const copyBanana = copyOrigin(Banana)
 
   const original = new Banana({ name: "banana", state: { a: "a", _tag: "a" } })
 
-  const res1 = copyBanana(
-    original,
-    (_) => ({ state: { b: 1, _tag: "b" } })
-  ) satisfies Banana // must be assignable to Banana
+  const res1 = copyBanana(original, (_) => ({ state: { b: 1, _tag: "b" } })) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res1).toEqualTypeOf<{
     name: string
@@ -139,10 +123,7 @@ test("works with schema class", () => {
 
   expect(Object.getPrototypeOf(res1)).toEqual(Banana.prototype)
 
-  const res2 = copyBanana(
-    original,
-    { state: { b: 1, _tag: "b" } }
-  ) satisfies Banana // must be assignable to Banana
+  const res2 = copyBanana(original, { state: { b: 1, _tag: "b" } }) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res2).toEqualTypeOf<{
     name: string
@@ -159,10 +140,7 @@ test("works with schema class", () => {
 
   expect(Object.getPrototypeOf(res2)).toEqual(Banana.prototype)
 
-  const res3 = copyBanana(
-    res2,
-    { state: { a: "a", _tag: "a" } }
-  ) satisfies Banana // must be assignable to Banana
+  const res3 = copyBanana(res2, { state: { a: "a", _tag: "a" } }) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res3).toEqualTypeOf<{
     name: string
@@ -191,19 +169,18 @@ test("works with schema class", () => {
     { extraProp: "whatever" }
   )
 
-  const res4 = copyBanana(
-    original,
-    (o) => o
-  ) satisfies Banana // must be assignable to Banana
+  const res4 = copyBanana(original, (o) => o) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res4).toEqualTypeOf<{
     name: string
-    state: {
-      readonly a: string
-      readonly _tag: "a"
-    } | {
-      readonly b: number
-      readonly _tag: "b"
-    }
+    state:
+      | {
+          readonly a: string
+          readonly _tag: "a"
+        }
+      | {
+          readonly b: number
+          readonly _tag: "b"
+        }
   }>()
 })

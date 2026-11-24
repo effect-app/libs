@@ -37,12 +37,16 @@ const ClickThrowChild = defineComponent({
   name: "ClickThrowChild",
   setup() {
     return () =>
-      h("button", {
-        id: "boom",
-        onClick: () => {
-          throw new Error("click boom")
-        }
-      }, "boom")
+      h(
+        "button",
+        {
+          id: "boom",
+          onClick: () => {
+            throw new Error("click boom")
+          }
+        },
+        "boom"
+      )
   }
 })
 
@@ -75,26 +79,27 @@ describe("FixedNuxtErrorBoundary", () => {
   // Mount through a host component that renders the boundary with its slots,
   // mirroring real usage (Suspender wraps it). Mounting the boundary directly
   // as the test root breaks error propagation into its own onErrorCaptured.
-  const mountBoundary = (
-    child: ReturnType<typeof defineComponent>,
-    props: Record<string, unknown> = {}
-  ) => {
+  const mountBoundary = (child: ReturnType<typeof defineComponent>, props: Record<string, unknown> = {}) => {
     const emitted: Error[] = []
     const Host = defineComponent({
       name: "Host",
       setup() {
         return () =>
-          h(FixedNuxtErrorBoundary, {
-            captureException,
-            toastError,
-            debug: true,
-            onError: (e: Error) => emitted.push(e),
-            ...props
-          }, {
-            default: () => h(child),
-            error: (params: { error: Error; clearError: () => void }) =>
-              h("div", { id: "error-slot" }, params.error.message)
-          })
+          h(
+            FixedNuxtErrorBoundary,
+            {
+              captureException,
+              toastError,
+              debug: true,
+              onError: (e: Error) => emitted.push(e),
+              ...props
+            },
+            {
+              default: () => h(child),
+              error: (params: { error: Error; clearError: () => void }) =>
+                h("div", { id: "error-slot" }, params.error.message)
+            }
+          )
       }
     })
     const wrapper = mount(Host, { global: { plugins: [router] } })
@@ -193,15 +198,19 @@ describe("FixedNuxtErrorBoundary", () => {
           return false
         })
         return () =>
-          h(FixedNuxtErrorBoundary, {
-            captureException,
-            toastError,
-            debug: true,
-            enabled: false
-          }, {
-            default: () => h(makeThrowingChild(ref(true), new Error("escaped boom"))),
-            error: () => h("div", { id: "error-slot" })
-          })
+          h(
+            FixedNuxtErrorBoundary,
+            {
+              captureException,
+              toastError,
+              debug: true,
+              enabled: false
+            },
+            {
+              default: () => h(makeThrowingChild(ref(true), new Error("escaped boom"))),
+              error: () => h("div", { id: "error-slot" })
+            }
+          )
       }
     })
     const wrapper = mount(Host, { global: { plugins: [router] } })

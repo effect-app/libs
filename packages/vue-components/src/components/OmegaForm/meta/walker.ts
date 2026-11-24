@@ -9,12 +9,10 @@ const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.
 
 // TODO: remove after manual _tag deprecation — S.Struct({ _tag: S.Literal("X") }) wraps as Union([Literal("X")])
 const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
-  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0])
-    ? ast.types[0]
-    : ast
+  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]) ? ast.types[0] : ast
 
 const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] =>
-  types.flatMap((type) => S.AST.isUnion(type) ? unwrapNestedUnions(type.types) : [type])
+  types.flatMap((type) => (S.AST.isUnion(type) ? unwrapNestedUnions(type.types) : [type]))
 
 export type WalkerContext<T> = {
   acc: Partial<MetaRecord<T>>
@@ -30,10 +28,7 @@ export type ParentMeta = {
   isOptionalKey?: boolean
 }
 
-export const leafMetaForAst = (
-  ast: S.AST.AST,
-  parentMeta: ParentMeta
-): FieldMeta => {
+export const leafMetaForAst = (ast: S.AST.AST, parentMeta: ParentMeta): FieldMeta => {
   const { nullableOrUndefined, required } = parentMeta
 
   if (S.AST.isArrays(ast)) {
@@ -84,12 +79,7 @@ export const walkStruct = <T>(
       isRequired = !nullableOrUndefined
     }
 
-    walk(
-      p.type,
-      key,
-      { required: isRequired, nullableOrUndefined, isOptionalKey },
-      ctx
-    )
+    walk(p.type, key, { required: isRequired, nullableOrUndefined, isOptionalKey }, ctx)
   }
 }
 
@@ -203,12 +193,7 @@ export const classifyAndWalkUnion = <T>(
   if (nonNullType) walk(nonNullType, key, parentMeta, ctx)
 }
 
-export const walk = <T>(
-  ast: S.AST.AST,
-  key: string,
-  parentMeta: ParentMeta,
-  ctx: WalkerContext<T>
-): void => {
+export const walk = <T>(ast: S.AST.AST, key: string, parentMeta: ParentMeta, ctx: WalkerContext<T>): void => {
   ast = unwrapDeclaration(ast)
   const { acc } = ctx
 

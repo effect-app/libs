@@ -22,9 +22,7 @@ describe("cosmos query filter: native Encoded values", () => {
       "Orders",
       {}
     )
-    expect(result.parameters).toEqual(
-      expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }])
-    )
+    expect(result.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }]))
   })
 
   it("binds Map as array of tuples", () => {
@@ -34,27 +32,15 @@ describe("cosmos query filter: native Encoded values", () => {
       "Orders",
       {}
     )
-    expect(result.parameters).toEqual(
-      expect.arrayContaining([{ name: "@v0", value: [["k", "v"]] }])
-    )
+    expect(result.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: [["k", "v"]] }]))
   })
 
   it("emits EXISTS over Map JSON tuples for hasKey / hasValue / hasKeyValue", () => {
-    const byKey = buildWhereCosmosQuery3(
-      "id",
-      [{ t: "where", path: "meta", op: "hasKey", value: "n" }],
-      "Orders",
-      {}
-    )
-    expect(byKey.query).toContain("EXISTS(SELECT VALUE p FROM p IN f[\"meta\"] WHERE p[0] = @v0)")
+    const byKey = buildWhereCosmosQuery3("id", [{ t: "where", path: "meta", op: "hasKey", value: "n" }], "Orders", {})
+    expect(byKey.query).toContain('EXISTS(SELECT VALUE p FROM p IN f["meta"] WHERE p[0] = @v0)')
     expect(byKey.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "n" }]))
 
-    const byValue = buildWhereCosmosQuery3(
-      "id",
-      [{ t: "where", path: "meta", op: "hasValue", value: 1 }],
-      "Orders",
-      {}
-    )
+    const byValue = buildWhereCosmosQuery3("id", [{ t: "where", path: "meta", op: "hasValue", value: 1 }], "Orders", {})
     expect(byValue.query).toContain("p[1] = @v0")
 
     const byPair = buildWhereCosmosQuery3(
@@ -83,20 +69,20 @@ describe("cosmos query filter: native Encoded values", () => {
       {}
     )
     expect(result.query).toContain("ARRAY_CONTAINS")
-    expect(result.parameters).toEqual(
-      expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }])
-    )
+    expect(result.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "2024-01-01T00:00:00.000Z" }]))
   })
 
   it("binds includes-any Date Set as ISO parameters", () => {
     const result = buildWhereCosmosQuery3(
       "id",
-      [{
-        t: "where",
-        path: "dates",
-        op: "includes-any",
-        value: new Set([new Date("2024-01-01T00:00:00.000Z")])
-      }],
+      [
+        {
+          t: "where",
+          path: "dates",
+          op: "includes-any",
+          value: new Set([new Date("2024-01-01T00:00:00.000Z")])
+        }
+      ],
       "Orders",
       {}
     )
@@ -120,13 +106,7 @@ describe("cosmos query projection: array length", () => {
 
     const ir = toFilter(q as any, Order as any)
 
-    const result = buildWhereCosmosQuery3(
-      "id",
-      ir.filter ?? [],
-      "Orders",
-      {},
-      ir.select
-    )
+    const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select)
 
     expect(result.query).toMatch(/ARRAY_LENGTH\(f(?:\.packages|\["packages"\])\)/)
     expect(result.query).toContain("AS packageCount")
@@ -176,8 +156,8 @@ describe("cosmos query projection: union array fields", () => {
 
     const ir = toFilter(q as any, UnionOrder as any)
     const select: readonly unknown[] = ir.select ?? []
-    const packageSelects = select.filter((item) =>
-      typeof item === "object" && item !== null && "key" in item && item.key === "packages"
+    const packageSelects = select.filter(
+      (item) => typeof item === "object" && item !== null && "key" in item && item.key === "packages"
     )
     const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select)
 
@@ -187,16 +167,13 @@ describe("cosmos query projection: union array fields", () => {
 
   it("dedupes array selects for projectComputed union schemas", () => {
     const q = make<UnionOrderEnc>().pipe(
-      projectComputed(
-        ComputedProjection,
-        computed({ packageCount: relation<UnionOrderEnc>("packages").length() })
-      )
+      projectComputed(ComputedProjection, computed({ packageCount: relation<UnionOrderEnc>("packages").length() }))
     )
 
     const ir = toFilter(q as any, UnionOrder as any)
     const select: readonly unknown[] = ir.select ?? []
-    const packageSelects = select.filter((item) =>
-      typeof item === "object" && item !== null && "key" in item && item.key === "packages"
+    const packageSelects = select.filter(
+      (item) => typeof item === "object" && item !== null && "key" in item && item.key === "packages"
     )
     const result = buildWhereCosmosQuery3("id", ir.filter ?? [], "Orders", {}, ir.select)
 
@@ -246,12 +223,7 @@ describe("cosmos query projection: relation-every parameter binding", () => {
 
     // Each filter element binds exactly one parameter: 2 every filters + 2 main filter = 4.
     expect(result.parameters).toHaveLength(4)
-    expect(result.parameters.map((_) => _.value)).toEqual([
-      "picked",
-      "packed",
-      "2026-05-01T00:00:00.000Z",
-      "closed"
-    ])
+    expect(result.parameters.map((_) => _.value)).toEqual(["picked", "packed", "2026-05-01T00:00:00.000Z", "closed"])
 
     // SQL must reference exactly @v0..@v3 in order, no gaps, no overruns.
     const refs = [...result.query.matchAll(/@v\d+/g)].map((m) => m[0])
@@ -261,23 +233,17 @@ describe("cosmos query projection: relation-every parameter binding", () => {
 
 describe("cosmos query: aggregate (GROUP BY + agg functions)", () => {
   it("generates GROUP BY and SUM(IIF(...)) for agg-count-when", () => {
-    const result = buildWhereCosmosQuery3(
-      "id",
-      [],
-      "Orders",
-      {},
-      [
-        { key: "city", path: "address.city" },
-        {
-          key: "activeCount",
-          aggregate: {
-            _tag: "agg-count-when",
-            filter: [{ t: "where", path: "status", op: "eq", value: "active" }]
-          }
-        },
-        { key: "total", aggregate: { _tag: "agg-count" } }
-      ] as any
-    )
+    const result = buildWhereCosmosQuery3("id", [], "Orders", {}, [
+      { key: "city", path: "address.city" },
+      {
+        key: "activeCount",
+        aggregate: {
+          _tag: "agg-count-when",
+          filter: [{ t: "where", path: "status", op: "eq", value: "active" }]
+        }
+      },
+      { key: "total", aggregate: { _tag: "agg-count" } }
+    ] as any)
 
     expect(result.query).toContain("GROUP BY")
     expect(result.query).toContain("SUM(IIF(")
@@ -287,18 +253,12 @@ describe("cosmos query: aggregate (GROUP BY + agg functions)", () => {
   })
 
   it("generates agg-sum / agg-min / agg-max expressions", () => {
-    const result = buildWhereCosmosQuery3(
-      "id",
-      [],
-      "Orders",
-      {},
-      [
-        { key: "dept", path: "dept" },
-        { key: "totalSalary", aggregate: { _tag: "agg-sum", field: "salary" } },
-        { key: "minSalary", aggregate: { _tag: "agg-min", field: "salary" } },
-        { key: "maxSalary", aggregate: { _tag: "agg-max", field: "salary" } }
-      ] as any
-    )
+    const result = buildWhereCosmosQuery3("id", [], "Orders", {}, [
+      { key: "dept", path: "dept" },
+      { key: "totalSalary", aggregate: { _tag: "agg-sum", field: "salary" } },
+      { key: "minSalary", aggregate: { _tag: "agg-min", field: "salary" } },
+      { key: "maxSalary", aggregate: { _tag: "agg-max", field: "salary" } }
+    ] as any)
 
     expect(result.query).toContain(`SUM(f["salary"]) AS totalSalary`)
     expect(result.query).toContain(`MIN(f["salary"]) AS minSalary`)
@@ -307,16 +267,10 @@ describe("cosmos query: aggregate (GROUP BY + agg functions)", () => {
   })
 
   it("generates correct GROUP BY for nested path field", () => {
-    const result = buildWhereCosmosQuery3(
-      "id",
-      [],
-      "Orders",
-      {},
-      [
-        { key: "city", path: "address.city" },
-        { key: "count", aggregate: { _tag: "agg-count" } }
-      ] as any
-    )
+    const result = buildWhereCosmosQuery3("id", [], "Orders", {}, [
+      { key: "city", path: "address.city" },
+      { key: "count", aggregate: { _tag: "agg-count" } }
+    ] as any)
 
     // Must GROUP BY the nested path in Cosmos access notation
     expect(result.query).toMatch(/GROUP BY f(?:\.address\.city|\["address"\]\["city"\])/)
@@ -334,18 +288,8 @@ describe("cosmos query defaultValues are already JSON-lowered", () => {
   const lowered = json.toJson({ at }) as Record<string, unknown>
 
   it("does not re-encode store-lowered Date defaults on select-only filter", () => {
-    const result = buildWhereCosmosQuery3(
-      "id",
-      [],
-      "Item",
-      lowered,
-      ["id"],
-      undefined,
-      undefined,
-      undefined,
-      json
-    )
-    expect(result.query).toContain("SELECT f[\"id\"]")
+    const result = buildWhereCosmosQuery3("id", [], "Item", lowered, ["id"], undefined, undefined, undefined, json)
+    expect(result.query).toContain('SELECT f["id"]')
   })
 
   it("embeds already-lowered Date defaults as JSON literals", () => {
@@ -360,9 +304,7 @@ describe("cosmos query defaultValues are already JSON-lowered", () => {
       undefined,
       json
     )
-    expect(result.query).toContain("?? \"2024-06-01T00:00:00.000Z\"")
-    expect(result.parameters).toEqual(
-      expect.arrayContaining([{ name: "@v0", value: "2024-06-01T00:00:00.000Z" }])
-    )
+    expect(result.query).toContain('?? "2024-06-01T00:00:00.000Z"')
+    expect(result.parameters).toEqual(expect.arrayContaining([{ name: "@v0", value: "2024-06-01T00:00:00.000Z" }]))
   })
 })

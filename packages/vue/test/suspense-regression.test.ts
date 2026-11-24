@@ -48,9 +48,8 @@ it("makeClient .suspense(): observer re-pointed mid-flight -> resolves (seeded) 
   const aData = new Promise<string>((res) => {
     resolveA = res
   })
-  const handler = fakeHandler(
-    "Test/KeyRace",
-    (input: any) => Effect.promise(() => (input.id === "a" ? aData : new Promise<string>(() => {})))
+  const handler = fakeHandler("Test/KeyRace", (input: any) =>
+    Effect.promise(() => (input.id === "a" ? aData : new Promise<string>(() => {})))
   )
 
   const ctx = makeContext(queryClient)
@@ -95,12 +94,14 @@ it("atom engine .suspense(): reactive arg switched to an uncached input serves t
     () => Layer.succeedContext(baseContext) as Layer.Layer<any, never, never>,
     mrt.memoMap
   )
-  const qi = new QueryImpl(() => Context.empty(), () => rt)
+  const qi = new QueryImpl(
+    () => Context.empty(),
+    () => rt
+  )
 
   // "a" resolves immediately; any other input hangs forever (stays Initial+waiting).
-  const handler = fakeHandler(
-    "TestSuspense/ReactiveArg",
-    (input: any) => (input.id === "a" ? Effect.succeed("DATA_A") : Effect.never)
+  const handler = fakeHandler("TestSuspense/ReactiveArg", (input: any) =>
+    input.id === "a" ? Effect.succeed("DATA_A") : Effect.never
   )
 
   const argRef = ref({ id: "a" })
@@ -137,19 +138,17 @@ it("makeTanstackQuery structurally shares Effect-Equal leaves by default", async
   })
   const getRuntime = () => Context.empty()
   let calls = 0
-  const handler = fakeHandler(
-    "Test/StructuralSharing",
-    () =>
-      Effect.sync(() => {
-        calls += 1
-        return {
-          stable: {
-            date: new Date("2026-01-01T00:00:00.000Z"),
-            option: Option.some({ id: "same" })
-          },
-          revision: calls
-        }
-      })
+  const handler = fakeHandler("Test/StructuralSharing", () =>
+    Effect.sync(() => {
+      calls += 1
+      return {
+        stable: {
+          date: new Date("2026-01-01T00:00:00.000Z"),
+          option: Option.some({ id: "same" })
+        },
+        revision: calls
+      }
+    })
   )
   const query = makeTanstackQuery(getRuntime, queryClient)(handler)
   const ctx = makeContext(queryClient)

@@ -1,8 +1,5 @@
 <template>
-  <form
-    novalidate
-    @submit.prevent.stop="form.handleSubmit()"
-  >
+  <form novalidate @submit.prevent.stop="form.handleSubmit()">
     <fieldset :disabled="formIsSubmitting || disabled">
       <slot :subscribed-values="subscribedValues" />
     </fieldset>
@@ -12,10 +9,12 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
-  Props = DefaultTypeProps"
+  generic="
+    From extends Record<PropertyKey, any>,
+    To extends Record<PropertyKey, any>,
+    K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
+    Props = DefaultTypeProps
+  "
 >
 /**
  * Form component that wraps TanStack Form's useForm hook
@@ -41,15 +40,9 @@ type OmegaWrapperProps = {
 
 const props = defineProps<OmegaWrapperProps>()
 
-const formIsSubmitting = useStore(
-  props.form.store,
-  (state) => state.isSubmitting
-)
+const formIsSubmitting = useStore(props.form.store, (state) => state.isSubmitting)
 
-const subscribedValues = getOmegaStore(
-  props.form as unknown as OmegaFormApi<From, To>,
-  props.subscribe
-)
+const subscribedValues = getOmegaStore(props.form as unknown as OmegaFormApi<From, To>, props.subscribe)
 
 if (!props.form.ignorePreventCloseEvents) {
   usePreventClose(() => {

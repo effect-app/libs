@@ -54,29 +54,36 @@ import { createServer } from "http"
 import { RequestContextMiddleware } from "../src/internal/RequestContextMiddleware.js"
 import { makeRouter } from "../src/routing.js"
 import { DefaultGenericMiddlewaresLive } from "../src/routing/middleware.js"
-import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
+import {
+  AllowAnonymous,
+  AllowAnonymousLive,
+  RequestContextMap,
+  RequireRoles,
+  RequireRolesLive,
+  SomeElseMiddleware,
+  SomeElseMiddlewareLive,
+  SomeService,
+  Test,
+  TestLive
+} from "./fixtures.js"
 
 // ---------------------------------------------------------------------------
 // Middleware — mirrors AppMiddleware shape used by the other rpc e2e tests.
 // ---------------------------------------------------------------------------
 
-class AppMiddleware extends MiddlewareMaker
-  .Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
+class AppMiddleware extends MiddlewareMaker.Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(SomeElseMiddleware)
-  .middleware(...DefaultGenericMiddlewares)
-{
+  .middleware(...DefaultGenericMiddlewares) {
   static Default = this.layer.pipe(
-    Layer.provide(
-      [
-        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-        AllowAnonymousLive,
-        TestLive,
-        SomeElseMiddlewareLive,
-        DefaultGenericMiddlewaresLive
-      ] as const
-    )
+    Layer.provide([
+      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+      AllowAnonymousLive,
+      TestLive,
+      SomeElseMiddlewareLive,
+      DefaultGenericMiddlewaresLive
+    ] as const)
   )
 }
 
@@ -89,28 +96,40 @@ const { Router, matchAll } = makeRouter(AppMiddleware.Default)
 const { TaggedRequestFor } = makeRpcClient(AppMiddleware)
 const Req = TaggedRequestFor("CtxMap")
 
-class StreamEtag extends Req.Command<StreamEtag>()("StreamEtag", {}, {
-  stream: true,
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class StreamEtag extends Req.Command<StreamEtag>()(
+  "StreamEtag",
+  {},
+  {
+    stream: true,
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
 // Per-request isolation probes: each handler writes a caller-supplied value to
 // the SHARED key, then emits 3 chunks each re-reading the SHARED key. If two
 // concurrent requests share a ContextMap, the second writer overwrites the
 // first and the first request observes the wrong value mid-stream.
-class StreamWithEtag extends Req.Command<StreamWithEtag>()("StreamWithEtag", {
-  value: S.String
-}, {
-  stream: true,
-  allowAnonymous: true,
-  success: S.String
-}) {}
+class StreamWithEtag extends Req.Command<StreamWithEtag>()(
+  "StreamWithEtag",
+  {
+    value: S.String
+  },
+  {
+    stream: true,
+    allowAnonymous: true,
+    success: S.String
+  }
+) {}
 
-class ReadEtagOnce extends Req.Query<ReadEtagOnce>()("ReadEtagOnce", {}, {
-  allowAnonymous: true,
-  success: S.String
-}) {}
+class ReadEtagOnce extends Req.Query<ReadEtagOnce>()(
+  "ReadEtagOnce",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.String
+  }
+) {}
 
 const Rsc = { StreamEtag, StreamWithEtag, ReadEtagOnce }
 
@@ -125,44 +144,44 @@ const router = Router(Rsc)({
   *effect(match) {
     return match({
       StreamEtag: () =>
-        Effect
-          .gen(function*() {
-            // 1) Acquire the request-scoped ContextMap. Fails (dies) if the
-            //    container is still the default "root" — which would mean
-            //    RequestContextMiddleware did not run for this request.
-            const ctxMap = yield* getContextMap.pipe(Effect.orDie)
-            // 2) Seed an etag BEFORE handing back the Stream. This write is
-            //    what the per-chunk readers below verify.
-            ctxMap.set(ETAG_ID, ETAG_VALUE)
-            // 3) Emit three values 100ms apart so chunks are produced AFTER
-            //    the outer Effect that built the response has returned. Each
-            //    emission re-reads the etag from the request-scoped ContextMap.
-            return Stream.fromIterable([0, 1, 2]).pipe(
-              Stream.mapEffect(() =>
-                Effect.sleep("100 millis").pipe(
-                  Effect.flatMap(() => getContextMap.pipe(Effect.orDie)),
-                  Effect.map((m) => m.get(ETAG_ID) === ETAG_VALUE ? 1 : 0)
-                )
+        Effect.gen(function* () {
+          // 1) Acquire the request-scoped ContextMap. Fails (dies) if the
+          //    container is still the default "root" — which would mean
+          //    RequestContextMiddleware did not run for this request.
+          const ctxMap = yield* getContextMap.pipe(Effect.orDie)
+          // 2) Seed an etag BEFORE handing back the Stream. This write is
+          //    what the per-chunk readers below verify.
+          ctxMap.set(ETAG_ID, ETAG_VALUE)
+          // 3) Emit three values 100ms apart so chunks are produced AFTER
+          //    the outer Effect that built the response has returned. Each
+          //    emission re-reads the etag from the request-scoped ContextMap.
+          return Stream.fromIterable([0, 1, 2]).pipe(
+            Stream.mapEffect(() =>
+              Effect.sleep("100 millis").pipe(
+                Effect.flatMap(() => getContextMap.pipe(Effect.orDie)),
+                Effect.map((m) => (m.get(ETAG_ID) === ETAG_VALUE ? 1 : 0))
               )
             )
-          })
-          .pipe(Stream.unwrap),
+          )
+        }).pipe(Stream.unwrap),
       StreamWithEtag: ({ value }: { readonly value: string }) =>
-        Effect
-          .gen(function*() {
-            const ctxMap = yield* getContextMap.pipe(Effect.orDie)
-            ctxMap.set(SHARED_KEY, value)
-            return Stream.fromIterable([0, 1, 2]).pipe(
-              Stream.mapEffect(() =>
-                Effect.sleep("100 millis").pipe(
-                  Effect.flatMap(() => getContextMap.pipe(Effect.orDie)),
-                  Effect.map((m) => m.get(SHARED_KEY) ?? MISSING)
-                )
+        Effect.gen(function* () {
+          const ctxMap = yield* getContextMap.pipe(Effect.orDie)
+          ctxMap.set(SHARED_KEY, value)
+          return Stream.fromIterable([0, 1, 2]).pipe(
+            Stream.mapEffect(() =>
+              Effect.sleep("100 millis").pipe(
+                Effect.flatMap(() => getContextMap.pipe(Effect.orDie)),
+                Effect.map((m) => m.get(SHARED_KEY) ?? MISSING)
               )
             )
-          })
-          .pipe(Stream.unwrap),
-      ReadEtagOnce: () => getContextMap.pipe(Effect.orDie, Effect.map((m) => m.get(SHARED_KEY) ?? MISSING))
+          )
+        }).pipe(Stream.unwrap),
+      ReadEtagOnce: () =>
+        getContextMap.pipe(
+          Effect.orDie,
+          Effect.map((m) => m.get(SHARED_KEY) ?? MISSING)
+        )
     })
   }
 })
@@ -180,31 +199,23 @@ const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
 const RequestContextMiddlewareLayer = HttpRouter.middleware(RequestContextMiddleware()).layer
 
-const ServerLayer = HttpRouter
-  .serve(
-    RpcRouterLayer.pipe(Layer.provide(RequestContextMiddlewareLayer))
-  )
-  .pipe(
-    Layer.provide(NodeServerLayer),
-    Layer.provide(RpcSerialization.layerNdjson)
-  )
+const ServerLayer = HttpRouter.serve(RpcRouterLayer.pipe(Layer.provide(RequestContextMiddlewareLayer))).pipe(
+  Layer.provide(NodeServerLayer),
+  Layer.provide(RpcSerialization.layerNdjson)
+)
 
-const ClientLayer = Layer
-  .unwrap(
-    Effect.gen(function*() {
-      const server = yield* HttpServer.HttpServer
-      const addr = server.address
-      if (NetAddress.isUnixPathAddress(addr)) {
-        return yield* Effect.die(new Error("expected inet address"))
-      }
-      const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
-      const url = `http://${host}:${addr.port}`
-      return ApiClientFactory
-        .layer({ url, headers: Option.none() })
-        .pipe(Layer.provide(FetchHttpClient.layer))
-    })
-  )
-  .pipe(Layer.provide(NodeServerLayer))
+const ClientLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const addr = server.address
+    if (NetAddress.isUnixPathAddress(addr)) {
+      return yield* Effect.die(new Error("expected inet address"))
+    }
+    const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
+    const url = `http://${host}:${addr.port}`
+    return ApiClientFactory.layer({ url, headers: Option.none() }).pipe(Layer.provide(FetchHttpClient.layer))
+  })
+).pipe(Layer.provide(NodeServerLayer))
 
 const TestLayer = Layer.mergeAll(ServerLayer, ClientLayer)
 
@@ -214,7 +225,7 @@ const TestLayer = Layer.mergeAll(ServerLayer, ClientLayer)
 
 it.live(
   "ContextMap survives mid-stream: etag set in handler is readable by every chunk",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
     const values = yield* Stream.runCollect(client.StreamEtag.handler())
     // All three chunks emit 1 → the etag was still readable when each chunk
@@ -227,7 +238,7 @@ it.live(
 
 it.live(
   "succeeding requests get a fresh ContextMap: request N+1 cannot see request N's writes",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
     // 1st request writes SHARED_KEY = "first" and drains its stream so its
     // request scope (and ContextMap) is closed before request 2 starts.
@@ -245,7 +256,7 @@ it.live(
 
 it.live(
   "overlapping requests get isolated ContextMaps: concurrent streams see only their own writes",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(Rsc)
     // Two streams in flight at the same time, each writing the SAME key with a
     // different value. With per-request maps each stream reads back only its

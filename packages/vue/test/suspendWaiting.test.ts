@@ -13,7 +13,7 @@ const infoToasts = (toasts: ReadonlyArray<{ type: string }>) => toasts.filter((t
 
 describe("Command.suspendWaiting", () => {
   it.effect("hides the spinner and the waiting toast until work resumes", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const toasts: Array<{ type: string; message: string }> = []
       const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
       const toastVisible = yield* Deferred.make<void>()
@@ -22,23 +22,22 @@ describe("Command.suspendWaiting", () => {
       const release = yield* Deferred.make<void>()
       const resumed = yield* Deferred.make<void>()
 
-      const command = Command.fn("Test Action")(
-        function*() {
-          yield* Effect.sleep("1100 millis")
-          yield* Deferred.succeed(toastVisible, undefined)
-          yield* Deferred.await(continueToDialog)
-          yield* Command.suspendWaiting(Effect.gen(function*() {
+      const command = Command.fn("Test Action")(function* () {
+        yield* Effect.sleep("1100 millis")
+        yield* Deferred.succeed(toastVisible, undefined)
+        yield* Deferred.await(continueToDialog)
+        yield* Command.suspendWaiting(
+          Effect.gen(function* () {
             yield* Deferred.succeed(suspended, undefined)
             return yield* Deferred.await(release)
-          }))
-          yield* Deferred.succeed(resumed, undefined)
-          expect(infoToasts(toasts)).toHaveLength(0)
-          yield* Effect.sleep("1100 millis")
-          expect(infoToasts(toasts)).toHaveLength(1)
-          return "done"
-        },
-        Command.withDefaultToast()
-      )
+          })
+        )
+        yield* Deferred.succeed(resumed, undefined)
+        expect(infoToasts(toasts)).toHaveLength(0)
+        yield* Effect.sleep("1100 millis")
+        expect(infoToasts(toasts)).toHaveLength(1)
+        return "done"
+      }, Command.withDefaultToast())
 
       const fiber = command.handle(undefined)
       yield* TestClock.adjust("1100 millis")
@@ -65,30 +64,30 @@ describe("Command.suspendWaiting", () => {
       yield* TestClock.adjust("1100 millis")
       expect(yield* unwrap(fiber)).toBe("done")
       expect(toasts.map((toast) => toast.type)).toEqual(["success"])
-    }))
+    })
+  )
 
   it.effect("stays quiet for a suspension that starts the command", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const toasts: Array<{ type: string; message: string }> = []
       const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
       const suspended = yield* Deferred.make<void>()
       const release = yield* Deferred.make<string>()
       const resumed = yield* Deferred.make<void>()
 
-      const command = Command.fn("Test Action")(
-        function*() {
-          const answer = yield* Command.suspendWaiting(Effect.gen(function*() {
+      const command = Command.fn("Test Action")(function* () {
+        const answer = yield* Command.suspendWaiting(
+          Effect.gen(function* () {
             yield* Deferred.succeed(suspended, undefined)
             return yield* Deferred.await(release)
-          }))
-          yield* Deferred.succeed(resumed, undefined)
-          expect(infoToasts(toasts)).toHaveLength(0)
-          yield* Effect.sleep("1100 millis")
-          expect(infoToasts(toasts)).toHaveLength(1)
-          return answer
-        },
-        Command.withDefaultToast()
-      )
+          })
+        )
+        yield* Deferred.succeed(resumed, undefined)
+        expect(infoToasts(toasts)).toHaveLength(0)
+        yield* Effect.sleep("1100 millis")
+        expect(infoToasts(toasts)).toHaveLength(1)
+        return answer
+      }, Command.withDefaultToast())
 
       const fiber = command.handle(undefined)
       yield* Deferred.await(suspended)
@@ -105,26 +104,26 @@ describe("Command.suspendWaiting", () => {
       yield* TestClock.adjust("1100 millis")
       expect(yield* unwrap(fiber)).toBe("yes")
       expect(toasts.map((toast) => toast.type)).toEqual(["success"])
-    }))
+    })
+  )
 
   it.effect("drops the block when the suspension is interrupted", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const toasts: Array<{ type: string }> = []
       const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
       const suspended = yield* Deferred.make<void>()
 
       const release = yield* Deferred.make<void>()
 
-      const command = Command.fn("Test Action")(
-        function*() {
-          return yield* Command.suspendWaiting(Effect.gen(function*() {
+      const command = Command.fn("Test Action")(function* () {
+        return yield* Command.suspendWaiting(
+          Effect.gen(function* () {
             yield* Deferred.succeed(suspended, undefined)
             yield* Deferred.await(release)
             return yield* Effect.interrupt
-          }))
-        },
-        Command.withDefaultToast()
-      )
+          })
+        )
+      }, Command.withDefaultToast())
 
       const fiber = command.handle(undefined)
       yield* Deferred.await(suspended)
@@ -138,5 +137,6 @@ describe("Command.suspendWaiting", () => {
       expect(command.waiting).toBe(false)
       expect(command.blocked).toBe(false)
       expect(toasts).toHaveLength(0)
-    }))
+    })
+  )
 })

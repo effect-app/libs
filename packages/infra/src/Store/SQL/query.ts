@@ -2,7 +2,11 @@
 import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import type { FilterR, FilterResult } from "effect-app/Model/filter/filterApi"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
+import type {
+  AggregateIrExpression,
+  ComputedProjectionIrExpression,
+  ComputedProjectionMathIrExpression
+} from "effect-app/Model/query"
 import { absurd } from "effect/Function"
 import { InfraLogger } from "../../logger.ts"
 import { isRelationCheck } from "../codeFilter.ts"
@@ -46,9 +50,9 @@ export const sqliteDialect: SQLDialect = {
   jsonArrayContainsAll: (arrPath, vals) =>
     vals.map((v) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${v})`).join(" AND "),
   jsonArrayNotContainsAll: (arrPath, vals) =>
-    `NOT (${
-      vals.map((v) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${v})`).join(" AND ")
-    })`,
+    `NOT (${vals
+      .map((v) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${v})`)
+      .join(" AND ")})`,
   jsonMapHasKey: (arrPath, val) =>
     `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE json_extract(value, '$[0]') = ${val})`,
   jsonMapHasValue: (arrPath, val) =>
@@ -63,7 +67,7 @@ export const sqliteDialect: SQLDialect = {
   serializeJsonValue: (v) => v,
   // SQLite stores JSON booleans as integers (0/1) and better-sqlite3 refuses
   // to bind JS booleans, so coerce them to integers for WHERE params.
-  serializeScalar: (v) => typeof v === "boolean" ? (v ? 1 : 0) : v
+  serializeScalar: (v) => (typeof v === "boolean" ? (v ? 1 : 0) : v)
 }
 
 export const pgDialect: SQLDialect = {
@@ -81,65 +85,47 @@ export const pgDialect: SQLDialect = {
   placeholder: (index) => `$${index}`,
   jsonArrayContains: (arrPath, val) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `${jsonPath} @> ${val}::jsonb`
   },
   jsonArrayNotContains: (arrPath, val) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `NOT (${jsonPath} @> ${val}::jsonb)`
   },
   jsonArrayContainsAny: (arrPath, vals) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `(${vals.map((v) => `${jsonPath} @> ${v}::jsonb`).join(" OR ")})`
   },
   jsonArrayNotContainsAny: (arrPath, vals) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `NOT (${vals.map((v) => `${jsonPath} @> ${v}::jsonb`).join(" OR ")})`
   },
   jsonArrayContainsAll: (arrPath, vals) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return vals.map((v) => `${jsonPath} @> ${v}::jsonb`).join(" AND ")
   },
   jsonArrayNotContainsAll: (arrPath, vals) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `NOT (${vals.map((v) => `${jsonPath} @> ${v}::jsonb`).join(" AND ")})`
   },
   jsonMapHasKey: (arrPath, val) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `EXISTS(SELECT 1 FROM jsonb_array_elements(${jsonPath}) e WHERE e->0 = ${val}::jsonb)`
   },
   jsonMapHasValue: (arrPath, val) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `EXISTS(SELECT 1 FROM jsonb_array_elements(${jsonPath}) e WHERE e->1 = ${val}::jsonb)`
   },
   jsonMapHasPair: (arrPath, val) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `${jsonPath} @> jsonb_build_array(${val}::jsonb)`
   },
   caseInsensitiveLike: (expr, val) => `${expr} ILIKE ${val}`,
@@ -148,9 +134,7 @@ export const pgDialect: SQLDialect = {
   arrayLength: (path) => `jsonb_array_length(data->'${path}')`,
   jsonEachFrom: (arrPath, alias) => {
     const parts = arrPath.split(".")
-    const jsonPath = parts.length === 1
-      ? `data->'${parts[0]}'`
-      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    const jsonPath = parts.length === 1 ? `data->'${parts[0]}'` : `data${parts.map((p) => `->'${p}'`).join("")}`
     return `jsonb_array_elements(${jsonPath}) AS ${alias}`
   },
   jsonExtractElement: (alias, subPath) => {
@@ -161,16 +145,16 @@ export const pgDialect: SQLDialect = {
   },
   serializeJsonValue: (v) => JSON.stringify(v),
   // PG's ->> operator yields text, so compare booleans as 'true'/'false' text.
-  serializeScalar: (v) => typeof v === "boolean" ? (v ? "true" : "false") : v
+  serializeScalar: (v) => (typeof v === "boolean" ? (v ? "true" : "false") : v)
 }
 
 export function logQuery(q: { sql: string; params: unknown[] }) {
-  return InfraLogger
-    .logDebug("sql query")
-    .pipe(Effect.annotateLogs({
+  return InfraLogger.logDebug("sql query").pipe(
+    Effect.annotateLogs({
       query: q.sql,
       parameters: JSON.stringify(q.params, undefined, 2)
-    }))
+    })
+  )
 }
 
 const dottedToJsonPath = (path: string) =>
@@ -196,19 +180,23 @@ export function buildWhereSQLQuery(
   tableName: string,
   defaultValues: Record<string, unknown>,
   select?: NonEmptyReadonlyArray<
-    string | {
-      key: string
-      subKeys: readonly string[]
-    } | {
-      key: string
-      computed: ComputedProjectionIrExpression
-    } | {
-      key: string
-      path: string
-    } | {
-      key: string
-      aggregate: AggregateIrExpression
-    }
+    | string
+    | {
+        key: string
+        subKeys: readonly string[]
+      }
+    | {
+        key: string
+        computed: ComputedProjectionIrExpression
+      }
+    | {
+        key: string
+        path: string
+      }
+    | {
+        key: string
+        aggregate: AggregateIrExpression
+      }
   >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
@@ -265,7 +253,7 @@ export function buildWhereSQLQuery(
           parts.push(`${k} IN (${placeholders.join(", ")})`)
         }
         if (hasNull) parts.push(`${k} IS NULL`)
-        return parts.length > 1 ? `(${parts.join(" OR ")})` : parts[0] ?? "1=0"
+        return parts.length > 1 ? `(${parts.join(" OR ")})` : (parts[0] ?? "1=0")
       }
       case "notIn": {
         const vals = x.value as readonly unknown[]
@@ -277,7 +265,7 @@ export function buildWhereSQLQuery(
           parts.push(`${k} NOT IN (${placeholders.join(", ")})`)
         }
         if (hasNull) parts.push(`${k} IS NOT NULL`)
-        return parts.length > 1 ? `(${parts.join(" AND ")})` : parts[0] ?? "1=1"
+        return parts.length > 1 ? `(${parts.join(" AND ")})` : (parts[0] ?? "1=1")
       }
 
       case "includes": {
@@ -367,9 +355,9 @@ export function buildWhereSQLQuery(
       case "notHasKey-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as readonly unknown[]
-        return `NOT (${
-          vals.map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
-        })`
+        return `NOT (${vals
+          .map((val) => dialect.jsonMapHasKey(arrPath, addParam(mapItemParam(dialect, val))))
+          .join(" AND ")})`
       }
       case "hasValue-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
@@ -391,9 +379,9 @@ export function buildWhereSQLQuery(
       case "notHasValue-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as readonly unknown[]
-        return `NOT (${
-          vals.map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val)))).join(" AND ")
-        })`
+        return `NOT (${vals
+          .map((val) => dialect.jsonMapHasValue(arrPath, addParam(mapItemParam(dialect, val))))
+          .join(" AND ")})`
       }
       case "hasKeyValue-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
@@ -415,9 +403,9 @@ export function buildWhereSQLQuery(
       case "notHasKeyValue-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as readonly unknown[]
-        return `NOT (${
-          vals.map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val)))).join(" AND ")
-        })`
+        return `NOT (${vals
+          .map((val) => dialect.jsonMapHasPair(arrPath, addParam(mapPairParam(dialect, val))))
+          .join(" AND ")})`
       }
 
       case "contains": {
@@ -529,9 +517,7 @@ export function buildWhereSQLQuery(
           if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
-            s += isRelation
-              ? `(${print(e.result, rel, every)})`
-              : wrapRelation(rel, print(e.result, rel, every), every)
+            s += isRelation ? `(${print(e.result, rel, every)})` : wrapRelation(rel, print(e.result, rel, every), every)
           } else {
             s += `(${print(e.result, null, every)})`
           }
@@ -564,10 +550,7 @@ export function buildWhereSQLQuery(
       return `CASE ${unitExpr} WHEN ${sqlStringLiteral(toBase)} THEN 1${cases} ELSE NULL END`
     }
     const filter = "filter" in computed ? computed.filter : []
-    const whereClause = () =>
-      filter.length > 0
-        ? ` WHERE ${print(filter, computed.path, false)}`
-        : ""
+    const whereClause = () => (filter.length > 0 ? ` WHERE ${print(filter, computed.path, false)}` : "")
     const boolExpr = (sqlExpr: string) =>
       dialect.jsonColumnType === "JSON"
         ? `CASE WHEN ${sqlExpr} THEN 'true' ELSE 'false' END AS "${key}"`
@@ -668,9 +651,7 @@ export function buildWhereSQLQuery(
     }
   }
 
-  const hasAggregates = select
-    ? select.some((s) => typeof s === "object" && s !== null && "aggregate" in s)
-    : false
+  const hasAggregates = select ? select.some((s) => typeof s === "object" && s !== null && "aggregate" in s) : false
 
   const getSelectExpr = (): string => {
     if (!select) return "id, _etag, data"
@@ -699,46 +680,38 @@ export function buildWhereSQLQuery(
   // params so positional `?` placeholders in SQLite match `params[]` order.
   const selectExpr = getSelectExpr()
 
-  const namespaceClause = namespace !== undefined
-    ? `_namespace = ${addParam(namespace)}`
-    : ""
-  const userWhere = filter.length
-    ? print([{ t: "where-scope", result: filter, relation: "some" }], null, false)
-    : ""
-  const whereClause = namespaceClause && userWhere
-    ? `WHERE ${namespaceClause} AND ${userWhere}`
-    : namespaceClause
-    ? `WHERE ${namespaceClause}`
-    : userWhere
-    ? `WHERE ${userWhere}`
-    : ""
+  const namespaceClause = namespace !== undefined ? `_namespace = ${addParam(namespace)}` : ""
+  const userWhere = filter.length ? print([{ t: "where-scope", result: filter, relation: "some" }], null, false) : ""
+  const whereClause =
+    namespaceClause && userWhere
+      ? `WHERE ${namespaceClause} AND ${userWhere}`
+      : namespaceClause
+        ? `WHERE ${namespaceClause}`
+        : userWhere
+          ? `WHERE ${userWhere}`
+          : ""
 
-  const groupByClause = hasAggregates && select
-    ? (() => {
-      const groupByExprs = select
-        .filter((s): s is string | { key: string; path: string } =>
-          typeof s === "string" || (typeof s === "object" && s !== null && "path" in s)
-        )
-        .map((s) => typeof s === "string" ? fieldExpr(s) : fieldExpr(dottedToJsonPath(s.path)))
-      return groupByExprs.length > 0 ? `GROUP BY ${groupByExprs.join(", ")}` : ""
-    })()
-    : ""
+  const groupByClause =
+    hasAggregates && select
+      ? (() => {
+          const groupByExprs = select
+            .filter(
+              (s): s is string | { key: string; path: string } =>
+                typeof s === "string" || (typeof s === "object" && s !== null && "path" in s)
+            )
+            .map((s) => (typeof s === "string" ? fieldExpr(s) : fieldExpr(dottedToJsonPath(s.path))))
+          return groupByExprs.length > 0 ? `GROUP BY ${groupByExprs.join(", ")}` : ""
+        })()
+      : ""
 
   const orderClause = order
-    ? `ORDER BY ${
-      order
-        .map((_) =>
-          hasAggregates
-            ? `"${_.key}" ${_.direction}`
-            : `${fieldExpr(_.key)} ${_.direction}`
-        )
-        .join(", ")
-    }`
+    ? `ORDER BY ${order
+        .map((_) => (hasAggregates ? `"${_.key}" ${_.direction}` : `${fieldExpr(_.key)} ${_.direction}`))
+        .join(", ")}`
     : ""
 
-  const limitClause = limit !== undefined || skip !== undefined
-    ? `LIMIT ${addParam(limit ?? 999999)} OFFSET ${addParam(skip ?? 0)}`
-    : ""
+  const limitClause =
+    limit !== undefined || skip !== undefined ? `LIMIT ${addParam(limit ?? 999999)} OFFSET ${addParam(skip ?? 0)}` : ""
 
   const sql = `SELECT ${selectExpr} FROM "${tableName}" ${whereClause} ${groupByClause} ${orderClause} ${limitClause}`
     .replace(/\s+/g, " ")

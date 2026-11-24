@@ -12,17 +12,21 @@ const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union(str, num)
 
-export class Something extends S.Opaque<Something>()(S.TaggedStruct("Something", {
-  id: S.StringId.withConstructorDefault,
-  displayName: S.NonEmptyString255,
-  n: S.Date.withConstructorDefault,
-  union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
-})) {}
+export class Something extends S.Opaque<Something>()(
+  S.TaggedStruct("Something", {
+    id: S.StringId.withConstructorDefault,
+    displayName: S.NonEmptyString255,
+    n: S.Date.withConstructorDefault,
+    union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
+  })
+) {}
 
-export class SomethingElse extends S.Opaque<SomethingElse>()(S.TaggedStruct("SomethingElse", {
-  id: S.StringId.withConstructorDefault,
-  banana: S.NonEmptyString255
-})) {}
+export class SomethingElse extends S.Opaque<SomethingElse>()(
+  S.TaggedStruct("SomethingElse", {
+    id: S.StringId.withConstructorDefault,
+    banana: S.NonEmptyString255
+  })
+) {}
 
 const Union = S.Union(Something, SomethingElse)
 
@@ -54,31 +58,23 @@ const items = [
 ]
 
 class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
-  effect: Effect.gen(function*() {
+  effect: Effect.gen(function* () {
     return yield* makeRepo("Union", Union, {})
   }),
   dependencies: [MemoryStoreLive]
 }) {
-  static readonly Test = Layer
-    .effect(
-      this,
-      makeRepo("Union", Union, { makeInitial: Effect.sync(() => items) }).pipe(Effect.map(this.make))
-    )
-    .pipe(
-      Layer.provide(MemoryStoreLive)
-    )
+  static readonly Test = Layer.effect(
+    this,
+    makeRepo("Union", Union, { makeInitial: Effect.sync(() => items) }).pipe(Effect.map(this.make))
+  ).pipe(Layer.provide(MemoryStoreLive))
 }
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const somethingRepo = yield* SomethingRepo
   const r = yield* somethingRepo.query(
     where("id", "Verona"),
     and("_tag", "Something"),
-    or(
-      where("displayName", "Riley"),
-      and("n", "gt", new Date("2021-01-01T00:00:00Z")),
-      and("_tag", "Something")
-    ),
+    or(where("displayName", "Riley"), and("n", "gt", new Date("2021-01-01T00:00:00Z")), and("_tag", "Something")),
     order("displayName"),
     page({ take: 1 }),
     one,
@@ -88,11 +84,7 @@ const program = Effect.gen(function*() {
   const r2 = yield* somethingRepo.query(
     where("id", "Verona"),
     and("_tag", "Something"),
-    or(
-      where("displayName", "Riley"),
-      and("n", "gt", new Date("2021-01-01T00:00:00Z")),
-      and("_tag", "Something")
-    ),
+    or(where("displayName", "Riley"), and("n", "gt", new Date("2021-01-01T00:00:00Z")), and("_tag", "Something")),
     order("displayName"),
     page({ take: 1 })
   )
@@ -103,36 +95,38 @@ const program = Effect.gen(function*() {
 const rt = ManagedRuntime.make(SomethingRepo.Test)
 rt.runFork(program)
 
-const test1 = make<Union.Encoded>().pipe(
-  where("union._tag", "string")
-)
+const test1 = make<Union.Encoded>().pipe(where("union._tag", "string"))
 
 expectTypeOf(test1).toEqualTypeOf<
-  QueryWhere<Union.Encoded, {
-    readonly _tag: "Something"
-    readonly id: string
-    readonly displayName: string
-    readonly n: Date
-    readonly union: {
-      readonly _tag: "string"
-      readonly value: string
+  QueryWhere<
+    Union.Encoded,
+    {
+      readonly _tag: "Something"
+      readonly id: string
+      readonly displayName: string
+      readonly n: Date
+      readonly union: {
+        readonly _tag: "string"
+        readonly value: string
+      }
     }
-  }>
+  >
 >()
 
-const testneq1 = make<Union.Encoded>().pipe(
-  where("union._tag", "neq", "string")
-)
+const testneq1 = make<Union.Encoded>().pipe(where("union._tag", "neq", "string"))
 
 expectTypeOf(testneq1).toEqualTypeOf<
-  QueryWhere<Union.Encoded, {
-    readonly _tag: "Something"
-    readonly id: string
-    readonly displayName: string
-    readonly n: Date
-    readonly union: {
-      readonly _tag: "number"
-      readonly value: number
+  QueryWhere<
+    Union.Encoded,
+    {
+      readonly _tag: "Something"
+      readonly id: string
+      readonly displayName: string
+      readonly n: Date
+      readonly union: {
+        readonly _tag: "number"
+        readonly value: number
+      }
     }
-  }>
+  >
 >()

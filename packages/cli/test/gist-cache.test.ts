@@ -17,8 +17,8 @@ describe("GHGistService.loadGistCache", () => {
         switch (command) {
           case "gh gist view configured-cache-id --files":
             return Effect.succeed("effa-gist.cache\nmako.json\n")
-          case "gh gist view configured-cache-id -f \"mako.json\"":
-            return Effect.succeed("[{\"name\":\"mako\",\"id\":\"content-gist-id\"}]")
+          case 'gh gist view configured-cache-id -f "mako.json"':
+            return Effect.succeed('[{"name":"mako","id":"content-gist-id"}]')
           default:
             return Effect.die(`Unexpected command: ${command}`)
         }
@@ -26,25 +26,18 @@ describe("GHGistService.loadGistCache", () => {
     })
 
     const cache = await Effect.runPromise(
-      Effect
-        .gen(function*() {
-          const gh = yield* GHGistService
-          return yield* gh.loadGistCache("configured-cache-id", "mako")
-        })
-        .pipe(
-          Effect.provide(GHGistService.DefaultWithoutDependencies),
-          Effect.provide(runCommand)
-        )
+      Effect.gen(function* () {
+        const gh = yield* GHGistService
+        return yield* gh.loadGistCache("configured-cache-id", "mako")
+      }).pipe(Effect.provide(GHGistService.DefaultWithoutDependencies), Effect.provide(runCommand))
     )
 
     expect(cache.gist_id).toBe("configured-cache-id")
     expect(cache.company).toBe("mako")
-    expect(cache.entries.map(({ id, name }) => ({ id, name }))).toEqual([
-      { id: "content-gist-id", name: "mako" }
-    ])
+    expect(cache.entries.map(({ id, name }) => ({ id, name }))).toEqual([{ id: "content-gist-id", name: "mako" }])
     expect(commands).toEqual([
       "gh gist view configured-cache-id --files",
-      "gh gist view configured-cache-id -f \"mako.json\""
+      'gh gist view configured-cache-id -f "mako.json"'
     ])
   })
 
@@ -61,7 +54,7 @@ describe("GHGistService.loadGistCache", () => {
         switch (command) {
           case "gh gist view configured-cache-id --files":
             return Effect.succeed("effa-gist.cache\n")
-          case "echo \"[]\" | gh gist edit configured-cache-id -a mako.json -":
+          case 'echo "[]" | gh gist edit configured-cache-id -a mako.json -':
             return Effect.succeed("")
           default:
             return Effect.die(`Unexpected command: ${command}`)
@@ -70,15 +63,10 @@ describe("GHGistService.loadGistCache", () => {
     })
 
     const cache = await Effect.runPromise(
-      Effect
-        .gen(function*() {
-          const gh = yield* GHGistService
-          return yield* gh.loadGistCache("configured-cache-id", "mako")
-        })
-        .pipe(
-          Effect.provide(GHGistService.DefaultWithoutDependencies),
-          Effect.provide(runCommand)
-        )
+      Effect.gen(function* () {
+        const gh = yield* GHGistService
+        return yield* gh.loadGistCache("configured-cache-id", "mako")
+      }).pipe(Effect.provide(GHGistService.DefaultWithoutDependencies), Effect.provide(runCommand))
     )
 
     expect(cache.gist_id).toBe("configured-cache-id")
@@ -86,7 +74,7 @@ describe("GHGistService.loadGistCache", () => {
     expect(cache.entries).toEqual([])
     expect(commands).toEqual([
       "gh gist view configured-cache-id --files",
-      "echo \"[]\" | gh gist edit configured-cache-id -a mako.json -"
+      'echo "[]" | gh gist edit configured-cache-id -a mako.json -'
     ])
   })
 })

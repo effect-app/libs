@@ -1,55 +1,28 @@
 <template>
   <form.Form>
-    <form.Input
-      label="myString"
-      name="myString"
-    >
+    <form.Input label="myString" name="myString">
       <template #default="{ state }">
         <div>
-          <input v-model="state.value">
+          <input v-model="state.value" />
         </div>
       </template>
     </form.Input>
   </form.Form>
   <exampleForm.Form>
-    <exampleForm.Input
-      label="aString"
-      name="aString"
-    >
+    <exampleForm.Input label="aString" name="aString">
       <template #default="{ state }">
         <div>
-          <input v-model="state.value">
+          <input v-model="state.value" />
         </div>
       </template>
     </exampleForm.Input>
-    <exampleForm.Input
-      label="aStringMin2"
-      name="aStringMin2"
-    />
-    <exampleForm.Input
-      label="aStringMin2Max4"
-      name="aStringMin2Max4"
-    />
-    <exampleForm.Input
-      label="aStringMin2Max3Optional"
-      name="aStringMin2Max3Optional"
-    />
-    <exampleForm.Input
-      label="aNumber"
-      name="aNumber"
-    />
-    <exampleForm.Input
-      label="aNumberMin2"
-      name="aNumberMin2"
-    />
-    <exampleForm.Input
-      label="aNumberMin2Max"
-      name="aNumberMin2Max"
-    />
-    <exampleForm.Input
-      label="aNumberMin2Max4Nullable"
-      name="aNumberMin2Max4Nullable"
-    />
+    <exampleForm.Input label="aStringMin2" name="aStringMin2" />
+    <exampleForm.Input label="aStringMin2Max4" name="aStringMin2Max4" />
+    <exampleForm.Input label="aStringMin2Max3Optional" name="aStringMin2Max3Optional" />
+    <exampleForm.Input label="aNumber" name="aNumber" />
+    <exampleForm.Input label="aNumberMin2" name="aNumberMin2" />
+    <exampleForm.Input label="aNumberMin2Max" name="aNumberMin2Max" />
+    <exampleForm.Input label="aNumberMin2Max4Nullable" name="aNumberMin2Max4Nullable" />
     <exampleForm.Input
       label="aSelect"
       name="aSelect"
@@ -59,18 +32,9 @@
         { title: 'c', value: 'c' }
       ]"
     />
-    <v-btn type="submit">
-      Submit
-    </v-btn>
-    <v-btn
-      type="reset"
-      @click.prevent="exampleForm.clear()"
-    >
-      Clear
-    </v-btn>
-    <v-btn @click="exampleForm.reset()">
-      Reset
-    </v-btn>
+    <v-btn type="submit"> Submit </v-btn>
+    <v-btn type="reset" @click.prevent="exampleForm.clear()"> Clear </v-btn>
+    <v-btn @click="exampleForm.reset()"> Reset </v-btn>
   </exampleForm.Form>
 </template>
 
@@ -82,9 +46,7 @@ const schema = S.Struct({
   aString: S.String,
   aStringMin2: S.String.pipe(S.check(S.isMinLength(2))),
   aStringMin2Max4: S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(4))),
-  aStringMin2Max3Optional: S.UndefinedOr(
-    S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
-  ),
+  aStringMin2Max3Optional: S.UndefinedOr(S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))),
   aNumber: S.Finite,
   aNumberMin2: S.Finite.pipe(S.check(S.isGreaterThan(2))),
   aNumberMin2Max: S.Finite.pipe(S.check(S.isGreaterThan(2), S.isLessThan(4))),

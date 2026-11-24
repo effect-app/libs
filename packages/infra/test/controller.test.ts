@@ -15,18 +15,33 @@ import { type RpcSerialization } from "effect/rpc"
 import * as Scope from "effect/Scope"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
 import { sort } from "../src/routing/tsort.js"
-import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
+import {
+  AllowAnonymous,
+  AllowAnonymousLive,
+  CustomError1,
+  RequestContextMap,
+  RequireRoles,
+  RequireRolesLive,
+  Some,
+  SomeElse,
+  SomeService,
+  Test,
+  TestLive
+} from "./fixtures.js"
 
-class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
-  provides: Some
-  requires: SomeElse
-}>()("MyContextProvider") {
+class MyContextProvider extends RpcX.RpcMiddleware.Tag<
+  MyContextProvider,
+  {
+    provides: Some
+    requires: SomeElse
+  }
+>()("MyContextProvider") {
   static Default = Layer.make(this, {
     *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.fnUntraced(function*(effect) {
+      return Effect.fnUntraced(function* (effect) {
         yield* SomeElse
         // the only requirements you can have are the one provided by HttpLayerRouter.Provided
         yield* Scope.Scope
@@ -48,17 +63,20 @@ class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
   static but_why = "???" // remove me and life rocks
 }
 
-class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
-  provides: Some
-  requires: SomeElse
-}>()("MyContextProvider3") {
+class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<
+  MyContextProvider3,
+  {
+    provides: Some
+    requires: SomeElse
+  }
+>()("MyContextProvider3") {
   static Default = Layer.make(this, {
     dependencies: [SomeService.Default],
     *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.fnUntraced(function*(effect) {
+      return Effect.fnUntraced(function* (effect) {
         yield* SomeElse
         // the only requirements you can have are the one provided by HttpLayerRouter.Provided
         yield* Scope.Scope
@@ -85,14 +103,14 @@ expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<
   }
 >()
 
-class MyContextProvider2
-  extends RpcX.RpcMiddleware.Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2")
-{
+class MyContextProvider2 extends RpcX.RpcMiddleware.Tag<MyContextProvider2, { provides: SomeElse }>()(
+  "MyContextProvider2"
+) {
   static Default = Layer.make(this, {
     *make() {
       if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.fnUntraced(function*(effect) {
+      return Effect.fnUntraced(function* (effect) {
         // we test without dependencies, so that we end up with an R of never.
 
         return yield* Effect.provideService(effect, SomeElse, SomeElse.of({ b: 2 }))
@@ -111,7 +129,7 @@ export class BogusMiddleware extends RpcX.RpcMiddleware.Tag<BogusMiddleware>()("
       yield* Str
       // yield* Effect.context<"test-dep">()
       return (effect) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           // yield* Effect.context<"test-dep2">()
           return yield* effect
         })
@@ -119,11 +137,7 @@ export class BogusMiddleware extends RpcX.RpcMiddleware.Tag<BogusMiddleware>()("
   })
 }
 
-const genericMiddlewares = [
-  ...DefaultGenericMiddlewares,
-  BogusMiddleware,
-  MyContextProvider2
-] as const
+const genericMiddlewares = [...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2] as const
 
 const genericMiddlewaresLive = [
   DefaultGenericMiddlewaresLive,
@@ -140,39 +154,28 @@ const MiddlewaresLive = [
   ...genericMiddlewaresLive
 ] as const
 
-class middleware extends MiddlewareMaker
-  .Tag<middleware>()("middleware", RequestContextMap)
-  .middleware(
-    RequireRoles,
-    Test
-  )
+class middleware extends MiddlewareMaker.Tag<middleware>()("middleware", RequestContextMap)
+  .middleware(RequireRoles, Test)
   // AllowAnonymous provided after RequireRoles so that RequireRoles can access what AllowAnonymous provides
   .middleware(AllowAnonymous)
   .middleware(MyContextProvider)
-  .middleware(...genericMiddlewares)
-{
+  .middleware(...genericMiddlewares) {
   static Default = this.layer.pipe(Layer.provide([...MiddlewaresLive]))
   // static override [Unify.unifySymbol]?: TagUnify<typeof middleware> // why we need this?
 }
 
-const middlewareBis = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
-  .middleware(
-    RequireRoles,
-    Test
-  )
+const middlewareBis = MiddlewareMaker.Tag()("middleware", RequestContextMap)
+  .middleware(RequireRoles, Test)
   // testing sideways elimination
   .middleware(AllowAnonymous, MyContextProvider, ...genericMiddlewares)
 
-expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareBis["Service"]>()
+expectTypeOf(middleware["Service"]).toEqualTypeOf<(typeof middlewareBis)["Service"]>()
 
-const middlewareTrisWip = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
-  .middleware(
-    MyContextProvider,
-    RequireRoles,
-    Test
-  )[TypeTestId]
+const middlewareTrisWip = MiddlewareMaker.Tag()("middleware", RequestContextMap).middleware(
+  MyContextProvider,
+  RequireRoles,
+  Test
+)[TypeTestId]
 
 expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
   missingDynamicMiddlewares: "allowAnonymous"
@@ -180,20 +183,17 @@ expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
 }>()
 
 // testing more sideways elimination]
-const middlewareQuater = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
-  .middleware(
-    RequireRoles,
-    Test,
-    AllowAnonymous,
-    MyContextProvider,
-    ...genericMiddlewares
-  )
+const middlewareQuater = MiddlewareMaker.Tag()("middleware", RequestContextMap).middleware(
+  RequireRoles,
+  Test,
+  AllowAnonymous,
+  MyContextProvider,
+  ...genericMiddlewares
+)
 
-expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareQuater["Service"]>()
+expectTypeOf(middleware["Service"]).toEqualTypeOf<(typeof middlewareQuater)["Service"]>()
 
-export const middleware3 = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
+export const middleware3 = MiddlewareMaker.Tag()("middleware", RequestContextMap)
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)
@@ -209,9 +209,13 @@ export class Gen extends Command<Gen>()("Gen", {}) {}
 
 expectTypeOf(Eff.error).toEqualTypeOf<typeof Gen.error>()
 
-export class DoSomething extends Command<DoSomething>()("DoSomething", {
-  id: S.String
-}, { success: S.Void }) {}
+export class DoSomething extends Command<DoSomething>()(
+  "DoSomething",
+  {
+    id: S.String
+  },
+  { success: S.Void }
+) {}
 
 // const rpc = makeRpc(middleware).pipe(
 //   Effect.map(({ effect }) =>
@@ -227,29 +231,34 @@ export class DoSomething extends Command<DoSomething>()("DoSomething", {
 //   )
 // )
 
-export class GetSomething extends Query<GetSomething>()("GetSomething", {
-  id: S.String
-}, { success: S.String, error: UnauthorizedError }) {}
+export class GetSomething extends Query<GetSomething>()(
+  "GetSomething",
+  {
+    id: S.String
+  },
+  { success: S.String, error: UnauthorizedError }
+) {}
 
-export class GetSomething2 extends Query<GetSomething2>()("GetSomething2", {
-  id: S.String
-}, { success: S.FiniteFromString }) {}
+export class GetSomething2 extends Query<GetSomething2>()(
+  "GetSomething2",
+  {
+    id: S.String
+  },
+  { success: S.FiniteFromString }
+) {}
 
 const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2 }
 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))
 
-export class SomethingService extends Context.Service<SomethingService>()(
-  "SomethingService",
-  {
-    make: Effect.gen(function*() {
-      return {
-        a: 1
-      }
-    })
-  }
-) {
+export class SomethingService extends Context.Service<SomethingService>()("SomethingService", {
+  make: Effect.gen(function* () {
+    return {
+      a: 1
+    }
+  })
+}) {
   static Default = Layer.effect(this, this.make)
 }
 
@@ -260,27 +269,21 @@ declare const _a: {
   (opt: { b: 3 }): void
 }
 
-export class SomethingRepo extends Context.Service<SomethingRepo>()(
-  "SomethingRepo",
-  {
-    make: Effect.gen(function*() {
-      const smth = yield* SomethingService
-      console.log({ smth })
-      return { b: 2 }
-    })
-  }
-) {
+export class SomethingRepo extends Context.Service<SomethingRepo>()("SomethingRepo", {
+  make: Effect.gen(function* () {
+    const smth = yield* SomethingService
+    console.log({ smth })
+    return { b: 2 }
+  })
+}) {
   static Default = Layer.effect(this, this.make).pipe(Layer.provide(SomethingService.Default))
 }
 
-export class SomethingService2 extends Context.Service<SomethingService2>()(
-  "SomethingService2",
-  {
-    make: Effect.gen(function*() {
-      return { c: 3 }
-    })
-  }
-) {
+export class SomethingService2 extends Context.Service<SomethingService2>()("SomethingService2", {
+  make: Effect.gen(function* () {
+    return { c: 3 }
+  })
+}) {
   static Default = Layer.effect(this, this.make)
 }
 
@@ -289,11 +292,7 @@ export const { Router, matchAll } = makeRouter(middleware.Default)
 export const r2 = makeRouter(middleware.Default)
 
 const router = Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
+  dependencies: [SomethingRepo.Default, SomethingService.Default, SomethingService2.Default],
   *effect(match) {
     const repo = yield* SomethingRepo
     const smth = yield* SomethingService
@@ -308,11 +307,10 @@ const router = Router(Something)({
 
     return match({
       Eff: () =>
-        Effect
-          .gen(function*() {
-            const some = yield* Some
-            return yield* Effect.logInfo("Some", some)
-          }),
+        Effect.gen(function* () {
+          const some = yield* Some
+          return yield* Effect.logInfo("Some", some)
+        }),
 
       *Gen() {
         const some = yield* Some
@@ -363,21 +361,18 @@ expectTypeOf({} as Layer.Services<typeof matched>).toEqualTypeOf<
   RpcSerialization.RpcSerialization | SomeService | Str
 >()
 
-type makeContext = MakeContext<typeof router[TypeTestId]>
-expectTypeOf({} as MakeErrors<typeof router[TypeTestId]>).toEqualTypeOf<InvalidStateError>()
-expectTypeOf({} as makeContext).toEqualTypeOf<
-  SomethingService | SomethingRepo | SomethingService2
->()
+type makeContext = MakeContext<(typeof router)[TypeTestId]>
+expectTypeOf({} as MakeErrors<(typeof router)[TypeTestId]>).toEqualTypeOf<InvalidStateError>()
+expectTypeOf({} as makeContext).toEqualTypeOf<SomethingService | SomethingRepo | SomethingService2>()
 
 const router2 = r2.Router(Something)({
   *effect(match) {
     return match({
       Eff: () =>
-        Effect
-          .gen(function*() {
-            const some = yield* Some
-            return yield* Effect.logInfo("Some", some)
-          }),
+        Effect.gen(function* () {
+          const some = yield* Some
+          return yield* Effect.logInfo("Some", some)
+        }),
 
       *Gen() {
         const some = yield* Some
@@ -421,5 +416,5 @@ expectTypeOf({} as Layer.Services<typeof matched2>).toEqualTypeOf<
   RpcSerialization.RpcSerialization | SomeService | Str
 >()
 
-type makeContext2 = MakeContext<typeof router2[TypeTestId]>
+type makeContext2 = MakeContext<(typeof router2)[TypeTestId]>
 expectTypeOf({} as makeContext2).toEqualTypeOf<never>()

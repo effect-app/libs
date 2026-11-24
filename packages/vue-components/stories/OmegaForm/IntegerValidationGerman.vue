@@ -11,43 +11,22 @@
     <form.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values } }">
         <div style="margin-bottom: 20px">
-          <form.Input
-            name="lange"
-            label="länge (cm)"
-            placeholder="z.B. 59"
-          />
+          <form.Input name="lange" label="länge (cm)" placeholder="z.B. 59" />
         </div>
 
         <div style="margin-bottom: 20px">
-          <form.Input
-            name="breite"
-            label="breite (cm)"
-            placeholder="z.B. 15"
-          />
+          <form.Input name="breite" label="breite (cm)" placeholder="z.B. 15" />
         </div>
 
         <div style="margin-bottom: 20px">
-          <form.Input
-            name="hohe"
-            label="höhe (cm)"
-            placeholder="z.B. 9"
-          />
+          <form.Input name="hohe" label="höhe (cm)" placeholder="z.B. 9" />
         </div>
 
         <div style="margin-bottom: 20px">
-          <form.Input
-            name="gewicht"
-            label="gewicht (kg)"
-            placeholder="z.B. 10"
-          />
+          <form.Input name="gewicht" label="gewicht (kg)" placeholder="z.B. 10" />
         </div>
 
-        <v-btn
-          type="submit"
-          color="primary"
-        >
-          Packen
-        </v-btn>
+        <v-btn type="submit" color="primary"> Packen </v-btn>
 
         <div style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px">
           <strong>Aktuelle Werte:</strong>

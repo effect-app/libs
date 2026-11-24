@@ -12,14 +12,15 @@
 
     <basic.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values: vvv } }">
-        <div>Values: <br> {{ vvv }}</div>
+        <div>
+          Values: <br />
+          {{ vvv }}
+        </div>
         <basic.Input name="name" />
         <basic.Input name="age" />
         <basic.Input name="active" />
         <basic.Input name="required" />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </basic.Form>
 
@@ -29,13 +30,14 @@
 
     <mixed.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values: vvv } }">
-        <div>Values: <br> {{ vvv }}</div>
+        <div>
+          Values: <br />
+          {{ vvv }}
+        </div>
         <mixed.Input name="fromDecoding" />
         <mixed.Input name="fromConstructor" />
         <mixed.Input name="plain" />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </mixed.Form>
 
@@ -45,13 +47,14 @@
 
     <nested.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values: vvv } }">
-        <div>Values: <br> {{ vvv }}</div>
+        <div>
+          Values: <br />
+          {{ vvv }}
+        </div>
         <nested.Input name="title" />
         <nested.Input name="address.street" />
         <nested.Input name="address.city" />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </nested.Form>
   </div>
@@ -136,7 +139,8 @@ form {
   padding: 0 1rem;
 }
 
-h2, h3 {
+h2,
+h3 {
   text-wrap: balance;
 }
 </style>

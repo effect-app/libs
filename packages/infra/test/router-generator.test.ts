@@ -14,13 +14,24 @@ import { type TypeTestId } from "effect-app/TypeTest"
 import { type ConfigError } from "effect/Config"
 import { type RpcSerialization } from "effect/rpc/RpcSerialization"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/routing/middleware.js"
-import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
+import {
+  AllowAnonymous,
+  AllowAnonymousLive,
+  RequestContextMap,
+  RequireRoles,
+  RequireRolesLive,
+  Some,
+  SomeElse,
+  SomeService,
+  Test,
+  TestLive
+} from "./fixtures.js"
 
 // Inline minimal context provider (provides `Some`)
 class CtxProvider extends RpcX.RpcMiddleware.Tag<CtxProvider, { provides: Some }>()("CtxProvider") {
   static Default = Layer.make(this, {
     *make() {
-      return Effect.fnUntraced(function*(effect) {
+      return Effect.fnUntraced(function* (effect) {
         return yield* Effect.provideService(effect, Some, Some.of({ a: 1 }))
       })
     }
@@ -31,20 +42,18 @@ class CtxProvider extends RpcX.RpcMiddleware.Tag<CtxProvider, { provides: Some }
 class SomeElseProvider extends RpcX.RpcMiddleware.Tag<SomeElseProvider, { provides: SomeElse }>()("SomeElseProvider") {
   static Default = Layer.make(this, {
     *make() {
-      return Effect.fnUntraced(function*(effect) {
+      return Effect.fnUntraced(function* (effect) {
         return yield* Effect.provideService(effect, SomeElse, SomeElse.of({ b: 2 }))
       })
     }
   })
 }
 
-class mw extends MiddlewareMaker
-  .Tag<mw>()("mw", RequestContextMap)
+class mw extends MiddlewareMaker.Tag<mw>()("mw", RequestContextMap)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(CtxProvider)
-  .middleware(...DefaultGenericMiddlewares, SomeElseProvider)
-{
+  .middleware(...DefaultGenericMiddlewares, SomeElseProvider) {
   static Default = this.layer.pipe(
     Layer.provide([
       RequireRolesLive,
@@ -62,10 +71,14 @@ class mw extends MiddlewareMaker
 const { TaggedRequestFor } = makeRpcClient(mw)
 const Req = TaggedRequestFor("GenRouter")
 
-class GetThing extends Req.Query<GetThing>()("GetThing", { id: S.String }, {
-  success: S.String,
-  error: UnauthorizedError
-}) {}
+class GetThing extends Req.Query<GetThing>()(
+  "GetThing",
+  { id: S.String },
+  {
+    success: S.String,
+    error: UnauthorizedError
+  }
+) {}
 class DoThing extends Req.Command<DoThing>()("DoThing", { id: S.String }, { success: S.Void }) {}
 
 const Resource = { GetThing, DoThing }
@@ -126,8 +139,8 @@ it("router with generator-method handlers compiles", () => {
 })
 
 // Type-level assertions: verify generator yields propagate to MakeErrors / MakeContext
-type Errors = MakeErrors<typeof router[TypeTestId]>
-type Ctx = MakeContext<typeof router[TypeTestId]>
+type Errors = MakeErrors<(typeof router)[TypeTestId]>
+type Ctx = MakeContext<(typeof router)[TypeTestId]>
 expectTypeOf<Errors>().toEqualTypeOf<InvalidStateError>()
 expectTypeOf<Ctx>().toEqualTypeOf<ThingRepo>()
 
@@ -156,21 +169,21 @@ const Item$ = makeOneDSL<Item, Evt>()
 // a service-dependent effect — R must be inferred as `Dep` (plus the
 // canonical PureEnvEnv contributed by FixEnv on the return).
 const oneUpdate = Item$.update((item) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const dep = yield* Dep
     return new Item({ id: item.id, label: item.label + dep.tag })
   })
 )
 
 const allUpdate = Items$.update((items) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const dep = yield* Dep
     return items.map((_) => new Item({ id: _.id, label: _.label + dep.tag }))
   })
 )
 
 const oneModify = Item$.modify((item, _dsl) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const dep = yield* Dep
     return { ...item, tag: dep.tag }
   })

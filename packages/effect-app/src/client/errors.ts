@@ -6,7 +6,7 @@ import * as S from "../Schema.ts"
 export const tryToJson = (error: unknown) => {
   try {
     const errorJson = (error as any).toJSON()
-    return errorJson && typeof errorJson === "object" ? errorJson as Record<string, unknown> : { error }
+    return errorJson && typeof errorJson === "object" ? (errorJson as Record<string, unknown>) : { error }
   } catch {
     try {
       return { error: (error as any).toString() }
@@ -26,10 +26,7 @@ export class NotFoundError<ItemType = string> extends TaggedErrorClass<NotFoundE
   type: S.String,
   id: S.Unknown
 }) {
-  constructor(
-    props: { type: string; id: unknown; cause?: unknown },
-    disableValidation?: boolean
-  ) {
+  constructor(props: { type: string; id: unknown; cause?: unknown }, disableValidation?: boolean) {
     super(props, disableValidation as any)
   }
   override get message() {
@@ -74,10 +71,7 @@ export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailable
 export class ValidationError extends TaggedErrorClass<ValidationError>()("ValidationError", {
   errors: S.Array(S.Unknown)
 }) {
-  constructor(
-    props: { errors: ReadonlyArray<unknown>; cause?: unknown },
-    disableValidation?: boolean
-  ) {
+  constructor(props: { errors: ReadonlyArray<unknown>; cause?: unknown }, disableValidation?: boolean) {
     super(props, disableValidation as any)
   }
   override get message() {
@@ -139,9 +133,7 @@ export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticC
   readonly details?: OptimisticConcurrencyDetails
   readonly raw?: unknown
   constructor(
-    args:
-      | OptimisticConcurrencyDetails
-      | ({ message: string; cause?: unknown; raw?: unknown }),
+    args: OptimisticConcurrencyDetails | { message: string; cause?: unknown; raw?: unknown },
     disableValidation?: boolean
   ) {
     super(
@@ -170,18 +162,12 @@ export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticC
  *
  * Treated by the api/client/FE machinery like an unexpected (500-class) error.
  */
-export class DatabaseError extends TaggedErrorClass<DatabaseError>()(
-  "DatabaseError",
-  {
-    message: S.String,
-    transient: S.Boolean,
-    cause: S.optional(S.Defect())
-  }
-) {
-  constructor(
-    args: { message?: string; transient?: boolean; cause?: unknown },
-    disableValidation?: boolean
-  ) {
+export class DatabaseError extends TaggedErrorClass<DatabaseError>()("DatabaseError", {
+  message: S.String,
+  transient: S.Boolean,
+  cause: S.optional(S.Defect())
+}) {
+  constructor(args: { message?: string; transient?: boolean; cause?: unknown }, disableValidation?: boolean) {
     super(
       {
         message: args.message ?? "Database operation failed",
@@ -196,10 +182,7 @@ export class DatabaseError extends TaggedErrorClass<DatabaseError>()(
   }
 }
 
-const MutationOnlyErrors = [
-  InvalidStateError,
-  OptimisticConcurrencyException
-] as const
+const MutationOnlyErrors = [InvalidStateError, OptimisticConcurrencyException] as const
 
 const GeneralErrors = [
   NotFoundError,
@@ -211,10 +194,7 @@ const GeneralErrors = [
   DatabaseError
 ] as const
 
-export const SupportedErrors = S.Union([
-  ...MutationOnlyErrors,
-  ...GeneralErrors
-])
+export const SupportedErrors = S.Union([...MutationOnlyErrors, ...GeneralErrors])
 // .pipe(named("SupportedErrors"))
 // .pipe(withDefaultMake)
 export type SupportedErrors = S.Schema.Type<typeof SupportedErrors>

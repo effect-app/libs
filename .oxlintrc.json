@@ -42,6 +42,7 @@
     "**/vitest.config.ts",
     "**/eslint.*.mjs",
     "**/CHANGELOG.md",
+    "packages/eslint-codegen-model/**",
     "repos/**"
   ]
 }

@@ -4,31 +4,23 @@
     <p>Trigger different error types and watch how the boundary reacts.</p>
 
     <div style="display: flex; gap: 8px; margin-bottom: 16px">
-      <button @click="setupError = true">
-        Throw in setup() (supported)
-      </button>
-      <button @click="clickError = true">
-        Throw from click handler (unsupported)
-      </button>
-      <button @click="reset">
-        Reset demo
-      </button>
+      <button @click="setupError = true">Throw in setup() (supported)</button>
+      <button @click="clickError = true">Throw from click handler (unsupported)</button>
+      <button @click="reset">Reset demo</button>
     </div>
 
-    <FixedNuxtErrorBoundary
-      :capture-exception="captureException"
-      :toast-error="toastError"
-      :debug="true"
-    >
+    <FixedNuxtErrorBoundary :capture-exception="captureException" :toast-error="toastError" :debug="true">
       <template #error="{ error, clearError }">
         <div style="border: 2px solid #d33; padding: 12px">
           <strong>Error boundary caught:</strong> {{ error.message }}
           <div>
             <button
-              @click="() => {
-                setupError = false
-                clearError()
-              }"
+              @click="
+                () => {
+                  setupError = false
+                  clearError()
+                }
+              "
             >
               Clear error
             </button>
@@ -70,11 +62,15 @@ const ClickThrowChild = defineComponent({
   name: "ClickThrowChild",
   setup() {
     return () =>
-      h("button", {
-        onClick: () => {
-          throw new Error("Thrown from click handler")
-        }
-      }, "trigger click error")
+      h(
+        "button",
+        {
+          onClick: () => {
+            throw new Error("Thrown from click handler")
+          }
+        },
+        "trigger click error"
+      )
   }
 })
 

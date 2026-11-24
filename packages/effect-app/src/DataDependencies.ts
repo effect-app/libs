@@ -54,22 +54,24 @@ const containsDependency = (dependencies: ReadonlySet<DataDependency>, dependenc
   return false
 }
 
-const appendDependency = (dependency: DataDependency) => (dependencies: DataDependencies): DataDependencies => {
-  const existing = [...dependencies].find((_) => sameDomain(_, dependency))
-  if (existing === undefined) return new Set([...dependencies, dependency])
-  if (existing.ids === undefined) return dependencies
-  if (dependency.ids === undefined) {
-    return new Set([...dependencies].filter((_) => _ !== existing).concat(dependency))
+const appendDependency =
+  (dependency: DataDependency) =>
+  (dependencies: DataDependencies): DataDependencies => {
+    const existing = [...dependencies].find((_) => sameDomain(_, dependency))
+    if (existing === undefined) return new Set([...dependencies, dependency])
+    if (existing.ids === undefined) return dependencies
+    if (dependency.ids === undefined) {
+      return new Set([...dependencies].filter((_) => _ !== existing).concat(dependency))
+    }
+    const first = existing.ids[0]
+    const ids: NonEmptyReadonlyArray<string> = [
+      first,
+      ...new Set([...existing.ids.slice(1), ...dependency.ids].filter((id) => id !== first))
+    ]
+    if (ids.length === existing.ids.length) return dependencies
+    const merged = existing.type === "repo" ? repo(existing.name, ids) : signal(existing.name, ids)
+    return new Set([...dependencies].filter((_) => _ !== existing).concat(merged))
   }
-  const first = existing.ids[0]
-  const ids: NonEmptyReadonlyArray<string> = [
-    first,
-    ...new Set([...existing.ids.slice(1), ...dependency.ids].filter((id) => id !== first))
-  ]
-  if (ids.length === existing.ids.length) return dependencies
-  const merged = existing.type === "repo" ? repo(existing.name, ids) : signal(existing.name, ids)
-  return new Set([...dependencies].filter((_) => _ !== existing).concat(merged))
-}
 
 export const merge = (...groups: ReadonlyArray<DataDependencies>): DataDependencies => {
   let merged = empty()
@@ -81,7 +83,7 @@ export const merge = (...groups: ReadonlyArray<DataDependencies>): DataDependenc
 
 export const DataDependencyRecorder = RequestScopedDependencies.make(
   "effect-app/DataDependencyRecorder",
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const readsRef = yield* Ref.make(empty())
     const writesRef = yield* Ref.make(empty())
     return makeDataDependencyRecorder(readsRef, writesRef)
@@ -99,17 +101,15 @@ export const getDataDependencyRecorder = DataDependencyRecorder.current
  * existing recorder is inherited, so nested calls forward into their parent rather than shadow it.
  */
 export const ensureDataDependencyRecorder = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  Effect.flatMap(
-    DataDependencyRecorder,
-    (current) => current === "root" ? Effect.provide(self, DataDependencyRecorder.layer) : self
+  Effect.flatMap(DataDependencyRecorder, (current) =>
+    current === "root" ? Effect.provide(self, DataDependencyRecorder.layer) : self
   )
 
 /** Stream variant of {@link ensureDataDependencyRecorder}. */
 export const ensureDataDependencyRecorderStream = <A, E, R>(self: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
   Stream.unwrap(
-    Effect.map(
-      DataDependencyRecorder,
-      (current) => current === "root" ? Stream.provide(self, DataDependencyRecorder.layer) : self
+    Effect.map(DataDependencyRecorder, (current) =>
+      current === "root" ? Stream.provide(self, DataDependencyRecorder.layer) : self
     )
   )
 
@@ -140,10 +140,7 @@ const RepoReadScope = Context.Reference<DataDependency | undefined>("effect-app/
 })
 
 export const readRepo = (name: string) =>
-  Effect.flatMap(
-    RepoReadScope,
-    (scope) => read(scope?.type === "repo" && scope.name === name ? scope : repo(name))
-  )
+  Effect.flatMap(RepoReadScope, (scope) => read(scope?.type === "repo" && scope.name === name ? scope : repo(name)))
 
 export const withRepoReadScope =
   (name: string, ids: NonEmptyReadonlyArray<string>) =>
@@ -158,10 +155,7 @@ export const read = (dependency: DataDependency) =>
 export const write = (dependency: DataDependency) =>
   getDataDependencyRecorder.pipe(Effect.flatMap((_) => _.write(dependency)))
 
-export const intersects = (
-  a: ReadonlySet<DataDependency>,
-  b: ReadonlySet<DataDependency>
-) => {
+export const intersects = (a: ReadonlySet<DataDependency>, b: ReadonlySet<DataDependency>) => {
   for (const dependency of a) {
     if (containsDependency(b, dependency)) return true
   }

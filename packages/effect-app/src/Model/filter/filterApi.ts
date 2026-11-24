@@ -1,8 +1,6 @@
 import { type RelationDirection } from "../query.ts"
 
-export type InOps =
-  | "in"
-  | "notIn"
+export type InOps = "in" | "notIn"
 
 export type OtherOps =
   | "endsWith"
@@ -44,19 +42,22 @@ export type OtherOps =
 
 export type Ops = OtherOps | InOps
 
-export type FilterScopes = {
-  t: "or-scope"
-  result: readonly FilterResult[]
-  relation: RelationDirection
-} | {
-  t: "and-scope"
-  result: readonly FilterResult[]
-  relation: RelationDirection
-} | {
-  t: "where-scope"
-  result: readonly FilterResult[]
-  relation: RelationDirection
-}
+export type FilterScopes =
+  | {
+      t: "or-scope"
+      result: readonly FilterResult[]
+      relation: RelationDirection
+    }
+  | {
+      t: "and-scope"
+      result: readonly FilterResult[]
+      relation: RelationDirection
+    }
+  | {
+      t: "where-scope"
+      result: readonly FilterResult[]
+      relation: RelationDirection
+    }
 
 export type FilterR = {
   op: Ops
@@ -66,13 +67,13 @@ export type FilterR = {
 }
 
 export type FilterResult =
-  | {
-    t: "where"
-  } & FilterR
-  | {
-    t: "or"
-  } & FilterR
-  | {
-    t: "and"
-  } & FilterR
+  | ({
+      t: "where"
+    } & FilterR)
+  | ({
+      t: "or"
+    } & FilterR)
+  | ({
+      t: "and"
+    } & FilterR)
   | FilterScopes

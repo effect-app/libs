@@ -13,7 +13,7 @@ const getHeaders = (error: string, description: string, scopes?: ReadonlyArray<s
 export class UnauthorizedError extends Error {
   readonly status: number = 401
   readonly statusCode: number = 401
-  headers = { "WWW-Authenticate": "Bearer realm=\"api\"" }
+  headers = { "WWW-Authenticate": 'Bearer realm="api"' }
 
   constructor(message = "Unauthorized") {
     super(message)
@@ -84,25 +84,24 @@ type ResolvedConfigBase = {
   readonly tokenSigningAlg: string | undefined
 }
 
-type ResolvedConfig =
-  & ResolvedConfigBase
-  & (
+type ResolvedConfig = ResolvedConfigBase &
+  (
     | {
-      readonly key: ReturnType<typeof createRemoteJWKSet>
-      readonly keyType: "jwks"
-    }
+        readonly key: ReturnType<typeof createRemoteJWKSet>
+        readonly keyType: "jwks"
+      }
     | {
-      readonly key: Uint8Array
-      readonly keyType: "secret"
-    }
+        readonly key: Uint8Array
+        readonly keyType: "secret"
+      }
   )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null
 
-const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error)
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 const normalizeAudience = (audience: Config["audience"]): string | Array<string> | undefined =>
-  Array.isArray(audience) ? Array.from(audience) : audience as string | undefined
+  Array.isArray(audience) ? Array.from(audience) : (audience as string | undefined)
 
 const buildDiscoveryUrl = (issuerBaseURL: string) => {
   const url = new URL(issuerBaseURL)
@@ -149,9 +148,7 @@ const makeResolveConfig = (config: Config) => {
     try: () => {
       if (!cached) {
         cached = (async (): Promise<ResolvedConfig> => {
-          const discovery = config.issuerBaseURL
-            ? await fetchDiscoveryDocumentPromise(config.issuerBaseURL)
-            : undefined
+          const discovery = config.issuerBaseURL ? await fetchDiscoveryDocumentPromise(config.issuerBaseURL) : undefined
 
           const issuer = config.issuer ?? discovery?.issuer
           const jwksUri = config.jwksUri ?? discovery?.jwksUri
@@ -209,15 +206,16 @@ const verifyToken =
           ...(config.issuer !== undefined ? { issuer: config.issuer } : {}),
           ...(config.maxTokenAge !== undefined ? { maxTokenAge: config.maxTokenAge } : {})
         }
-        const verified = config.keyType === "jwks"
-          ? Effect.tryPromise({
-            try: () => jwtVerify(token, config.key, options).then(({ protectedHeader }) => ({ protectedHeader })),
-            catch: (error) => new InvalidTokenError(getErrorMessage(error))
-          })
-          : Effect.tryPromise({
-            try: () => jwtVerify(token, config.key, options).then(({ protectedHeader }) => ({ protectedHeader })),
-            catch: (error) => new InvalidTokenError(getErrorMessage(error))
-          })
+        const verified =
+          config.keyType === "jwks"
+            ? Effect.tryPromise({
+                try: () => jwtVerify(token, config.key, options).then(({ protectedHeader }) => ({ protectedHeader })),
+                catch: (error) => new InvalidTokenError(getErrorMessage(error))
+              })
+            : Effect.tryPromise({
+                try: () => jwtVerify(token, config.key, options).then(({ protectedHeader }) => ({ protectedHeader })),
+                catch: (error) => new InvalidTokenError(getErrorMessage(error))
+              })
 
         return verified.pipe(
           Effect.flatMap(({ protectedHeader }) => {
@@ -234,7 +232,7 @@ export const checkJWTI = (config: Config) => {
   const resolveConfig = makeResolveConfig(config)
   const verify = verifyToken(resolveConfig)
 
-  return Effect.fnUntraced(function*(headers: HttpHeaders.Headers) {
+  return Effect.fnUntraced(function* (headers: HttpHeaders.Headers) {
     const token = yield* getAuthorizationToken(headers, config.authRequired !== false)
     if (Option.isNone(token)) {
       return
@@ -247,14 +245,17 @@ export const checkJWTI = (config: Config) => {
 export const checkJwt = (config: Config) => {
   const check = checkJWTI(config)
   return HttpMiddleware.make((app) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const req = yield* HttpServerRequest.HttpServerRequest
       const response = yield* check(req.headers).pipe(
         Effect.catch((error: JwtError) =>
-          HttpServerResponse.json({ message: error.message }, {
-            status: error.status,
-            headers: HttpHeaders.fromInput(error.headers)
-          })
+          HttpServerResponse.json(
+            { message: error.message },
+            {
+              status: error.status,
+              headers: HttpHeaders.fromInput(error.headers)
+            }
+          )
         )
       )
 

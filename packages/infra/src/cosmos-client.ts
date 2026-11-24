@@ -8,9 +8,12 @@ const withClient = (url: string) => Effect.sync(() => new ComosClient_(url))
 export const makeCosmosClient = (url: string, dbName: string) =>
   Effect.map(withClient(url), (x) => ({ db: x.database(dbName) }))
 
-export class CosmosClient extends Context.Service<CosmosClient, {
-  readonly db: ReturnType<InstanceType<typeof ComosClient_>["database"]>
-}>()("@services/CosmosClient") {}
+export class CosmosClient extends Context.Service<
+  CosmosClient,
+  {
+    readonly db: ReturnType<InstanceType<typeof ComosClient_>["database"]>
+  }
+>()("@services/CosmosClient") {}
 
 export const db = CosmosClient.pipe(Effect.map((_) => _.db))
 
@@ -38,11 +41,12 @@ const isNotFound = (e: unknown) => typeof e === "object" && e !== null && "code"
 
 const isServerlessOfferError = (error: unknown): boolean => {
   const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === "object" && error !== null && "message" in error
-    ? String(error.message)
-    : String(error)
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String(error.message)
+        : String(error)
   const badRequest = code === 400 || code === "BadRequest" || code === "400"
   return badRequest && message.toLowerCase().includes("not supported for serverless")
 }
@@ -57,10 +61,13 @@ export const createContainerIfNotExists = async (
     await db.containers.createIfNotExists(body)
     return
   }
-  const exists = await db.container(body.id).read().then(
-    () => true,
-    (e) => isNotFound(e) ? false : Promise.reject(e)
-  )
+  const exists = await db
+    .container(body.id)
+    .read()
+    .then(
+      () => true,
+      (e) => (isNotFound(e) ? false : Promise.reject(e))
+    )
   if (exists) return
   try {
     const { resource: sharedOffer } = await db.readOffer()

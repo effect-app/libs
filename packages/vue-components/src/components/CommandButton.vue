@@ -1,8 +1,4 @@
-<script
-  setup
-  lang="ts"
-  generic="I = never, RA = unknown, RE = unknown"
->
+<script setup lang="ts" generic="I = never, RA = unknown, RE = unknown">
 import type { CommandBase, Progress } from "@effect-app/vue/makeClient"
 import * as Option from "effect-app/Option"
 import type * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -13,32 +9,30 @@ export type VBtnProps = VBtn["$props"]
 export interface ButtonProps extends /* @vue-ignore */ VBtnProps {}
 
 const props = defineProps<
-  & (
+  (
     | {
-      input: NoInfer<I>
-      optionalInput?: undefined
-      command: CommandBase<I, any, RA, RE>
-      empty?: boolean
-    }
+        input: NoInfer<I>
+        optionalInput?: undefined
+        command: CommandBase<I, any, RA, RE>
+        empty?: boolean
+      }
     | {
-      optionalInput: Option.Option<NoInfer<I>>
-      input?: undefined
-      command: CommandBase<I, any, RA, RE>
-      empty?: boolean
-    }
+        optionalInput: Option.Option<NoInfer<I>>
+        input?: undefined
+        command: CommandBase<I, any, RA, RE>
+        empty?: boolean
+      }
     | {
-      command: CommandBase<any, any, RA, RE>
-      input?: undefined
-      optionalInput?: undefined
-      empty?: boolean
-    }
-  )
-  & {
+        command: CommandBase<any, any, RA, RE>
+        input?: undefined
+        optionalInput?: undefined
+        empty?: boolean
+      }
+  ) & {
     disabled?: ButtonProps["disabled"]
     title?: string // why isn't it part of VBtnProps??
     mapProgress?: (result: AsyncResult.AsyncResult<RA, RE>) => Progress | undefined
-  }
-  & ButtonProps
+  } & ButtonProps
 >()
 
 const resolvedInput = computed<{ _tag: "ready"; value: I } | { _tag: "missing" } | { _tag: "void" }>(() => {
@@ -53,11 +47,7 @@ const resolvedInput = computed<{ _tag: "ready"; value: I } | { _tag: "missing" }
   return { _tag: "void" }
 })
 
-const isDisabled = computed(() =>
-  props.command.blocked
-  || props.disabled
-  || resolvedInput.value._tag === "missing"
-)
+const isDisabled = computed(() => props.command.blocked || props.disabled || resolvedInput.value._tag === "missing")
 
 const resolvedProgress = computed(() => {
   if (props.mapProgress) {
@@ -114,10 +104,7 @@ export default {
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
-    <template
-      v-if="progressText !== undefined"
-      #loader
-    >
+    <template v-if="progressText !== undefined" #loader>
       <v-progress-circular
         :indeterminate="progressPercentage === undefined"
         :model-value="progressPercentage"
@@ -126,12 +113,7 @@ export default {
       />
       <span class="ml-2">{{ progressText }}</span>
     </template>
-    <slot
-      :loading="command.waiting"
-      :disabled="isDisabled"
-      :label="command.label"
-      :title="title ?? command.action"
-    >
+    <slot :loading="command.waiting" :disabled="isDisabled" :label="command.label" :title="title ?? command.action">
       {{ command.label }}
     </slot>
   </v-btn>
@@ -145,10 +127,7 @@ export default {
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
-    <template
-      v-if="progressText !== undefined"
-      #loader
-    >
+    <template v-if="progressText !== undefined" #loader>
       <v-progress-circular
         :indeterminate="progressPercentage === undefined"
         :model-value="progressPercentage"

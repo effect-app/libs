@@ -1,14 +1,32 @@
 import type { ServiceBusMessage, ServiceBusReceiverOptions } from "@azure/service-bus"
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Effect, Layer, Option, Schema, Stream } from "effect"
-import { ClusterSchema, EntityAddress, EntityId, EntityType, Envelope, Message, MessageStorage, Runners, ShardId, Sharding, ShardingConfig, Snowflake } from "effect/cluster"
+import {
+  ClusterSchema,
+  EntityAddress,
+  EntityId,
+  EntityType,
+  Envelope,
+  Message,
+  MessageStorage,
+  Runners,
+  ShardId,
+  Sharding,
+  ShardingConfig,
+  Snowflake
+} from "effect/cluster"
 import { Headers } from "effect/http"
 import { Rpc } from "effect/rpc"
-import { type ClusterServiceBusClient, layerClientFrom, layerRunners, makeStoragePoller } from "../src/ClusterServiceBus.js"
+import {
+  type ClusterServiceBusClient,
+  layerClientFrom,
+  layerRunners,
+  makeStoragePoller
+} from "../src/ClusterServiceBus.js"
 
 describe("ClusterServiceBus", () => {
   it.effect("wakes storage polling from topic notifications", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let processMessage: (() => Promise<void>) | undefined
       let polls = 0
       let receiverClosed = false
@@ -62,36 +80,31 @@ describe("ClusterServiceBus", () => {
         sendOutgoing: () => Effect.void
       })
 
-      yield* Effect
-        .scoped(
-          makeStoragePoller({
-            topicName: "cluster-notifications",
-            subscriptionName: "runner-a"
-          })
-            .pipe(
-              Effect.andThen(
-                Effect.gen(function*() {
-                  if (processMessage === undefined) {
-                    return yield* Effect.die("missing Service Bus subscription")
-                  }
-                  const runProcessMessage = processMessage
-                  yield* Effect.promise(() => runProcessMessage())
-                  assert.strictEqual(polls, 1)
-                })
-              )
-            )
+      yield* Effect.scoped(
+        makeStoragePoller({
+          topicName: "cluster-notifications",
+          subscriptionName: "runner-a"
+        }).pipe(
+          Effect.andThen(
+            Effect.gen(function* () {
+              if (processMessage === undefined) {
+                return yield* Effect.die("missing Service Bus subscription")
+              }
+              const runProcessMessage = processMessage
+              yield* Effect.promise(() => runProcessMessage())
+              assert.strictEqual(polls, 1)
+            })
+          )
         )
-        .pipe(
-          Effect.provide(layerClientFrom(client)),
-          Effect.provide(Layer.succeed(Sharding.Sharding)(sharding))
-        )
+      ).pipe(Effect.provide(layerClientFrom(client)), Effect.provide(Layer.succeed(Sharding.Sharding)(sharding)))
 
       assert.strictEqual(subscriptionClosed, true)
       assert.strictEqual(receiverClosed, true)
-    }))
+    })
+  )
 
   it.effect("publishes persisted storage notifications", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sent: Array<ServiceBusMessage> = []
       let senderClosed = false
 
@@ -118,21 +131,19 @@ describe("ClusterServiceBus", () => {
       }
 
       yield* Effect.scoped(
-        Effect
-          .gen(function*() {
-            const runners = yield* Runners.Runners
-            yield* runners.notify({
-              address: Option.none(),
-              discard: true,
-              message: yield* makeOutgoingRequest
-            })
+        Effect.gen(function* () {
+          const runners = yield* Runners.Runners
+          yield* runners.notify({
+            address: Option.none(),
+            discard: true,
+            message: yield* makeOutgoingRequest
           })
-          .pipe(
-            Effect.provide(layerRunners({ topicName: "cluster-notifications" })),
-            Effect.provide(layerClientFrom(client)),
-            Effect.provide(MessageStorage.layerNoop),
-            Effect.provide(ShardingConfig.layerDefaults)
-          )
+        }).pipe(
+          Effect.provide(layerRunners({ topicName: "cluster-notifications" })),
+          Effect.provide(layerClientFrom(client)),
+          Effect.provide(MessageStorage.layerNoop),
+          Effect.provide(ShardingConfig.layerDefaults)
+        )
       )
 
       assert.strictEqual(senderClosed, true)
@@ -149,32 +160,32 @@ describe("ClusterServiceBus", () => {
       assert.strictEqual(sent[0]?.correlationId, "1")
       assert.strictEqual(sent[0]?.messageId, "1")
       assert.strictEqual(sent[0]?.subject, "EffectClusterStorageNotification")
-    }))
+    })
+  )
 })
 
-const TestRpc = Rpc
-  .make("TestRpc", {
-    payload: { id: Schema.Number }
-  })
-  .annotate(ClusterSchema.Persisted, true)
+const TestRpc = Rpc.make("TestRpc", {
+  payload: { id: Schema.Number }
+}).annotate(ClusterSchema.Persisted, true)
 
-const makeOutgoingRequest = Effect.sync(() =>
-  new Message.OutgoingRequest({
-    annotations: TestRpc.annotations,
-    context: Context.empty(),
-    envelope: Envelope.makeRequest<typeof TestRpc>({
-      address: EntityAddress.make({
-        entityId: EntityId.make("entity-1"),
-        entityType: EntityType.make("TestEntity"),
-        shardId: ShardId.make("cluster-servicebus", 1)
+const makeOutgoingRequest = Effect.sync(
+  () =>
+    new Message.OutgoingRequest({
+      annotations: TestRpc.annotations,
+      context: Context.empty(),
+      envelope: Envelope.makeRequest<typeof TestRpc>({
+        address: EntityAddress.make({
+          entityId: EntityId.make("entity-1"),
+          entityType: EntityType.make("TestEntity"),
+          shardId: ShardId.make("cluster-servicebus", 1)
+        }),
+        headers: Headers.empty,
+        payload: { id: 1 },
+        requestId: Snowflake.Snowflake(1n),
+        tag: TestRpc._tag
       }),
-      headers: Headers.empty,
-      payload: { id: 1 },
-      requestId: Snowflake.Snowflake(1n),
-      tag: TestRpc._tag
-    }),
-    lastReceivedReply: Option.none(),
-    respond: () => Effect.void,
-    rpc: TestRpc
-  })
+      lastReceivedReply: Option.none(),
+      respond: () => Effect.void,
+      rpc: TestRpc
+    })
 )

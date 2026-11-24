@@ -9,28 +9,19 @@ import type * as Result from "effect/Result"
 import * as Tuple from "effect/Tuple"
 import { identity, pipe, type Predicate, type Refinement } from "./Function.ts"
 
-export function find_<A, B extends A>(
-  as: ReadonlySet<A>,
-  refinement: Refinement<A, B>
-): B | undefined
+export function find_<A, B extends A>(as: ReadonlySet<A>, refinement: Refinement<A, B>): B | undefined
 export function find_<A>(set: ReadonlySet<A>, predicate: Predicate<A>): A | undefined
 export function find_<A>(set: ReadonlySet<A>, predicate: Predicate<A>) {
   return [...set].find(predicate)
 }
 
-export function findFirst_<A, B extends A>(
-  set: ReadonlySet<A>,
-  refinement: Refinement<A, B>
-): Option.Option<B>
+export function findFirst_<A, B extends A>(set: ReadonlySet<A>, refinement: Refinement<A, B>): Option.Option<B>
 export function findFirst_<A>(set: ReadonlySet<A>, predicate: Predicate<A>): Option.Option<A>
 export function findFirst_<A>(set: ReadonlySet<A>, predicate: Predicate<A>): Option.Option<A> {
   return Option.fromNullishOr([...set].find(predicate))
 }
 
-export function findFirstMap_<A, B>(
-  set: ReadonlySet<A>,
-  f: (a: A) => Option.Option<B>
-): Option.Option<B> {
+export function findFirstMap_<A, B>(set: ReadonlySet<A>, f: (a: A) => Option.Option<B>): Option.Option<B> {
   return Array.findFirst([...set], f)
 }
 
@@ -193,9 +184,7 @@ export function every_<A>(set: Set<A>, predicate: Predicate<A>): boolean {
 /**
  * Map + Flatten
  */
-export function chain<B>(
-  E: Equivalence.Equivalence<B>
-): <A>(f: (x: A) => Set<B>) => (set: Set<A>) => Set<B> {
+export function chain<B>(E: Equivalence.Equivalence<B>): <A>(f: (x: A) => Set<B>) => (set: Set<A>) => Set<B> {
   const c = chain_(E)
   return (f) => (set) => c(set, f)
 }
@@ -203,9 +192,7 @@ export function chain<B>(
 /**
  * Map + Flatten
  */
-export function chain_<B>(
-  E: Equivalence.Equivalence<B>
-): <A>(set: Set<A>, f: (x: A) => Set<B>) => Set<B> {
+export function chain_<B>(E: Equivalence.Equivalence<B>): <A>(set: Set<A>, f: (x: A) => Set<B>) => Set<B> {
   const elemE = elem_(E)
   return (set, f) => {
     const r = new Set<B>()
@@ -239,9 +226,7 @@ export function isSubset_<A>(E: Equivalence.Equivalence<A>): (x: Set<A>, y: Set<
 /**
  * Filter set values using predicate
  */
-export function filter<A, B extends A>(
-  refinement: Refinement<A, B>
-): (set: Set<A>) => Set<B>
+export function filter<A, B extends A>(refinement: Refinement<A, B>): (set: Set<A>) => Set<B>
 export function filter<A>(predicate: Predicate<A>): (set: Set<A>) => Set<A>
 export function filter<A>(predicate: Predicate<A>): (set: Set<A>) => Set<A> {
   return (set) => filter_(set, predicate)
@@ -250,10 +235,7 @@ export function filter<A>(predicate: Predicate<A>): (set: Set<A>) => Set<A> {
 /**
  * Filter set values using predicate
  */
-export function filter_<A, B extends A>(
-  set: Set<A>,
-  refinement: Refinement<A, B>
-): Set<B>
+export function filter_<A, B extends A>(set: Set<A>, refinement: Refinement<A, B>): Set<B>
 export function filter_<A>(set: Set<A>, predicate: Predicate<A>): Set<A>
 export function filter_<A>(set: Set<A>, predicate: Predicate<A>): Set<A> {
   const values = set.values()
@@ -271,33 +253,18 @@ export function filter_<A>(set: Set<A>, predicate: Predicate<A>): Set<A> {
 /**
  * Partition set values using predicate
  */
-export function partition<A, B extends A>(
-  refinement: Refinement<A, B>
-): (set: Set<A>) => readonly [Set<A>, Set<B>]
-export function partition<A>(
-  predicate: Predicate<A>
-): (set: Set<A>) => readonly [Set<A>, Set<A>]
-export function partition<A>(
-  predicate: Predicate<A>
-): (set: Set<A>) => readonly [Set<A>, Set<A>] {
+export function partition<A, B extends A>(refinement: Refinement<A, B>): (set: Set<A>) => readonly [Set<A>, Set<B>]
+export function partition<A>(predicate: Predicate<A>): (set: Set<A>) => readonly [Set<A>, Set<A>]
+export function partition<A>(predicate: Predicate<A>): (set: Set<A>) => readonly [Set<A>, Set<A>] {
   return (set) => partition_(set, predicate)
 }
 
 /**
  * Partition set values using predicate
  */
-export function partition_<A, B extends A>(
-  set: Set<A>,
-  refinement: Refinement<A, B>
-): readonly [Set<A>, Set<B>]
-export function partition_<A>(
-  set: Set<A>,
-  predicate: Predicate<A>
-): readonly [Set<A>, Set<A>]
-export function partition_<A>(
-  set: Set<A>,
-  predicate: Predicate<A>
-): readonly [Set<A>, Set<A>] {
+export function partition_<A, B extends A>(set: Set<A>, refinement: Refinement<A, B>): readonly [Set<A>, Set<B>]
+export function partition_<A>(set: Set<A>, predicate: Predicate<A>): readonly [Set<A>, Set<A>]
+export function partition_<A>(set: Set<A>, predicate: Predicate<A>): readonly [Set<A>, Set<A>] {
   const values = set.values()
   let e: Next<A>
   const right = new Set<A>()
@@ -344,7 +311,9 @@ export function partitionMap<B, C>(
   EC: Equivalence.Equivalence<C>
 ): <A>(f: (a: A) => Result.Result<C, B>) => (set: Set<A>) => readonly [Set<B>, Set<C>] {
   const pm = partitionMap_(EB, EC)
-  return <A>(f: (a: A) => Result.Result<C, B>) => (set: Set<A>) => pm(set, f)
+  return <A>(f: (a: A) => Result.Result<C, B>) =>
+    (set: Set<A>) =>
+      pm(set, f)
 }
 
 /**
@@ -399,9 +368,7 @@ export function difference<A>(E: Equivalence.Equivalence<A>): (x: Set<A>, y: Set
 /**
  * Reduce over the set values
  */
-export function reduce<A>(
-  O: Order.Order<A>
-): <B>(b: B, f: (b: B, a: A) => B) => (fa: Set<A>) => B {
+export function reduce<A>(O: Order.Order<A>): <B>(b: B, f: (b: B, a: A) => B) => (fa: Set<A>) => B {
   const red = reduce_(O)
   return (b, f) => (fa) => red(fa, b, f)
 }
@@ -409,9 +376,7 @@ export function reduce<A>(
 /**
  * Reduce over the set values
  */
-export function reduce_<A>(
-  O: Order.Order<A>
-): <B>(fa: Set<A>, b: B, f: (b: B, a: A) => B) => B {
+export function reduce_<A>(O: Order.Order<A>): <B>(fa: Set<A>, b: B, f: (b: B, a: A) => B) => B {
   const toArrayO = toArray(O)
   return (fa, b, f) => toArrayO(fa).reduce(f, b)
 }
@@ -570,9 +535,7 @@ export function filterMap<B>(
 /**
  * Filter + Map
  */
-export function filterMap_<B>(
-  E: Equivalence.Equivalence<B>
-): <A>(fa: Set<A>, f: (a: A) => Option.Option<B>) => Set<B> {
+export function filterMap_<B>(E: Equivalence.Equivalence<B>): <A>(fa: Set<A>, f: (a: A) => Option.Option<B>) => Set<B> {
   const elemE = elem_(E)
   return (fa, f) => {
     const r: MutableSet<B> = new Set()
@@ -624,7 +587,10 @@ function make_<A>(ord: Order.Order<A>, eq_?: Equivalence.Equivalence<A>) {
   const insert__ = insert(eq)
 
   function replace_(set: Set<A>, a: A) {
-    return pipe(filter_(set, (x) => !eq(x, a)), insert__(a))
+    return pipe(
+      filter_(set, (x) => !eq(x, a)),
+      insert__(a)
+    )
   }
 
   return {
@@ -660,7 +626,4 @@ class Wrapper<A> {
 
 export interface SetSchemaExtensions<A> extends ReturnType<Wrapper<A>["wrapped"]> {}
 
-export const make: <A>(
-  ord: Order.Order<A>,
-  eq?: Equivalence.Equivalence<A>
-) => SetSchemaExtensions<A> = make_
+export const make: <A>(ord: Order.Order<A>, eq?: Equivalence.Equivalence<A>) => SetSchemaExtensions<A> = make_

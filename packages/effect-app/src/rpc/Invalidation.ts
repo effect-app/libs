@@ -28,7 +28,7 @@ const isBatch = (
 
 const normalizeInputs = (
   input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
-): ReadonlyArray<InvalidationKey> => isBatch(input) ? input.map(normalizeKey) : [normalizeKey(input)]
+): ReadonlyArray<InvalidationKey> => (isBatch(input) ? input.map(normalizeKey) : [normalizeKey(input)])
 
 /**
  * A single segment within an `InvalidationKey` array.
@@ -142,17 +142,14 @@ export type StreamFailureChunk<E> = { readonly _tag: "error"; readonly error: E;
  * For the higher-level `Command`/`Query` builders from `makeRpcClient`, use the
  * `invalidatesQueries` callback argument instead (it receives the same query keys at runtime).
  */
-export const Invalidates = Context.Reference<ReadonlyArray<InvalidationKey>>(
-  "effect-app/rpc/Invalidates",
-  { defaultValue: () => [] }
-)
+export const Invalidates = Context.Reference<ReadonlyArray<InvalidationKey>>("effect-app/rpc/Invalidates", {
+  defaultValue: () => []
+})
 export type Invalidates = typeof Invalidates
 
 /** The shape of the per-request service that accumulates invalidation keys. */
 export interface InvalidationSetService {
-  readonly add: (
-    input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>
-  ) => Effect.Effect<void>
+  readonly add: (input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>) => Effect.Effect<void>
   readonly get: Effect.Effect<ReadonlyArray<InvalidationKey>>
   /**
    * V3: Reads all currently accumulated keys and resets the bucket to empty.
@@ -199,16 +196,13 @@ export interface InvalidationSetService {
  * the annotation pre-populates the set before the handler runs; dynamic additions accumulate
  * throughout the handler. All keys are included in the command response metadata.
  */
-const InvalidationSetRef = Context.Reference<InvalidationSetService>(
-  "effect-app/rpc/InvalidationSet",
-  {
-    defaultValue: () => ({
-      add: (_input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>) => Effect.void,
-      get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
-      drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
-    })
-  }
-)
+const InvalidationSetRef = Context.Reference<InvalidationSetService>("effect-app/rpc/InvalidationSet", {
+  defaultValue: () => ({
+    add: (_input: InvalidationKeyInput | ReadonlyArray<InvalidationKeyInput>) => Effect.void,
+    get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
+    drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
+  })
+})
 export const InvalidationSet = Object.assign(InvalidationSetRef, {
   /**
    * Shortcut for `InvalidationSet.use(_ => _.add(input))`. Accepts a single

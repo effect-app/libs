@@ -1,9 +1,11 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From> | undefined = DeepKeys<From>"
+  generic="
+    From extends Record<PropertyKey, any>,
+    To extends Record<PropertyKey, any>,
+    Name extends DeepKeys<From> | undefined = DeepKeys<From>
+  "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, provide, ref, watch } from "vue"
@@ -24,7 +26,7 @@ const props = defineProps<{
 const currentTag = ref<string | null>(null)
 
 // Watch the form's _tag field value
-const tagPath = computed(() => props.name ? `${props.name}._tag` : "_tag")
+const tagPath = computed(() => (props.name ? `${props.name}._tag` : "_tag"))
 const formValues = props.form.useStore((state) => state.values)
 watch(
   () => {
@@ -63,10 +65,7 @@ provide("getMetaFromArray", getMetaFromArray)
 <template>
   <form.Field :name="name ? `${name}._tag` : '_tag'">
     <template #default="inputProps">
-      <slot
-        name="OmegaCustomInput"
-        v-bind="inputProps"
-      >
+      <slot name="OmegaCustomInput" v-bind="inputProps">
         <form.Input
           :name="(name ? `${name}._tag` : '_tag') as FieldPath<From>"
           :label="label"
@@ -81,26 +80,12 @@ provide("getMetaFromArray", getMetaFromArray)
         `getMetaFromArray` above — rather than the `Field` slot's `state`,
         which is only a projection of it.
       -->
-      <OmegaTaggedUnionInternal
-        :field="inputProps.field as any"
-        :tag="currentTag"
-        :name="name"
-        :form="form"
-      >
-        <template
-          v-for="(_, slotname) in $slots"
-          #[slotname]="slotProps"
-        >
-          <slot
-            :name="slotname"
-            v-bind="slotProps"
-          />
+      <OmegaTaggedUnionInternal :field="inputProps.field as any" :tag="currentTag" :name="name" :form="form">
+        <template v-for="(_, slotname) in $slots" #[slotname]="slotProps">
+          <slot :name="slotname" v-bind="slotProps" />
         </template>
       </OmegaTaggedUnionInternal>
-      <slot
-        v-if="currentTag"
-        name="OmegaCommon"
-      />
+      <slot v-if="currentTag" name="OmegaCommon" />
     </template>
   </form.Field>
 </template>

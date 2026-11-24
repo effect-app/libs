@@ -1,9 +1,15 @@
 <template>
   <div>
-    <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #1976d2">
-      <h1 style="margin-top: 0">
-        Root-Level TaggedUnion Component Usage
-      </h1>
+    <div
+      style="
+        background: #f5f5f5;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        border-left: 4px solid #1976d2;
+      "
+    >
+      <h1 style="margin-top: 0">Root-Level TaggedUnion Component Usage</h1>
 
       <h2>Overview</h2>
       <p>
@@ -32,43 +38,29 @@
       <template #default="{ subscribedValues: { values } }">
         <form.TaggedUnion
           label="Select Type"
-          :options="[
-            { value: 'A', title: 'Option A' },
-            { value: 'B', title: 'Option B' }
-          ] as const"
+          :options="
+            [
+              { value: 'A', title: 'Option A' },
+              { value: 'B', title: 'Option B' }
+            ] as const
+          "
         >
           <!-- Default slot: rendered for ALL branches (common fields) -->
-          <form.Input
-            name="common"
-            label="Common Field (shared by both A and B)"
-          />
+          <form.Input name="common" label="Common Field (shared by both A and B)" />
           <!-- Named slot #A: rendered only when _tag === "A" -->
           <template #A>
-            <form.Input
-              name="a"
-              label="Field A (string)"
-            />
+            <form.Input name="a" label="Field A (string)" />
           </template>
           <!-- Named slot #B: rendered only when _tag === "B" -->
           <template #B>
-            <form.Input
-              name="b"
-              label="Field B (number)"
-              type="number"
-            />
-            <form.Input
-              name="nullableB"
-              label="Field B (number)"
-              type="number"
-            />
+            <form.Input name="b" label="Field B (number)" type="number" />
+            <form.Input name="nullableB" label="Field B (number)" type="number" />
           </template>
         </form.TaggedUnion>
         <pre>values: {{ values }}</pre>
         <pre>unionMeta: {{ JSON.stringify(form.unionMeta, null, 2) }}</pre>
         <form.Errors />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </form.Form>
   </div>
@@ -97,24 +89,23 @@ const schema = S.Union([
   })
 ])
 
-const form = useOmegaForm(
-  schema,
-  {
-    onSubmit: async ({ value }) => {
-      console.log("Form submitted:", value)
-    },
-    defaultValues: {
-      _tag: "A"
-    }
+const form = useOmegaForm(schema, {
+  onSubmit: async ({ value }) => {
+    console.log("Form submitted:", value)
+  },
+  defaultValues: {
+    _tag: "A"
   }
-)
+})
 </script>
 
 <style scoped>
 h1 {
   margin-bottom: 1rem;
 }
-ul, ol, p {
+ul,
+ol,
+p {
   margin-left: 1rem;
   margin-bottom: 1rem;
 }

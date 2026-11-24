@@ -2,7 +2,12 @@ import { mount } from "@vue/test-utils"
 import * as S from "effect-app/Schema"
 import * as SchemaGetter from "effect/SchemaGetter"
 import { describe, expect, it } from "vitest"
-import { createUseFormWithCustomInput, generateMetaFromSchema, type NumberFieldMeta, useOmegaForm } from "../../src/components/OmegaForm"
+import {
+  createUseFormWithCustomInput,
+  generateMetaFromSchema,
+  type NumberFieldMeta,
+  useOmegaForm
+} from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const CustomNumberInput = {
@@ -31,7 +36,7 @@ describe("OmegaForm decodeTo fallback transform", () => {
 
   const transformedSchema = S.Struct({ amount: S.NonNegativeInt }).pipe(
     S.decodeTo(inputSchema, {
-      decode: SchemaGetter.transform((input: { amount: number }) => input.amount === 0 ? { amount: 666 } : input),
+      decode: SchemaGetter.transform((input: { amount: number }) => (input.amount === 0 ? { amount: 666 } : input)),
       encode: SchemaGetter.passthrough({ strict: false })
     })
   )
@@ -70,7 +75,7 @@ describe("OmegaForm decodeTo fallback transform", () => {
     const wrapper = createWrapper({ amount: 0 })
     await wrapper.vm.$nextTick()
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await wrapper.vm.$nextTick()
     await new Promise((resolve) => setTimeout(resolve, 100))
 
@@ -82,7 +87,7 @@ describe("OmegaForm decodeTo fallback transform", () => {
     const wrapper = createWrapper({ amount: 5 })
     await wrapper.vm.$nextTick()
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await wrapper.vm.$nextTick()
     await new Promise((resolve) => setTimeout(resolve, 100))
 
@@ -106,9 +111,10 @@ describe("OmegaForm decodeTo fallback transform", () => {
     const useForm = createUseFormWithCustomInput(CustomNumberInput)
     let submittedValue: any = null
 
-    const wrapper = mount({
-      components: { OmegaIntlProvider },
-      template: `
+    const wrapper = mount(
+      {
+        components: { OmegaIntlProvider },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <template #default>
@@ -120,28 +126,30 @@ describe("OmegaForm decodeTo fallback transform", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useForm(transformedSchema, {
-          defaultValues: { amount: 1 },
-          onSubmit: async ({ value }) => {
-            submittedValue = value
-          }
-        })
-        return { form, getSubmittedValue: () => submittedValue }
+        setup() {
+          const form = useForm(transformedSchema, {
+            defaultValues: { amount: 1 },
+            onSubmit: async ({ value }) => {
+              submittedValue = value
+            }
+          })
+          return { form, getSubmittedValue: () => submittedValue }
+        }
+      },
+      {
+        global: { stubs: { CustomNumberInput } }
       }
-    }, {
-      global: { stubs: { CustomNumberInput } }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
-    const input = wrapper.find("[data-testid=\"custom-input-field\"]")
+    const input = wrapper.find('[data-testid="custom-input-field"]')
     await input.setValue("0")
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find("[data-testid=\"custom-input-error\"]").exists()).toBe(false)
+    expect(wrapper.find('[data-testid="custom-input-error"]').exists()).toBe(false)
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await wrapper.vm.$nextTick()
     await new Promise((resolve) => setTimeout(resolve, 100))
 

@@ -28,10 +28,8 @@ export const latestDefined = <TData>(source: () => TData | undefined, label: str
   })
 }
 
-export const awaitResolvedSuspenseResult = <A, E>(
-  resultRef: ComputedRef<AsyncResult.AsyncResult<A, E>>
-) =>
-  Effect.gen(function*() {
+export const awaitResolvedSuspenseResult = <A, E>(resultRef: ComputedRef<AsyncResult.AsyncResult<A, E>>) =>
+  Effect.gen(function* () {
     let result = resultRef.value
 
     for (let remainingTicks = 3; remainingTicks > 0 && AsyncResult.isInitial(result); remainingTicks--) {

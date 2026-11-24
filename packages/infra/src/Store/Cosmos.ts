@@ -7,7 +7,15 @@ import * as Layer from "effect-app/Layer"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import { type ComputedProjectionIrExpression, type RawQuery } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
+import {
+  type FilterArgs,
+  type PersistenceModelType,
+  type StorageConfig,
+  type Store,
+  type StoreConfig,
+  storeId,
+  StoreMaker
+} from "effect-app/Store"
 import { dropUndefinedT, mutable } from "effect-app/utils"
 import * as Duration from "effect/Duration"
 import { pipe } from "effect/Function"
@@ -22,7 +30,8 @@ import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStored
 import { makeJsonLower } from "./utils.ts"
 
 const makeMapId =
-  <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) => ({ [idKey]: id, ...e }: Encoded) => ({
+  <IdKey extends keyof Encoded, Encoded extends FieldValues>(idKey: IdKey) =>
+  ({ [idKey]: id, ...e }: Encoded) => ({
     ...e,
     id
   })
@@ -42,8 +51,9 @@ const thrownIsTransient = (e: unknown): boolean => {
   const code = (e as any)?.code ?? (e as any)?.statusCode
   if (typeof code === "number" && RETRYABLE_COSMOS_STATUS.has(code)) return true
   const msg = e instanceof Error ? e.message : String(e)
-  return /request timed out|timed out|\btimeout\b|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|ServiceUnavailable|RequestTimeout|TooManyRequests|throttl/i
-    .test(msg)
+  return /request timed out|timed out|\btimeout\b|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|ServiceUnavailable|RequestTimeout|TooManyRequests|throttl/i.test(
+    msg
+  )
 }
 
 // Wrap a Cosmos SDK promise so a rejection becomes a typed, serializable
@@ -60,9 +70,9 @@ const tryCosmos = <A>(f: () => Promise<A>): Effect.Effect<A, DatabaseError> =>
       })
   })
 
-const respBytes = (
-  resp: { diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } } }
-) => resp.diagnostics?.clientSideRequestStatistics?.totalResponsePayloadLengthInBytes ?? 0
+const respBytes = (resp: {
+  diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
+}) => resp.diagnostics?.clientSideRequestStatistics?.totalResponsePayloadLengthInBytes ?? 0
 
 const annotateFeed = (resp: {
   resources: readonly unknown[]
@@ -86,10 +96,10 @@ const annotateItem = (resp: {
     responseBytes: respBytes(resp)
   })
 
-const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, prefix }: StorageConfig) {
+const makeCosmosStore = Effect.fnUntraced(function* ({ autoscaleMaxThroughput, prefix }: StorageConfig) {
   const { db } = yield* CosmosClient
   return {
-    make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+    make: Effect.fnUntraced(function* <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
       name: string,
       idKey: IdKey,
       seed?: Effect.Effect<Iterable<Encoded>, E, R>,
@@ -111,9 +121,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
           db,
           dropUndefinedT({
             id: containerId,
-            uniqueKeyPolicy: config?.uniqueKeys
-              ? { uniqueKeys: config.uniqueKeys }
-              : undefined,
+            uniqueKeyPolicy: config?.uniqueKeys ? { uniqueKeys: config.uniqueKeys } : undefined,
             partitionKey: {
               paths: ["/_partitionKey"],
               version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
@@ -124,7 +132,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
       )
 
       const basePartitionKey = config?.partitionValue() ?? "primary"
-      const nsPrefix = (ns: string) => ns === "primary" ? "" : `${ns}::`
+      const nsPrefix = (ns: string) => (ns === "primary" ? "" : `${ns}::`)
       const nsPartitionValue = (ns: string, e?: Encoded) => {
         const base = config?.partitionValue(e) ?? "primary"
         return `${nsPrefix(ns)}${base}`
@@ -132,12 +140,14 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
       const nsBasePartitionKey = (ns: string) => `${nsPrefix(ns)}${basePartitionKey}`
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
-        : storeId.pipe(Effect.map((namespace) => {
-          if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
-            throw new Error(`Namespace ${namespace} not allowed!`)
-          }
-          return namespace
-        }))
+        : storeId.pipe(
+            Effect.map((namespace) => {
+              if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
+                throw new Error(`Namespace ${namespace} not allowed!`)
+              }
+              return namespace
+            })
+          )
 
       const container = db.container(containerId)
       const bulk = container.items.bulk.bind(container.items)
@@ -150,48 +160,45 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
       const seedCache = new Map<string, Effect.Effect<void>>()
       const makeSeedEffect = (ns: string) => {
         const markerId = ns === "primary" ? importedMarkerId : `${importedMarkerId}::${ns}`
-        return Effect
-          .promise(() =>
-            container
-              .item(markerId, markerId)
-              .read<{ id: string }>()
-              .then(({ resource }) => Option.fromNullishOr(resource))
-          )
-          .pipe(
-            Effect.flatMap((marker) => {
-              if (Option.isSome(marker)) return Effect.void
-              return InfraLogger.logInfo(`Creating mock data for ${name} (namespace: ${ns})`).pipe(
-                Effect.andThen(seed!),
-                Effect.flatMap((m) =>
-                  Effect.flatMapOption(
-                    Effect.succeed(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)([...m])),
-                    (a) => bulkSetInternal(a, ns).pipe(Effect.orDie)
-                  )
-                ),
-                Effect.andThen(
-                  Effect.promise(() =>
-                    container.items.create({
-                      _partitionKey: markerId,
-                      id: markerId,
-                      ttl: -1
-                    })
-                  )
-                ),
-                Effect.provide(ctx),
-                Effect.orDie
-              )
-            }),
-            Effect.withLogSpan(`Cosmos.seedCheck ${name} in ${ns} [effect-app/infra/Store]`),
-            annotateDb({
-              operation: "seed",
-              system: "cosmosdb",
-              collection: containerId,
-              namespace: ns,
-              entity: name
-            })
-          )
+        return Effect.promise(() =>
+          container
+            .item(markerId, markerId)
+            .read<{ id: string }>()
+            .then(({ resource }) => Option.fromNullishOr(resource))
+        ).pipe(
+          Effect.flatMap((marker) => {
+            if (Option.isSome(marker)) return Effect.void
+            return InfraLogger.logInfo(`Creating mock data for ${name} (namespace: ${ns})`).pipe(
+              Effect.andThen(seed!),
+              Effect.flatMap((m) =>
+                Effect.flatMapOption(Effect.succeed(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)([...m])), (a) =>
+                  bulkSetInternal(a, ns).pipe(Effect.orDie)
+                )
+              ),
+              Effect.andThen(
+                Effect.promise(() =>
+                  container.items.create({
+                    _partitionKey: markerId,
+                    id: markerId,
+                    ttl: -1
+                  })
+                )
+              ),
+              Effect.provide(ctx),
+              Effect.orDie
+            )
+          }),
+          Effect.withLogSpan(`Cosmos.seedCheck ${name} in ${ns} [effect-app/infra/Store]`),
+          annotateDb({
+            operation: "seed",
+            system: "cosmosdb",
+            collection: containerId,
+            namespace: ns,
+            entity: name
+          })
+        )
       }
-      const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
+      const seedNamespace = Effect.fn("seedNamespace")(function* (ns: string) {
         if (!seed) return
         let cached = seedCache.get(ns)
         if (!cached) {
@@ -201,160 +208,145 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
         yield* cached
       })
       const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
-        Effect
-          .gen(function*() {
-            // TODO: disable batching if need atomicity
-            // we delay and batch to keep low amount of RUs
-            const b = [...items]
-              .map(
-                (x) =>
-                  [
-                    x,
-                    Option.match(Option.fromNullishOr(x._etag), {
-                      onNone: () =>
-                        dropUndefinedT({
-                          operationType: "Create" as const,
-                          resourceBody: {
-                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
-                            id: x[idKey],
-                            _partitionKey: nsPartitionValue(ns, x)
-                          }
-                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                          // partitionKey: config?.partitionValue(x)
-                        }),
-                      onSome: (eTag) =>
-                        dropUndefinedT({
-                          operationType: "Replace" as const,
-                          id: x[idKey],
-                          resourceBody: {
-                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
-                            id: x[idKey],
-                            _partitionKey: nsPartitionValue(ns, x)
-                          },
-                          ifMatch: eTag
-                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                          // partitionKey: config?.partitionValue(x)
-                        })
+        Effect.gen(function* () {
+          // TODO: disable batching if need atomicity
+          // we delay and batch to keep low amount of RUs
+          const b = [...items].map(
+            (x) =>
+              [
+                x,
+                Option.match(Option.fromNullishOr(x._etag), {
+                  onNone: () =>
+                    dropUndefinedT({
+                      operationType: "Create" as const,
+                      resourceBody: {
+                        ...Struct.omit(codec.encode(x), ["_etag", idKey]),
+                        id: x[idKey],
+                        _partitionKey: nsPartitionValue(ns, x)
+                      }
+                      // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                      // partitionKey: config?.partitionValue(x)
+                    }),
+                  onSome: (eTag) =>
+                    dropUndefinedT({
+                      operationType: "Replace" as const,
+                      id: x[idKey],
+                      resourceBody: {
+                        ...Struct.omit(codec.encode(x), ["_etag", idKey]),
+                        id: x[idKey],
+                        _partitionKey: nsPartitionValue(ns, x)
+                      },
+                      ifMatch: eTag
+                      // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                      // partitionKey: config?.partitionValue(x)
                     })
-                  ] as const
-              )
-            const batches = Array.chunksOf(b, config?.maxBulkSize ?? 10)
+                })
+              ] as const
+          )
+          const batches = Array.chunksOf(b, config?.maxBulkSize ?? 10)
 
-            const batchResult = yield* Effect.forEach(
-              batches
-                .map((x, i) => [i, x] as const),
-              ([i, batch]) =>
-                tryCosmos(() => bulk(batch.map(([, op]) => op)))
-                  .pipe(
-                    Effect
-                      .delay(Duration.millis(i === 0 ? 0 : 150)),
-                    Effect
-                      .flatMap((responses) =>
-                        Effect.gen(function*() {
-                          const r = responses.find((x) =>
-                            x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409
-                          )
-                          if (r) {
-                            return yield* Effect.fail(
-                              new OptimisticConcurrencyException(
-                                {
-                                  type: name,
-                                  id: JSON.stringify(r.resourceBody?.["id"]),
-                                  code: r.statusCode,
-                                  raw: responses
-                                }
-                              )
-                            )
-                          }
-                          const r2 = responses.find(
-                            (x) => x.statusCode !== 424 && (x.statusCode > 299 || x.statusCode < 200)
-                          )
-                          if (r2) {
-                            return yield* new DatabaseError({
-                              message: "not able to update records: " + r2.statusCode,
-                              transient: statusIsTransient(r2.statusCode),
-                              cause: responses
-                            })
-                          }
-                          const r3 = responses.find(
-                            (x) => x.statusCode > 299 || x.statusCode < 200
-                          )
-                          if (r3) {
-                            return yield* new DatabaseError({
-                              message: "not able to update records: " + r3.statusCode,
-                              transient: statusIsTransient(r3.statusCode),
-                              cause: responses
-                            })
-                          }
-                          return batch.map(([e], i) => ({
-                            ...e,
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            _etag: responses[i]!.eTag
-                          }))
+          const batchResult = yield* Effect.forEach(
+            batches.map((x, i) => [i, x] as const),
+            ([i, batch]) =>
+              tryCosmos(() => bulk(batch.map(([, op]) => op))).pipe(
+                Effect.delay(Duration.millis(i === 0 ? 0 : 150)),
+                Effect.flatMap((responses) =>
+                  Effect.gen(function* () {
+                    const r = responses.find(
+                      (x) => x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409
+                    )
+                    if (r) {
+                      return yield* Effect.fail(
+                        new OptimisticConcurrencyException({
+                          type: name,
+                          id: JSON.stringify(r.resourceBody?.["id"]),
+                          code: r.statusCode,
+                          raw: responses
                         })
                       )
-                  )
-            )
-
-            return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
-          })
-          .pipe(
-            annotateDb({
-              operation: "bulkSet",
-              system: "cosmosdb",
-              collection: containerId,
-              namespace: ns,
-              entity: name
-            })
+                    }
+                    const r2 = responses.find((x) => x.statusCode !== 424 && (x.statusCode > 299 || x.statusCode < 200))
+                    if (r2) {
+                      return yield* new DatabaseError({
+                        message: "not able to update records: " + r2.statusCode,
+                        transient: statusIsTransient(r2.statusCode),
+                        cause: responses
+                      })
+                    }
+                    const r3 = responses.find((x) => x.statusCode > 299 || x.statusCode < 200)
+                    if (r3) {
+                      return yield* new DatabaseError({
+                        message: "not able to update records: " + r3.statusCode,
+                        transient: statusIsTransient(r3.statusCode),
+                        cause: responses
+                      })
+                    }
+                    return batch.map(([e], i) => ({
+                      ...e,
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      _etag: responses[i]!.eTag
+                    }))
+                  })
+                )
+              )
           )
+
+          return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
+        }).pipe(
+          annotateDb({
+            operation: "bulkSet",
+            system: "cosmosdb",
+            collection: containerId,
+            namespace: ns,
+            entity: name
+          })
+        )
 
       const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
         resolveNamespace.pipe(Effect.flatMap((ns) => bulkSetInternal(items, ns)))
 
       const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
-        return resolveNamespace
-          .pipe(Effect.flatMap((ns) =>
-            Effect
-              .suspend(() => {
-                const batch = [...items].map(
-                  (x) =>
-                    [
-                      x,
-                      Option.match(Option.fromNullishOr(x._etag), {
-                        onNone: () => ({
-                          operationType: "Create" as const,
-                          resourceBody: {
-                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
-                            id: x[idKey],
-                            _partitionKey: nsPartitionValue(ns, x)
-                          }
-                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                          // partitionKey: config?.partitionValue(x)
-                        }),
-                        onSome: (eTag) => ({
-                          operationType: "Replace" as const,
+        return resolveNamespace.pipe(
+          Effect.flatMap((ns) =>
+            Effect.suspend(() => {
+              const batch = [...items].map(
+                (x) =>
+                  [
+                    x,
+                    Option.match(Option.fromNullishOr(x._etag), {
+                      onNone: () => ({
+                        operationType: "Create" as const,
+                        resourceBody: {
+                          ...Struct.omit(codec.encode(x), ["_etag", idKey]),
                           id: x[idKey],
-                          resourceBody: {
-                            ...Struct.omit(codec.encode(x), ["_etag", idKey]),
-                            id: x[idKey],
-                            _partitionKey: nsPartitionValue(ns, x)
-                          },
-                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                          // partitionKey: config?.partitionValue(x)
-                          ifMatch: eTag
-                        })
+                          _partitionKey: nsPartitionValue(ns, x)
+                        }
+                        // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                        // partitionKey: config?.partitionValue(x)
+                      }),
+                      onSome: (eTag) => ({
+                        operationType: "Replace" as const,
+                        id: x[idKey],
+                        resourceBody: {
+                          ...Struct.omit(codec.encode(x), ["_etag", idKey]),
+                          id: x[idKey],
+                          _partitionKey: nsPartitionValue(ns, x)
+                        },
+                        // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                        // partitionKey: config?.partitionValue(x)
+                        ifMatch: eTag
                       })
-                    ] as const
-                )
+                    })
+                  ] as const
+              )
 
-                const ex = batch.map(([, c]) => c)
+              const ex = batch.map(([, c]) => c)
 
-                return tryCosmos(() => execBatch(ex, ex[0]?.resourceBody._partitionKey))
-                  .pipe(Effect.flatMap(Effect.fnUntraced(function*(x) {
+              return tryCosmos(() => execBatch(ex, ex[0]?.resourceBody._partitionKey)).pipe(
+                Effect.flatMap(
+                  Effect.fnUntraced(function* (x) {
                     const result = x.result ?? []
-                    const firstFailed = result.find(
-                      (x: any) => x.statusCode > 299 || x.statusCode < 200
-                    )
+                    const firstFailed = result.find((x: any) => x.statusCode > 299 || x.statusCode < 200)
                     if (firstFailed) {
                       const code = firstFailed.statusCode ?? 0
                       if (code === 412 || code === 404 || code === 409) {
@@ -372,65 +364,65 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                       ...e,
                       _etag: result[i]?.eTag
                     })) as unknown as NonEmptyReadonlyArray<Encoded>
-                  })))
-              })
-              .pipe(annotateDb({
+                  })
+                )
+              )
+            }).pipe(
+              annotateDb({
                 operation: "batchSet",
                 system: "cosmosdb",
                 collection: containerId,
                 namespace: ns,
                 entity: name
-              }))
-          ))
+              })
+            )
+          )
+        )
       }
 
       const s: Store<IdKey, Encoded> = {
         seedNamespace: (ns) => seedNamespace(ns),
 
         queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
-          Effect
-            .all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveNamespace })
-            .pipe(
-              Effect.tap(({ q }) => logQuery(q)),
-              Effect.flatMap(({ ns, q }) =>
-                Effect
-                  .gen(function*() {
-                    const response = yield* tryCosmos(() =>
-                      container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
-                    )
-                    yield* annotateFeed(response)
-                    return response.resources.map(
-                      (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
-                    )
-                  })
-                  .pipe(
-                    annotateDb({
-                      operation: "queryRaw",
-                      system: "cosmosdb",
-                      collection: containerId,
-                      namespace: ns,
-                      entity: name,
-                      query: q.query
-                    })
-                  )
-              )
-            ),
-        batchRemove: (ids, partitionKey?: string) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            tryCosmos(() =>
-              execBatch(
-                mutable(ids.map((id) =>
-                  dropUndefinedT({
-                    operationType: "Delete" as const,
-                    id
-                    // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                    // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
-                  })
-                )),
-                partitionKey ?? nsBasePartitionKey(ns)
+          Effect.all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveNamespace }).pipe(
+            Effect.tap(({ q }) => logQuery(q)),
+            Effect.flatMap(({ ns, q }) =>
+              Effect.gen(function* () {
+                const response = yield* tryCosmos(() =>
+                  container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                )
+                yield* annotateFeed(response)
+                return response.resources.map((_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out)
+              }).pipe(
+                annotateDb({
+                  operation: "queryRaw",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  namespace: ns,
+                  entity: name,
+                  query: q.query
+                })
               )
             )
-              .pipe(
+          ),
+        batchRemove: (ids, partitionKey?: string) =>
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              tryCosmos(() =>
+                execBatch(
+                  mutable(
+                    ids.map((id) =>
+                      dropUndefinedT({
+                        operationType: "Delete" as const,
+                        id
+                        // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                        // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                      })
+                    )
+                  ),
+                  partitionKey ?? nsBasePartitionKey(ns)
+                )
+              ).pipe(
                 annotateDb({
                   operation: "batchRemove",
                   system: "cosmosdb",
@@ -439,194 +431,175 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                   entity: name
                 })
               )
-          )),
-        all: Effect
-          .all({
-            q: Effect.sync(() => ({
-              query: `SELECT * FROM ${name}`,
-              parameters: []
-            })),
-            ns: resolveNamespace
-          })
-          .pipe(
-            Effect.tap(({ q }) => logQuery(q)),
-            Effect.flatMap(({ ns, q }) =>
-              Effect
-                .gen(function*() {
-                  const response = yield* tryCosmos(() =>
-                    container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
-                  )
-                  yield* annotateFeed(response)
-                  return yield* Effect.fromResult(
-                    decodeStoredMany(response.resources, (_) => fromStored(_ as unknown as Encoded))
-                  )
-                })
-                .pipe(
-                  annotateDb({
-                    operation: "all",
-                    system: "cosmosdb",
-                    collection: containerId,
-                    namespace: ns,
-                    entity: name,
-                    query: q.query
-                  })
-                )
             )
           ),
-        /**
-         * May return duplicate results for "join_find", when matching more than once.
-         */
-        filter: <U extends keyof Encoded = never>(
-          f: FilterArgs<Encoded, U>
-        ) => {
-          const skip = f?.skip
-          const limit = f?.limit
-          const filter = f.filter
-          type M = U extends undefined ? Encoded : Pick<Encoded, U>
-          return Effect
-            .all({
-              q: Effect.sync(() =>
-                buildWhereCosmosQuery3(
-                  idKey,
-                  filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
-                  name,
-                  defaultValues,
-                  f.select as
-                    | NonEmptyReadonlyArray<
-                      string | {
-                        key: string
-                        subKeys: readonly string[]
-                      } | {
-                        key: string
-                        computed: ComputedProjectionIrExpression
-                      }
-                    >
-                    | undefined,
-                  f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
-                  skip,
-                  limit,
-                  json
-                )
-              ),
-              ns: resolveNamespace
-            })
-            .pipe(
-              Effect.tap(({ q }) => logQuery(q)),
-              Effect
-                .flatMap(({ ns, q }) =>
-                  Effect
-                    .gen(function*() {
-                      if (f.select) {
-                        const response = yield* tryCosmos(() =>
-                          container.items.query<M>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
-                        )
-                        yield* annotateFeed(response)
-                        return response.resources.map((_) => ({
-                          ...pipe(
-                            defaultValues,
-                            Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
-                          ),
-                          ...mapReverseId(_ as any)
-                        }))
-                      }
-                      const response = yield* tryCosmos(() =>
-                        container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
-                      )
-                      yield* annotateFeed(response)
-                      const decoded = yield* Effect.fromResult(
-                        decodeStoredMany(response.resources, ({ f }) => fromStored(f as Encoded))
-                      )
-                      return decoded as any
-                    })
-                    .pipe(
-                      annotateDb({
-                        operation: "filter",
-                        system: "cosmosdb",
-                        collection: containerId,
-                        namespace: ns,
-                        entity: name,
-                        query: q.query
-                      })
-                    )
-                )
-            )
-        },
-        find: (id) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            Effect
-              .gen(function*() {
-                const response = yield* tryCosmos(() =>
-                  container
-                    .item(id, nsPartitionValue(ns, { [idKey]: id } as Encoded))
-                    .read<Encoded>()
-                )
-                yield* annotateItem(response)
-                return yield* Effect.fromResult(
-                  decodeStoredOption(Option.fromNullishOr(response.resource), fromStored)
-                )
-              })
-              .pipe(annotateDb({
-                operation: "find",
+        all: Effect.all({
+          q: Effect.sync(() => ({
+            query: `SELECT * FROM ${name}`,
+            parameters: []
+          })),
+          ns: resolveNamespace
+        }).pipe(
+          Effect.tap(({ q }) => logQuery(q)),
+          Effect.flatMap(({ ns, q }) =>
+            Effect.gen(function* () {
+              const response = yield* tryCosmos(() =>
+                container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+              )
+              yield* annotateFeed(response)
+              return yield* Effect.fromResult(
+                decodeStoredMany(response.resources, (_) => fromStored(_ as unknown as Encoded))
+              )
+            }).pipe(
+              annotateDb({
+                operation: "all",
                 system: "cosmosdb",
                 collection: containerId,
                 namespace: ns,
                 entity: name,
-                extra: {
-                  "azure.cosmosdb.operation.partition_key": nsPartitionValue(ns, { [idKey]: id } as Encoded),
-                  "app.entity.id": id
-                }
-              }))
-          )),
-        set: (e) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            // Annotate the result so the create/replace promise union collapses to
-            // one type (otherwise `A` infers as `unknown` and the chain degrades).
-            tryCosmos((): Promise<{ statusCode: number; etag: string }> =>
-              Option
-                .match(
-                  Option
-                    .fromNullishOr(e._etag),
-                  {
-                    onNone: () =>
-                      container.items.create({
-                        ...mapId(codec.encode(e)),
-                        _partitionKey: nsPartitionValue(ns, e)
-                      }),
-                    onSome: (eTag) =>
-                      container.item(e[idKey], nsPartitionValue(ns, e)).replace(
-                        { ...mapId(codec.encode(e)), _partitionKey: nsPartitionValue(ns, e) },
-                        {
-                          accessCondition: {
-                            type: "IfMatch",
-                            condition: eTag
-                          }
-                        }
-                      )
-                  }
-                )
+                query: q.query
+              })
             )
-              .pipe(
-                Effect
-                  .flatMap((x): Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError> => {
-                    if (x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409) {
-                      return Effect.fail(
-                        new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
-                      )
-                    }
-                    if (x.statusCode > 299 || x.statusCode < 200) {
-                      return Effect.fail(
-                        new DatabaseError({
-                          message: "not able to update record: " + x.statusCode,
-                          transient: statusIsTransient(x.statusCode),
-                          cause: x
-                        })
-                      )
-                    }
-                    return Effect.sync(() => ({
-                      ...e,
-                      _etag: x.etag
-                    }))
-                  }),
+          )
+        ),
+        /**
+         * May return duplicate results for "join_find", when matching more than once.
+         */
+        filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
+          const skip = f?.skip
+          const limit = f?.limit
+          const filter = f.filter
+          type M = U extends undefined ? Encoded : Pick<Encoded, U>
+          return Effect.all({
+            q: Effect.sync(() =>
+              buildWhereCosmosQuery3(
+                idKey,
+                filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
+                name,
+                defaultValues,
+                f.select as
+                  | NonEmptyReadonlyArray<
+                      | string
+                      | {
+                          key: string
+                          subKeys: readonly string[]
+                        }
+                      | {
+                          key: string
+                          computed: ComputedProjectionIrExpression
+                        }
+                    >
+                  | undefined,
+                f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                skip,
+                limit,
+                json
+              )
+            ),
+            ns: resolveNamespace
+          }).pipe(
+            Effect.tap(({ q }) => logQuery(q)),
+            Effect.flatMap(({ ns, q }) =>
+              Effect.gen(function* () {
+                if (f.select) {
+                  const response = yield* tryCosmos(() =>
+                    container.items.query<M>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                  )
+                  yield* annotateFeed(response)
+                  return response.resources.map((_) => ({
+                    ...pipe(defaultValues, Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])),
+                    ...mapReverseId(_ as any)
+                  }))
+                }
+                const response = yield* tryCosmos(() =>
+                  container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                )
+                yield* annotateFeed(response)
+                const decoded = yield* Effect.fromResult(
+                  decodeStoredMany(response.resources, ({ f }) => fromStored(f as Encoded))
+                )
+                return decoded as any
+              }).pipe(
+                annotateDb({
+                  operation: "filter",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  namespace: ns,
+                  entity: name,
+                  query: q.query
+                })
+              )
+            )
+          )
+        },
+        find: (id) =>
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              Effect.gen(function* () {
+                const response = yield* tryCosmos(() =>
+                  container.item(id, nsPartitionValue(ns, { [idKey]: id } as Encoded)).read<Encoded>()
+                )
+                yield* annotateItem(response)
+                return yield* Effect.fromResult(decodeStoredOption(Option.fromNullishOr(response.resource), fromStored))
+              }).pipe(
+                annotateDb({
+                  operation: "find",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  namespace: ns,
+                  entity: name,
+                  extra: {
+                    "azure.cosmosdb.operation.partition_key": nsPartitionValue(ns, { [idKey]: id } as Encoded),
+                    "app.entity.id": id
+                  }
+                })
+              )
+            )
+          ),
+        set: (e) =>
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              // Annotate the result so the create/replace promise union collapses to
+              // one type (otherwise `A` infers as `unknown` and the chain degrades).
+              tryCosmos((): Promise<{ statusCode: number; etag: string }> =>
+                Option.match(Option.fromNullishOr(e._etag), {
+                  onNone: () =>
+                    container.items.create({
+                      ...mapId(codec.encode(e)),
+                      _partitionKey: nsPartitionValue(ns, e)
+                    }),
+                  onSome: (eTag) =>
+                    container.item(e[idKey], nsPartitionValue(ns, e)).replace(
+                      { ...mapId(codec.encode(e)), _partitionKey: nsPartitionValue(ns, e) },
+                      {
+                        accessCondition: {
+                          type: "IfMatch",
+                          condition: eTag
+                        }
+                      }
+                    )
+                })
+              ).pipe(
+                Effect.flatMap((x): Effect.Effect<PM, OptimisticConcurrencyException | DatabaseError> => {
+                  if (x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409) {
+                    return Effect.fail(
+                      new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
+                    )
+                  }
+                  if (x.statusCode > 299 || x.statusCode < 200) {
+                    return Effect.fail(
+                      new DatabaseError({
+                        message: "not able to update record: " + x.statusCode,
+                        transient: statusIsTransient(x.statusCode),
+                        cause: x
+                      })
+                    )
+                  }
+                  return Effect.sync(() => ({
+                    ...e,
+                    _etag: x.etag
+                  }))
+                }),
                 annotateDb({
                   operation: "set",
                   system: "cosmosdb",
@@ -636,7 +609,8 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
                   extra: { "app.entity.id": e[idKey] }
                 })
               )
-          )),
+            )
+          ),
         batchSet,
         bulkSet
       }
@@ -650,7 +624,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ autoscaleMaxThroughput, pr
 })
 
 export function CosmosStoreLayer(cfg: StorageConfig) {
-  return StoreMaker
-    .toLayer(makeCosmosStore(cfg))
-    .pipe(Layer.provide(CosmosClientLayer(Redacted.value(cfg.url), cfg.dbName)))
+  return StoreMaker.toLayer(makeCosmosStore(cfg)).pipe(
+    Layer.provide(CosmosClientLayer(Redacted.value(cfg.url), cfg.dbName))
+  )
 }

@@ -41,18 +41,19 @@ export const prepareNumberForLocale = (v: string) => v.replace(/\./g, "").replac
 /** @deprecated Use OmegaForm instead */
 export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   v = v == null ? v : v.trim()
-  const c = v === ""
-    ? null
-    : type === "float"
-    ? parseFloat(v)
-    : type === "int"
-    ? (() => {
-      const asFloat = parseFloat(v)
-      const asInt = parseInt(v)
-      // if float and int differ, there's a decimal part - keep as float to fail integer validation
-      return asFloat !== asInt ? asFloat : asInt
-    })()
-    : v
+  const c =
+    v === ""
+      ? null
+      : type === "float"
+        ? parseFloat(v)
+        : type === "int"
+          ? (() => {
+              const asFloat = parseFloat(v)
+              const asInt = parseInt(v)
+              // if float and int differ, there's a decimal part - keep as float to fail integer validation
+              return asFloat !== asInt ? asFloat : asInt
+            })()
+          : v
   return c
 }
 
@@ -80,9 +81,11 @@ export interface DiscriminatedUnionFieldInfo<T> {
 }
 
 export type NestedFieldInfoKey<Key> = [Key] extends [Record<PropertyKey, any>]
-  ? Unbranded<Key> extends (string | number | boolean | bigint | symbol) ? FieldInfo<Key>
-  : Unbranded<Key> extends Record<PropertyKey, any> ? NestedFieldInfo<Key>
-  : FieldInfo<Key>
+  ? Unbranded<Key> extends string | number | boolean | bigint | symbol
+    ? FieldInfo<Key>
+    : Unbranded<Key> extends Record<PropertyKey, any>
+      ? NestedFieldInfo<Key>
+      : FieldInfo<Key>
   : FieldInfo<Key>
 
 export type DistributiveNestedFieldInfoKey<Key> = Key extends any ? NestedFieldInfoKey<Key> : never
@@ -91,18 +94,19 @@ export type NestedFieldInfo<To extends Record<PropertyKey, any>> = // exploit ev
   {
     fields: {
       [K in keyof To]-?: {
-        "true": {
-          "true": To[K] extends { "_tag": string } ? DiscriminatedUnionFieldInfo<
-              { [P in DistributiveNestedFieldInfoKey<To[K]> as (P["_infoTag" & keyof P] & string)]: P }
-            >
+        true: {
+          true: To[K] extends { _tag: string }
+            ? DiscriminatedUnionFieldInfo<{
+                [P in DistributiveNestedFieldInfoKey<To[K]> as P["_infoTag" & keyof P] & string]: P
+              }>
             : UnionFieldInfo<DistributiveNestedFieldInfoKey<To[K]>[]>
-          "false": NestedFieldInfoKey<To[K]>
+          false: NestedFieldInfoKey<To[K]>
         }[`${To[K] extends object ? true : false}`]
-        "false": NestedFieldInfoKey<To[K]>
+        false: NestedFieldInfoKey<To[K]>
       }[`${IsUnion<To[K]>}`]
     }
     _tag: "NestedFieldInfo"
-    _infoTag: To extends { "_tag": string } ? To["_tag"] : undefined
+    _infoTag: To extends { _tag: string } ? To["_tag"] : undefined
   }
 
 function handlePropertySignature(
@@ -111,41 +115,29 @@ function handlePropertySignature(
   | NestedFieldInfo<Record<PropertyKey, any>>
   | FieldInfo<any>
   | UnionFieldInfo<(NestedFieldInfo<Record<PropertyKey, any>> | FieldInfo<any>)[]>
-  | DiscriminatedUnionFieldInfo<Record<PropertyKey, any>>
-{
+  | DiscriminatedUnionFieldInfo<Record<PropertyKey, any>> {
   const schema = S.make(propertySignature.type)
 
   if (S.AST.isDeclaration(schema.ast)) {
     const tl = getObjectsAST(schema.ast)
     return tl
-      ? handlePropertySignature(
-        new S.AST.PropertySignature(
-          propertySignature.name,
-          tl
-        )
-      )
+      ? handlePropertySignature(new S.AST.PropertySignature(propertySignature.name, tl))
       : buildFieldInfo(propertySignature)
   }
 
   switch (schema.ast._tag) {
     case "Objects": {
-      return buildFieldInfoFromFieldsRoot(
-        schema as S.Codec<Record<PropertyKey, any>>
-      )
+      return buildFieldInfoFromFieldsRoot(schema as S.Codec<Record<PropertyKey, any>>)
     }
     case "Union": {
       const allTypeLiterals = schema.ast.types.every(getObjectsAST)
 
       if (allTypeLiterals) {
-        const members = schema
-          .ast
-          .types
-          .map((elAst) =>
-            // syntehtic property signature as if each union member were the only member
-            new S.AST.PropertySignature(
-              propertySignature.name,
-              elAst
-            )
+        const members = schema.ast.types
+          .map(
+            (elAst) =>
+              // syntehtic property signature as if each union member were the only member
+              new S.AST.PropertySignature(propertySignature.name, elAst)
           )
           .flatMap((ps) => {
             // try to retrieve the _tag literal to set _infoTag later
@@ -154,17 +146,14 @@ function handlePropertySignature(
             const tagPropertySignature = typeLiteral?.propertySignatures.find((_) => _.name === "_tag")
             // unwrap single-element Union to Literal (S.Struct({ _tag: S.Literal("x") }) wraps as Union([Literal("x")]))
             const tagType = tagPropertySignature
-              ? S.AST.isUnion(tagPropertySignature.type)
-                  && tagPropertySignature.type.types.length === 1
-                  && S.AST.isLiteral(tagPropertySignature.type.types[0]!)
+              ? S.AST.isUnion(tagPropertySignature.type) &&
+                tagPropertySignature.type.types.length === 1 &&
+                S.AST.isLiteral(tagPropertySignature.type.types[0]!)
                 ? tagPropertySignature.type.types[0]
                 : tagPropertySignature.type
               : undefined
-            const tagLiteral = tagType
-                && S.AST.isLiteral(tagType)
-                && typeof tagType.literal === "string"
-              ? tagType.literal
-              : void 0
+            const tagLiteral =
+              tagType && S.AST.isLiteral(tagType) && typeof tagType.literal === "string" ? tagType.literal : void 0
 
             const toRet = handlePropertySignature(ps)
 
@@ -184,12 +173,15 @@ function handlePropertySignature(
 
         if (isDiscriminatedUnion) {
           return {
-            members: members.reduce((acc, cur) => {
-              // see the definiton of isDiscriminatedUnion
-              const tag = (cur as NestedFieldInfo<Record<PropertyKey, any>>)._infoTag as unknown as string
-              acc[tag] = cur
-              return acc
-            }, {} as Record<string, NestedFieldInfo<Record<PropertyKey, any>> | FieldInfo<any>>),
+            members: members.reduce(
+              (acc, cur) => {
+                // see the definiton of isDiscriminatedUnion
+                const tag = (cur as NestedFieldInfo<Record<PropertyKey, any>>)._infoTag as unknown as string
+                acc[tag] = cur
+                return acc
+              },
+              {} as Record<string, NestedFieldInfo<Record<PropertyKey, any>> | FieldInfo<any>>
+            ),
             _tag: "DiscriminatedUnionFieldInfo"
           }
         } else {
@@ -207,11 +199,8 @@ function handlePropertySignature(
 }
 
 /** @deprecated Use OmegaForm instead */
-export function buildFieldInfoFromFields<
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>
->(
-  schema: (S.Codec<To, From>) & { fields?: S.Struct.Fields }
+export function buildFieldInfoFromFields<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>>(
+  schema: S.Codec<To, From> & { fields?: S.Struct.Fields }
 ) {
   return buildFieldInfoFromFieldsRoot(schema).fields
 }
@@ -221,9 +210,7 @@ export function buildFieldInfoFromFieldsRoot<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   R
->(
-  schema: (S.Codec<To, From, R>) & { fields?: S.Struct.Fields }
-): NestedFieldInfo<To> {
+>(schema: S.Codec<To, From, R> & { fields?: S.Struct.Fields }): NestedFieldInfo<To> {
   const ast = getObjectsAST(schema.ast)
 
   if (!ast) throw new Error("not a struct type")
@@ -243,10 +230,7 @@ export interface FieldMetadata {
   required: boolean
 }
 
-abstract class PhantomTypeParameter<
-  Identifier extends keyof any,
-  InstantiatedType
-> {
+abstract class PhantomTypeParameter<Identifier extends keyof any, InstantiatedType> {
   protected abstract readonly _: {
     readonly [NameP in Identifier]: (_: InstantiatedType) => InstantiatedType
   }
@@ -261,29 +245,30 @@ export const customSchemaErrors = ref<Map<S.AST.AST | string, (message: string, 
   new Map()
 )
 
-function buildFieldInfo(
-  property: S.AST.PropertySignature
-): FieldInfo<any> {
+function buildFieldInfo(property: S.AST.PropertySignature): FieldInfo<any> {
   const propertyKey = property.name
   const schema = S.make<S.Codec<unknown>>(property.type)
   const metadata = getMetadataFromSchema(property.type)
   const parse = S.decodeUnknownExit(schema)
 
-  const nullableOrUndefined = S.AST.isUnion(property.type)
-    && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
-  const realSelf = nullableOrUndefined && S.AST.isUnion(property.type)
-    ? property.type.types.find((_) => _ !== S.Null.ast && _._tag !== "Undefined")!
-    : property.type
+  const nullableOrUndefined =
+    S.AST.isUnion(property.type) &&
+    (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
+  const realSelf =
+    nullableOrUndefined && S.AST.isUnion(property.type)
+      ? property.type.types.find((_) => _ !== S.Null.ast && _._tag !== "Undefined")!
+      : property.type
   const id = S.AST.resolveIdentifier(property.type)
   const id2 = S.AST.resolveIdentifier(realSelf)
 
   function renderError(e: S.SchemaError, v: unknown) {
     const err = e.toString()
 
-    const custom = customSchemaErrors.value.get(property.type)
-      ?? customSchemaErrors.value.get(realSelf)
-      ?? (id ? customSchemaErrors.value.get(id) : undefined)
-      ?? (id2 ? customSchemaErrors.value.get(id2) : undefined)
+    const custom =
+      customSchemaErrors.value.get(property.type) ??
+      customSchemaErrors.value.get(realSelf) ??
+      (id ? customSchemaErrors.value.get(id) : undefined) ??
+      (id2 ? customSchemaErrors.value.get(id2) : undefined)
 
     if (custom) {
       return custom(err, e, v)
@@ -324,52 +309,64 @@ function buildFieldInfo(
 
   const stringRules = [
     (v: string | null) =>
-      v === null
-      || metadata.minLength === undefined
-      || v.length >= metadata.minLength
-      || translate.value({
-        defaultMessage: "The field requires at least {minLength} characters",
-        id: "validation.string.minLength"
-      }, {
-        minLength: metadata.minLength
-      }),
+      v === null ||
+      metadata.minLength === undefined ||
+      v.length >= metadata.minLength ||
+      translate.value(
+        {
+          defaultMessage: "The field requires at least {minLength} characters",
+          id: "validation.string.minLength"
+        },
+        {
+          minLength: metadata.minLength
+        }
+      ),
     (v: string | null) =>
-      v === null
-      || metadata.maxLength === undefined
-      || v.length <= metadata.maxLength
-      || translate.value({
-        defaultMessage: "The field cannot have more than {maxLength} characters",
-        id: "validation.string.maxLength"
-      }, {
-        maxLength: metadata.maxLength
-      })
+      v === null ||
+      metadata.maxLength === undefined ||
+      v.length <= metadata.maxLength ||
+      translate.value(
+        {
+          defaultMessage: "The field cannot have more than {maxLength} characters",
+          id: "validation.string.maxLength"
+        },
+        {
+          maxLength: metadata.maxLength
+        }
+      )
   ]
 
   const numberRules = [
     (v: number | null) =>
-      v === null
-      || (metadata.minimum === undefined && metadata.exclusiveMinimum === undefined)
-      || metadata.exclusiveMinimum !== undefined && v > metadata.exclusiveMinimum
-      || metadata.minimum !== undefined && v >= metadata.minimum
-      || translate.value({
-        defaultMessage: "The value should be {isExclusive, select, true {larger than} other {at least}} {minimum}",
-        id: "validation.number.min"
-      }, {
-        isExclusive: metadata.exclusiveMinimum !== undefined,
-        minimum: metadata.exclusiveMinimum ?? metadata.minimum
-      }),
+      v === null ||
+      (metadata.minimum === undefined && metadata.exclusiveMinimum === undefined) ||
+      (metadata.exclusiveMinimum !== undefined && v > metadata.exclusiveMinimum) ||
+      (metadata.minimum !== undefined && v >= metadata.minimum) ||
+      translate.value(
+        {
+          defaultMessage: "The value should be {isExclusive, select, true {larger than} other {at least}} {minimum}",
+          id: "validation.number.min"
+        },
+        {
+          isExclusive: metadata.exclusiveMinimum !== undefined,
+          minimum: metadata.exclusiveMinimum ?? metadata.minimum
+        }
+      ),
     (v: number | null) =>
-      v === null
-      || (metadata.maximum === undefined && metadata.exclusiveMaximum === undefined)
-      || metadata.exclusiveMaximum !== undefined && v < metadata.exclusiveMaximum
-      || metadata.maximum !== undefined && v <= metadata.maximum
-      || translate.value({
-        defaultMessage: "The value should be {isExclusive, select, true {smaller than} other {at most}} {maximum}",
-        id: "validation.number.max"
-      }, {
-        isExclusive: metadata.exclusiveMaximum !== undefined,
-        maximum: metadata.exclusiveMaximum ?? metadata.maximum
-      })
+      v === null ||
+      (metadata.maximum === undefined && metadata.exclusiveMaximum === undefined) ||
+      (metadata.exclusiveMaximum !== undefined && v < metadata.exclusiveMaximum) ||
+      (metadata.maximum !== undefined && v <= metadata.maximum) ||
+      translate.value(
+        {
+          defaultMessage: "The value should be {isExclusive, select, true {smaller than} other {at most}} {maximum}",
+          id: "validation.number.max"
+        },
+        {
+          isExclusive: metadata.exclusiveMaximum !== undefined,
+          maximum: metadata.exclusiveMaximum ?? metadata.maximum
+        }
+      )
   ]
 
   const parseRule = (v: unknown) =>
@@ -386,11 +383,11 @@ function buildFieldInfo(
 
   type UnknownRule = (v: unknown) => boolean | string
   const rules: UnknownRule[] = [
-    ...(metadata.type === "text"
+    ...((metadata.type === "text"
       ? stringRules
       : metadata.type === "float" || metadata.type === "int"
-      ? numberRules
-      : []) as UnknownRule[],
+        ? numberRules
+        : []) as UnknownRule[]),
     parseRule
   ]
 
@@ -398,9 +395,9 @@ function buildFieldInfo(
     type: metadata.type,
     rules: [
       (v: string) =>
-        !metadata.required
-        || v !== ""
-        || translate.value({ defaultMessage: "The field cannot be empty", id: "validation.empty" }),
+        !metadata.required ||
+        v !== "" ||
+        translate.value({ defaultMessage: "The field cannot be empty", id: "validation.empty" }),
       (v: string) => {
         const converted = convertOutInt(v, metadata.type)
 
@@ -422,9 +419,7 @@ function buildFieldInfo(
 }
 
 /** @deprecated Use OmegaForm instead */
-export function getMetadataFromSchema(
-  ast: S.AST.AST
-): {
+export function getMetadataFromSchema(ast: S.AST.AST): {
   type: "int" | "float" | "text"
   minimum?: number
   maximum?: number
@@ -435,10 +430,7 @@ export function getMetadataFromSchema(
   required: boolean
   description?: string
 } {
-  const findJsonSchemaType = (
-    schema: any,
-    target: "number" | "integer"
-  ): boolean => {
+  const findJsonSchemaType = (schema: any, target: "number" | "integer"): boolean => {
     if (!schema || typeof schema !== "object") {
       return false
     }
@@ -451,15 +443,13 @@ export function getMetadataFromSchema(
       return true
     }
 
-    return ["anyOf", "oneOf", "allOf"].some((key) =>
-      Array.isArray(schema[key]) && schema[key].some((member: any) => findJsonSchemaType(member, target))
+    return ["anyOf", "oneOf", "allOf"].some(
+      (key) => Array.isArray(schema[key]) && schema[key].some((member: any) => findJsonSchemaType(member, target))
     )
   }
 
   const nullable = S.AST.isUnion(ast) && ast.types.includes(S.Null.ast)
-  const realSelf = nullable && S.AST.isUnion(ast)
-    ? ast.types.find((_) => _ !== S.Null.ast)!
-    : ast
+  const realSelf = nullable && S.AST.isUnion(ast) ? ast.types.find((_) => _ !== S.Null.ast)! : ast
 
   let jschema: any
   try {
@@ -488,7 +478,7 @@ export function getMetadataFromSchema(
   const isInt = findJsonSchemaType(jschema, "integer")
   const isNumber = isInt || findJsonSchemaType(jschema, "number")
   return {
-    type: isInt ? "int" as const : isNumber ? "float" as const : "text" as const,
+    type: isInt ? ("int" as const) : isNumber ? ("float" as const) : ("text" as const),
     minimum: jschema.minimum,
     exclusiveMinimum: jschema.exclusiveMinimum,
     maximum: jschema.maximum,

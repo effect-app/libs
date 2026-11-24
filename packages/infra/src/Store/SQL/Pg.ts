@@ -5,7 +5,15 @@ import * as Effect from "effect-app/Effect"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import type { ComputedProjectionIrExpression } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
+import {
+  type FilterArgs,
+  type PersistenceModelType,
+  type StorageConfig,
+  type Store,
+  type StoreConfig,
+  storeId,
+  StoreMaker
+} from "effect-app/Store"
 import { SqlClient } from "effect/sql"
 import * as Struct from "effect/Struct"
 import { DatabaseError, OptimisticConcurrencyException } from "../../errors.ts"
@@ -15,7 +23,7 @@ import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStored
 import { makeETag, makeJsonLower, toJsonQueryValue } from "../utils.ts"
 import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.ts"
 
-const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
+const sqlErrorMessage = (e: unknown) => ((e as any)?.message ? String((e as any).message) : String(e))
 const sqlIsTransient = (e: unknown) =>
   /timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|connection|deadlock|too many connections/i.test(sqlErrorMessage(e))
 // Map a SqlError into a typed, serializable DatabaseError (instead of `.orDie`,
@@ -65,10 +73,10 @@ const parseSelectRow = (
   return result
 }
 
-const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
+const makePgStore = Effect.fnUntraced(function* ({ prefix }: StorageConfig) {
   const sql = yield* SqlClient.SqlClient
   return {
-    make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+    make: Effect.fnUntraced(function* <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
       name: string,
       idKey: IdKey,
       seed?: Effect.Effect<Iterable<Encoded>, E, R>,
@@ -86,12 +94,14 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
-        : storeId.pipe(Effect.map((namespace) => {
-          if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
-            throw new Error(`Namespace ${namespace} not allowed!`)
-          }
-          return namespace
-        }))
+        : storeId.pipe(
+            Effect.map((namespace) => {
+              if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
+                throw new Error(`Namespace ${namespace} not allowed!`)
+              }
+              return namespace
+            })
+          )
 
       const ensureTable = sql
         .unsafe(
@@ -118,17 +128,17 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const exec = (query: string, params?: readonly unknown[]) =>
         sql.unsafe(query, params as any).pipe(Effect.mapError(toDatabaseError))
 
-      const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
+      const setInternal = Effect.fnUntraced(function* (e: PM, ns: string) {
         const row = toRow(e)
         if (e._etag) {
           yield* exec(
             `UPDATE "${tableName}" SET _etag = $1, data = $2 WHERE id = $3 AND _etag = $4 AND _namespace = $5`,
             [row._etag, row.data, row.id, e._etag, ns]
           )
-          const existing = yield* exec(
-            `SELECT _etag FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
-            [row.id, ns]
-          )
+          const existing = yield* exec(`SELECT _etag FROM "${tableName}" WHERE id = $1 AND _namespace = $2`, [
+            row.id,
+            ns
+          ])
           const current = (existing as any[])[0]
           if (!current || current._etag !== row._etag) {
             if (current) {
@@ -149,45 +159,40 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             })
           }
         } else {
-          yield* exec(
-            `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
-            [row.id, ns, row._etag, row.data]
-          )
+          yield* exec(`INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`, [
+            row.id,
+            ns,
+            row._etag,
+            row.data
+          ])
         }
         return row.item
       })
 
       const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
-        sql
-          .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
-          .pipe(
-            Effect.mapError(preserveStoreError),
-            Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
-          )
+        sql.withTransaction(Effect.forEach(items, (e) => setInternal(e, ns))).pipe(
+          Effect.mapError(preserveStoreError),
+          Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+        )
 
       const ctx = yield* Effect.context<R>()
       const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
-      const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+      const makeSeedEffect = Effect.fnUntraced(function* (ns: string) {
         yield* ensureTable
         if (!seed) return
-        const existing = yield* exec(
-          `SELECT id FROM "_migrations" WHERE id = $1 AND version = $2`,
-          [`${tableName}::${ns}`, tableName]
-        )
+        const existing = yield* exec(`SELECT id FROM "_migrations" WHERE id = $1 AND version = $2`, [
+          `${tableName}::${ns}`,
+          tableName
+        ])
         if ((existing as any[]).length > 0) return
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
         const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
         const ne = Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])
         // Seed inserts are not concurrent; OCC here is a programming defect.
         if (Option.isSome(ne)) {
-          yield* bulkSetInternal(ne.value, ns).pipe(
-            Effect.catchTag("OptimisticConcurrencyException", Effect.die)
-          )
+          yield* bulkSetInternal(ne.value, ns).pipe(Effect.catchTag("OptimisticConcurrencyException", Effect.die))
         }
-        yield* exec(
-          `INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`,
-          [`${tableName}::${ns}`, tableName]
-        )
+        yield* exec(`INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`, [`${tableName}::${ns}`, tableName])
       })
       const seedNamespace = (ns: string) => {
         let cached = seedCache.get(ns)
@@ -211,49 +216,47 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 
         all: resolveNamespace.pipe(
           Effect.flatMap((ns) => {
-            return exec(selectAllSql, [ns])
-              .pipe(
-                Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
-                annotateDb({
-                  operation: "all",
-                  system: "postgresql",
-                  collection: tableName,
-                  namespace: ns,
-                  entity: name,
-                  query: selectAllSql
-                })
-              )
+            return exec(selectAllSql, [ns]).pipe(
+              Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
+              annotateDb({
+                operation: "all",
+                system: "postgresql",
+                collection: tableName,
+                namespace: ns,
+                entity: name,
+                query: selectAllSql
+              })
+            )
           })
         ),
 
         find: (id) =>
-          resolveNamespace.pipe(Effect
-            .flatMap((ns) => {
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) => {
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`
-              return exec(sqlText, [id, ns])
-                .pipe(
-                  Effect.flatMap((rows) =>
-                    Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
-                  ),
-                  annotateDb({
-                    operation: "find",
-                    system: "postgresql",
-                    collection: tableName,
-                    namespace: ns,
-                    entity: name,
-                    query: sqlText,
-                    extra: { "app.entity.id": id }
-                  })
-                )
-            })),
+              return exec(sqlText, [id, ns]).pipe(
+                Effect.flatMap((rows) =>
+                  Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                ),
+                annotateDb({
+                  operation: "find",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: sqlText,
+                  extra: { "app.entity.id": id }
+                })
+              )
+            })
+          ),
 
         filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
-          const filter = f
-            .filter
+          const filter = f.filter
           type M = U extends undefined ? Encoded : Pick<Encoded, U>
-          return resolveNamespace.pipe(Effect.flatMap((ns) =>
-            Effect
-              .sync(() => {
+          return resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              Effect.sync(() => {
                 const q = buildWhereSQLQuery(
                   pgDialect,
                   idKey,
@@ -262,14 +265,16 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   defaultValues,
                   f.select as
                     | NonEmptyReadonlyArray<
-                      string | {
-                        key: string
-                        subKeys: readonly string[]
-                      } | {
-                        key: string
-                        computed: ComputedProjectionIrExpression
-                      }
-                    >
+                        | string
+                        | {
+                            key: string
+                            subKeys: readonly string[]
+                          }
+                        | {
+                            key: string
+                            computed: ComputedProjectionIrExpression
+                          }
+                      >
                     | undefined,
                   f.order,
                   f.skip,
@@ -281,29 +286,27 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 const hasWhere = q.sql.includes("WHERE")
                 const nsSql = hasWhere
                   ? q.sql.replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
-                  : q.sql.replace(
-                    `FROM "${tableName}"`,
-                    `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
-                  )
+                  : q.sql.replace(`FROM "${tableName}"`, `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`)
                 return { sql: nsSql, params: [...q.params, ns] }
-              })
-              .pipe(
+              }).pipe(
                 Effect.tap((q) => logQuery(q)),
                 Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                 Effect.flatMap((q) =>
                   exec(q.sql, q.params).pipe(
                     Effect.flatMap((rows) => {
                       if (f.select) {
-                        return Effect.succeed((rows as any[]).map((r) => {
-                          const selected = parseSelectRow(r, idKey, {})
-                          return {
-                            ...Struct.pick(
-                              defaultValues as any,
-                              f.select!.filter((_) => typeof _ === "string") as never[]
-                            ),
-                            ...selected
-                          } as M
-                        }))
+                        return Effect.succeed(
+                          (rows as any[]).map((r) => {
+                            const selected = parseSelectRow(r, idKey, {})
+                            return {
+                              ...Struct.pick(
+                                defaultValues as any,
+                                f.select!.filter((_) => typeof _ === "string") as never[]
+                              ),
+                              ...selected
+                            } as M
+                          })
+                        )
                       }
                       return Effect.map(
                         Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
@@ -320,56 +323,63 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   entity: name
                 })
               )
-          ))
+            )
+          )
         },
 
         set: (e) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            setInternal(e, ns).pipe(
-              annotateDb({
-                operation: "set",
-                system: "postgresql",
-                collection: tableName,
-                namespace: ns,
-                entity: name,
-                extra: { "app.entity.id": e[idKey] }
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              setInternal(e, ns).pipe(
+                annotateDb({
+                  operation: "set",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  extra: { "app.entity.id": e[idKey] }
+                })
+              )
             )
-          )),
+          ),
 
         batchSet: (items) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            bulkSetInternal(items, ns).pipe(
-              annotateDb({
-                operation: "batchSet",
-                system: "postgresql",
-                collection: tableName,
-                namespace: ns,
-                entity: name
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              bulkSetInternal(items, ns).pipe(
+                annotateDb({
+                  operation: "batchSet",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
+              )
             )
-          )),
+          ),
 
         bulkSet: (items) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            bulkSetInternal(items, ns).pipe(
-              annotateDb({
-                operation: "bulkSet",
-                system: "postgresql",
-                collection: tableName,
-                namespace: ns,
-                entity: name
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              bulkSetInternal(items, ns).pipe(
+                annotateDb({
+                  operation: "bulkSet",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
+              )
             )
-          )),
+          ),
 
         batchRemove: (ids) => {
           const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ")
           const nsPlaceholder = `$${ids.length + 1}`
-          return resolveNamespace.pipe(Effect.flatMap((ns) => {
-            const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`
-            return exec(sqlText, [...ids, ns])
-              .pipe(
+          return resolveNamespace.pipe(
+            Effect.flatMap((ns) => {
+              const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`
+              return exec(sqlText, [...ids, ns]).pipe(
                 Effect.asVoid,
                 annotateDb({
                   operation: "batchRemove",
@@ -380,7 +390,8 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   query: sqlText
                 })
               )
-          }))
+            })
+          )
         },
 
         queryRaw: (query) =>
@@ -406,6 +417,5 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
 })
 
 export function PgStoreLayer(cfg: StorageConfig) {
-  return StoreMaker
-    .toLayer(makePgStore(cfg))
+  return StoreMaker.toLayer(makePgStore(cfg))
 }

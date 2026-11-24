@@ -59,7 +59,7 @@ const exec = (command: string) =>
           })
         }
       }),
-      (r) => (InfraLogger.logDebug(`Executed`).pipe(Effect.annotateLogs("result", pretty(r))))
+      (r) => InfraLogger.logDebug(`Executed`).pipe(Effect.annotateLogs("result", pretty(r)))
     )
   )
 
@@ -108,14 +108,10 @@ export const makePrintJobTempFileArrayBuffer = (buffer: ArrayBuffer, options?: F
 
 function printBuffer(printer: PrinterConfig, options: string[]) {
   return (buffer: ArrayBuffer) =>
-    makePrintJobTempFileArrayBuffer(buffer)
-      .pipe(
-        Effect.flatMap(printFile(printer, options)),
-        Effect.scoped
-      )
+    makePrintJobTempFileArrayBuffer(buffer).pipe(Effect.flatMap(printFile(printer, options)), Effect.scoped)
 }
 
-const getAvailablePrinters = Effect.fnUntraced(function*(host?: string) {
+const getAvailablePrinters = Effect.fnUntraced(function* (host?: string) {
   const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
   return [...stdout.matchAll(/device for (\w+):/g)]
     .map((_) => _[1])
@@ -130,33 +126,37 @@ function* buildListArgs(config?: { host?: string | undefined }) {
 }
 
 export const CUPSConfig = Config.all({
-  server: Config
-    .String("server")
-    .pipe(
-      Config.map((s) => new URL(s)),
-      Config.option,
-      Config.nested("cups")
-    )
+  server: Config.String("server").pipe(
+    Config.map((s) => new URL(s)),
+    Config.option,
+    Config.nested("cups")
+  )
 })
 
 export class CUPS extends Context.Service<CUPS>()("effect-app/CUPS", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     const config = yield* CUPSConfig
     const serverUrl = Option.getOrUndefined(config.server)
     function print(buffer: ArrayBuffer, printerId: PrinterId, ...options: string[]) {
-      const _print = printBuffer({
-        id: printerId,
-        url: serverUrl
-      }, options)
+      const _print = printBuffer(
+        {
+          id: printerId,
+          url: serverUrl
+        },
+        options
+      )
       return _print(buffer)
     }
     return {
       print,
       printFile: (filePath: string, printerId: PrinterId, ...options: string[]) =>
-        printFile({
-          id: printerId,
-          url: serverUrl
-        }, options)(filePath),
+        printFile(
+          {
+            id: printerId,
+            url: serverUrl
+          },
+          options
+        )(filePath),
       getAvailablePrinters: getAvailablePrinters(serverUrl?.host)
     }
   })
@@ -166,29 +166,23 @@ export class CUPS extends Context.Service<CUPS>()("effect-app/CUPS", {
     Effect.sync(() =>
       CUPS.of({
         print: (buffer: ArrayBuffer, printerId: PrinterId, ...options: string[]) =>
-          InfraLogger
-            .logInfo("Printing to fake printer")
-            .pipe(
-              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
-              Effect
-                .annotateLogs({
-                  printerId,
-                  "options": pretty(options),
-                  "bufferSize": buffer.byteLength.toString()
-                })
-            ),
+          InfraLogger.logInfo("Printing to fake printer").pipe(
+            Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+            Effect.annotateLogs({
+              printerId,
+              options: pretty(options),
+              bufferSize: buffer.byteLength.toString()
+            })
+          ),
         printFile: (filePath: string, printerId: PrinterId, ...options: string[]) =>
-          InfraLogger
-            .logInfo("Printing to fake printer")
-            .pipe(
-              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
-              Effect
-                .annotateLogs({
-                  printerId,
-                  filePath,
-                  "options": pretty(options)
-                })
-            ),
+          InfraLogger.logInfo("Printing to fake printer").pipe(
+            Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+            Effect.annotateLogs({
+              printerId,
+              filePath,
+              options: pretty(options)
+            })
+          ),
         getAvailablePrinters: Effect.sync(() => [])
       })
     )

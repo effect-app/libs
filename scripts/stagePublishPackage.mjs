@@ -33,12 +33,14 @@ const ignoredPublishFile = (path) => {
   const parts = path.split("/")
   const name = parts.at(-1) ?? path
 
-  return parts.includes(".publish")
-    || name.endsWith(".bak")
-    || name.endsWith(".backup")
-    || name.endsWith(".orig")
-    || name.endsWith(".tmp")
-    || name.endsWith(".tgz")
+  return (
+    parts.includes(".publish") ||
+    name.endsWith(".bak") ||
+    name.endsWith(".backup") ||
+    name.endsWith(".orig") ||
+    name.endsWith(".tmp") ||
+    name.endsWith(".tgz")
+  )
 }
 
 const copyPackedTarballs = (dir) => {
@@ -74,12 +76,13 @@ const applyPublishConfig = (packageJson) => {
   const { publishConfig, ...manifest } = packageJson
   const versions = workspaceVersions()
 
-  const staged = publishConfig === undefined
-    ? manifest
-    : {
-      ...manifest,
-      ...publishConfig
-    }
+  const staged =
+    publishConfig === undefined
+      ? manifest
+      : {
+          ...manifest,
+          ...publishConfig
+        }
 
   delete staged.publishConfig
   delete staged.directory
@@ -124,8 +127,8 @@ if (command === "prepack") {
   const pack = Array.isArray(parsedPack)
     ? parsedPack[0]
     : parsedPack.files !== undefined
-    ? parsedPack
-    : parsedPack[packageJson.name]
+      ? parsedPack
+      : parsedPack[packageJson.name]
   if (pack === undefined || !Array.isArray(pack.files)) {
     throw new Error("npm pack --json returned an unsupported payload")
   }
@@ -142,11 +145,15 @@ if (command === "prepack") {
     `${JSON.stringify(applyPublishConfig(packageJson), null, 2)}\n`
   )
 
-  run(process.execPath, [
-    _path.join(rootDir, "scripts", "mergeTsConfig.mjs"),
-    _path.join(cwd, "tsconfig.json"),
-    _path.join(stageDir, "tsconfig.json")
-  ], { stdio: "inherit" })
+  run(
+    process.execPath,
+    [
+      _path.join(rootDir, "scripts", "mergeTsConfig.mjs"),
+      _path.join(cwd, "tsconfig.json"),
+      _path.join(stageDir, "tsconfig.json")
+    ],
+    { stdio: "inherit" }
+  )
 } else if (command === "postpack") {
   copyPackedTarballs(stageDir)
 } else if (command === "postpublish") {

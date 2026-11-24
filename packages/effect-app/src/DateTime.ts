@@ -14,10 +14,7 @@ export const makeZonedLocal = (date: Date): DateTime.Zoned =>
  * Accepts as many functions as `pipe`. The last function must return a `DateTime`. Calendar parts follow the process timezone, as `Date#setDate` does.
  */
 export function pipeZonedLocal(date: Date): Date
-export function pipeZonedLocal<A extends DateTime.DateTime = never>(
-  date: Date,
-  ab: (self: DateTime.Zoned) => A
-): Date
+export function pipeZonedLocal<A extends DateTime.DateTime = never>(date: Date, ab: (self: DateTime.Zoned) => A): Date
 export function pipeZonedLocal<A = never, B extends DateTime.DateTime = never>(
   date: Date,
   ab: (self: DateTime.Zoned) => A,
@@ -29,25 +26,14 @@ export function pipeZonedLocal<A = never, B = never, C extends DateTime.DateTime
   bc: (a: A) => B,
   cd: (b: B) => C
 ): Date
-export function pipeZonedLocal<
-  A = never,
-  B = never,
-  C = never,
-  D extends DateTime.DateTime = never
->(
+export function pipeZonedLocal<A = never, B = never, C = never, D extends DateTime.DateTime = never>(
   date: Date,
   ab: (self: DateTime.Zoned) => A,
   bc: (a: A) => B,
   cd: (b: B) => C,
   de: (c: C) => D
 ): Date
-export function pipeZonedLocal<
-  A = never,
-  B = never,
-  C = never,
-  D = never,
-  E extends DateTime.DateTime = never
->(
+export function pipeZonedLocal<A = never, B = never, C = never, D = never, E extends DateTime.DateTime = never>(
   date: Date,
   ab: (self: DateTime.Zoned) => A,
   bc: (a: A) => B,

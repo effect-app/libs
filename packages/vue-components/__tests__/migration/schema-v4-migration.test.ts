@@ -83,7 +83,7 @@ const mountAndGetDefaults = async (schema: S.Schema<any>, opts?: any) => {
     }
   })
   await wrapper.vm.$nextTick()
-  return JSON.parse(wrapper.find("[data-testid=\"values\"]").text())
+  return JSON.parse(wrapper.find('[data-testid="values"]').text())
 }
 
 // ============================================================================
@@ -217,10 +217,7 @@ describe("generateMetaFromSchema", () => {
   })
 
   describe("root-level discriminated union (TaggedStruct pattern)", () => {
-    const schema = S.Union([
-      S.TaggedStruct("A", { a: S.NonEmptyString255 }),
-      S.TaggedStruct("B", { b: S.Finite })
-    ])
+    const schema = S.Union([S.TaggedStruct("A", { a: S.NonEmptyString255 }), S.TaggedStruct("B", { b: S.Finite })])
 
     it("generates _tag select and per-member fields with unionMeta", () => {
       const { meta, unionMeta } = generateMetaFromSchema(schema)
@@ -465,10 +462,7 @@ describe("Form defaults integration", () => {
 describe("number constraint metadata", () => {
   it("separate isGreaterThanOrEqualTo + isLessThanOrEqualTo extracts min and max", () => {
     const schema = S.Struct({
-      value: S.Finite.pipe(
-        S.check(S.isGreaterThanOrEqualTo(10)),
-        S.check(S.isLessThanOrEqualTo(20))
-      )
+      value: S.Finite.pipe(S.check(S.isGreaterThanOrEqualTo(10)), S.check(S.isLessThanOrEqualTo(20)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.type).toBe("number")
@@ -552,10 +546,7 @@ describe("TaggedStruct API", () => {
 
   it("Union([TaggedStruct, TaggedStruct]) generates field metadata", () => {
     const taggedSchema = S.Struct({
-      union: S.Union([
-        S.TaggedStruct("A", { a: S.NonEmptyString255 }),
-        S.TaggedStruct("B", { b: S.Finite })
-      ])
+      union: S.Union([S.TaggedStruct("A", { a: S.NonEmptyString255 }), S.TaggedStruct("B", { b: S.Finite })])
     })
 
     const { meta } = generateMetaFromSchema(taggedSchema)
@@ -594,10 +585,7 @@ describe("TaggedStruct API", () => {
   })
 
   it("TaggedStruct decoding works correctly", () => {
-    const schema = S.Union([
-      S.TaggedStruct("A", { a: S.String }),
-      S.TaggedStruct("B", { b: S.Finite })
-    ])
+    const schema = S.Union([S.TaggedStruct("A", { a: S.String }), S.TaggedStruct("B", { b: S.Finite })])
 
     const decoded = S.decodeUnknownSync(schema)({ _tag: "A", a: "hello" })
     expect(decoded).toEqual({ _tag: "A", a: "hello" })
@@ -622,10 +610,12 @@ describe("array metadata", () => {
 
   it("Array of structs generates nested field metadata", () => {
     const schema = S.Struct({
-      items: S.Array(S.Struct({
-        name: S.NonEmptyString255,
-        value: S.Finite
-      }))
+      items: S.Array(
+        S.Struct({
+          name: S.NonEmptyString255,
+          value: S.Finite
+        })
+      )
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta["items.name"]).toBeDefined()

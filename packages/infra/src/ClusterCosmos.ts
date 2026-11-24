@@ -15,7 +15,12 @@ import * as ShardingConfig from "effect/cluster/ShardingConfig"
 import * as Snowflake from "effect/cluster/Snowflake"
 import * as Duration from "effect/Duration"
 import * as Redacted from "effect/Redacted"
-import { CosmosClient, CosmosClientLayer, type CosmosContainerThroughput, createContainerIfNotExists } from "./cosmos-client.ts"
+import {
+  CosmosClient,
+  CosmosClientLayer,
+  type CosmosContainerThroughput,
+  createContainerIfNotExists
+} from "./cosmos-client.ts"
 import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
 export interface ClusterCosmosConfig extends CosmosContainerThroughput {
@@ -136,9 +141,9 @@ const isConflict = (u: unknown) => isCosmosStatus(u, 409)
 const isNotFound = (u: unknown) => isCosmosStatus(u, 404)
 const isPreconditionFailed = (u: unknown) => isCosmosStatus(u, 412)
 
-const respBytes = (
-  resp: { diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } } }
-) => resp.diagnostics?.clientSideRequestStatistics?.totalResponsePayloadLengthInBytes ?? 0
+const respBytes = (resp: {
+  diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
+}) => resp.diagnostics?.clientSideRequestStatistics?.totalResponsePayloadLengthInBytes ?? 0
 
 const annotateItem = (resp: {
   readonly requestCharge?: number
@@ -166,13 +171,9 @@ const annotateFeed = (resp: {
     responseBytes: respBytes(resp)
   })
 
-const envelopeId = (envelope: Envelope.Encoded) => envelope._tag === "Request" ? envelope.requestId : envelope.id
+const envelopeId = (envelope: Envelope.Encoded) => (envelope._tag === "Request" ? envelope.requestId : envelope.id)
 
-const envelopeToDoc = (
-  envelope: Envelope.Encoded,
-  primaryKey: string | null,
-  deliverAt: number | null
-): MessageDoc => {
+const envelopeToDoc = (envelope: Envelope.Encoded, primaryKey: string | null, deliverAt: number | null): MessageDoc => {
   switch (envelope._tag) {
     case "Request":
       return {
@@ -307,43 +308,43 @@ const envelopeFromDoc = (
 const replyToDoc = (reply: Reply.Encoded): ReplyDoc =>
   reply._tag === "WithExit"
     ? {
-      id: cosmosId(reply.id),
-      _partitionKey: replyPartition(reply.requestId),
-      type: "reply",
-      rowid: reply.id,
-      kind: "WithExit",
-      requestId: reply.requestId,
-      payload: reply.exit,
-      sequence: null,
-      acked: false
-    }
+        id: cosmosId(reply.id),
+        _partitionKey: replyPartition(reply.requestId),
+        type: "reply",
+        rowid: reply.id,
+        kind: "WithExit",
+        requestId: reply.requestId,
+        payload: reply.exit,
+        sequence: null,
+        acked: false
+      }
     : {
-      id: cosmosId(reply.id),
-      _partitionKey: replyPartition(reply.requestId),
-      type: "reply",
-      rowid: reply.id,
-      kind: "Chunk",
-      requestId: reply.requestId,
-      payload: reply.values,
-      sequence: reply.sequence,
-      acked: false
-    }
+        id: cosmosId(reply.id),
+        _partitionKey: replyPartition(reply.requestId),
+        type: "reply",
+        rowid: reply.id,
+        kind: "Chunk",
+        requestId: reply.requestId,
+        payload: reply.values,
+        sequence: reply.sequence,
+        acked: false
+      }
 
 const replyFromDoc = (doc: ReplyDoc): Reply.Encoded =>
   doc.kind === "WithExit"
     ? {
-      _tag: "WithExit",
-      id: doc.rowid,
-      requestId: doc.requestId,
-      exit: doc.payload
-    }
+        _tag: "WithExit",
+        id: doc.rowid,
+        requestId: doc.requestId,
+        exit: doc.payload
+      }
     : {
-      _tag: "Chunk",
-      id: doc.rowid,
-      requestId: doc.requestId,
-      values: doc.payload,
-      sequence: doc.sequence ?? 0
-    }
+        _tag: "Chunk",
+        id: doc.rowid,
+        requestId: doc.requestId,
+        values: doc.payload,
+        sequence: doc.sequence ?? 0
+      }
 
 const shardIdFromString = (shardId: string): Envelope.Encoded["address"]["shardId"] =>
   ShardId.fromStringEncoded(shardId)
@@ -353,20 +354,23 @@ const machineIdCounterDocId = cosmosId("machine-id-counter")
 type StorageOptions = { readonly prefix?: string | undefined } & CosmosContainerThroughput
 
 const createContainer = (prefix: string, throughput?: CosmosContainerThroughput) =>
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const { db } = yield* CosmosClient
     const containerId = `${prefix}cluster`
     yield* tryCosmos(() =>
-      createContainerIfNotExists(db, {
-        id: containerId,
-        partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
-      }, throughput)
-    )
-      .pipe(Effect.catchIf(isConflict, () => Effect.void))
+      createContainerIfNotExists(
+        db,
+        {
+          id: containerId,
+          partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
+        },
+        throughput
+      )
+    ).pipe(Effect.catchIf(isConflict, () => Effect.void))
     return db.container(containerId)
   })
 
-export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageOptions) {
+export const makeMessageStorage = Effect.fnUntraced(function* (options?: StorageOptions) {
   const prefix = options?.prefix ?? "cluster-"
   const container = yield* createContainer(prefix, options)().pipe(Effect.orDie)
   const containerId = `${prefix}cluster`
@@ -381,52 +385,48 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
     )
 
   const queryMessages = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
-    tryCosmos(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
-      .pipe(
-        Effect.tap(annotateFeed),
-        Effect.map((resp) => resp.resources)
-      )
+    tryCosmos(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll()).pipe(
+      Effect.tap(annotateFeed),
+      Effect.map((resp) => resp.resources)
+    )
 
   const queryReplies = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
-    tryCosmos(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
-      .pipe(
-        Effect.tap(annotateFeed),
-        Effect.map((resp) => resp.resources)
-      )
+    tryCosmos(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll()).pipe(
+      Effect.tap(annotateFeed),
+      Effect.map((resp) => resp.resources)
+    )
 
   const lastReply = (replyId: string | null) =>
     replyId === null
       ? Effect.succeed(Option.none<Reply.Encoded>())
-      : queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND c.rowid = @id", [{ name: "@id", value: replyId }])
-        .pipe(
-          Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]), replyFromDoc))
-        )
+      : queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND c.rowid = @id", [
+          { name: "@id", value: replyId }
+        ]).pipe(Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]), replyFromDoc)))
 
   const markReplyAcked = (requestId: string, replyId: string) =>
     tryCosmos(() =>
-      container.item(cosmosId(replyId), replyPartition(requestId)).patch<ReplyDoc>([
-        { op: "set", path: "/acked", value: true }
-      ])
+      container
+        .item(cosmosId(replyId), replyPartition(requestId))
+        .patch<ReplyDoc>([{ op: "set", path: "/acked", value: true }])
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.asVoid,
+      Effect.catchIf(isNotFound, () => Effect.void),
+      Effect.catchIf(isPreconditionFailed, () => Effect.void)
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.asVoid,
-        Effect.catchIf(isNotFound, () => Effect.void),
-        Effect.catchIf(isPreconditionFailed, () => Effect.void)
-      )
 
   const claimMessageRead = (doc: MessageDoc, now: number) =>
     tryCosmos(() =>
-      container.item(doc.id, doc._partitionKey).patch<MessageDoc>(
-        [{ op: "set", path: "/lastRead", value: now }],
-        { accessCondition: { type: "IfMatch", condition: doc._etag ?? "" } }
-      )
+      container
+        .item(doc.id, doc._partitionKey)
+        .patch<MessageDoc>([{ op: "set", path: "/lastRead", value: now }], {
+          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+        })
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.as(true),
+      Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.as(true),
-        Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
-      )
 
   const batchDocs = <A extends { readonly id: string; readonly _partitionKey: string }>(
     docs: ReadonlyArray<A>,
@@ -440,15 +440,17 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           Arr.chunksOf(partitionDocs, maxCosmosBatchOperations),
           (chunk) => {
             const operations: Array<OperationInput> = chunk.map(operation)
-            return tryCosmos(() => container.items.batch(operations, partitionKey))
-              .pipe(
-                Effect.tap(annotateItem),
-                Effect.flatMap((resp) => {
-                  const failed = resp.result?.find((result) => !isSuccessfulStatus(result.statusCode))
-                  return failed === undefined ? Effect.void : Effect.fail(failed.statusCode)
-                }),
-                Effect.catchIf(() => true, () => Effect.forEach(chunk, fallback, { discard: true }))
+            return tryCosmos(() => container.items.batch(operations, partitionKey)).pipe(
+              Effect.tap(annotateItem),
+              Effect.flatMap((resp) => {
+                const failed = resp.result?.find((result) => !isSuccessfulStatus(result.statusCode))
+                return failed === undefined ? Effect.void : Effect.fail(failed.statusCode)
+              }),
+              Effect.catchIf(
+                () => true,
+                () => Effect.forEach(chunk, fallback, { discard: true })
               )
+            )
           },
           { discard: true }
         ),
@@ -502,133 +504,115 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
 
   return yield* MessageStorage.makeEncoded({
     saveEnvelope: ({ deliverAt, envelope, primaryKey }) =>
-      Effect
-        .gen(function*() {
-          const doc = envelopeToDoc(envelope, primaryKey, deliverAt)
-          if (envelope._tag === "AckChunk") {
-            yield* markReplyAcked(envelope.requestId, envelope.replyId)
-            const pendingAcks = yield* queryMessages(
-              "SELECT * FROM c WHERE c.type = 'message' AND c.kind = 'AckChunk' AND c.processed = false AND c.requestId = @requestId",
-              [{ name: "@requestId", value: envelope.requestId }]
-            )
-            yield* patchDocs(pendingAcks, () => [{ op: "set", path: "/processed", value: true }])
-          }
-          return yield* tryCosmos(() => container.items.create(doc)).pipe(
-            Effect.tap(annotateItem),
-            Effect.as<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
-            Effect.catchIf(isConflict, () =>
-              readMessage(doc.id, doc._partitionKey).pipe(
-                Effect.flatMap((found) =>
-                  Option.match(found, {
-                    onNone: () => Effect.succeed<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
-                    onSome: (existing) =>
-                      lastReply(existing.lastReplyId).pipe(
-                        Effect.map((lastReceivedReply) =>
-                          SaveResultEncoded.Duplicate({
-                            originalId: Snowflake.Snowflake(existing.requestId),
-                            lastReceivedReply
-                          })
-                        )
-                      )
-                  })
-                )
-              ))
+      Effect.gen(function* () {
+        const doc = envelopeToDoc(envelope, primaryKey, deliverAt)
+        if (envelope._tag === "AckChunk") {
+          yield* markReplyAcked(envelope.requestId, envelope.replyId)
+          const pendingAcks = yield* queryMessages(
+            "SELECT * FROM c WHERE c.type = 'message' AND c.kind = 'AckChunk' AND c.processed = false AND c.requestId = @requestId",
+            [{ name: "@requestId", value: envelope.requestId }]
           )
-        })
-        .pipe(annotate("saveEnvelope"), refailPersistence, withTracerDisabled),
+          yield* patchDocs(pendingAcks, () => [{ op: "set", path: "/processed", value: true }])
+        }
+        return yield* tryCosmos(() => container.items.create(doc)).pipe(
+          Effect.tap(annotateItem),
+          Effect.as<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
+          Effect.catchIf(isConflict, () =>
+            readMessage(doc.id, doc._partitionKey).pipe(
+              Effect.flatMap((found) =>
+                Option.match(found, {
+                  onNone: () => Effect.succeed<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
+                  onSome: (existing) =>
+                    lastReply(existing.lastReplyId).pipe(
+                      Effect.map((lastReceivedReply) =>
+                        SaveResultEncoded.Duplicate({
+                          originalId: Snowflake.Snowflake(existing.requestId),
+                          lastReceivedReply
+                        })
+                      )
+                    )
+                })
+              )
+            )
+          )
+        )
+      }).pipe(annotate("saveEnvelope"), refailPersistence, withTracerDisabled),
 
     saveReply: (reply) =>
-      Effect
-        .gen(function*() {
-          const doc = replyToDoc(reply)
-          yield* tryCosmos(() => container.items.create(doc)).pipe(
-            Effect.tap(annotateItem),
-            Effect.catchIf(isConflict, () => Effect.void)
-          )
-          const messages = yield* queryMessages(
-            "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
-            [{ name: "@requestId", value: reply.requestId }]
-          )
-          const updatedMessages = reply._tag === "WithExit"
+      Effect.gen(function* () {
+        const doc = replyToDoc(reply)
+        yield* tryCosmos(() => container.items.create(doc)).pipe(
+          Effect.tap(annotateItem),
+          Effect.catchIf(isConflict, () => Effect.void)
+        )
+        const messages = yield* queryMessages("SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId", [
+          { name: "@requestId", value: reply.requestId }
+        ])
+        const updatedMessages =
+          reply._tag === "WithExit"
             ? messages
             : messages.filter((message) => message.id === reply.requestId || message.kind === "Request")
-          yield* patchDocs(updatedMessages, () =>
-            reply._tag === "WithExit"
-              ? [
+        yield* patchDocs(updatedMessages, () =>
+          reply._tag === "WithExit"
+            ? [
                 { op: "set", path: "/processed", value: true },
                 { op: "set", path: "/lastReplyId", value: reply.id }
               ]
-              : [{ op: "set", path: "/lastReplyId", value: reply.id }])
-        })
-        .pipe(annotate("saveReply"), refailPersistence, withTracerDisabled),
+            : [{ op: "set", path: "/lastReplyId", value: reply.id }]
+        )
+      }).pipe(annotate("saveReply"), refailPersistence, withTracerDisabled),
 
     clearReplies: (requestId, options) =>
-      Effect
-        .gen(function*() {
-          const id = String(requestId)
-          const messages = yield* queryMessages(
-            "SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId",
-            [{ name: "@requestId", value: id }]
-          )
-          const request = messages.find((message) => message.kind === "Request")
-          if (!request) return
-          if (
-            options?.expectedReplyId !== undefined
-            && request.lastReplyId !== String(options.expectedReplyId)
-          ) return
-          const replies = yield* queryReplies(
-            "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'WithExit'",
-            [
-              { name: "@requestId", value: id }
-            ]
-          )
-          yield* deleteDocs(replies)
-          yield* deleteDocs(messages.filter((message) => message.kind === "Interrupt"))
-          yield* patchDocs(
-            messages.filter((message) => message.kind !== "Interrupt"),
-            () => [
-              { op: "set", path: "/processed", value: false },
-              { op: "set", path: "/lastReplyId", value: null },
-              { op: "set", path: "/lastRead", value: null }
-            ]
-          )
-        })
-        .pipe(annotate("clearReplies"), refailPersistence, withTracerDisabled),
+      Effect.gen(function* () {
+        const id = String(requestId)
+        const messages = yield* queryMessages("SELECT * FROM c WHERE c.type = 'message' AND c.requestId = @requestId", [
+          { name: "@requestId", value: id }
+        ])
+        const request = messages.find((message) => message.kind === "Request")
+        if (!request) return
+        if (options?.expectedReplyId !== undefined && request.lastReplyId !== String(options.expectedReplyId)) return
+        const replies = yield* queryReplies(
+          "SELECT * FROM c WHERE c.type = 'reply' AND c.requestId = @requestId AND c.kind = 'WithExit'",
+          [{ name: "@requestId", value: id }]
+        )
+        yield* deleteDocs(replies)
+        yield* deleteDocs(messages.filter((message) => message.kind === "Interrupt"))
+        yield* patchDocs(
+          messages.filter((message) => message.kind !== "Interrupt"),
+          () => [
+            { op: "set", path: "/processed", value: false },
+            { op: "set", path: "/lastReplyId", value: null },
+            { op: "set", path: "/lastRead", value: null }
+          ]
+        )
+      }).pipe(annotate("clearReplies"), refailPersistence, withTracerDisabled),
 
     requestIdForPrimaryKey: (primaryKey) =>
       queryMessages("SELECT * FROM c WHERE c.type = 'message' AND c.messageId = @primaryKey", [
         { name: "@primaryKey", value: primaryKey }
-      ])
-        .pipe(
-          Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]?.requestId), Snowflake.Snowflake)),
-          annotate("requestIdForPrimaryKey"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ]).pipe(
+        Effect.map((docs) => Option.map(Option.fromNullishOr(docs[0]?.requestId), Snowflake.Snowflake)),
+        annotate("requestIdForPrimaryKey"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     repliesFor: (requestIds) =>
       queryReplies(
         "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId) AND (c.kind = 'WithExit' OR (c.kind = 'Chunk' AND c.acked = false)) ORDER BY c.rowid",
         [{ name: "@requestIds", value: Array.from(requestIds) }]
-      )
-        .pipe(
-          Effect.map(Arr.map(replyFromDoc)),
-          annotate("repliesFor"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ).pipe(Effect.map(Arr.map(replyFromDoc)), annotate("repliesFor"), refailPersistence, withTracerDisabled),
 
     repliesForUnfiltered: (requestIds) =>
       queryReplies(
         "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId) ORDER BY c.rowid",
         [{ name: "@requestIds", value: Array.from(requestIds) }]
-      )
-        .pipe(
-          Effect.map(Arr.map(replyFromDoc)),
-          annotate("repliesForUnfiltered"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ).pipe(
+        Effect.map(Arr.map(replyFromDoc)),
+        annotate("repliesForUnfiltered"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     unprocessedMessages: (shardIds, now, options) => {
       if (options?.addresses !== undefined && options.addresses.length === 0) {
@@ -650,13 +634,12 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
       if (options?.limit !== undefined) {
         query += ` OFFSET 0 LIMIT ${Math.floor(options.limit)}`
       }
-      return queryMessages(query, parameters)
-        .pipe(
-          Effect.flatMap((docs) => collectUnprocessed(docs, now, claimMessageRead, queryReplies)),
-          annotate("unprocessedMessages"),
-          refailPersistence,
-          withTracerDisabled
-        )
+      return queryMessages(query, parameters).pipe(
+        Effect.flatMap((docs) => collectUnprocessed(docs, now, claimMessageRead, queryReplies)),
+        annotate("unprocessedMessages"),
+        refailPersistence,
+        withTracerDisabled
+      )
     },
 
     unprocessedMessagesById: (messageIds, now) =>
@@ -666,26 +649,24 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           { name: "@messageIds", value: Array.from(messageIds, String) },
           { name: "@now", value: now }
         ]
-      )
-        .pipe(
-          Effect.flatMap((docs) => collectUnprocessedById(docs, queryReplies)),
-          annotate("unprocessedMessagesById"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ).pipe(
+        Effect.flatMap((docs) => collectUnprocessedById(docs, queryReplies)),
+        annotate("unprocessedMessagesById"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     resetRequests: (requestIds) => {
       if (requestIds.length === 0) return Effect.void
       return queryMessages(
         "SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND (ARRAY_CONTAINS(@requestIds, c.id) OR ARRAY_CONTAINS(@requestIds, c.requestId))",
         [{ name: "@requestIds", value: Array.from(requestIds, String) }]
+      ).pipe(
+        Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
+        annotate("resetRequests"),
+        refailPersistence,
+        withTracerDisabled
       )
-        .pipe(
-          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
-          annotate("resetRequests"),
-          refailPersistence,
-          withTracerDisabled
-        )
     },
 
     resetAddresses: (addresses) => {
@@ -694,13 +675,12 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
       return queryMessages(
         `SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND (${match.sql})`,
         match.parameters
+      ).pipe(
+        Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
+        annotate("resetAddresses"),
+        refailPersistence,
+        withTracerDisabled
       )
-        .pipe(
-          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
-          annotate("resetAddresses"),
-          refailPersistence,
-          withTracerDisabled
-        )
     },
 
     clearAddress: (address) =>
@@ -710,36 +690,32 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           { name: "@entityType", value: address.entityType },
           { name: "@entityId", value: address.entityId }
         ]
-      )
-        .pipe(
-          Effect.flatMap((messages) => {
-            if (!Arr.isArrayNonEmpty(messages)) return Effect.void
-            const requestIds = Array.from(new Set(messages.map((message) => message.requestId)))
-            return queryReplies(
-              "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
-              [{ name: "@requestIds", value: requestIds }]
-            )
-              .pipe(
-                Effect.flatMap((replies) => deleteDocs(replies)),
-                Effect.andThen(deleteDocs(messages))
-              )
-          }),
-          annotate("clearAddress"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ).pipe(
+        Effect.flatMap((messages) => {
+          if (!Arr.isArrayNonEmpty(messages)) return Effect.void
+          const requestIds = Array.from(new Set(messages.map((message) => message.requestId)))
+          return queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)", [
+            { name: "@requestIds", value: requestIds }
+          ]).pipe(
+            Effect.flatMap((replies) => deleteDocs(replies)),
+            Effect.andThen(deleteDocs(messages))
+          )
+        }),
+        annotate("clearAddress"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     resetShards: (shardIds) =>
       queryMessages(
         "SELECT * FROM c WHERE c.type = 'message' AND c.processed = false AND ARRAY_CONTAINS(@shardIds, c.shardId)",
         [{ name: "@shardIds", value: Array.from(shardIds) }]
-      )
-        .pipe(
-          Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
-          annotate("resetShards"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+      ).pipe(
+        Effect.flatMap((docs) => patchDocs(docs, () => [{ op: "set", path: "/lastRead", value: null }])),
+        annotate("resetShards"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     deleteProcessed: ({ completedBefore, entityType, limit }) => {
       const maxDelete = Math.floor(limit)
@@ -749,38 +725,37 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
       return queryMessages(
         "SELECT * FROM c WHERE c.type = 'message' AND c.entityType = @entityType AND c.kind = 'Request' AND c.processed = true AND NOT IS_NULL(c.lastReplyId) ORDER BY c.rowid",
         [{ name: "@entityType", value: entityType }]
-      )
-        .pipe(
-          Effect.flatMap((docs) => {
-            const requestIds: Array<string> = []
-            for (const doc of docs) {
-              if (requestIds.length >= maxDelete) break
-              if (
-                doc.lastReplyId !== null
-                && Snowflake.timestamp(Snowflake.Snowflake(doc.lastReplyId)) < completedBefore
-              ) {
-                requestIds.push(doc.requestId)
-              }
+      ).pipe(
+        Effect.flatMap((docs) => {
+          const requestIds: Array<string> = []
+          for (const doc of docs) {
+            if (requestIds.length >= maxDelete) break
+            if (
+              doc.lastReplyId !== null &&
+              Snowflake.timestamp(Snowflake.Snowflake(doc.lastReplyId)) < completedBefore
+            ) {
+              requestIds.push(doc.requestId)
             }
-            if (!Arr.isArrayNonEmpty(requestIds)) return Effect.succeed(0)
-            return Effect.gen(function*() {
-              const replies = yield* queryReplies(
-                "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
-                [{ name: "@requestIds", value: requestIds }]
-              )
-              const messages = yield* queryMessages(
-                "SELECT * FROM c WHERE c.type = 'message' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
-                [{ name: "@requestIds", value: requestIds }]
-              )
-              yield* deleteDocs(replies)
-              yield* deleteDocs(messages)
-              return requestIds.length
-            })
-          }),
-          annotate("deleteProcessed"),
-          refailPersistence,
-          withTracerDisabled
-        )
+          }
+          if (!Arr.isArrayNonEmpty(requestIds)) return Effect.succeed(0)
+          return Effect.gen(function* () {
+            const replies = yield* queryReplies(
+              "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+              [{ name: "@requestIds", value: requestIds }]
+            )
+            const messages = yield* queryMessages(
+              "SELECT * FROM c WHERE c.type = 'message' AND ARRAY_CONTAINS(@requestIds, c.requestId)",
+              [{ name: "@requestIds", value: requestIds }]
+            )
+            yield* deleteDocs(replies)
+            yield* deleteDocs(messages)
+            return requestIds.length
+          })
+        }),
+        annotate("deleteProcessed"),
+        refailPersistence,
+        withTracerDisabled
+      )
     },
 
     withTransaction: (effect) => effect
@@ -815,12 +790,9 @@ const collectUnprocessed = <E>(
   docs: ReadonlyArray<MessageDoc>,
   now: number,
   claimMessageRead: (doc: MessageDoc, now: number) => Effect.Effect<boolean, E>,
-  queryReplies: (
-    query: string,
-    parameters: ReadonlyArray<CosmosParameter>
-  ) => Effect.Effect<Array<ReplyDoc>, E>
+  queryReplies: (query: string, parameters: ReadonlyArray<CosmosParameter>) => Effect.Effect<Array<ReplyDoc>, E>
 ) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const messages: Array<{
       readonly envelope: Envelope.Encoded
       readonly lastSentReply: Option.Option<Reply.Encoded>
@@ -840,12 +812,9 @@ const collectUnprocessed = <E>(
 
 const collectUnprocessedById = <E>(
   docs: ReadonlyArray<MessageDoc>,
-  queryReplies: (
-    query: string,
-    parameters: ReadonlyArray<CosmosParameter>
-  ) => Effect.Effect<Array<ReplyDoc>, E>
+  queryReplies: (query: string, parameters: ReadonlyArray<CosmosParameter>) => Effect.Effect<Array<ReplyDoc>, E>
 ) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const messages: Array<{
       readonly envelope: Envelope.Encoded
       readonly lastSentReply: Option.Option<Reply.Encoded>
@@ -862,41 +831,33 @@ const collectUnprocessedById = <E>(
 
 const activeReplyRequestIds = <E>(
   docs: ReadonlyArray<MessageDoc>,
-  queryReplies: (
-    query: string,
-    parameters: ReadonlyArray<CosmosParameter>
-  ) => Effect.Effect<Array<ReplyDoc>, E>
+  queryReplies: (query: string, parameters: ReadonlyArray<CosmosParameter>) => Effect.Effect<Array<ReplyDoc>, E>
 ) => {
   const requestIds = Array.from(new Set(docs.map((doc) => doc.requestId)))
   if (!Arr.isArrayNonEmpty(requestIds)) return Effect.succeed(new Set<string>())
   return queryReplies(
     "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@requestIds, c.requestId) AND (c.kind = 'WithExit' OR (c.kind = 'Chunk' AND c.acked = false))",
     [{ name: "@requestIds", value: requestIds }]
-  )
-    .pipe(Effect.map((replies) => new Set(replies.map((reply) => reply.requestId))))
+  ).pipe(Effect.map((replies) => new Set(replies.map((reply) => reply.requestId))))
 }
 
 const lastRepliesById = <E>(
   docs: ReadonlyArray<MessageDoc>,
   activeRequestIds: ReadonlySet<string>,
-  queryReplies: (
-    query: string,
-    parameters: ReadonlyArray<CosmosParameter>
-  ) => Effect.Effect<Array<ReplyDoc>, E>
+  queryReplies: (query: string, parameters: ReadonlyArray<CosmosParameter>) => Effect.Effect<Array<ReplyDoc>, E>
 ) => {
   const replyIds = Array.from(
-    new Set(docs
-      .flatMap((doc) => activeRequestIds.has(doc.requestId) || doc.lastReplyId === null ? [] : [doc.lastReplyId]))
+    new Set(
+      docs.flatMap((doc) => (activeRequestIds.has(doc.requestId) || doc.lastReplyId === null ? [] : [doc.lastReplyId]))
+    )
   )
   if (!Arr.isArrayNonEmpty(replyIds)) return Effect.succeed(new Map<string, Reply.Encoded>())
-  return queryReplies(
-    "SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@replyIds, c.rowid)",
-    [{ name: "@replyIds", value: replyIds }]
-  )
-    .pipe(Effect.map((replies) => new Map(replies.map((reply) => [reply.rowid, replyFromDoc(reply)]))))
+  return queryReplies("SELECT * FROM c WHERE c.type = 'reply' AND ARRAY_CONTAINS(@replyIds, c.rowid)", [
+    { name: "@replyIds", value: replyIds }
+  ]).pipe(Effect.map((replies) => new Map(replies.map((reply) => [reply.rowid, replyFromDoc(reply)]))))
 }
 
-export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOptions) {
+export const makeRunnerStorage = Effect.fnUntraced(function* (options?: StorageOptions) {
   const prefix = options?.prefix ?? "cluster-"
   const container = yield* createContainer(prefix, options)().pipe(Effect.orDie)
   const config = yield* ShardingConfig.ShardingConfig
@@ -907,25 +868,25 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
 
   const queryRunners = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
     tryCosmos(() =>
-      container
-        .items
+      container.items
         .query<RunnerDoc>({ query, parameters: Array.from(parameters) }, { partitionKey: "runner" })
         .fetchAll()
+    ).pipe(
+      Effect.tap(annotateFeed),
+      Effect.map((resp) => resp.resources)
     )
-      .pipe(Effect.tap(annotateFeed), Effect.map((resp) => resp.resources))
 
   const deleteRunner = (doc: RunnerDoc) =>
     tryCosmos(() =>
       container.item(doc.id, "runner").delete({
         accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
       })
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.asVoid,
+      Effect.catchIf(isNotFound, () => Effect.void),
+      Effect.catchIf(isPreconditionFailed, () => Effect.void)
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.asVoid,
-        Effect.catchIf(isNotFound, () => Effect.void),
-        Effect.catchIf(isPreconditionFailed, () => Effect.void)
-      )
 
   const readRunner = (address: string) =>
     tryCosmos(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
@@ -940,11 +901,13 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
   // collide mod 1024 across distinct runners, yielding duplicate Snowflake ids.
   // The counter doc is seeded at init below, so it always exists here.
   const allocateMachineId = tryCosmos(() =>
-    container.item(machineIdCounterDocId, "runner").patch<MachineIdCounterDoc>([
-      { op: "incr", path: "/value", value: 1 }
-    ])
+    container
+      .item(machineIdCounterDocId, "runner")
+      .patch<MachineIdCounterDoc>([{ op: "incr", path: "/value", value: 1 }])
+  ).pipe(
+    Effect.tap(annotateItem),
+    Effect.map((resp) => resp.resource!.value)
   )
-    .pipe(Effect.tap(annotateItem), Effect.map((resp) => resp.resource!.value))
 
   // Seed the counter once (create-if-missing); a lost create race is fine.
   yield* tryCosmos(() =>
@@ -954,8 +917,10 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       type: "machine-id-counter",
       value: 0
     })
+  ).pipe(
+    Effect.catchIf(isConflict, () => Effect.void),
+    Effect.orDie
   )
-    .pipe(Effect.catchIf(isConflict, () => Effect.void), Effect.orDie)
 
   const readLock = (shardId: string) =>
     tryCosmos(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
@@ -969,25 +934,23 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       container.item(doc.id, "lock").replace(doc, {
         accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
       })
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.as(true),
+      Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.as(true),
-        Effect.catchIf(isPreconditionFailed, () => Effect.succeed(false))
-      )
 
   const deleteLock = (doc: LockDoc) =>
     tryCosmos(() =>
       container.item(doc.id, "lock").delete({
         accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
       })
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.asVoid,
+      Effect.catchIf(isNotFound, () => Effect.void),
+      Effect.catchIf(isPreconditionFailed, () => Effect.void)
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.asVoid,
-        Effect.catchIf(isNotFound, () => Effect.void),
-        Effect.catchIf(isPreconditionFailed, () => Effect.void)
-      )
 
   const createLock = (address: string, shardId: string, now: number) =>
     tryCosmos(() =>
@@ -999,12 +962,11 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
         address,
         acquiredAt: now
       })
+    ).pipe(
+      Effect.tap(annotateItem),
+      Effect.as(true),
+      Effect.catchIf(isConflict, () => Effect.succeed(false))
     )
-      .pipe(
-        Effect.tap(annotateItem),
-        Effect.as(true),
-        Effect.catchIf(isConflict, () => Effect.succeed(false))
-      )
 
   const tryAcquire = (address: string, shardId: string, now: number) =>
     readLock(shardId).pipe(
@@ -1021,7 +983,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
           }
         })
       ),
-      Effect.map((acquired) => acquired ? Option.some(shardId) : Option.none())
+      Effect.map((acquired) => (acquired ? Option.some(shardId) : Option.none()))
     )
 
   return RunnerStorage.makeEncoded({
@@ -1038,32 +1000,30 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
     ),
 
     register: (address, runner, healthy) =>
-      Effect
-        .gen(function*() {
-          const now = Date.now()
-          // Reuse a previously-allocated machine id for this address (stable per
-          // address, like SQL's RETURNING on conflict); allocate a fresh unique
-          // one on first registration.
-          const existing = yield* readRunner(address)
-          const machineId = Option.isSome(existing) && existing.value.machineId !== undefined
+      Effect.gen(function* () {
+        const now = Date.now()
+        // Reuse a previously-allocated machine id for this address (stable per
+        // address, like SQL's RETURNING on conflict); allocate a fresh unique
+        // one on first registration.
+        const existing = yield* readRunner(address)
+        const machineId =
+          Option.isSome(existing) && existing.value.machineId !== undefined
             ? existing.value.machineId
             : yield* allocateMachineId
-          yield* tryCosmos(() =>
-            container.items.upsert<RunnerDoc>({
-              id: runnerDocId(address),
-              _partitionKey: "runner",
-              type: "runner",
-              address,
-              runner,
-              healthy,
-              lastHeartbeat: now,
-              machineId
-            })
-          )
-            .pipe(Effect.tap(annotateItem))
-          return machineId
-        })
-        .pipe(annotate("register"), refailPersistence, withTracerDisabled),
+        yield* tryCosmos(() =>
+          container.items.upsert<RunnerDoc>({
+            id: runnerDocId(address),
+            _partitionKey: "runner",
+            type: "runner",
+            address,
+            runner,
+            healthy,
+            lastHeartbeat: now,
+            machineId
+          })
+        ).pipe(Effect.tap(annotateItem))
+        return machineId
+      }).pipe(annotate("register"), refailPersistence, withTracerDisabled),
 
     unregister: (address) =>
       Effect.sync(() => Date.now()).pipe(
@@ -1084,18 +1044,17 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
 
     setRunnerHealth: (address, healthy) =>
       tryCosmos(() =>
-        container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
-          { op: "set", path: "/healthy", value: healthy }
-        ])
-      )
-        .pipe(
-          Effect.tap(annotateItem),
-          Effect.asVoid,
-          Effect.catchIf(isNotFound, () => Effect.void),
-          annotate("setRunnerHealth"),
-          refailPersistence,
-          withTracerDisabled
-        ),
+        container
+          .item(runnerDocId(address), "runner")
+          .patch<RunnerDoc>([{ op: "set", path: "/healthy", value: healthy }])
+      ).pipe(
+        Effect.tap(annotateItem),
+        Effect.asVoid,
+        Effect.catchIf(isNotFound, () => Effect.void),
+        annotate("setRunnerHealth"),
+        refailPersistence,
+        withTracerDisabled
+      ),
 
     acquire: (address, shardIds) =>
       Effect.sync(() => Date.now()).pipe(
@@ -1107,45 +1066,40 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       ),
 
     refresh: (address, shardIds) =>
-      Effect
-        .gen(function*() {
-          const now = Date.now()
-          yield* tryCosmos(() =>
-            container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
-              { op: "set", path: "/lastHeartbeat", value: now }
-            ])
-          )
-            .pipe(
-              Effect.tap(annotateItem),
-              Effect.asVoid,
-              Effect.catchIf(isNotFound, () => Effect.void)
+      Effect.gen(function* () {
+        const now = Date.now()
+        yield* tryCosmos(() =>
+          container
+            .item(runnerDocId(address), "runner")
+            .patch<RunnerDoc>([{ op: "set", path: "/lastHeartbeat", value: now }])
+        ).pipe(
+          Effect.tap(annotateItem),
+          Effect.asVoid,
+          Effect.catchIf(isNotFound, () => Effect.void)
+        )
+        const refreshed = yield* Effect.forEach(shardIds, (shardId) =>
+          readLock(shardId).pipe(
+            Effect.flatMap((lock) =>
+              Option.match(lock, {
+                onNone: () => Effect.succeed(Option.none<string>()),
+                onSome: (doc) => {
+                  if (doc.address !== address) return Effect.succeed(Option.none<string>())
+                  doc.acquiredAt = now
+                  return writeLock(doc).pipe(Effect.map((ok) => (ok ? Option.some(shardId) : Option.none<string>())))
+                }
+              })
             )
-          const refreshed = yield* Effect.forEach(shardIds, (shardId) =>
-            readLock(shardId).pipe(
-              Effect.flatMap((lock) =>
-                Option.match(lock, {
-                  onNone: () => Effect.succeed(Option.none<string>()),
-                  onSome: (doc) => {
-                    if (doc.address !== address) return Effect.succeed(Option.none<string>())
-                    doc.acquiredAt = now
-                    return writeLock(doc).pipe(Effect.map((ok) => ok ? Option.some(shardId) : Option.none<string>()))
-                  }
-                })
-              )
-            ))
-          return Arr.getSomes(refreshed)
-        })
-        .pipe(annotate("refresh"), refailPersistence, withTracerDisabled),
+          )
+        )
+        return Arr.getSomes(refreshed)
+      }).pipe(annotate("refresh"), refailPersistence, withTracerDisabled),
 
     release: (address, shardId) =>
       readLock(shardId).pipe(
         Effect.flatMap((lock) =>
           Option.match(lock, {
             onNone: () => Effect.void,
-            onSome: (doc) =>
-              doc.address === address
-                ? deleteLock(doc)
-                : Effect.void
+            onSome: (doc) => (doc.address === address ? deleteLock(doc) : Effect.void)
           })
         ),
         annotate("release"),
@@ -1155,47 +1109,46 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
 
     releaseAll: (address) =>
       tryCosmos(() =>
-        container
-          .items
-          .query<LockDoc>({
-            query: "SELECT * FROM c WHERE c.type = 'lock' AND c.address = @address",
-            parameters: [{ name: "@address", value: address }]
-          }, { partitionKey: "lock" })
+        container.items
+          .query<LockDoc>(
+            {
+              query: "SELECT * FROM c WHERE c.type = 'lock' AND c.address = @address",
+              parameters: [{ name: "@address", value: address }]
+            },
+            { partitionKey: "lock" }
+          )
           .fetchAll()
+      ).pipe(
+        Effect.tap(annotateFeed),
+        Effect.flatMap((resp) => Effect.forEach(resp.resources, deleteLock, { discard: true })),
+        annotate("releaseAll"),
+        refailPersistence,
+        withTracerDisabled
       )
-        .pipe(
-          Effect.tap(annotateFeed),
-          Effect.flatMap((resp) => Effect.forEach(resp.resources, deleteLock, { discard: true })),
-          annotate("releaseAll"),
-          refailPersistence,
-          withTracerDisabled
-        )
   })
 })
 
 export const layerMessageStorage = (
   options?: StorageOptions
 ): Layer.Layer<MessageStorage.MessageStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
-  Layer.effect(MessageStorage.MessageStorage, makeMessageStorage(options)).pipe(
-    Layer.provide(Snowflake.layerGenerator)
-  )
+  Layer.effect(MessageStorage.MessageStorage, makeMessageStorage(options)).pipe(Layer.provide(Snowflake.layerGenerator))
 
 export const layerRunnerStorage = (
   options?: StorageOptions
 ): Layer.Layer<RunnerStorage.RunnerStorage, never, CosmosClient | ShardingConfig.ShardingConfig> =>
   Layer.effect(RunnerStorage.RunnerStorage, makeRunnerStorage(options))
 
-export const layerStorage = (options?: StorageOptions): Layer.Layer<
+export const layerStorage = (
+  options?: StorageOptions
+): Layer.Layer<
   MessageStorage.MessageStorage | RunnerStorage.RunnerStorage,
   never,
   CosmosClient | ShardingConfig.ShardingConfig
 > => Layer.merge(layerMessageStorage(options), layerRunnerStorage(options))
 
-export const layerCosmos = (config: ClusterCosmosConfig): Layer.Layer<
-  MessageStorage.MessageStorage | RunnerStorage.RunnerStorage,
-  never,
-  ShardingConfig.ShardingConfig
-> =>
+export const layerCosmos = (
+  config: ClusterCosmosConfig
+): Layer.Layer<MessageStorage.MessageStorage | RunnerStorage.RunnerStorage, never, ShardingConfig.ShardingConfig> =>
   layerStorage({ prefix: config.prefix, autoscaleMaxThroughput: config.autoscaleMaxThroughput }).pipe(
     Layer.provide(CosmosClientLayer(Redacted.value(config.url), config.dbName))
   )

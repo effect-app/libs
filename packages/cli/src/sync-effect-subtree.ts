@@ -18,23 +18,21 @@ const normalizeVersion = (range: string) => {
   return match?.[0]
 }
 
-export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectConfig) {
+export const syncEffectSubtree = Effect.fnUntraced(function* (config: SyncEffectConfig) {
   const fs = yield* FileSystem.FileSystem
   const { runGetExitCode, runGetString } = yield* RunCommandService
 
-  const run = Effect.fnUntraced(function*(command: string) {
+  const run = Effect.fnUntraced(function* (command: string) {
     const exitCode = yield* runGetExitCode(command)
     if (exitCode !== 0) {
       return yield* Effect.fail(new Error(`Command failed with exit code ${exitCode}: ${command}`))
     }
   })
 
-  const fetchRemoteRef = Effect.fnUntraced(function*(remoteRef: string, localRef: string) {
+  const fetchRemoteRef = Effect.fnUntraced(function* (remoteRef: string, localRef: string) {
     const rawRef = `${localRef}-raw`
 
-    yield* run(
-      `git fetch --no-tags ${shellQuote(config.url)} ${shellQuote(`+${remoteRef}:${rawRef}`)}`
-    )
+    yield* run(`git fetch --no-tags ${shellQuote(config.url)} ${shellQuote(`+${remoteRef}:${rawRef}`)}`)
 
     const commit = (yield* runGetString(`git rev-list -n1 ${shellQuote(rawRef)}`)).trim()
     yield* run(`git update-ref ${shellQuote(localRef)} ${shellQuote(commit)}`)
@@ -79,14 +77,10 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
     )
   ]
 
-  const versions = versionsFromEffectPackage.length > 0
-    ? versionsFromEffectPackage
-    : versionsFromEffectScope
+  const versions = versionsFromEffectPackage.length > 0 ? versionsFromEffectPackage : versionsFromEffectScope
 
   if (versions.length === 0) {
-    return yield* Effect.fail(
-      new Error("Could not find any effect/@effect dependency versions in manifests")
-    )
+    return yield* Effect.fail(new Error("Could not find any effect/@effect dependency versions in manifests"))
   }
 
   if (versions.length > 1) {
@@ -94,17 +88,11 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
       .map((e) => `${e.manifestPath} (${e.section}) ${e.name}: ${e.range}`)
       .join("\n")
 
-    return yield* Effect.fail(
-      new Error(`Found multiple Effect versions. Please align first:\n${details}`)
-    )
+    return yield* Effect.fail(new Error(`Found multiple Effect versions. Please align first:\n${details}`))
   }
 
   const version = versions[0]
-  const candidateRefs = [
-    `effect@${version}`,
-    `@effect/effect@${version}`,
-    `@effect/ai-anthropic@${version}`
-  ]
+  const candidateRefs = [`effect@${version}`, `@effect/effect@${version}`, `@effect/ai-anthropic@${version}`]
 
   const url = shellQuote(config.url)
 
@@ -112,8 +100,7 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
   for (const candidate of candidateRefs) {
     const tagResult = yield* runGetString(
       `git ls-remote --exit-code --tags ${url} ${shellQuote(`refs/tags/${candidate}`)}`
-    )
-      .pipe(Effect.option)
+    ).pipe(Effect.option)
 
     if (Option.isSome(tagResult)) {
       ref = candidate
@@ -133,8 +120,8 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
   const syncRef = "refs/effa-sync/effect-selected"
   yield* fetchRemoteRef(`refs/tags/${ref}`, syncRef)
   yield* run(
-    `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} . ${
-      shellQuote(syncRef)
-    } --squash`
+    `git -c status.showUntrackedFiles=no subtree pull --prefix=${shellQuote(config.subtreePrefix)} . ${shellQuote(
+      syncRef
+    )} --squash`
   )
 })

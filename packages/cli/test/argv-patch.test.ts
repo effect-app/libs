@@ -50,16 +50,16 @@ describe("patchArgvForWrapCommands", () => {
       expect(argv).toEqual(make("index-multi", "tsc --build=./tsconfig.json"))
     })
 
-    it("wrap args with --flag=\"quoted value\" syntax", () => {
-      const argv = make("index-multi", "tsc", "--outDir=\"dist/build\"")
+    it('wrap args with --flag="quoted value" syntax', () => {
+      const argv = make("index-multi", "tsc", '--outDir="dist/build"')
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "tsc --outDir=\"dist/build\""))
+      expect(argv).toEqual(make("index-multi", 'tsc --outDir="dist/build"'))
     })
 
     it("wrap args with mixed quoted and unquoted flags", () => {
-      const argv = make("packagejson", "cmd", "--x=\"abc\"", "--y", "plain")
+      const argv = make("packagejson", "cmd", '--x="abc"', "--y", "plain")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson", "cmd --x=\"abc\" --y plain"))
+      expect(argv).toEqual(make("packagejson", 'cmd --x="abc" --y plain'))
     })
 
     it("wrap args with single-quoted value in flag", () => {
@@ -69,9 +69,9 @@ describe("patchArgvForWrapCommands", () => {
     })
 
     it("wrap args with spaces inside quoted flag value", () => {
-      const argv = make("packagejson-packages", "cmd", "--msg=\"hello world\"", "--verbose")
+      const argv = make("packagejson-packages", "cmd", '--msg="hello world"', "--verbose")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson-packages", "cmd --msg=\"hello world\" --verbose"))
+      expect(argv).toEqual(make("packagejson-packages", 'cmd --msg="hello world" --verbose'))
     })
   })
 
@@ -191,8 +191,8 @@ describe.skip("e2e: CLI spawns wrap command correctly", () => {
     expect(out).toContain("--build done")
   })
 
-  it("packagejson spawns command with --flag=\"value\" syntax", () => {
-    const out = run("packagejson", "echo", "--x=\"abc\"", "--y")
-    expect(out).toContain("Spawning child command: echo --x=\"abc\" --y")
+  it('packagejson spawns command with --flag="value" syntax', () => {
+    const out = run("packagejson", "echo", '--x="abc"', "--y")
+    expect(out).toContain('Spawning child command: echo --x="abc" --y')
   })
 })

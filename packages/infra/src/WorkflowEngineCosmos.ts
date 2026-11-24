@@ -46,7 +46,12 @@ import type * as Scope from "effect/Scope"
 import * as Workflow from "effect/workflow/Workflow"
 import { type Encoded, makeUnsafe, WorkflowEngine, WorkflowInstance } from "effect/workflow/WorkflowEngine"
 import { randomUUID } from "node:crypto"
-import { CosmosClient, CosmosClientLayer, type CosmosContainerThroughput, createContainerIfNotExists } from "./cosmos-client.ts"
+import {
+  CosmosClient,
+  CosmosClientLayer,
+  type CosmosContainerThroughput,
+  createContainerIfNotExists
+} from "./cosmos-client.ts"
 import { OptimisticConcurrencyException } from "./errors.ts"
 import { annotateCosmosResponse, annotateDb } from "./otel.ts"
 
@@ -144,14 +149,18 @@ const decodeActivityResult = (s: string) => Effect.orDie(S.decodeEffect(Activity
 const encodeDeferredExit = (e: Exit.Exit<unknown, unknown>) => Effect.orDie(S.encodeEffect(DeferredExitCodec)(e))
 const decodeDeferredExit = (s: string) => Effect.orDie(S.decodeEffect(DeferredExitCodec)(s))
 
-const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngineCosmosConfig) {
+const makeCosmosWorkflowEngine = Effect.fnUntraced(function* (cfg: WorkflowEngineCosmosConfig) {
   const { db } = yield* CosmosClient
   const containerId = `${cfg.prefix ?? ""}workflow-engine`
   yield* Effect.promise(() =>
-    createContainerIfNotExists(db, {
-      id: containerId,
-      partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
-    }, cfg)
+    createContainerIfNotExists(
+      db,
+      {
+        id: containerId,
+        partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
+      },
+      cfg
+    )
   )
   const container = db.container(containerId)
   const scope = yield* Effect.scope
@@ -168,9 +177,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       system: "cosmosdb",
       collection: containerId,
       entity: "workflow",
-      extra: executionId !== undefined
-        ? { "azure.cosmosdb.operation.partition_key": executionId, "app.entity.id": executionId }
-        : undefined
+      extra:
+        executionId !== undefined
+          ? { "azure.cosmosdb.operation.partition_key": executionId, "app.entity.id": executionId }
+          : undefined
     })
 
   type Registered = {
@@ -229,63 +239,47 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Cosmos primitives -------------------------------------------------
 
   const readExec = (executionId: string) =>
-    Effect
-      .gen(function*() {
-        const resp = yield* Effect.promise(() => container.item(execId, executionId).read<ExecDoc>())
-        yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
-        return Option.fromNullishOr(resp.resource).pipe(
-          Option.map((r) => ({ ...r, _etag: resp.etag }))
-        )
-      })
-      .pipe(annotate("readExec", executionId))
+    Effect.gen(function* () {
+      const resp = yield* Effect.promise(() => container.item(execId, executionId).read<ExecDoc>())
+      yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
+      return Option.fromNullishOr(resp.resource).pipe(Option.map((r) => ({ ...r, _etag: resp.etag })))
+    }).pipe(annotate("readExec", executionId))
 
   const replaceExec = (doc: ExecDoc) =>
-    Effect
-      .gen(function*() {
-        const resp = yield* Effect.tryPromise({
-          try: () =>
-            container.item(execId, doc._partitionKey).replace<ExecDoc>(doc, {
-              accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-            }),
-          catch: (cause) =>
-            isOptimisticError(cause)
-              ? new OptimisticConcurrencyException({ type: "workflow.exec", id: doc._partitionKey, code: 412 })
-              : new Cause.UnknownError(cause)
-        })
-        yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
-        return { ...doc, _etag: resp.etag }
+    Effect.gen(function* () {
+      const resp = yield* Effect.tryPromise({
+        try: () =>
+          container.item(execId, doc._partitionKey).replace<ExecDoc>(doc, {
+            accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+          }),
+        catch: (cause) =>
+          isOptimisticError(cause)
+            ? new OptimisticConcurrencyException({ type: "workflow.exec", id: doc._partitionKey, code: 412 })
+            : new Cause.UnknownError(cause)
       })
-      .pipe(
-        Effect.catchIf(Cause.isUnknownError, Effect.die),
-        annotate("replaceExec", doc._partitionKey)
-      )
+      yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
+      return { ...doc, _etag: resp.etag }
+    }).pipe(Effect.catchIf(Cause.isUnknownError, Effect.die), annotate("replaceExec", doc._partitionKey))
 
   // Atomic create-or-noop using a single-op batch — returns true if created.
   const createIfMissing = <T extends { readonly id: string; readonly _partitionKey: string }>(
     body: T
   ): Effect.Effect<boolean> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const resp = yield* Effect.promise(() =>
-        container.items.batch(
-          [{ operationType: "Create" as const, resourceBody: body }],
-          body._partitionKey
-        )
+        container.items.batch([{ operationType: "Create" as const, resourceBody: body }], body._partitionKey)
       )
       const r = resp.result?.[0]
       const code = r?.statusCode ?? 0
       if (code === 201) return true
       if (code === 409) return false
-      return yield* Effect.die(
-        new Error(`workflow-engine cosmos createIfMissing for ${body.id} failed: ${code}`)
-      )
+      return yield* Effect.die(new Error(`workflow-engine cosmos createIfMissing for ${body.id} failed: ${code}`))
     })
 
   // Last-writer-wins upsert — used to overwrite a persisted *suspended* activity
   // result once it finally completes (create-only ops can't transition it).
-  const upsert = <T extends { readonly id: string; readonly _partitionKey: string }>(
-    body: T
-  ): Effect.Effect<void> =>
-    Effect.gen(function*() {
+  const upsert = <T extends { readonly id: string; readonly _partitionKey: string }>(body: T): Effect.Effect<void> =>
+    Effect.gen(function* () {
       const resp = yield* Effect.promise(() => container.items.upsert<T>(body))
       yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
     })
@@ -308,10 +302,10 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Lease / claim ----------------------------------------------------
 
   const leaseActive = (state: ExecDoc, now: number): boolean =>
-    state.worker !== undefined
-    && state.worker !== workerId
-    && state.leaseExpiresAt !== undefined
-    && Date.parse(state.leaseExpiresAt) > now
+    state.worker !== undefined &&
+    state.worker !== workerId &&
+    state.leaseExpiresAt !== undefined &&
+    Date.parse(state.leaseExpiresAt) > now
 
   /**
    * Try to claim a lease on `state`. Returns the updated doc on success, `None`
@@ -319,7 +313,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
    * retry by re-reading).
    */
   const tryClaim = (state: ExecDoc): Effect.Effect<Option.Option<ExecDoc>> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const now = Date.now()
       if (leaseActive(state, now)) return Option.none<ExecDoc>()
       const updated: ExecDoc = {
@@ -338,26 +332,23 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
    * Best-effort: failures are swallowed; loop simply retries on next tick.
    */
   const heartbeat = (executionId: string): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       while (true) {
         yield* Effect.sleep(heartbeatInterval)
         const local = locals.get(executionId)
         const polled = local?.fiber?.pollUnsafe()
         if (!local?.fiber || polled) return
-        const cur = yield* readExec(executionId).pipe(
-          Effect.catchCause(() => Effect.succeed(Option.none<ExecDoc>()))
-        )
+        const cur = yield* readExec(executionId).pipe(Effect.catchCause(() => Effect.succeed(Option.none<ExecDoc>())))
         if (Option.isNone(cur)) continue
         const state = cur.value
         if (state.status === "complete" || state.worker !== workerId) return
         yield* replaceExec({
           ...state,
           leaseExpiresAt: new Date(Date.now() + Duration.toMillis(leaseTtl)).toISOString()
-        })
-          .pipe(
-            Effect.catchTag("OptimisticConcurrencyException", () => Effect.void),
-            Effect.catchCause(() => Effect.void)
-          )
+        }).pipe(
+          Effect.catchTag("OptimisticConcurrencyException", () => Effect.void),
+          Effect.catchCause(() => Effect.void)
+        )
       }
     })
 
@@ -369,7 +360,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     parent: string | undefined,
     entry: Registered
   ): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let local = locals.get(executionId)
       if (local?.fiber) {
         const polled = local.fiber.pollUnsafe()
@@ -396,7 +387,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         local.instance = instance
       }
 
-      const onComplete = Effect.fnUntraced(function*(result: Workflow.Result<unknown, unknown>) {
+      const onComplete = Effect.fnUntraced(function* (result: Workflow.Result<unknown, unknown>) {
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete") return
         const isComplete = result._tag === "Complete"
@@ -413,8 +404,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
           // Release lease on completion so the doc isn't seen as orphaned.
           worker: isComplete ? undefined : current.value.worker,
           leaseExpiresAt: isComplete ? undefined : current.value.leaseExpiresAt
-        })
-          .pipe(Effect.catchTag("OptimisticConcurrencyException", () => Effect.void))
+        }).pipe(Effect.catchTag("OptimisticConcurrencyException", () => Effect.void))
         if (parent && isComplete) {
           yield* Effect.forkIn(driveById(parent), scope)
         }
@@ -439,7 +429,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     })
 
   const driveById = (executionId: string): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const stateOpt = yield* readExec(executionId)
       if (Option.isNone(stateOpt)) return
       const state = stateOpt.value
@@ -453,14 +443,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // Persist deferred completion (first-writer-wins via createIfMissing),
   // resume the workflow, then clean up the clock doc.
   const fireClock = (doc: ClockDoc): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const created = yield* createIfMissing<DeferredDoc>({
         id: deferredKey(doc.deferredName),
         _partitionKey: doc._partitionKey,
         type: "deferred",
         exit: yield* encodeDeferredExit(Exit.void)
-      })
-        .pipe(annotate("clockFire", doc._partitionKey))
+      }).pipe(annotate("clockFire", doc._partitionKey))
       if (created) yield* driveById(doc._partitionKey)
       yield* Effect.promise(() => container.item(doc.id, doc._partitionKey).delete()).pipe(
         Effect.catchCause(() => Effect.void)
@@ -475,7 +464,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // synchronous writes never interleave here — Cosmos round-trips open a real
   // race window, so the write must converge rather than swallow the conflict.
   const markInterrupted = (executionId: string): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       while (true) {
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete" || current.value.interrupted) {
@@ -492,14 +481,14 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Encoded engine ----------------------------------------------------
 
   const encoded: Encoded = {
-    register: Effect.fnUntraced(function*(workflow, execute) {
+    register: Effect.fnUntraced(function* (workflow, execute) {
       workflows.set(workflow._tag, {
         workflow,
         execute,
         scope: yield* Effect.scope
       })
     }),
-    execute: Effect.fnUntraced(function*(workflow, options) {
+    execute: Effect.fnUntraced(function* (workflow, options) {
       const entry = workflows.get(workflow._tag)
       if (!entry) {
         return yield* Effect.orDie(Effect.fail(`Workflow ${workflow._tag} is not registered`))
@@ -539,7 +528,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       }
     }),
     poll: (workflow, executionId) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const local = locals.get(executionId)
         if (local?.fiber) {
           const exit = local.fiber.pollUnsafe()
@@ -551,20 +540,20 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         if (Option.isNone(state)) return Option.none<Workflow.Result<unknown, unknown>>()
         return yield* completeResult(workflow, state.value)
       }),
-    interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
+    interrupt: Effect.fnUntraced(function* (_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
       yield* markInterrupted(executionId)
       yield* driveById(executionId)
     }),
-    interruptUnsafe: Effect.fnUntraced(function*(_workflow, executionId) {
+    interruptUnsafe: Effect.fnUntraced(function* (_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
       yield* markInterrupted(executionId)
       if (local?.fiber) yield* Fiber.interrupt(local.fiber)
     }),
     resume: (_workflow, executionId) => driveById(executionId),
-    activityExecute: Effect.fnUntraced(function*(activity, attempt) {
+    activityExecute: Effect.fnUntraced(function* (activity, attempt) {
       const instance = yield* WorkflowInstance
       const id = activityKey(activity.name, attempt)
       const existing = yield* readPoint<ActivityDoc>(id, instance.executionId).pipe(
@@ -607,7 +596,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       }
       return result
     }),
-    deferredResult: Effect.fnUntraced(function*(deferred) {
+    deferredResult: Effect.fnUntraced(function* (deferred) {
       const instance = yield* WorkflowInstance
       const got = yield* readPoint<DeferredDoc>(deferredKey(deferred.name), instance.executionId).pipe(
         annotate("deferredRead", instance.executionId)
@@ -615,14 +604,13 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       if (Option.isNone(got)) return Option.none<Exit.Exit<unknown, unknown>>()
       return Option.some(yield* decodeDeferredExit(got.value.exit))
     }),
-    deferredDone: Effect.fnUntraced(function*(options) {
+    deferredDone: Effect.fnUntraced(function* (options) {
       const created = yield* createIfMissing<DeferredDoc>({
         id: deferredKey(options.deferredName),
         _partitionKey: options.executionId,
         type: "deferred",
         exit: yield* encodeDeferredExit(options.exit)
-      })
-        .pipe(annotate("deferredPersist", options.executionId))
+      }).pipe(annotate("deferredPersist", options.executionId))
       if (!created) return
       yield* driveById(options.executionId)
     }),
@@ -636,7 +624,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         deferredName: options.clock.deferred.name,
         fireAt
       }
-      return Effect.gen(function*() {
+      return Effect.gen(function* () {
         yield* createIfMissing(clockDoc).pipe(annotate("clockPersist", options.executionId))
         // Fast-path in-process timer. If this process dies, the clock poller
         // picks up the persisted doc and fires the deferred.
@@ -657,32 +645,29 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // resuming activities from persisted results.
   if (Duration.toMillis(recoveryInterval) > 0) {
     type StaleRow = { readonly _partitionKey: string; readonly workflowName: string }
-    const recoverStep = Effect
-      .gen(function*() {
-        const nowIso = new Date().toISOString()
-        const stale = yield* Effect.promise(() =>
-          container
-            .items
-            .query<StaleRow>({
-              query:
-                "SELECT c._partitionKey, c.workflowName FROM c WHERE c.type = 'exec' AND c.status = 'running' AND (NOT IS_DEFINED(c.leaseExpiresAt) OR c.leaseExpiresAt <= @now)",
-              parameters: [{ name: "@now", value: nowIso }]
-            })
-            .fetchAll()
-        )
-        for (const row of stale.resources) {
-          if (!workflows.has(row.workflowName)) continue
-          const local = locals.get(row._partitionKey)
-          if (local?.fiber && !local.fiber.pollUnsafe()) continue
-          yield* Effect.forkIn(driveById(row._partitionKey), scope)
-        }
-      })
-      .pipe(annotate("recoveryScan"), Effect.catchCause(() => Effect.void))
-
-    yield* recoverStep.pipe(
-      Effect.repeat(Schedule.spaced(recoveryInterval)),
-      Effect.forkIn(scope)
+    const recoverStep = Effect.gen(function* () {
+      const nowIso = new Date().toISOString()
+      const stale = yield* Effect.promise(() =>
+        container.items
+          .query<StaleRow>({
+            query:
+              "SELECT c._partitionKey, c.workflowName FROM c WHERE c.type = 'exec' AND c.status = 'running' AND (NOT IS_DEFINED(c.leaseExpiresAt) OR c.leaseExpiresAt <= @now)",
+            parameters: [{ name: "@now", value: nowIso }]
+          })
+          .fetchAll()
+      )
+      for (const row of stale.resources) {
+        if (!workflows.has(row.workflowName)) continue
+        const local = locals.get(row._partitionKey)
+        if (local?.fiber && !local.fiber.pollUnsafe()) continue
+        yield* Effect.forkIn(driveById(row._partitionKey), scope)
+      }
+    }).pipe(
+      annotate("recoveryScan"),
+      Effect.catchCause(() => Effect.void)
     )
+
+    yield* recoverStep.pipe(Effect.repeat(Schedule.spaced(recoveryInterval)), Effect.forkIn(scope))
   }
 
   // --- Clock poller -----------------------------------------------------
@@ -697,39 +682,36 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       readonly workflowName: string
       readonly deferredName: string
     }
-    const clockStep = Effect
-      .gen(function*() {
-        const nowIso = new Date().toISOString()
-        const due = yield* Effect.promise(() =>
-          container
-            .items
-            .query<DueClock>({
-              query:
-                "SELECT c.id, c._partitionKey, c.workflowName, c.deferredName FROM c WHERE c.type = 'clock' AND c.fireAt <= @now",
-              parameters: [{ name: "@now", value: nowIso }]
-            })
-            .fetchAll()
+    const clockStep = Effect.gen(function* () {
+      const nowIso = new Date().toISOString()
+      const due = yield* Effect.promise(() =>
+        container.items
+          .query<DueClock>({
+            query:
+              "SELECT c.id, c._partitionKey, c.workflowName, c.deferredName FROM c WHERE c.type = 'clock' AND c.fireAt <= @now",
+            parameters: [{ name: "@now", value: nowIso }]
+          })
+          .fetchAll()
+      )
+      for (const row of due.resources) {
+        yield* Effect.forkIn(
+          fireClock({
+            id: row.id,
+            _partitionKey: row._partitionKey,
+            type: "clock",
+            workflowName: row.workflowName,
+            deferredName: row.deferredName,
+            fireAt: nowIso
+          }),
+          scope
         )
-        for (const row of due.resources) {
-          yield* Effect.forkIn(
-            fireClock({
-              id: row.id,
-              _partitionKey: row._partitionKey,
-              type: "clock",
-              workflowName: row.workflowName,
-              deferredName: row.deferredName,
-              fireAt: nowIso
-            }),
-            scope
-          )
-        }
-      })
-      .pipe(annotate("clockScan"), Effect.catchCause(() => Effect.void))
-
-    yield* clockStep.pipe(
-      Effect.repeat(Schedule.spaced(clockPollInterval)),
-      Effect.forkIn(scope)
+      }
+    }).pipe(
+      annotate("clockScan"),
+      Effect.catchCause(() => Effect.void)
     )
+
+    yield* clockStep.pipe(Effect.repeat(Schedule.spaced(clockPollInterval)), Effect.forkIn(scope))
   }
 
   return engine
@@ -744,6 +726,6 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
  * persisted payloads/results/exits are round-tripped through schema codecs.
  */
 export const layerCosmos = (cfg: WorkflowEngineCosmosConfig): Layer.Layer<WorkflowEngine> =>
-  Layer
-    .effect(WorkflowEngine)(makeCosmosWorkflowEngine(cfg))
-    .pipe(Layer.provide(CosmosClientLayer(Redacted.value(cfg.url), cfg.dbName)))
+  Layer.effect(WorkflowEngine)(makeCosmosWorkflowEngine(cfg)).pipe(
+    Layer.provide(CosmosClientLayer(Redacted.value(cfg.url), cfg.dbName))
+  )

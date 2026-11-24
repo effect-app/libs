@@ -1,14 +1,8 @@
 <template>
   <addForm.Form>
-    <addForm.Input
-      label="first"
-      name="first"
-    />
+    <addForm.Input label="first" name="first" />
     <div>+</div>
-    <addForm.Input
-      label="second"
-      name="second"
-    />
+    <addForm.Input label="second" name="second" />
   </addForm.Form>
 
   <!-- Technically you can do this only with a subscribe but only inside OmegaForm Context -->

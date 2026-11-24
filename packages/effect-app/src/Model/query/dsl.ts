@@ -36,7 +36,8 @@ export interface QueryTogether<
   out A = TFieldValues,
   out R = never,
   out TType extends "many" | "one" | "count" = "many"
-> extends Pipeable.Pipeable {
+>
+  extends Pipeable.Pipeable {
   readonly [QId]: {
     readonly _TFieldValues: Covariant<TFieldValues>
     readonly _T: Covariant<T>
@@ -49,45 +50,46 @@ export interface QueryTogether<
 }
 
 type ExtractTType<T> = T extends QueryTogether<any, any, any, any, any, any, infer TType> ? TType : never
-type ExtractExclusiveness<T> = T extends QueryTogether<any, any, infer Exclusive extends boolean, any, any, any, any>
-  ? Exclusive
-  : never
-type ExtractFieldValues<T> = T extends QueryTogether<infer TFieldValues, any, any, any, any, any, any> ? TFieldValues
-  : never
-type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any>
-  ? TFieldValuesRefined
-  : never
+type ExtractExclusiveness<T> =
+  T extends QueryTogether<any, any, infer Exclusive extends boolean, any, any, any, any> ? Exclusive : never
+type ExtractFieldValues<T> =
+  T extends QueryTogether<infer TFieldValues, any, any, any, any, any, any> ? TFieldValues : never
+type ExtractFieldValuesRefined<T> =
+  T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any> ? TFieldValuesRefined : never
 type KeysOfUnion<T> = T extends T ? keyof T : never
 /** Peel Schema `tag`/`Literal` brands down to the underlying literal value. */
-type LiteralValue<T> = T extends { readonly literal: infer L } ? L
-  : T extends string | number | boolean | null | bigint ? T
-  // Schema.tag<"x"> / withConstructorDefault wrappers are object brands whose
-  // nominal shape is not a PropertyKey — fall back to never so callers treat
-  // them via UnwrapTag below.
-  : never
+type LiteralValue<T> = T extends { readonly literal: infer L }
+  ? L
+  : T extends string | number | boolean | null | bigint
+    ? T
+    : // Schema.tag<"x"> / withConstructorDefault wrappers are object brands whose
+      // nominal shape is not a PropertyKey — fall back to never so callers treat
+      // them via UnwrapTag below.
+      never
 // Last-resort: if T is a single object brand wrapping a string literal in its
 // structure, treat non-union object tags as single-literal for same-tag duals.
-type TagKey<T> = [LiteralValue<T>] extends [never] ? (
-    string extends T ? string
-      : [T] extends [PropertyKey] ? T
-      // object brand (e.g. tag<"packing">): treat as single opaque tag token
-      : T
-  )
+type TagKey<T> = [LiteralValue<T>] extends [never]
+  ? string extends T
+    ? string
+    : [T] extends [PropertyKey]
+      ? T
+      : // object brand (e.g. tag<"packing">): treat as single opaque tag token
+        T
   : LiteralValue<T>
 // One-directional: domain tag may be a single literal that is a member of a
 // multi-tag projection (`"picking" extends "picking"|"picked"`). Bidirectional
 // equality would reject every multi-tag flat projection.
 type ExtractTagged<From, Tag> = From extends { readonly _tag: infer FromTag }
-  ? [TagKey<FromTag>] extends [TagKey<Tag>] ? From : never
+  ? [TagKey<FromTag>] extends [TagKey<Tag>]
+    ? From
+    : never
   : never
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never
 /**
  * True when `Tag` is a single tag token (string literal or opaque brand like
  * Schema.tag<"packing">), not a union of tags and not bare `string`.
  */
-type IsSingleLiteralTag<Tag> = string extends Tag ? false
-  : [Tag] extends [UnionToIntersection<Tag>] ? true
-  : false
+type IsSingleLiteralTag<Tag> = string extends Tag ? false : [Tag] extends [UnionToIntersection<Tag>] ? true : false
 /**
  * Domain shape that may supply stored fields for projection member `I`.
  *
@@ -97,9 +99,10 @@ type IsSingleLiteralTag<Tag> = string extends Tag ? false
  *   per-tag members in the Encoded union) fall back to the full `From` so
  *   existing Class+Literals projections keep typechecking.
  */
-type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
-    [ExtractTagged<From, Tag>] extends [never] ? From : ExtractTagged<From, Tag>
-  )
+type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag }
+  ? [ExtractTagged<From, Tag>] extends [never]
+    ? From
+    : ExtractTagged<From, Tag>
   : From
 
 /**
@@ -124,10 +127,10 @@ type ProjectableSource<I, From> = I extends { readonly _tag: infer Tag } ? (
  * - Untagged `I` (plain project DTOs): keys present on *any* domain member
  *   (`KeysOfUnion`), matching historical `project()` behavior.
  */
-type ProjectableDomainKeys<I, From> = I extends { readonly _tag: infer Tag } ? (
-    IsSingleLiteralTag<Tag> extends true ? KeysOfUnion<ProjectableSource<I, From>>
-      : keyof ProjectableSource<I, From>
-  )
+type ProjectableDomainKeys<I, From> = I extends { readonly _tag: infer Tag }
+  ? IsSingleLiteralTag<Tag> extends true
+    ? KeysOfUnion<ProjectableSource<I, From>>
+    : keyof ProjectableSource<I, From>
   : KeysOfUnion<From>
 
 /**
@@ -138,9 +141,7 @@ type ProjectableDomainKeys<I, From> = I extends { readonly _tag: infer Tag } ? (
  * assignability check rejected legitimate optionalKey fields like closed.batchId).
  */
 type UnprojectableKeys<I, From, ExtraKeys extends PropertyKey> = {
-  [K in keyof I]-?: K extends ExtraKeys ? never
-    : K extends ProjectableDomainKeys<I, From> ? never
-    : K
+  [K in keyof I]-?: K extends ExtraKeys ? never : K extends ProjectableDomainKeys<I, From> ? never : K
 }[keyof I]
 
 /**
@@ -149,7 +150,9 @@ type UnprojectableKeys<I, From, ExtraKeys extends PropertyKey> = {
  * branch-only fields like cancel-only omissions.
  */
 type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends [FieldValues]
-  ? ([UnprojectableKeys<I, From, ExtraKeys>] extends [never] ? true : false)
+  ? [UnprojectableKeys<I, From, ExtraKeys>] extends [never]
+    ? true
+    : false
   : false
 
 /**
@@ -159,7 +162,8 @@ type IsProjectableMember<I, From, ExtraKeys extends PropertyKey> = [I] extends [
  */
 type ProjectableGuard<I, From, ExtraKeys extends PropertyKey = never> = false extends (
   I extends any ? IsProjectableMember<I, From, ExtraKeys> : never
-) ? never
+)
+  ? never
   : unknown
 
 /**
@@ -197,28 +201,13 @@ export type QueryWhere<
   TFieldValues extends FieldValues,
   TFieldValuesRefined extends TFieldValues = TFieldValues,
   Exclusive extends boolean = false
-> =
-  & QueryTogether<
-    TFieldValues,
-    TFieldValuesRefined,
-    Exclusive,
-    "where"
-  >
-  & Relation
+> = QueryTogether<TFieldValues, TFieldValuesRefined, Exclusive, "where"> & Relation
 
 export type QueryEnd<
   TFieldValues extends FieldValues,
   TType extends "many" | "one" | "count" = "many",
   Exclusive extends boolean = false
-> = QueryTogether<
-  TFieldValues,
-  TFieldValues,
-  Exclusive,
-  "end",
-  TFieldValues,
-  never,
-  TType
->
+> = QueryTogether<TFieldValues, TFieldValues, Exclusive, "end", TFieldValues, never, TType>
 
 export type QueryProjection<
   TFieldValues extends FieldValues,
@@ -226,28 +215,20 @@ export type QueryProjection<
   R = never,
   TType extends "many" | "one" | "count" = "many",
   Exclusive extends boolean = false
-> = QueryTogether<
-  TFieldValues,
-  TFieldValues,
-  Exclusive,
-  "projection",
-  A,
-  R,
-  TType
->
+> = QueryTogether<TFieldValues, TFieldValues, Exclusive, "projection", A, R, TType>
 
 export type ComputedProjectionOperation = (q: Query<any>) => QueryWhere<any, any, any>
 
 export type ComputedProjectionMathExpression =
   | {
-    readonly _tag: "field"
-    readonly field: string
-  }
+      readonly _tag: "field"
+      readonly field: string
+    }
   | {
-    readonly _tag: "mul"
-    readonly left: ComputedProjectionMathExpression
-    readonly right: ComputedProjectionMathExpression
-  }
+      readonly _tag: "mul"
+      readonly left: ComputedProjectionMathExpression
+      readonly right: ComputedProjectionMathExpression
+    }
 
 declare const ComputedProjectionExpressionTypeId: unique symbol
 
@@ -255,81 +236,82 @@ type ComputedProjectionOutput<A> = {
   readonly [ComputedProjectionExpressionTypeId]?: Covariant<A>
 }
 
-export type ComputedProjectionExpression<A = unknown> =
-  & ComputedProjectionOutput<A>
-  & (
+export type ComputedProjectionExpression<A = unknown> = ComputedProjectionOutput<A> &
+  (
     | {
-      readonly _tag: "relation-count"
-      readonly path: string
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-count"
+        readonly path: string
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-any"
-      readonly path: string
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-any"
+        readonly path: string
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-every"
-      readonly path: string
-      readonly operation: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-every"
+        readonly path: string
+        readonly operation: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-distinct-count"
-      readonly path: string
-      readonly field: string
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-distinct-count"
+        readonly path: string
+        readonly field: string
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-sum"
-      readonly path: string
-      readonly field: string
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-sum"
+        readonly path: string
+        readonly field: string
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-sum-expr"
-      readonly path: string
-      readonly expression: ComputedProjectionMathExpression
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-sum-expr"
+        readonly path: string
+        readonly expression: ComputedProjectionMathExpression
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-sum-expr-by"
-      readonly path: string
-      readonly expression: ComputedProjectionMathExpression
-      readonly unit: string
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-sum-expr-by"
+        readonly path: string
+        readonly expression: ComputedProjectionMathExpression
+        readonly unit: string
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-sum-expr-normalized"
-      readonly path: string
-      readonly expression: ComputedProjectionMathExpression
-      readonly unit: string
-      readonly toBase: string
-      readonly factors: Readonly<Record<string, number>>
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-sum-expr-normalized"
+        readonly path: string
+        readonly expression: ComputedProjectionMathExpression
+        readonly unit: string
+        readonly toBase: string
+        readonly factors: Readonly<Record<string, number>>
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-collect"
-      readonly path: string
-      readonly field: string
-      readonly distinct: boolean
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-collect"
+        readonly path: string
+        readonly field: string
+        readonly distinct: boolean
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-collect-fields"
-      readonly path: string
-      readonly fields: readonly string[]
-      readonly distinct: boolean
-      readonly operation?: ComputedProjectionOperation
-    }
+        readonly _tag: "relation-collect-fields"
+        readonly path: string
+        readonly fields: readonly string[]
+        readonly distinct: boolean
+        readonly operation?: ComputedProjectionOperation
+      }
     | {
-      readonly _tag: "relation-length"
-      readonly path: string
-    }
+        readonly _tag: "relation-length"
+        readonly path: string
+      }
   )
 
-type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = string extends keyof M ? unknown
-  : Exclude<keyof M, KeysOfUnion<I>> extends never ? unknown
-  : never
+type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = string extends keyof M
+  ? unknown
+  : Exclude<keyof M, KeysOfUnion<I>> extends never
+    ? unknown
+    : never
 
 /**
  * An expression that aggregates values across documents (for use with {@link aggregate}).
@@ -337,28 +319,28 @@ type NoExtraComputedKeys<M extends ComputedProjectionMap, I> = string extends ke
  */
 export type AggregateExpression =
   | {
-    readonly _tag: "agg-field"
-    readonly path: string
-  }
+      readonly _tag: "agg-field"
+      readonly path: string
+    }
   | {
-    readonly _tag: "agg-count"
-  }
+      readonly _tag: "agg-count"
+    }
   | {
-    readonly _tag: "agg-count-when"
-    readonly operation: ComputedProjectionOperation
-  }
+      readonly _tag: "agg-count-when"
+      readonly operation: ComputedProjectionOperation
+    }
   | {
-    readonly _tag: "agg-sum"
-    readonly field: string
-  }
+      readonly _tag: "agg-sum"
+      readonly field: string
+    }
   | {
-    readonly _tag: "agg-min"
-    readonly field: string
-  }
+      readonly _tag: "agg-min"
+      readonly field: string
+    }
   | {
-    readonly _tag: "agg-max"
-    readonly field: string
-  }
+      readonly _tag: "agg-max"
+      readonly field: string
+    }
 
 export type AggregateMap = Readonly<Record<string, AggregateExpression>>
 
@@ -374,7 +356,8 @@ export type Q<TFieldValues extends FieldValues> =
   | One<TFieldValues>
   | Count<TFieldValues>
 
-export class Initial<TFieldValues extends FieldValues> extends Data.TaggedClass("value")<{ value: "initial" }>
+export class Initial<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("value")<{ value: "initial" }>
   implements Query<TFieldValues>
 {
   readonly [QId]!: any
@@ -387,12 +370,15 @@ export class Initial<TFieldValues extends FieldValues> extends Data.TaggedClass(
   }
 }
 
-export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("where")<{
-  current: Query<TFieldValues>
-  operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
-  relation: RelationDirection
-  subPath?: string
-}> implements QueryWhere<TFieldValues> {
+export class Where<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("where")<{
+    current: Query<TFieldValues>
+    operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+    relation: RelationDirection
+    subPath?: string
+  }>
+  implements QueryWhere<TFieldValues>
+{
   readonly [QId]!: any
 
   override pipe() {
@@ -401,11 +387,14 @@ export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("w
   }
 }
 
-export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and")<{
-  current: Query<TFieldValues>
-  operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
-  relation: RelationDirection
-}> implements QueryWhere<TFieldValues> {
+export class And<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("and")<{
+    current: Query<TFieldValues>
+    operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+    relation: RelationDirection
+  }>
+  implements QueryWhere<TFieldValues>
+{
   readonly [QId]!: any
   override pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -413,11 +402,14 @@ export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and
   }
 }
 
-export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")<{
-  current: Query<TFieldValues>
-  operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
-  relation: RelationDirection
-}> implements QueryWhere<TFieldValues> {
+export class Or<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("or")<{
+    current: Query<TFieldValues>
+    operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+    relation: RelationDirection
+  }>
+  implements QueryWhere<TFieldValues>
+{
   readonly [QId]!: any
   override pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -425,11 +417,14 @@ export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")
   }
 }
 
-export class Page<TFieldValues extends FieldValues> extends Data.TaggedClass("page")<{
-  current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
-  take?: number | undefined
-  skip?: number | undefined
-}> implements QueryEnd<TFieldValues> {
+export class Page<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("page")<{
+    current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
+    take?: number | undefined
+    skip?: number | undefined
+  }>
+  implements QueryEnd<TFieldValues>
+{
   readonly [QId]!: any
   override pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -437,9 +432,12 @@ export class Page<TFieldValues extends FieldValues> extends Data.TaggedClass("pa
   }
 }
 
-export class One<TFieldValues extends FieldValues> extends Data.TaggedClass("one")<{
-  current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
-}> implements QueryEnd<TFieldValues, "one"> {
+export class One<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("one")<{
+    current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
+  }>
+  implements QueryEnd<TFieldValues, "one">
+{
   readonly [QId]!: any
   override pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -447,9 +445,12 @@ export class One<TFieldValues extends FieldValues> extends Data.TaggedClass("one
   }
 }
 
-export class Count<TFieldValues extends FieldValues> extends Data.TaggedClass("count")<{
-  current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
-}> implements QueryEnd<TFieldValues, "count"> {
+export class Count<TFieldValues extends FieldValues>
+  extends Data.TaggedClass("count")<{
+    current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
+  }>
+  implements QueryEnd<TFieldValues, "count">
+{
   readonly [QId]!: any
   override pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -491,63 +492,74 @@ export class Project<A, TFieldValues extends FieldValues, R, TType extends "one"
 
 export const make: <TFieldValues extends FieldValues>() => Query<TFieldValues> = () => new Initial()
 
-export const where: FilterWhere = (...operation: any[]) => (current: any) =>
-  new Where({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
+export const where: FilterWhere =
+  (...operation: any[]) =>
+  (current: any) =>
+    new Where({
+      current,
+      operation: typeof operation[0] === "function" ? flow(...(operation as [any])) : operation
+    } as any)
 
-export const and: FilterContinuationAnd = (...operation: any[]) => (current: any) =>
-  new And({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
+export const and: FilterContinuationAnd =
+  (...operation: any[]) =>
+  (current: any) =>
+    new And({
+      current,
+      operation: typeof operation[0] === "function" ? flow(...(operation as [any])) : operation
+    } as any)
 
-export const or: FilterContinuationOr = (...operation: any[]) => (current: any) =>
-  new Or({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
+export const or: FilterContinuationOr =
+  (...operation: any[]) =>
+  (current: any) =>
+    new Or({
+      current,
+      operation: typeof operation[0] === "function" ? flow(...(operation as [any])) : operation
+    } as any)
 
-export const whereEvery: WhereEveryOrSome =
-  ((subPath: string, ...[first, ...rest]: any[]) => (current: any) =>
-    new Where(
-      {
-        current,
-        operation: typeof first === "function"
-          ? flow(...[first, ...rest] as [any])
-          : [`${subPath}.-1.${first}`, ...rest],
-        relation: "every",
-        subPath
-      } as any
-    )) as unknown as WhereEveryOrSome
-export const whereSome: WhereEveryOrSome =
-  ((subPath: string, ...[first, ...rest]: any[]) => (current: any) =>
-    new Where(
-      {
-        current,
-        operation: typeof first === "function"
-          ? flow(...[first, ...rest] as [any])
-          : [`${subPath}.-1.${first}`, ...rest],
-        relation: "some",
-        subPath
-      } as any
-    )) as unknown as WhereEveryOrSome
+export const whereEvery: WhereEveryOrSome = ((subPath: string, ...[first, ...rest]: any[]) =>
+  (current: any) =>
+    new Where({
+      current,
+      operation:
+        typeof first === "function" ? flow(...([first, ...rest] as [any])) : [`${subPath}.-1.${first}`, ...rest],
+      relation: "every",
+      subPath
+    } as any)) as unknown as WhereEveryOrSome
+export const whereSome: WhereEveryOrSome = ((subPath: string, ...[first, ...rest]: any[]) =>
+  (current: any) =>
+    new Where({
+      current,
+      operation:
+        typeof first === "function" ? flow(...([first, ...rest] as [any])) : [`${subPath}.-1.${first}`, ...rest],
+      relation: "some",
+      subPath
+    } as any)) as unknown as WhereEveryOrSome
 
 export const order: {
-  <
-    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>
-  >(
+  <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
     field: FieldPath<ExtractFieldValuesRefined<Q>>,
     direction?: "ASC" | "DESC"
-  ): (
-    current: Q
-  ) => QueryEnd<ExtractFieldValuesRefined<Q>, "many", ExtractExclusiveness<Q>>
-} = (field, direction = "ASC") => (current) => new Order({ current, field: field as any, direction })
+  ): (current: Q) => QueryEnd<ExtractFieldValuesRefined<Q>, "many", ExtractExclusiveness<Q>>
+} =
+  (field, direction = "ASC") =>
+  (current) =>
+    new Order({ current, field: field as any, direction })
 
 export const page: {
-  (
-    page: { skip?: number; take?: number }
-  ): <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
+  (page: {
+    skip?: number
+    take?: number
+  }): <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
     current: Q
   ) => QueryEnd<ExtractFieldValuesRefined<Q>, "many", ExtractExclusiveness<Q>>
-} = ({ skip, take }) => (current) =>
-  new Page({
-    current,
-    take,
-    skip
-  })
+} =
+  ({ skip, take }) =>
+  (current) =>
+    new Page({
+      current,
+      take,
+      skip
+    })
 
 export const one: {
   <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
@@ -560,9 +572,7 @@ export const one: {
 
 // it's better to implement a distinct count so that the implementation can be optimised per adapter
 export const count: {
-  <
-    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>
-  >(
+  <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
     current: Q
   ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count", ExtractExclusiveness<Q>>
 } = (current) => new Count({ current })
@@ -606,9 +616,7 @@ export const project: {
   >(
     schema: S.Codec<Option.Option<A>, I, R>,
     mode: "collect"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -619,9 +627,7 @@ export const project: {
   >(
     schema: S.Codec<A, I, R>,
     mode: "project"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends ExtractFieldValuesRefined<Q>,
@@ -630,9 +636,7 @@ export const project: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: S.Codec<A, I, R>
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -641,13 +645,9 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<Option.Option<A>, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>,
+    schema: S.Codec<Option.Option<A>, I, R> & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "collect"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -656,13 +656,9 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<A, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>,
+    schema: S.Codec<A, I, R> & ProjectableGuard<I, ExtractFieldValues<Q>>,
     mode: "project"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends FieldValues,
@@ -670,13 +666,12 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema:
-      & S.Codec<A, I, R>
-      & ProjectableGuard<I, ExtractFieldValues<Q>>
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, mode = "transform") => (current: any) => new Project({ current, schema, mode } as any)
+    schema: S.Codec<A, I, R> & ProjectableGuard<I, ExtractFieldValues<Q>>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+} =
+  (schema: any, mode = "transform") =>
+  (current: any) =>
+    new Project({ current, schema, mode } as any)
 
 /**
  * Element type of an array-valued field path on `TFieldValues`. Falls back to
@@ -686,12 +681,12 @@ export const project: {
  * Uses `Extract` so that when `P` defaults to the full `FieldPath<TFieldValues>`
  * union, only the array-valued branches contribute to the element type.
  */
-export type RelationElement<
-  TFieldValues extends FieldValues,
-  P extends FieldPath<TFieldValues>
-> = Extract<FieldPathValue<TFieldValues, P>, ReadonlyArray<unknown>> extends ReadonlyArray<infer E>
-  ? (E extends FieldValues ? E : FieldValues)
-  : FieldValues
+export type RelationElement<TFieldValues extends FieldValues, P extends FieldPath<TFieldValues>> =
+  Extract<FieldPathValue<TFieldValues, P>, ReadonlyArray<unknown>> extends ReadonlyArray<infer E>
+    ? E extends FieldValues
+      ? E
+      : FieldValues
+    : FieldValues
 
 export const relation = <
   TFieldValues extends FieldValues,
@@ -721,25 +716,25 @@ export const relation = <
   count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<number> =>
     operation
       ? {
-        _tag: "relation-count",
-        path,
-        operation
-      }
+          _tag: "relation-count",
+          path,
+          operation
+        }
       : {
-        _tag: "relation-count",
-        path
-      },
+          _tag: "relation-count",
+          path
+        },
   any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression<boolean> =>
     operation
       ? {
-        _tag: "relation-any",
-        path,
-        operation
-      }
+          _tag: "relation-any",
+          path,
+          operation
+        }
       : {
-        _tag: "relation-any",
-        path
-      },
+          _tag: "relation-any",
+          path
+        },
   every: (operation: ComputedProjectionOperation): ComputedProjectionExpression<boolean> => ({
     _tag: "relation-every",
     path,
@@ -751,48 +746,48 @@ export const relation = <
   ): ComputedProjectionExpression<number> =>
     operation
       ? {
-        _tag: "relation-distinct-count",
-        path,
-        field,
-        operation
-      }
+          _tag: "relation-distinct-count",
+          path,
+          field,
+          operation
+        }
       : {
-        _tag: "relation-distinct-count",
-        path,
-        field
-      },
+          _tag: "relation-distinct-count",
+          path,
+          field
+        },
   sum: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     field: F,
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression<number> =>
     operation
       ? {
-        _tag: "relation-sum",
-        path,
-        field,
-        operation
-      }
+          _tag: "relation-sum",
+          path,
+          field,
+          operation
+        }
       : {
-        _tag: "relation-sum",
-        path,
-        field
-      },
+          _tag: "relation-sum",
+          path,
+          field
+        },
   sumExpr: (
     expression: ComputedProjectionMathExpression,
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression<number> =>
     operation
       ? {
-        _tag: "relation-sum-expr",
-        path,
-        expression,
-        operation
-      }
+          _tag: "relation-sum-expr",
+          path,
+          expression,
+          operation
+        }
       : {
-        _tag: "relation-sum-expr",
-        path,
-        expression
-      },
+          _tag: "relation-sum-expr",
+          path,
+          expression
+        },
   sumExprBy: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     expression: ComputedProjectionMathExpression,
     options: { unit: F },
@@ -802,18 +797,18 @@ export const relation = <
   > =>
     operation
       ? {
-        _tag: "relation-sum-expr-by",
-        path,
-        expression,
-        unit: options.unit,
-        operation
-      }
+          _tag: "relation-sum-expr-by",
+          path,
+          expression,
+          unit: options.unit,
+          operation
+        }
       : {
-        _tag: "relation-sum-expr-by",
-        path,
-        expression,
-        unit: options.unit
-      },
+          _tag: "relation-sum-expr-by",
+          path,
+          expression,
+          unit: options.unit
+        },
   sumExprNormalized: (
     expression: ComputedProjectionMathExpression,
     options: {
@@ -825,98 +820,94 @@ export const relation = <
   ): ComputedProjectionExpression<number> =>
     operation
       ? {
-        _tag: "relation-sum-expr-normalized",
-        path,
-        expression,
-        unit: options.unit,
-        toBase: options.toBase,
-        factors: options.factors,
-        operation
-      }
+          _tag: "relation-sum-expr-normalized",
+          path,
+          expression,
+          unit: options.unit,
+          toBase: options.toBase,
+          factors: options.factors,
+          operation
+        }
       : {
-        _tag: "relation-sum-expr-normalized",
-        path,
-        expression,
-        unit: options.unit,
-        toBase: options.toBase,
-        factors: options.factors
-      },
+          _tag: "relation-sum-expr-normalized",
+          path,
+          expression,
+          unit: options.unit,
+          toBase: options.toBase,
+          factors: options.factors
+        },
   collect: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     field: F,
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F>>> =>
     operation
       ? {
-        _tag: "relation-collect",
-        path,
-        field,
-        distinct: false,
-        operation
-      }
+          _tag: "relation-collect",
+          path,
+          field,
+          distinct: false,
+          operation
+        }
       : {
-        _tag: "relation-collect",
-        path,
-        field,
-        distinct: false
-      },
+          _tag: "relation-collect",
+          path,
+          field,
+          distinct: false
+        },
   collectDistinct: <const F extends FieldPath<RelationElement<TFieldValues, P>>>(
     field: F,
     operation?: ComputedProjectionOperation
   ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F>>> =>
     operation
       ? {
-        _tag: "relation-collect",
-        path,
-        field,
-        distinct: true,
-        operation
-      }
+          _tag: "relation-collect",
+          path,
+          field,
+          distinct: true,
+          operation
+        }
       : {
-        _tag: "relation-collect",
-        path,
-        field,
-        distinct: true
-      },
+          _tag: "relation-collect",
+          path,
+          field,
+          distinct: true
+        },
   collectFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
     fields: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression<
-    ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>
-  > =>
+  ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>> =>
     operation
       ? {
-        _tag: "relation-collect-fields",
-        path,
-        fields,
-        distinct: false,
-        operation
-      }
+          _tag: "relation-collect-fields",
+          path,
+          fields,
+          distinct: false,
+          operation
+        }
       : {
-        _tag: "relation-collect-fields",
-        path,
-        fields,
-        distinct: false
-      },
+          _tag: "relation-collect-fields",
+          path,
+          fields,
+          distinct: false
+        },
   collectDistinctFields: <const F extends readonly FieldPath<RelationElement<TFieldValues, P>>[]>(
     fields: F,
     operation?: ComputedProjectionOperation
-  ): ComputedProjectionExpression<
-    ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>
-  > =>
+  ): ComputedProjectionExpression<ReadonlyArray<FieldPathValue<RelationElement<TFieldValues, P>, F[number]>>> =>
     operation
       ? {
-        _tag: "relation-collect-fields",
-        path,
-        fields,
-        distinct: true,
-        operation
-      }
+          _tag: "relation-collect-fields",
+          path,
+          fields,
+          distinct: true,
+          operation
+        }
       : {
-        _tag: "relation-collect-fields",
-        path,
-        fields,
-        distinct: true
-      }
+          _tag: "relation-collect-fields",
+          path,
+          fields,
+          distinct: true
+        }
 })
 
 /**
@@ -928,9 +919,10 @@ export const relation = <
  * callers may opt into a tighter check via `expr.field<E>("x")`.
  */
 export const expr = {
-  field: <T extends FieldValues = FieldValues>(
-    field: FieldPath<T>
-  ): ComputedProjectionMathExpression => ({ _tag: "field", field }),
+  field: <T extends FieldValues = FieldValues>(field: FieldPath<T>): ComputedProjectionMathExpression => ({
+    _tag: "field",
+    field
+  }),
   mul: (
     left: ComputedProjectionMathExpression,
     right: ComputedProjectionMathExpression
@@ -965,20 +957,13 @@ type ConcreteComputedKeys<M> = string extends keyof M ? never : Extract<keyof M,
  * concrete computed keys. Intersected onto the computed-map argument so
  * inference of `M` is complete before the check runs.
  */
-type ProjectableComputedMap<
-  M extends ComputedProjectionMap,
-  I extends FieldValues,
-  Domain
-> =
-  & M
-  & NoExtraComputedKeys<M, I>
-  & (
-    [ProjectableGuard<I, Domain, ConcreteComputedKeys<M>>] extends [never] ? {
-        readonly __projectableFromDomain:
-          "projection fields must exist on the matching domain tagged state or be computed keys"
+type ProjectableComputedMap<M extends ComputedProjectionMap, I extends FieldValues, Domain> = M &
+  NoExtraComputedKeys<M, I> &
+  ([ProjectableGuard<I, Domain, ConcreteComputedKeys<M>>] extends [never]
+    ? {
+        readonly __projectableFromDomain: "projection fields must exist on the matching domain tagged state or be computed keys"
       }
-      : unknown
-  )
+    : unknown)
 
 export const projectComputed: {
   <
@@ -1011,9 +996,7 @@ export const projectComputed: {
     schema: Schema,
     build: (helpers: ComputedHelpers<ExtractFieldValues<Q>>) => ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -1045,22 +1028,17 @@ export const projectComputed: {
     schema: Schema,
     computedProjection: ProjectableComputedMap<M, I, ExtractFieldValues<Q>>,
     mode?: "project"
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
-} = (
-  schema: any,
-  mapOrBuild:
-    | ComputedProjectionMap
-    | ((helpers: ComputedHelpers<FieldValues>) => ComputedProjectionMap),
-  mode = "project"
-) =>
-(current: any) => {
-  const computedProjection = typeof mapOrBuild === "function"
-    ? mapOrBuild(makeComputedHelpers())
-    : mapOrBuild
-  return new Project({ current, schema, mode, computed: computedProjection })
-}
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, S.Schema.Type<Schema>, never, ExtractTType<Q>, E>
+} =
+  (
+    schema: any,
+    mapOrBuild: ComputedProjectionMap | ((helpers: ComputedHelpers<FieldValues>) => ComputedProjectionMap),
+    mode = "project"
+  ) =>
+  (current: any) => {
+    const computedProjection = typeof mapOrBuild === "function" ? mapOrBuild(makeComputedHelpers()) : mapOrBuild
+    return new Project({ current, schema, mode, computed: computedProjection })
+  }
 
 /**
  * Builder shape returned by {@link agg}. Field-taking methods are constrained
@@ -1135,9 +1113,7 @@ export const aggregate: {
   >(
     schema: S.Codec<A, I, R>,
     build: (agg: AggBuilder<ExtractFieldValuesRefined<Q>>) => AggregateMap
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I extends Record<string, unknown>,
@@ -1147,19 +1123,13 @@ export const aggregate: {
   >(
     schema: S.Codec<A, I, R>,
     aggregateMap: AggregateMap
-  ): (
-    current: Q
-  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+  ): (current: Q) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 } = (schema: any, mapOrBuild: AggregateMap | ((agg: AggBuilder<FieldValues>) => AggregateMap)) => (current: any) => {
-  const aggregateMap = typeof mapOrBuild === "function"
-    ? mapOrBuild(makeAggBuilder())
-    : mapOrBuild
+  const aggregateMap = typeof mapOrBuild === "function" ? mapOrBuild(makeAggBuilder()) : mapOrBuild
   return new Project({ current, schema, mode: "aggregate", aggregateMap } as any)
 }
 
-type GetArV<T> = T extends ReadonlySet<infer R> ? R
-  : T extends readonly (infer R)[] ? R
-  : never
+type GetArV<T> = T extends ReadonlySet<infer R> ? R : T extends readonly (infer R)[] ? R : never
 
 type GetMapK<T> = T extends ReadonlyMap<infer K, infer _V> ? K : never
 type GetMapV<T> = T extends ReadonlyMap<infer _K, infer V> ? V : never
@@ -1178,10 +1148,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     path: TFieldName,
     value: V
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
 
   <
     TFieldValues extends FieldValues,
@@ -1194,10 +1162,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "gt" | "gte" | "lt" | "lte" | "neq",
     value: V // only numbers?
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1208,10 +1174,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "startsWith" | "endsWith" | "contains" | "notContains" | "notStartsWith" | "notEndsWith",
     value: FieldPathValue<TFieldValues, TFieldName> extends string ? string : never
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1222,10 +1186,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "in" | "notIn",
     value: InValues<FieldPathValue<TFieldValues, TFieldName>>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1234,15 +1196,11 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     E extends boolean = false
   >(
     path: TFieldName,
-    op:
-      | "includes"
-      | "notIncludes",
+    op: "includes" | "notIncludes",
     value: GetArV<V>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1251,17 +1209,11 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     E extends boolean = false
   >(
     path: TFieldName,
-    op:
-      | "includes-any"
-      | "notIncludes-any"
-      | "includes-all"
-      | "notIncludes-all",
+    op: "includes-any" | "notIncludes-any" | "includes-all" | "notIncludes-all",
     value: InValues<GetArV<V>>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1273,10 +1225,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasKey" | "notHasKey",
     value: GetMapK<V>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1288,10 +1238,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasValue" | "notHasValue",
     value: GetMapV<V>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1303,10 +1251,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasKeyValue" | "notHasKeyValue",
     value: GetMapEntry<V>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1318,10 +1264,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasKey-any" | "notHasKey-any" | "hasKey-all" | "notHasKey-all",
     value: InValues<GetMapK<V>>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1333,10 +1277,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasValue-any" | "notHasValue-any" | "hasValue-all" | "notHasValue-all",
     value: InValues<GetMapV<V>>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1348,10 +1290,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "hasKeyValue-any" | "notHasKeyValue-any" | "hasKeyValue-all" | "notHasKeyValue-all",
     value: InValues<GetMapEntry<V>>
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1363,10 +1303,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     op: "eq"
     value: V
   }): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
-    : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
 }
 
 export type FilterContinuationsWithSubpath = {
@@ -1380,9 +1318,7 @@ export type FilterContinuationsWithSubpath = {
     subPath: TFieldName,
     restPath: TFieldNameSub,
     value: V
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1394,9 +1330,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "gt" | "gte" | "lt" | "lte" | "neq",
     value: V // only numbers?
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1407,9 +1341,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "startsWith" | "endsWith" | "contains" | "notContains" | "notStartsWith" | "notEndsWith",
     value: FieldPathValue<TFieldValuesSub, TFieldNameSub> extends string ? string : never
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1421,9 +1353,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "in" | "notIn",
     value: InValues<V>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1433,13 +1363,9 @@ export type FilterContinuationsWithSubpath = {
   >(
     subPath: TFieldName,
     restPath: TFieldNameSub,
-    op:
-      | "includes"
-      | "notIncludes",
+    op: "includes" | "notIncludes",
     value: GetArV<V>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1449,15 +1375,9 @@ export type FilterContinuationsWithSubpath = {
   >(
     subPath: TFieldName,
     restPath: TFieldNameSub,
-    op:
-      | "includes-any"
-      | "notIncludes-any"
-      | "includes-all"
-      | "notIncludes-all",
+    op: "includes-any" | "notIncludes-any" | "includes-all" | "notIncludes-all",
     value: InValues<GetArV<V>>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1469,9 +1389,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasKey" | "notHasKey",
     value: GetMapK<V>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1483,9 +1401,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasValue" | "notHasValue",
     value: GetMapV<V>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1497,9 +1413,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasKeyValue" | "notHasKeyValue",
     value: GetMapEntry<V>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1511,9 +1425,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasKey-any" | "notHasKey-any" | "hasKey-all" | "notHasKey-all",
     value: InValues<GetMapK<V>>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1525,9 +1437,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasValue-any" | "notHasValue-any" | "hasValue-all" | "notHasValue-all",
     value: InValues<GetMapV<V>>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1539,9 +1449,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub,
     op: "hasKeyValue-any" | "notHasKeyValue-any" | "hasKeyValue-all" | "notHasKeyValue-all",
     value: InValues<GetMapEntry<V>>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1553,9 +1461,7 @@ export type FilterContinuationsWithSubpath = {
     restPath: TFieldNameSub
     op: "eq"
     value: V
-  }): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues>
+  }): (current: Query<TFieldValues>) => QueryWhere<TFieldValues>
 }
 
 /* dprint-ignore-start */
@@ -1582,14 +1488,13 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
     path: TFieldName,
     value: V
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   ) => QueryWhere<
-      TFieldValues,
-      // @ts-expect-error it's TS
-      RefineWithLiteral<TFieldValuesRefined, TFieldName, V>,
-      TFieldName extends "_tag" ? true : false // consider only _tag as an exclusive field and only in the positive case
-    >
+    TFieldValues,
+    // @ts-expect-error it's TS
+    RefineWithLiteral<TFieldValuesRefined, TFieldName, V>,
+    TFieldName extends "_tag" ? true : false // consider only _tag as an exclusive field and only in the positive case
+  >
   <
     TFieldValues extends FieldValues,
     const TFieldName extends FieldPath<TFieldValues>,
@@ -1601,14 +1506,13 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
     op: "neq",
     value: V
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   ) => QueryWhere<
-      TFieldValues,
-      // @ts-expect-error it's TS
-      RefineWithLiteral<TFieldValuesRefined, TFieldName, V, true>,
-      E
-    >
+    TFieldValues,
+    // @ts-expect-error it's TS
+    RefineWithLiteral<TFieldValuesRefined, TFieldName, V, true>,
+    E
+  >
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
@@ -1620,8 +1524,7 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
     op: "in",
     value: V
   ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+    current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   ) => QueryWhere<
     TFieldValues,
     // @ts-expect-error it's TS
@@ -1797,9 +1700,7 @@ export type NestedQueriesFixedRefinement<IsCurrentInitial extends boolean = fals
     fg: (query: QueryWhere<TFieldValues, TFieldValuesRefined, E6>) => QueryWhere<TFieldValues, TFieldValuesRefined, E7>,
     fh: (query: QueryWhere<TFieldValues, TFieldValuesRefined, E7>) => QueryWhere<TFieldValues, TFieldValuesRefined, E8>,
     fi: (query: QueryWhere<TFieldValues, TFieldValuesRefined, E8>) => QueryWhere<TFieldValues, TFieldValuesRefined, E9>,
-    fj: (
-      query: QueryWhere<TFieldValues, TFieldValuesRefined, E9>
-    ) => QueryWhere<TFieldValues, TFieldValuesRefined, E10>
+    fj: (query: QueryWhere<TFieldValues, TFieldValuesRefined, E9>) => QueryWhere<TFieldValues, TFieldValuesRefined, E10>
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues> : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   ) => QueryWhere<TFieldValues, TFieldValuesRefined, E10>
@@ -3057,36 +2958,21 @@ export type NestedQueriesFreeDisjointRefinement = {
   ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined14>
 }
 
-export type FilterWhere =
-  & NestedQueriesFixedRefinement<true>
-  & FilteringRefinements<true>
-  & FilterContinuations<true>
+export type FilterWhere = NestedQueriesFixedRefinement<true> & FilteringRefinements<true> & FilterContinuations<true>
 
-export type FilterContinuationAnd =
-  & NestedQueriesFreeIntersectionRefinement
-  & FilteringRefinements
-  & FilterContinuations
+export type FilterContinuationAnd = NestedQueriesFreeIntersectionRefinement & FilteringRefinements & FilterContinuations
 
-export type FilterContinuationOr =
-  & NestedQueriesFreeDisjointRefinement
-  & FilterContinuations
+export type FilterContinuationOr = NestedQueriesFreeDisjointRefinement & FilterContinuations
 
 // it does not support refinements by choice (for now)
-export type WhereEveryOrSome =
-  & {
-    <
-      TFieldValues extends FieldValues,
-      TFieldName extends FieldPath<TFieldValues>
-    >(
-      subPath: TFieldName,
-      dude: (
-        current: Query<TFieldValues[TFieldName][number]>
-      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>,
-      ...dudes: ((
-        current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>
-      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>)[]
-    ): (
-      current: Query<TFieldValues>
-    ) => QueryWhere<TFieldValues, TFieldValues>
-  }
-  & FilterContinuationsWithSubpath
+export type WhereEveryOrSome = {
+  <TFieldValues extends FieldValues, TFieldName extends FieldPath<TFieldValues>>(
+    subPath: TFieldName,
+    dude: (
+      current: Query<TFieldValues[TFieldName][number]>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>,
+    ...dudes: ((
+      current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>)[]
+  ): (current: Query<TFieldValues>) => QueryWhere<TFieldValues, TFieldValues>
+} & FilterContinuationsWithSubpath

@@ -24,9 +24,7 @@ const rootOf = (atom: Atom.Atom<any>): Atom.Atom<any> => {
 export const queryLifetimeOf = (atom: Atom.Atom<any>): QueryLifetime | undefined =>
   lifetimes.get(rootOf(atom)) ?? lifetimes.get(atom)
 
-export const attachQueryLifetime = <A, E>(
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
-): QueryLifetime => {
+export const attachQueryLifetime = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): QueryLifetime => {
   const existing = queryLifetimeOf(atom)
   if (existing !== undefined) return existing
   const created: QueryLifetime = { observers: 0, invalidated: false }
@@ -43,17 +41,21 @@ export const observeQueryAtom = <A, E>(
   family: Atom.Atom<AsyncResult.AsyncResult<A, E>>
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
   const life = attachQueryLifetime(family)
-  return Atom.transform(family, (get) => {
-    life.observers++
-    get.addFinalizer(() => {
-      life.observers = Math.max(0, life.observers - 1)
-    })
-    if (life.invalidated) {
-      life.invalidated = false
-      get.refresh(family)
-    }
-    return get(family)
-  }, { initialValueTarget: family })
+  return Atom.transform(
+    family,
+    (get) => {
+      life.observers++
+      get.addFinalizer(() => {
+        life.observers = Math.max(0, life.observers - 1)
+      })
+      if (life.invalidated) {
+        life.invalidated = false
+        get.refresh(family)
+      }
+      return get(family)
+    },
+    { initialValueTarget: family }
+  )
 }
 
 /**

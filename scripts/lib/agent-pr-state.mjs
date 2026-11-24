@@ -54,8 +54,9 @@ export const resolveOpenPrState = (opts = {}) => {
   env.CLICOLOR = "0"
   env.GH_FORCE_TTY = "0"
   env.TERM = "dumb"
-  const runGh = opts.runGh
-    ?? ((args, runOpts) => {
+  const runGh =
+    opts.runGh ??
+    ((args, runOpts) => {
       const result = spawnSync("gh", args, {
         encoding: "utf8",
         cwd: runOpts.cwd,
@@ -70,10 +71,7 @@ export const resolveOpenPrState = (opts = {}) => {
       }
     })
 
-  const result = runGh(
-    ["pr", "view", "--json", "number,url,isDraft,state"],
-    { cwd, env }
-  )
+  const result = runGh(["pr", "view", "--json", "number,url,isDraft,state"], { cwd, env })
 
   if (result.error && result.error.code === "ENOENT") {
     return { mode: "unknown", pr: null, detail: "gh not found on PATH" }
@@ -87,10 +85,10 @@ export const resolveOpenPrState = (opts = {}) => {
   if (status !== 0) {
     const combined = `${stderr}\n${stdout}`.toLowerCase()
     if (
-      combined.includes("no pull requests found")
-      || combined.includes("could not resolve to a pullrequest")
-      || combined.includes("no pr found")
-      || combined.includes("not found")
+      combined.includes("no pull requests found") ||
+      combined.includes("could not resolve to a pullrequest") ||
+      combined.includes("no pr found") ||
+      combined.includes("not found")
     ) {
       return { mode: "none", pr: null, detail: stderr.trim() || "no open PR" }
     }

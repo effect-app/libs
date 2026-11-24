@@ -10,9 +10,7 @@ export interface ResponseWithBody<A> extends Pick<HttpClientResponse, "headers" 
 // TODO: consider rebuilding the text/json helpers to use a cached effect
 // https://discord.com/channels/795981131316985866/1098177242598756412/1168565257569046712
 
-export const responseWithJsonBody = (
-  response: HttpClientResponse
-) =>
+export const responseWithJsonBody = (response: HttpClientResponse) =>
   Effect.map(response.json, (body): ResponseWithBody<unknown> => ({
     body,
     headers: response.headers,
@@ -21,22 +19,20 @@ export const responseWithJsonBody = (
   }))
 
 export const demandJson = (client: HttpClient.HttpClient) =>
-  HttpClient
-    .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
-    .pipe(HttpClient.transform((r, request) =>
+  HttpClient.mapRequest(client, (_) => HttpClientRequest.acceptJson(_)).pipe(
+    HttpClient.transform((r, request) =>
       Effect.tap(r, (response) =>
-        Option
-            .exists(
-              HttpHeaders.get(response.headers, "Content-Type"),
-              (_) => _.startsWith("application/json")
-            )
+        Option.exists(HttpHeaders.get(response.headers, "Content-Type"), (_) => _.startsWith("application/json"))
           ? Effect.void
           : Effect.fail(
-            new HttpClientError.DecodeError({
-              request,
-              response,
-              description: "not json response: "
-                + Option.getOrElse(HttpHeaders.get(response.headers, "Content-Type"), () => "<missing>")
-            })
-          ))
-    ))
+              new HttpClientError.DecodeError({
+                request,
+                response,
+                description:
+                  "not json response: " +
+                  Option.getOrElse(HttpHeaders.get(response.headers, "Content-Type"), () => "<missing>")
+              })
+            )
+      )
+    )
+  )

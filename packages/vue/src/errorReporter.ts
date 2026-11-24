@@ -17,11 +17,7 @@ export const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): Cause
 
 export function reportError(name: string) {
   return Effect.fnUntraced(
-    function*(
-      cause: Cause.Cause<unknown>,
-      extras?: Record<string, unknown>,
-      level: LogLevel.Severity = "Error"
-    ) {
+    function* (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>, level: LogLevel.Severity = "Error") {
       if (Cause.hasInterruptsOnly(cause)) {
         yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
         return Cause.squash(cause)
@@ -29,18 +25,18 @@ export function reportError(name: string) {
 
       const error = tryCauseException(cause, name)
       yield* reportSentry(error, extras, LogLevelToSentry(level))
-      yield* Effect
-        .logWithLevel(level)("Reporting error", cause)
-        .pipe(
-          Effect.annotateLogs(dropUndefined({
+      yield* Effect.logWithLevel(level)("Reporting error", cause).pipe(
+        Effect.annotateLogs(
+          dropUndefined({
             extras,
             error: tryToReport(error),
             cause: tryToJson(cause),
             __error_name__: name
-          })),
-          Effect.catchCause((cause) => Effect.logWarning("Failed to log error", cause)),
-          Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
-        )
+          })
+        ),
+        Effect.catchCause((cause) => Effect.logWarning("Failed to log error", cause)),
+        Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
+      )
 
       return error
     },
@@ -48,7 +44,8 @@ export function reportError(name: string) {
       Effect.tapCause(effect, (cause) =>
         Effect.logError("Failed to report error", cause).pipe(
           Effect.tapCause(() => Effect.logFatal("Failed to log error cause"))
-        ))
+        )
+      )
   )
 }
 
@@ -69,26 +66,27 @@ function reportSentry(
 
 export function logError<E>(name: string) {
   return Effect.fnUntraced(
-    function*(cause: Cause.Cause<E>, extras?: Record<string, unknown>) {
+    function* (cause: Cause.Cause<E>, extras?: Record<string, unknown>) {
       if (Cause.hasInterruptsOnly(cause)) {
-        yield* Effect.logDebug("Interrupted").pipe(
-          Effect.annotateLogs(dropUndefined({ extras }))
-        )
+        yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
         return
       }
-      yield* Effect
-        .logWarning("Logging error", cause)
-        .pipe(Effect.annotateLogs(dropUndefined({
-          extras,
-          cause: tryToJson(cause),
-          __error_name__: name
-        })))
+      yield* Effect.logWarning("Logging error", cause).pipe(
+        Effect.annotateLogs(
+          dropUndefined({
+            extras,
+            cause: tryToJson(cause),
+            __error_name__: name
+          })
+        )
+      )
     },
     (effect) =>
       Effect.tapCause(effect, (cause) =>
         Effect.logError("Failed to log error", cause).pipe(
           Effect.tapCause(() => Effect.logFatal("Failed to log error cause"))
-        ))
+        )
+      )
   )
 }
 
@@ -99,7 +97,7 @@ export function captureException(error: unknown, extras?: Record<string, unknown
   console.error(error, extras)
 }
 
-export const reportMessage = Effect.fnUntraced(function*(message: string, extras?: Record<string, unknown>) {
+export const reportMessage = Effect.fnUntraced(function* (message: string, extras?: Record<string, unknown>) {
   const scope = new Sentry.Scope()
   if (extras) scope.setContext("extras", extras)
   Sentry.captureMessage(message, scope)

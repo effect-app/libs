@@ -6,7 +6,15 @@ import type { FieldValues } from "effect-app/Model/filter/types"
 import * as Option from "effect-app/Option"
 import type { Filter } from "effect-app/Store"
 import { absurd } from "effect/Function"
-import { compare, get, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive, toJsonQueryValue } from "./utils.ts"
+import {
+  compare,
+  get,
+  greaterThan,
+  greaterThanExclusive,
+  lowerThan,
+  lowerThanExclusive,
+  toJsonQueryValue
+} from "./utils.ts"
 
 const vAsArr = (v: unknown) => toJsonQueryValue(v) as any[]
 
@@ -42,13 +50,13 @@ const filterStatement = (x: any, p: FilterR) => {
     case "notIncludes":
       return !(k as Array<unknown>).includes(v)
     case "includes-any":
-      return (vAsArr(p.value)).some((_) => (k as Array<unknown>)?.includes(_))
+      return vAsArr(p.value).some((_) => (k as Array<unknown>)?.includes(_))
     case "notIncludes-any":
-      return !(vAsArr(p.value)).some((_) => (k as Array<unknown>)?.includes(_))
+      return !vAsArr(p.value).some((_) => (k as Array<unknown>)?.includes(_))
     case "includes-all":
-      return (vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
+      return vAsArr(p.value).every((_) => (k as Array<unknown>)?.includes(_))
     case "notIncludes-all":
-      return !(vAsArr(p.value)).every((_) => (k as Array<unknown>)?.includes(_))
+      return !vAsArr(p.value).every((_) => (k as Array<unknown>)?.includes(_))
     case "hasKey":
       return mapEntries(k).some(([key]) => compare(key, v))
     case "notHasKey":
@@ -122,9 +130,7 @@ export const isRelationCheck = (f: readonly FilterResult[], isRelation: string |
       throw new Error(`expected ${isRelation} relation but found ${rel}`)
     }
     if (!f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
-      throw new Error(
-        `Cannot mix relation checks of different props, expected all to be "${rel}"`
-      )
+      throw new Error(`Cannot mix relation checks of different props, expected all to be "${rel}"`)
     }
     return rel
   }
@@ -137,7 +143,10 @@ export const isRelationCheck = (f: readonly FilterResult[], isRelation: string |
   return false
 }
 
-export const codeFilter3 = <E>(state: readonly FilterResult[]) => (sut: E) => codeFilter3_(state, sut)
+export const codeFilter3 =
+  <E>(state: readonly FilterResult[]) =>
+  (sut: E) =>
+    codeFilter3_(state, sut)
 const codeFilter3__ = <E>(
   state: readonly FilterResult[],
   sut: E,
@@ -148,13 +157,17 @@ const codeFilter3__ = <E>(
   let s = ""
   let l = 0
   const printN = (n: number) => {
-    return n === 0 ? "" : Array.range(1, n).map(() => "  ").join("")
+    return n === 0
+      ? ""
+      : Array.range(1, n)
+          .map(() => "  ")
+          .join("")
   }
   // TODO: path str updates
 
   const process = isRelation
     ? (e: FilterR, el: any) =>
-      codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, el ?? sut)
+        codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, el ?? sut)
     : (e: FilterR, el: any) => codeFilterStatement(e, el ?? sut)
   const statement = isRelation
     ? () => `statements[${statements.length - 1}](el)`
@@ -182,9 +195,13 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
-            : ` || (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
-              codeFilter3__(e.result, sut, statements, rel, every)
-            })\n${printN(l)})`
+            : ` || (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${codeFilter3__(
+                e.result,
+                sut,
+                statements,
+                rel,
+                every
+              )})\n${printN(l)})`
         } else {
           s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
@@ -199,9 +216,13 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
-            : ` && (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
-              codeFilter3__(e.result, sut, statements, rel, every)
-            })\n${printN(l)})`
+            : ` && (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${codeFilter3__(
+                e.result,
+                sut,
+                statements,
+                rel,
+                every
+              )})\n${printN(l)})`
         } else {
           s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
@@ -217,9 +238,13 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
-            : `(\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
-              codeFilter3__(e.result, sut, statements, rel, every)
-            })\n${printN(l)})`
+            : `(\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${codeFilter3__(
+                e.result,
+                sut,
+                statements,
+                rel,
+                every
+              )})\n${printN(l)})`
         } else {
           s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
@@ -240,5 +265,5 @@ export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean
 }
 
 export function codeFilter<E extends FieldValues, NE extends E>(filter: Filter) {
-  return (x: E) => codeFilter3_(filter, x) ? Option.some(x as unknown as NE) : Option.none()
+  return (x: E) => (codeFilter3_(filter, x) ? Option.some(x as unknown as NE) : Option.none())
 }

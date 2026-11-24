@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as Scope from "effect/Scope"
-import type { DatabaseError, InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "../../client/errors.ts"
+import type {
+  DatabaseError,
+  InvalidStateError,
+  NotFoundError,
+  OptimisticConcurrencyException
+} from "../../client/errors.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as Option from "../../Option.ts"
 import type * as S from "../../Schema.ts"
@@ -61,9 +66,7 @@ export interface Repository<
     events?: Iterable<Evt>
   ) => Effect.Effect<void, DatabaseError, RSchema | RPublish>
 
-  readonly removeById: (
-    idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>
-  ) => Effect.Effect<void, DatabaseError, RSchema>
+  readonly removeById: (idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) => Effect.Effect<void, DatabaseError, RSchema>
 
   readonly queryRaw: <T, Out, R>(
     schema: S.Codec<T, Out, R>,
@@ -78,16 +81,8 @@ export interface Repository<
 
   readonly query: {
     // ending with projection
-    <
-      A,
-      R,
-      From extends FieldValues,
-      TType extends "one" | "many" | "count" = "many",
-      E extends boolean = false
-    >(
-      q: (
-        initial: Query<Encoded>
-      ) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
+    <A, R, From extends FieldValues, TType extends "one" | "many" | "count" = "many", E extends boolean = false>(
+      q: (initial: Query<Encoded>) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
@@ -103,12 +98,8 @@ export interface Repository<
       $A = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
-      q2: (
-        _: $A
-      ) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
+      q1: (initial: Query<Encoded>) => $A,
+      q2: (_: $A) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
@@ -125,13 +116,9 @@ export interface Repository<
       $B = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
-      q3: (
-        _: $B
-      ) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
+      q3: (_: $B) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
@@ -149,14 +136,10 @@ export interface Repository<
       $C = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
-      q4: (
-        _: $C
-      ) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
+      q4: (_: $C) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
@@ -175,15 +158,11 @@ export interface Repository<
       $D = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
-      q5: (
-        _: $D
-      ) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
+      q5: (_: $D) => QueryProjection<From extends Encoded ? From : never, A, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
@@ -203,9 +182,7 @@ export interface Repository<
       $E = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
@@ -231,9 +208,7 @@ export interface Repository<
       $F = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
@@ -261,9 +236,7 @@ export interface Repository<
       $G = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
@@ -293,9 +266,7 @@ export interface Repository<
       $H = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
@@ -327,9 +298,7 @@ export interface Repository<
       $I = never,
       E extends boolean = false
     >(
-      q1: (
-        initial: Query<Encoded>
-      ) => $A,
+      q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
@@ -368,9 +337,7 @@ export interface Repository<
       E extends boolean = false
     >(
       q1: (initial: Query<Encoded>) => $A,
-      q2: (
-        _: $A
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q2: (_: $A) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -385,12 +352,8 @@ export interface Repository<
       E extends boolean = false
     >(
       q1: (initial: Query<Encoded>) => $A,
-      q2: (
-        _: $A
-      ) => $B,
-      q3: (
-        _: $B
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q2: (_: $A) => $B,
+      q3: (_: $B) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -408,9 +371,7 @@ export interface Repository<
       q1: (initial: Query<Encoded>) => $A,
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
-      q4: (
-        _: $C
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q4: (_: $C) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -430,9 +391,7 @@ export interface Repository<
       q2: (_: $A) => $B,
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
-      q5: (
-        _: $D
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q5: (_: $D) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -454,9 +413,7 @@ export interface Repository<
       q3: (_: $B) => $C,
       q4: (_: $C) => $D,
       q5: (_: $D) => $E,
-      q6: (
-        _: $E
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q6: (_: $E) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -480,9 +437,7 @@ export interface Repository<
       q4: (_: $C) => $D,
       q5: (_: $D) => $E,
       q6: (_: $E) => $F,
-      q7: (
-        _: $F
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q7: (_: $F) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
@@ -508,12 +463,9 @@ export interface Repository<
       q5: (_: $D) => $E,
       q6: (_: $E) => $F,
       q7: (_: $F) => $G,
-      q8: (
-        _: $G
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q8: (_: $G) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
-      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
-        : RefineTHelper<T, EncodedRefined>,
+      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
       Exclude<R, RProvided> | RSchema
     >
@@ -539,12 +491,9 @@ export interface Repository<
       q6: (_: $E) => $F,
       q7: (_: $F) => $G,
       q8: (_: $G) => $H,
-      q9: (
-        _: $H
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q9: (_: $H) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
-      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
-        : RefineTHelper<T, EncodedRefined>,
+      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
       Exclude<R, RProvided> | RSchema
     >
@@ -572,12 +521,9 @@ export interface Repository<
       q7: (_: $F) => $G,
       q8: (_: $G) => $H,
       q9: (_: $H) => $I,
-      q10: (
-        _: $I
-      ) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
+      q10: (_: $I) => QAll<Encoded, EncodedRefined, RefineTHelper<T, EncodedRefined>, R, TType, E>
     ): Effect.Effect<
-      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
-        : RefineTHelper<T, EncodedRefined>,
+      TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       (TType extends "many" ? never : NotFoundError<ItemType>) | DatabaseError,
       Exclude<R, RProvided> | RSchema
     >
@@ -599,78 +545,99 @@ export interface Repository<
 }
 
 type DistributeQueryIfExclusiveOnArray<Exclusive extends boolean, T, EncodedRefined> = [Exclusive] extends [true]
-  ? T extends any ? RefineTHelper<T, EncodedRefined> extends infer R ? IsNever<R> extends true ? never
-      : readonly R[]
+  ? T extends any
+    ? RefineTHelper<T, EncodedRefined> extends infer R
+      ? IsNever<R> extends true
+        ? never
+        : readonly R[]
+      : never
     : never
-  : never
   : readonly RefineTHelper<T, EncodedRefined>[]
 
 type NullableRefined<T, EncodedRefined> = {
   // EncodedRefined may be a union, so if you just keyof you'll get just common keys
   // p.s. NullableRefined is homomorphic in T so it distributes itself over T
-  [k in keyof T]: [null] extends [T[k]] ? [null] extends [Extract<EncodedRefined, { [j in k]: any }>[k]] ? T[k]
-    : Exclude<T[k], null>
+  [k in keyof T]: [null] extends [T[k]]
+    ? [null] extends [Extract<EncodedRefined, { [j in k]: any }>[k]]
+      ? T[k]
+      : Exclude<T[k], null>
     : T[k]
 }
 
 // for DX purposes
 type ShouldRecursiveExtractTagged<T, EncodedRefined> = true extends {
   [k in keyof T]: "_tag" extends keyof T[k]
-    ? k extends keyof EncodedRefined ? "_tag" extends keyof EncodedRefined[k] ? true
+    ? k extends keyof EncodedRefined
+      ? "_tag" extends keyof EncodedRefined[k]
+        ? true
+        : false
       : false
     : false
-    : false
-}[keyof T] ? true
+}[keyof T]
+  ? true
   : false
 
 // support is not 100% but we have to make compromises
-type RecursiveExtractTagged<T, EncodedRefined> = ShouldRecursiveExtractTagged<T, EncodedRefined> extends true ? {
-    [k in keyof T]: "_tag" extends keyof T[k]
-      ? k extends keyof EncodedRefined ? "_tag" extends keyof EncodedRefined[k] ? ExtractTagged<T[k], EncodedRefined[k]>
-        : T[k]
-      : T[k]
-      : T[k]
-  }
-  : T
+type RecursiveExtractTagged<T, EncodedRefined> =
+  ShouldRecursiveExtractTagged<T, EncodedRefined> extends true
+    ? {
+        [k in keyof T]: "_tag" extends keyof T[k]
+          ? k extends keyof EncodedRefined
+            ? "_tag" extends keyof EncodedRefined[k]
+              ? ExtractTagged<T[k], EncodedRefined[k]>
+              : T[k]
+            : T[k]
+          : T[k]
+      }
+    : T
 
 type ExtractTagged_<T, EncodedRefined> = EncodedRefined extends { _tag: string }
-  ? T extends { _tag: string } ? Extract<T, { _tag: EncodedRefined["_tag"] }>
-  : T
+  ? T extends { _tag: string }
+    ? Extract<T, { _tag: EncodedRefined["_tag"] }>
+    : T
   : T
 
-type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R
-  ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>
-  : never
+type ExtractTagged<T, EncodedRefined> =
+  ExtractTagged_<T, EncodedRefined> extends infer R
+    ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>
+    : never
 
 type ShouldRecursiveExtractIded<T, EncodedRefined> = true extends {
-  [k in keyof T]: "id" extends keyof T[k] ? k extends keyof EncodedRefined ? "id" extends keyof EncodedRefined[k] ? true
+  [k in keyof T]: "id" extends keyof T[k]
+    ? k extends keyof EncodedRefined
+      ? "id" extends keyof EncodedRefined[k]
+        ? true
+        : false
       : false
     : false
-    : false
-}[keyof T] ? true
+}[keyof T]
+  ? true
   : false
 
-type RecusiveExtractIded<T, EncodedRefined> = ShouldRecursiveExtractIded<T, EncodedRefined> extends true ? {
-    [k in keyof T]: "id" extends keyof T[k]
-      ? k extends keyof EncodedRefined ? "id" extends keyof EncodedRefined[k] ? ExtractIded<T[k], EncodedRefined[k]>
-        : T[k]
-      : T[k]
-      : T[k]
-  }
-  : T
+type RecusiveExtractIded<T, EncodedRefined> =
+  ShouldRecursiveExtractIded<T, EncodedRefined> extends true
+    ? {
+        [k in keyof T]: "id" extends keyof T[k]
+          ? k extends keyof EncodedRefined
+            ? "id" extends keyof EncodedRefined[k]
+              ? ExtractIded<T[k], EncodedRefined[k]>
+              : T[k]
+            : T[k]
+          : T[k]
+      }
+    : T
 
 type ExtractIded_<T, EncodedRefined> = EncodedRefined extends { id: string }
-  ? T extends { id: string } ? Extract<T, { id: EncodedRefined["id"] }>
-  : T
+  ? T extends { id: string }
+    ? Extract<T, { id: EncodedRefined["id"] }>
+    : T
   : T
 
-type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R
-  ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>
-  : never
+type ExtractIded<T, EncodedRefined> =
+  ExtractIded_<T, EncodedRefined> extends infer R
+    ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>
+    : never
 
 export type RefineTHelper<T, EncodedRefined> = ResolveFirstLevel<
-  NullableRefined<
-    ExtractIded<ExtractTagged<T, EncodedRefined>, EncodedRefined>,
-    EncodedRefined
-  >
+  NullableRefined<ExtractIded<ExtractTagged<T, EncodedRefined>, EncodedRefined>, EncodedRefined>
 >

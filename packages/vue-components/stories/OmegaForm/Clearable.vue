@@ -1,18 +1,9 @@
 <template>
-  <form.Form
-    :subscribe="['values']"
-    @submit="() => console.log('submitted1')"
-  >
+  <form.Form :subscribe="['values']" @submit="() => console.log('submitted1')">
     <template #default="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>
-      <form.Input
-        name="a"
-        label="Nullable value"
-        clearable
-      />
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <form.Input name="a" label="Nullable value" clearable />
+      <v-btn type="submit"> submit </v-btn>
     </template>
   </form.Form>
 </template>

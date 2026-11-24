@@ -12,7 +12,7 @@ import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner"
  * All commands are executed through the system shell (/bin/sh) for proper command parsing.
  */
 export class RunCommandService extends Context.Service<RunCommandService>()("RunCommandService", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     // will be provided by the main CLI pipeline setup
     const spawner = yield* ChildProcessSpawner
 
@@ -25,10 +25,7 @@ export class RunCommandService extends Context.Service<RunCommandService>()("Run
      * @returns An Effect that succeeds with the exit code or fails with a PlatformError
      */
     const runGetExitCode = (cmd: string, cwd?: string) =>
-      spawner
-        .exitCode(
-          ChildProcess.make("sh", ["-c", cmd], { stdout: "inherit", stderr: "inherit", cwd })
-        )
+      spawner.exitCode(ChildProcess.make("sh", ["-c", cmd], { stdout: "inherit", stderr: "inherit", cwd }))
 
     /**
      * Executes a shell command using Command API and returns the output as a string.
@@ -38,11 +35,7 @@ export class RunCommandService extends Context.Service<RunCommandService>()("Run
      * @param cwd - Optional working directory to execute the command in
      * @returns An Effect that succeeds with the command's stdout output as string or fails with a PlatformError
      */
-    const runGetString = (cmd: string, cwd?: string) =>
-      spawner
-        .string(
-          ChildProcess.make("sh", ["-c", cmd], { cwd })
-        )
+    const runGetString = (cmd: string, cwd?: string) => spawner.string(ChildProcess.make("sh", ["-c", cmd], { cwd }))
 
     return {
       runGetExitCode,

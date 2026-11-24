@@ -9,22 +9,20 @@ import type { NonEmptyStringBrand } from "./strings.ts"
 export interface PhoneNumberBrand extends Simplify<B.Brand<"PhoneNumber"> & NonEmptyStringBrand> {}
 export type PhoneNumber = string & PhoneNumberBrand
 
-export const PhoneNumber = S
-  .String
-  .pipe(
-    S.annotate({
-      title: "PhoneNumber",
-      description: "a phone number with at least 7 digits",
-      format: "phone"
-    }),
-    S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
-      identifier: "PhoneNumber",
-      description: "a phone number with at least 7 digits",
-      jsonSchema: { format: "phone" },
-      // Native Arbitrary cannot invert `isValidPhone`; steer sampling to digit-only numbers (>= 7 digits).
-      arbitraryConstraint: {
-        patterns: [{ source: "^\\+?[1-9][0-9]{6,11}$", flags: "" }]
-      }
-    }),
-    withDefaultMake
-  )
+export const PhoneNumber = S.String.pipe(
+  S.annotate({
+    title: "PhoneNumber",
+    description: "a phone number with at least 7 digits",
+    format: "phone"
+  }),
+  S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
+    identifier: "PhoneNumber",
+    description: "a phone number with at least 7 digits",
+    jsonSchema: { format: "phone" },
+    // Native Arbitrary cannot invert `isValidPhone`; steer sampling to digit-only numbers (>= 7 digits).
+    arbitraryConstraint: {
+      patterns: [{ source: "^\\+?[1-9][0-9]{6,11}$", flags: "" }]
+    }
+  }),
+  withDefaultMake
+)

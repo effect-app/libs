@@ -12,8 +12,10 @@ const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean => {
   if (!S.AST.isDeclaration(ast) || ast.encoding) return false
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Effect Schema AST annotations are loosely typed
   const annotations = ast.annotations as any
-  return annotations?.representation?.id === "effect/schema/Redacted"
-    || annotations?.typeConstructor?._tag === "effect/Redacted"
+  return (
+    annotations?.representation?.id === "effect/schema/Redacted" ||
+    annotations?.typeConstructor?._tag === "effect/Redacted"
+  )
 }
 
 /*
@@ -23,15 +25,9 @@ const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean => {
  * produce plain strings) fail validation. S.RedactedFromValue accepts
  * plain values on the encoded side and wraps them in Redacted on decode.
  */
-export const toFormSchema = <From, To>(
-  schema: S.Codec<To, From>
-): S.Codec<To, From> => {
+export const toFormSchema = <From, To>(schema: S.Codec<To, From>): S.Codec<To, From> => {
   const ast = schema.ast
-  const objAst = S.AST.isObjects(ast)
-    ? ast
-    : S.AST.isDeclaration(ast)
-    ? S.AST.toEncoded(ast)
-    : null
+  const objAst = S.AST.isObjects(ast) ? ast : S.AST.isDeclaration(ast) ? S.AST.toEncoded(ast) : null
 
   if (!objAst || !("propertySignatures" in objAst)) return schema
 
@@ -52,13 +48,14 @@ export const toFormSchema = <From, To>(
         const hasNull = types.some(S.AST.isNull)
         const hasUndefined = types.some(S.AST.isUndefined)
         const base = S.RedactedFromValue(innerSchema)
-        props[p.name as string] = hasNull && hasUndefined
-          ? S.NullishOr(base)
-          : hasNull
-          ? S.NullOr(base)
-          : hasUndefined
-          ? S.UndefinedOr(base)
-          : base
+        props[p.name as string] =
+          hasNull && hasUndefined
+            ? S.NullishOr(base)
+            : hasNull
+              ? S.NullOr(base)
+              : hasUndefined
+                ? S.UndefinedOr(base)
+                : base
       } else {
         props[p.name as string] = S.make(p.type)
       }
@@ -67,5 +64,5 @@ export const toFormSchema = <From, To>(
     }
   }
 
-  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From> : schema
+  return hasRedacted ? (S.Struct(props) as unknown as S.Codec<To, From>) : schema
 }

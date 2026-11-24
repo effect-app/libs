@@ -27,10 +27,8 @@ const splitEtag = <E extends FieldValues>(doc: PersistenceModelType<E>) => {
   return { rest: rest as E, _etag }
 }
 
-const joinEtag = <E extends FieldValues>(
-  rest: E,
-  _etag: string | undefined
-): PersistenceModelType<E> => (_etag === undefined ? rest : { ...rest, _etag })
+const joinEtag = <E extends FieldValues>(rest: E, _etag: string | undefined): PersistenceModelType<E> =>
+  _etag === undefined ? rest : { ...rest, _etag }
 
 /** JSON document ↔ Encoded document codec for a store's domain schema. */
 const jsonCodec = <E extends FieldValues>(schema: S.Top) => S.toCodecJson(S.toEncoded(schema)) as S.Codec<E, S.Json>
@@ -109,7 +107,7 @@ export const makeStoredDecode = <E extends FieldValues>(
     // adapters type the stored document as the Encoded persistence model, but
     // at this point it is still the raw JSON document that `jitM` is written
     // against - and `jitM` returns JSON, which is what the codec consumes.
-    const json = jitM === undefined ? rest : jitM(rest) as unknown as E
+    const json = jitM === undefined ? rest : (jitM(rest) as unknown as E)
     return Result.map(decode(json), (decoded) => joinEtag(decoded, _etag))
   }
 }

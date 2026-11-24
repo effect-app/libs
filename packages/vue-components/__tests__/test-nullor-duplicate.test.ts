@@ -4,14 +4,13 @@ import { generateMetaFromSchema } from "../src/components/OmegaForm"
 
 // Test schema from Array.vue story
 const schema = S.Struct({
-  height: S
-    .NullOr(
-      S.Struct({
-        left: S.String,
-        right: S.String,
-        internal: S.String
-      })
-    ),
+  height: S.NullOr(
+    S.Struct({
+      left: S.String,
+      right: S.String,
+      internal: S.String
+    })
+  ),
   width: S.Struct({
     left: S.String,
     right: S.String

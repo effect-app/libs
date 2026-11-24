@@ -11,19 +11,9 @@
           { title: 'Beta', value: 'beta' }
         ]"
       />
-      <form.Input
-        v-if="values.myUnion?.first === 'alpha'"
-        label="alpha"
-        name="myUnion.alpha"
-      />
-      <form.Input
-        v-if="values.myUnion?.first === 'beta'"
-        label="beta"
-        name="myUnion.beta"
-      />
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <form.Input v-if="values.myUnion?.first === 'alpha'" label="alpha" name="myUnion.alpha" />
+      <form.Input v-if="values.myUnion?.first === 'beta'" label="beta" name="myUnion.beta" />
+      <v-btn type="submit"> submit </v-btn>
       <form.Errors />
     </template>
   </form.Form>

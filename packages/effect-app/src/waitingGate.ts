@@ -41,13 +41,15 @@ export const makeWaitingGate = (onDepth?: (depth: number) => void): WaitingGateS
       return depth
     },
     add: (delta) =>
-      Effect.uninterruptible(Effect.gen(function*() {
-        depth += delta
-        if (depth < 0) depth = 0
-        const next = depth
-        onDepth?.(next)
-        if (controller) yield* controller(next)
-      })),
+      Effect.uninterruptible(
+        Effect.gen(function* () {
+          depth += delta
+          if (depth < 0) depth = 0
+          const next = depth
+          onDepth?.(next)
+          if (controller) yield* controller(next)
+        })
+      ),
     bind: (next) => {
       const previous = controller
       controller = next
@@ -74,7 +76,7 @@ export const makeWaitingGate = (onDepth?: (depth: number) => void): WaitingGateS
  */
 export const suspendWaiting = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.uninterruptibleMask((restore) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const gate = yield* WaitingGate
       yield* gate.add(1)
       return yield* Effect.ensuring(restore(self), gate.add(-1))

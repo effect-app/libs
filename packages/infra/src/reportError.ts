@@ -20,11 +20,8 @@ const tapErrorCause = (name: string, unknownOnly?: boolean) => {
   const log = logError(name)
   return <A, E, R>(self: Effect.Effect<A, E, R>) =>
     Effect.tapCause(self, (cause) =>
-      unknownOnly
-        ? Cause.hasFails(cause)
-          ? log(cause)
-          : report(cause)
-        : report(cause))
+      unknownOnly ? (Cause.hasFails(cause) ? log(cause) : report(cause)) : report(cause)
+    )
 }
 export const reportRequestError = tapErrorCause("request")
 export const reportUnknownRequestError = tapErrorCause("request", true)

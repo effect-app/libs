@@ -36,29 +36,27 @@ export const unsafeRight = <E, A>(ei: Result.Result<A, E>) => {
   return ei.success
 }
 
-export const unsafeSome = (makeErrorMessage: () => string) => <A>(o: Option.Option<A>) => {
-  if (Option.isNone(o)) {
-    throw new Error(makeErrorMessage())
+export const unsafeSome =
+  (makeErrorMessage: () => string) =>
+  <A>(o: Option.Option<A>) => {
+    if (Option.isNone(o)) {
+      throw new Error(makeErrorMessage())
+    }
+    return o.value
   }
-  return o.value
-}
 
 export function toString(v: unknown) {
   return `${v}`
 }
 
-export type Constructor<T = any> = { new(...args: any[]): T }
-export type ThenArg<T> = T extends Promise<infer U> ? U
-  : T extends (...args: any[]) => Promise<infer V> ? V
-  : T
+export type Constructor<T = any> = { new (...args: any[]): T }
+export type ThenArg<T> = T extends Promise<infer U> ? U : T extends (...args: any[]) => Promise<infer V> ? V : T
 
 /**
  * @deprecated TODO: does not filter optional fields!
  */
 type NoUndefinedField<T> = { [P in keyof T]: Exclude<T[P], undefined> }
-export function dropUndefinedT<A extends Record<string, any>>(
-  input: A
-): NoUndefinedField<A> {
+export function dropUndefinedT<A extends Record<string, any>>(input: A): NoUndefinedField<A> {
   const newR = pipe(
     input,
     Record.filter((x): x is A => x !== undefined)
@@ -74,15 +72,15 @@ type WithUndefined<T extends Record<any, any>> = {
 
 type WithUndefinedRecursive<T extends Record<any, any>> = {
   [K in keyof T]: WithUndefinedRecursive<T[K]> extends infer $RTK
-    ? IsOptional<T, K> extends true ? $RTK | undefined : $RTK
+    ? IsOptional<T, K> extends true
+      ? $RTK | undefined
+      : $RTK
     : never
 }
 
 /** a version of @see dropUndefinedT that keeps support for go to definition, auto completion, and documentation of fields! */
 export function dropUndefinedT2<Desired extends Record<any, any>>() {
-  return (
-    input: WithUndefined<Desired>
-  ): Desired => {
+  return (input: WithUndefined<Desired>): Desired => {
     const newR = pipe(
       input as any,
       Record.filter((x): x is Desired => x !== undefined)
@@ -103,9 +101,7 @@ export function dropUndefinedT2<Desired extends Record<any, any>>() {
  */
 
 export function dropUndefinedRec<Desired extends Record<any, any>>() {
-  return (
-    input: WithUndefinedRecursive<Desired>
-  ): Desired => {
+  return (input: WithUndefinedRecursive<Desired>): Desired => {
     // doesn't drop for real
     return input as any
   }
@@ -115,9 +111,7 @@ export type Dictionary<T> = {
   readonly [P in string]: T
 }
 
-export function dropUndefined<A>(
-  input: Dictionary<A | undefined>
-): Dictionary<A> {
+export function dropUndefined<A>(input: Dictionary<A | undefined>): Dictionary<A> {
   const newR = pipe(
     input,
     Record.filter((x): x is A => x !== undefined)
@@ -126,16 +120,16 @@ export function dropUndefined<A>(
 }
 
 type GetTag<T> = T extends { _tag: infer K } ? K : never
-export const isOfType = <T extends { _tag: string }>(tag: GetTag<T>) => (e: { _tag: string }): e is T => e._tag === tag
+export const isOfType =
+  <T extends { _tag: string }>(tag: GetTag<T>) =>
+  (e: { _tag: string }): e is T =>
+    e._tag === tag
 
 export function pretty(o: unknown): string {
   return JSON.stringify(o, undefined, 2) ?? "undefined"
 }
 
-export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I
-) => void ? I
-  : never
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never
 
 // generally A | B is not assignable to A & B
 export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
@@ -148,10 +142,7 @@ export function intersect<AS extends unknown[] & { 0: unknown }>(
   return as.reduce((a: any, b: any) => Object.assign(a, b), {}) as any
 }
 
-export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
-  T
->() => T extends Y ? 1 : 2 ? true
-  : false
+export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
 
 export const unifyIndex = Symbol()
 export type unifyIndex = typeof unifyIndex
@@ -166,13 +157,14 @@ export interface Unifiable<X> {
   //     ? never
   //     : Effect.Effect<R, E, A>
   //   : never
-  Unify: [X] extends [{ readonly [unifyIndex]: infer K }] ? K extends UnifiableIndexedURI ? UnifiableIndexed<X>[K]
-    : never
+  Unify: [X] extends [{ readonly [unifyIndex]: infer K }]
+    ? K extends UnifiableIndexedURI
+      ? UnifiableIndexed<X>[K]
+      : never
     : never
 }
 
-export type Unify<X> = Unifiable<X>[keyof Unifiable<any>] extends never ? X
-  : Unifiable<X>[keyof Unifiable<any>]
+export type Unify<X> = Unifiable<X>[keyof Unifiable<any>] extends never ? X : Unifiable<X>[keyof Unifiable<any>]
 
 // forked from https://github.com/Alorel/typescript-lazy-get-decorator
 
@@ -193,7 +185,7 @@ function decorateNew(
   const originalMethod = validateAndExtractMethodFromDescriptor(actualDesc)
   const isStatic = inp.placement === "static"
 
-  actualDesc.get = function(this: any): any {
+  actualDesc.get = function (this: any): any {
     return getterCommon(
       isStatic ? this : Object.getPrototypeOf(this),
       out.key,
@@ -294,7 +286,8 @@ function validateAndExtractMethodFromDescriptor(desc: PropertyDescriptor): Funct
   return originalMethod
 }
 
-function getterCommon( // tslint:disable-line:parameters-max-number
+function getterCommon(
+  // tslint:disable-line:parameters-max-number
   target: any,
   key: PropertyKey,
   isStatic: boolean,
@@ -355,11 +348,7 @@ export function LazyGetter(
         const newDescriptor = targetOrDesc as NewDescriptor
         isLegacy = false
         prop = newDescriptor.key
-        desc = Object.assign(
-          {},
-          newDescriptor.descriptor
-            /* istanbul ignore next */ || targetOrDesc
-        )
+        desc = Object.assign({}, newDescriptor.descriptor || /* istanbul ignore next */ targetOrDesc)
       }
 
       return decorateNew(targetOrDesc, setProto, makeNonConfigurable, resultSelector)
@@ -369,45 +358,32 @@ export function LazyGetter(
         prop = key
         desc = Object.assign(
           {},
-          descriptor
-            /* istanbul ignore next */ || Object.getOwnPropertyDescriptor(
-              targetOrDesc,
-              key
-            )
+          descriptor || /* istanbul ignore next */ Object.getOwnPropertyDescriptor(targetOrDesc, key)
         )
       }
 
-      return decorateLegacy(
-        targetOrDesc,
-        key,
-        descriptor,
-        setProto,
-        makeNonConfigurable,
-        resultSelector
-      )
+      return decorateLegacy(targetOrDesc, key, descriptor, setProto, makeNonConfigurable, resultSelector)
     }
   }
 
   decorator.reset = setProto
     ? thrower
     : (on: any): void => {
-      if (!on) {
-        throw new Error("Unable to restore descriptor on an undefined target")
+        if (!on) {
+          throw new Error("Unable to restore descriptor on an undefined target")
+        }
+        if (!desc) {
+          throw new Error("Unable to restore descriptor. Did you remember to apply your decorator to a method?")
+        }
+        if (!args) {
+          throw new Error("Unable to restore descriptor before applying the decorator.")
+        }
+        // Restore descriptor to its original state
+        Object.defineProperty(on, prop, desc)
+        const ret = decorator.apply(null, args)
+        const restoredDescriptor = isLegacy ? ret : "descriptor" in ret && ret.descriptor ? ret.descriptor : ret
+        Object.defineProperty(on, prop, restoredDescriptor)
       }
-      if (!desc) {
-        throw new Error(
-          "Unable to restore descriptor. Did you remember to apply your decorator to a method?"
-        )
-      }
-      if (!args) {
-        throw new Error("Unable to restore descriptor before applying the decorator.")
-      }
-      // Restore descriptor to its original state
-      Object.defineProperty(on, prop, desc)
-      const ret = decorator.apply(null, args)
-      const restoredDescriptor = isLegacy ? ret : "descriptor" in ret && ret.descriptor ? ret.descriptor : ret
-      Object.defineProperty(on, prop, restoredDescriptor)
-    }
 
   return decorator
 }
@@ -420,7 +396,7 @@ export type RefinementWithIndex<I, A, B extends A> = (i: I, a: A) => a is B
 
 export type PredicateWithIndex<I, A> = (i: I, a: A) => boolean
 
-export type Erase<R, K> = R & K extends K & infer R1 ? R1 : R
+export type Erase<R, K> = R & K extends K & (infer R1) ? R1 : R
 
 /** from ts-toolbelt, minimal port of Compute */
 
@@ -462,10 +438,7 @@ type Arrays =
 type Maps =
   // | Map<unknown, unknown>
   // | Set<unknown>
-  | ReadonlyMap<unknown, unknown>
-  | ReadonlySet<unknown>
-  | WeakMap<object, unknown>
-  | WeakSet<object>
+  ReadonlyMap<unknown, unknown> | ReadonlySet<unknown> | WeakMap<object, unknown> | WeakSet<object>
 
 type Structures =
   | ArrayBuffer
@@ -479,36 +452,25 @@ type Abstractions = Function | Promise<unknown> | Generator
 
 type WebAssembly = never
 
-export type BuiltInObject =
-  | Errors
-  | Numeric
-  | Textual
-  | Arrays
-  | Maps
-  | Structures
-  | Abstractions
-  | WebAssembly
+export type BuiltInObject = Errors | Numeric | Textual | Arrays | Maps | Structures | Abstractions | WebAssembly
 
-export type ComputeRaw<A> = A extends Function ? A
-  :
-    & {
+export type ComputeRaw<A> = A extends Function
+  ? A
+  : {
       [K in keyof A]: A[K]
-    }
-    & {}
+    } & {}
 
-export type ComputeFlat<A> = A extends BuiltInObject ? A
-  :
-    & {
+export type ComputeFlat<A> = A extends BuiltInObject
+  ? A
+  : {
       [K in keyof A]: A[K]
-    }
-    & {}
+    } & {}
 
-export type ComputeDeep<A> = A extends BuiltInObject ? A
-  :
-    & {
+export type ComputeDeep<A> = A extends BuiltInObject
+  ? A
+  : {
       [K in keyof A]: ComputeDeep<A[K]>
-    }
-    & {}
+    } & {}
 
 export type Compute<A, depth extends Depth = "deep"> = {
   flat: ComputeFlat<A>
@@ -545,16 +507,16 @@ export function lazyGetter<T extends object, T2>(creator: (target: T) => T2) {
 }
 
 export function exhaustiveMatch<T extends string>() {
-  return <Out extends Record<T, (t: T) => any>>(handlers: Out) => (t: T): ReturnType<Out[keyof Out]> => handlers[t](t)
+  return <Out extends Record<T, (t: T) => any>>(handlers: Out) =>
+    (t: T): ReturnType<Out[keyof Out]> =>
+      handlers[t](t)
 }
 
 export function exhaustiveMatch_<T extends string>(t: T) {
   return <Out extends Record<T, (t: T) => any>>(handlers: Out): ReturnType<Out[keyof Out]> => handlers[t](t)
 }
 
-export type OptPromise<T extends () => any> = (
-  ...args: Parameters<T>
-) => Promise<ReturnType<T>> | ReturnType<T>
+export type OptPromise<T extends () => any> = (...args: Parameters<T>) => Promise<ReturnType<T>> | ReturnType<T>
 
 export function access<T extends string, T2>(t: Record<T, T2>) {
   return (key: T) => t[key]
@@ -562,12 +524,7 @@ export function access<T extends string, T2>(t: Record<T, T2>) {
 
 export function todayAtUTCNoon() {
   const localDate = new Date()
-  const utcDateAtNoon = Date.UTC(
-    localDate.getFullYear(),
-    localDate.getMonth(),
-    localDate.getDate(),
-    12
-  )
+  const utcDateAtNoon = Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate(), 12)
   return new Date(utcDateAtNoon)
 }
 
@@ -587,16 +544,16 @@ export interface AnyOps<T> {
   subject: T
 }
 
-export const clone = dual<
-  <A extends object>(f: NoInfer<A>) => (self: A) => A,
-  <A extends object>(self: A, f: A) => A
->(2, (self, f) => {
-  if (cloneTrait in (self as any)) {
-    const selfWithClone = self as typeof self & Clone
-    return selfWithClone[cloneTrait](f)
+export const clone = dual<<A extends object>(f: NoInfer<A>) => (self: A) => A, <A extends object>(self: A, f: A) => A>(
+  2,
+  (self, f) => {
+    if (cloneTrait in (self as any)) {
+      const selfWithClone = self as typeof self & Clone
+      return selfWithClone[cloneTrait](f)
+    }
+    return Object.setPrototypeOf(f, Object.getPrototypeOf(self)) as typeof self
   }
-  return Object.setPrototypeOf(f, Object.getPrototypeOf(self)) as typeof self
-})
+)
 
 export const copy = dual<
   {
@@ -609,53 +566,43 @@ export const copy = dual<
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
 
-export type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
-  & {
-    [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
-  }
-  & {}
+export type CopyOriginU<U, Ctor extends new (...args: any[]) => any> = {
+  [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
+} & {}
 
-export type CopyOriginRet<A, U> =
-  & {
-    [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
-  }
-  & {}
+export type CopyOriginRet<A, U> = {
+  [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
+} & {}
 
-export type CopyOriginSelf<A, U> = Equals<{}, U> extends true
-  ? Equals<keyof {}, keyof U> extends true ? `updates argument is empty or contains only extra properties`
-  : A
-  : A
+export type CopyOriginSelf<A, U> =
+  Equals<{}, U> extends true
+    ? Equals<keyof {}, keyof U> extends true
+      ? `updates argument is empty or contains only extra properties`
+      : A
+    : A
 
 export interface StructuralCopyOrigin<Self extends object> {
   <A extends Self, U extends Partial<Self>>(
-    f: (a: A) =>
-      & {
-        [K in keyof U & keyof Self]?: U[K]
-      }
-      & {}
+    f: (a: A) => {
+      [K in keyof U & keyof Self]?: U[K]
+    } & {}
   ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
   <A extends Self, U extends Partial<Self>>(
-    updates:
-      & {
-        [K in keyof U & keyof Self]?: U[K]
-      }
-      & {}
+    updates: {
+      [K in keyof U & keyof Self]?: U[K]
+    } & {}
   ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
   <A extends Self, U extends Partial<Self>>(
     self: CopyOriginSelf<A, U>,
-    f: (a: A) =>
-      & {
-        [K in keyof U & keyof Self]?: U[K]
-      }
-      & {}
+    f: (a: A) => {
+      [K in keyof U & keyof Self]?: U[K]
+    } & {}
   ): CopyOriginRet<A, U>
   <A extends Self, U extends Partial<Self>>(
     self: CopyOriginSelf<A, U>,
-    updates:
-      & {
-        [K in keyof U & keyof Self]?: U[K]
-      }
-      & {}
+    updates: {
+      [K in keyof U & keyof Self]?: U[K]
+    } & {}
   ): CopyOriginRet<A, U>
 }
 
@@ -667,7 +614,7 @@ export interface StructuralCopyOrigin<Self extends object> {
  * The return type is computed from `Self` and the update payload so callers can
  * expose an explicit structural return type that remains assignable to `Self`.
  */
-export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
+export const copyOrigin = <Ctor extends new (_: any) => any>(ctor: Ctor) =>
   dual<
     {
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
@@ -691,9 +638,7 @@ export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
     2,
     <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
       self: Equals<{}, U> extends true ? `updates argument is empty or contains only extra properties` : A,
-      f:
-        | CopyOriginU<U, Ctor>
-        | ((a: A) => CopyOriginU<U, Ctor>)
+      f: CopyOriginU<U, Ctor> | ((a: A) => CopyOriginU<U, Ctor>)
     ): CopyOriginRet<A, U> => {
       const o = { ...self, ...(isFunction(f) ? f(self as any) : f) }
 
@@ -710,14 +655,13 @@ export function debug<A>(a: AnyOps<A>, name: string) {
   let r: string | A = a.subject
   try {
     r = pretty(a.subject)
-  } catch { /* empty */ }
-  return Effect
-    .logDebug("print")
-    .pipe(
-      Effect.annotateLogs(name, `${r}`),
-      Effect
-        .map(() => a.subject)
-    )
+  } catch {
+    /* empty */
+  }
+  return Effect.logDebug("print").pipe(
+    Effect.annotateLogs(name, `${r}`),
+    Effect.map(() => a.subject)
+  )
 }
 
 export function debugUnsafe<A>(a: AnyOps<A>, name: string) {
@@ -749,11 +693,7 @@ export function undoAzureFriendly<T extends string>(path: T): T {
   return path.replace(/___SL@SH___/g, "/") as T
 }
 
-export function arrayMove<T>(
-  arrInput: readonly T[],
-  oldIndex: number,
-  newIndex: number
-) {
+export function arrayMove<T>(arrInput: readonly T[], oldIndex: number, newIndex: number) {
   const arr: (T | undefined)[] = [...arrInput]
   while (oldIndex < 0) {
     oldIndex += arr.length
@@ -792,7 +732,11 @@ export function arMoveElDropUndefined<T>(el: T, newIndex: number) {
 
 export function setMoveElDropUndefined<T>(el: T, newIndex: number) {
   return (arrInput: ReadonlySet<T | undefined>): Option.Option<ReadonlySet<T>> =>
-    pipe([...arrInput], arMoveElDropUndefined(el, newIndex), Option.map((ar) => new Set(ar)))
+    pipe(
+      [...arrInput],
+      arMoveElDropUndefined(el, newIndex),
+      Option.map((ar) => new Set(ar))
+    )
 }
 
 type RemoveNonArray<T> = T extends readonly any[] ? T : never
@@ -813,8 +757,9 @@ export const mutable: { <A>(a: A, deep: true): DeepMutable<A>; <A>(a: A): Mutabl
  * ```
  */
 export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, ...infer R]
-  ? [F] extends [E] ? ExcludeFromTuple<R, E>
-  : [F, ...ExcludeFromTuple<R, E>]
+  ? [F] extends [E]
+    ? ExcludeFromTuple<R, E>
+    : [F, ...ExcludeFromTuple<R, E>]
   : []
 
 export const addAbortToRuntimeFiber = <A, E>(fiber: Fiber.Fiber<A, E>, signal: AbortSignal) => {
@@ -855,13 +800,13 @@ export const wrapEffect = <I, A, E, R, Args extends Array<any>>(
   return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
 }
 
-export type UnionToTuples<T, U = T> = [T] extends [never] ? []
-  : T extends any ?
-      | [T, ...UnionToTuples<Exclude<U, T>>]
-      | UnionToTuples<Exclude<U, T>>
-  : []
+export type UnionToTuples<T, U = T> = [T] extends [never]
+  ? []
+  : T extends any
+    ? [T, ...UnionToTuples<Exclude<U, T>>] | UnionToTuples<Exclude<U, T>>
+    : []
 
-const genConstructor = (function*() {}).constructor
+const genConstructor = function* () {}.constructor
 
 /**
  * @example

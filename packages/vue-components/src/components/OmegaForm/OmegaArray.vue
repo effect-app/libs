@@ -1,14 +1,8 @@
 <template>
-  <component
-    :is="form.Field"
-    :name="name"
-  >
+  <component :is="form.Field" :name="name">
     <!-- `field.state` is reactive; the Field slot's `state` prop is a stale snapshot since @tanstack/vue-form 1.32 -->
     <template #default="{ field }">
-      <slot
-        name="pre-array"
-        v-bind="{ field, state: field.state }"
-      />
+      <slot name="pre-array" v-bind="{ field, state: field.state }" />
       <component
         :is="form.Field"
         v-for="(_, i) of items"
@@ -26,15 +20,9 @@
           />
         </template>
       </component>
-      <slot
-        name="post-array"
-        v-bind="{ field, state: field.state }"
-      />
+      <slot name="post-array" v-bind="{ field, state: field.state }" />
       <!-- TODO: legacy slot, remove this slot -->
-      <slot
-        name="field"
-        v-bind="{ field }"
-      />
+      <slot name="field" v-bind="{ field }" />
     </template>
   </component>
 </template>

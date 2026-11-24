@@ -2,17 +2,10 @@ import { useStore } from "@tanstack/vue-form"
 import { computed, type Ref } from "vue"
 import type { OmegaFormApi, OmegaFormState } from "./types"
 
-export function getOmegaStore<
-  To,
-  From,
-  K extends keyof OmegaFormState<To, From> = keyof OmegaFormState<To, From>
->(
+export function getOmegaStore<To, From, K extends keyof OmegaFormState<To, From> = keyof OmegaFormState<To, From>>(
   form: OmegaFormApi<To, From>,
   subscribe?: K[]
-): Ref<
-  K[] extends undefined[] ? Record<string, never>
-    : Pick<OmegaFormState<To, From>, K>
-> {
+): Ref<K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<To, From>, K>> {
   return computed(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!subscribe) return {} as any

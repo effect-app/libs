@@ -293,9 +293,10 @@ export const IndexedTable: Story = {
   parameters: {
     docs: {
       description: {
-        story: "A sortable, paginated v-data-table with indexed form.Input cells outside form.Array. "
-          + "Each item retains its source index before table sorting and pagination, while its stable ID is the row key. "
-          + "Submit with Row 14 empty to see one labelled summary error alongside the field error."
+        story:
+          "A sortable, paginated v-data-table with indexed form.Input cells outside form.Array. " +
+          "Each item retains its source index before table sorting and pagination, while its stable ID is the row key. " +
+          "Submit with Row 14 empty to see one labelled summary error alongside the field error."
       }
     }
   },

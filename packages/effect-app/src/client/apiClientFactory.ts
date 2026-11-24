@@ -53,38 +53,33 @@ class RequestName extends Context.Reference("RequestName", {
 export const HttpClientLayer = (config: ApiConfig) =>
   Layer.effect(
     HttpClient.HttpClient,
-    Effect
-      .gen(function*() {
-        const baseClient = yield* HttpClient.HttpClient
-        const client = baseClient.pipe(
-          HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
-          HttpClient.mapRequest(
-            HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({}))))
-          ),
-          HttpClient.mapRequestEffect((req) =>
-            Effect.map(RequestName, (ctx) =>
-              flow(
-                HttpClientRequest.appendUrlParam("action", ctx.requestName),
-                HttpClientRequest.appendUrl("/" + ctx.moduleName)
-              )(req))
+    Effect.gen(function* () {
+      const baseClient = yield* HttpClient.HttpClient
+      const client = baseClient.pipe(
+        HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
+        HttpClient.mapRequest(HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({}))))),
+        HttpClient.mapRequestEffect((req) =>
+          Effect.map(RequestName, (ctx) =>
+            flow(
+              HttpClientRequest.appendUrlParam("action", ctx.requestName),
+              HttpClientRequest.appendUrl("/" + ctx.moduleName)
+            )(req)
           )
         )
-        return client
-      })
+      )
+      return client
+    })
   )
 
 export const HttpClientFromConfigLayer = Layer.unwrap(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const config = yield* DefaultApiConfig
     return HttpClientLayer(config)
   })
 )
 
 export const RpcSerializationLayer = (config: ApiConfig) =>
-  Layer.mergeAll(
-    RpcSerialization.layerNdjson,
-    HttpClientLayer(config)
-  )
+  Layer.mergeAll(RpcSerialization.layerNdjson, HttpClientLayer(config))
 
 type RpcHandlers<M extends RequestsAny> = {
   [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["error"]>
@@ -95,15 +90,15 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
     [K in keyof M as M[K] extends Req ? K : never]: M[K] extends Req ? M[K] : never
   }
   // TODO: Record.filter
-  const filtered = Struct.keys(resource).reduce((acc, cur) => {
-    if (
-      Predicate.isObjectKeyword(resource[cur])
-      && (resource[cur].success)
-    ) {
-      acc[cur as keyof Filtered] = resource[cur] as any
-    }
-    return acc
-  }, {} as Record<keyof Filtered, Req>)
+  const filtered = Struct.keys(resource).reduce(
+    (acc, cur) => {
+      if (Predicate.isObjectKeyword(resource[cur]) && resource[cur].success) {
+        acc[cur as keyof Filtered] = resource[cur] as any
+      }
+      return acc
+    },
+    {} as Record<keyof Filtered, Req>
+  )
 
   return filtered as unknown as Filtered
 }
@@ -124,30 +119,30 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
 ) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-  const baseRpcs = RpcGroup
-    .make(
-      ...Record.values(filtered).map((_) => {
-        const r = _ as any
-        const isStream = r.stream
-        const isCommand = r.type === "command"
-        return (isCommand
+  const baseRpcs = RpcGroup.make(
+    ...Record.values(filtered).map((_) => {
+      const r = _ as any
+      const isStream = r.stream
+      const isCommand = r.type === "command"
+      return (
+        isCommand
           ? isStream
             ? Invalidation.makeStreamRpc(r._tag, {
-              payload: r,
-              success: r.success,
-              error: r.error,
-              stream: true as const
-            })
+                payload: r,
+                success: r.success,
+                error: r.error,
+                stream: true as const
+              })
             : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
           : Rpc.make(r._tag, {
-            payload: r,
-            success: isStream ? r.success : Invalidation.QueryResponseWithMetaData(r.success),
-            error: r.error,
-            stream: isStream
-          })) as any
-      })
-    )
-    .prefix(`${moduleName}.`)
+              payload: r,
+              success: isStream ? r.success : Invalidation.QueryResponseWithMetaData(r.success),
+              error: r.error,
+              stream: isStream
+            })
+      ) as any
+    })
+  ).prefix(`${moduleName}.`)
   // Attach the middleware tag (schema-only on the client — no Live invoked)
   // so its declared `error` joins the rpc failure union via
   // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required for stream
@@ -166,60 +161,52 @@ const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
 
   // Use Object.assign instead of class extension to avoid TS2509 with complex generic return types.
   // The first type arg is `any` because this is a dynamically created tag — its identity is the string key.
-  const TheClient = Context.Opaque<
-    any,
-    RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
-  >()(`RpcClient.${meta.moduleName}`)
-  // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
-  const layer = Layer.effect(
-    TheClient,
-    RpcClient.make(rpcs)
+  const TheClient = Context.Opaque<any, RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>>()(
+    `RpcClient.${meta.moduleName}`
   )
+  // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
+  const layer = Layer.effect(TheClient, RpcClient.make(rpcs))
   return Object.assign(TheClient, { layer })
 }
 
-const makeApiClientFactory = Effect
-  .gen(function*() {
-    const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
-    const makeClientFor = Effect.fnUntraced(function*<M extends RequestsAny>(
-      resource: M,
-      requestLevelLayers = Layer.empty,
-      options?: ClientForOptions
-    ) {
-      const meta = getMeta(resource)
+const makeApiClientFactory = Effect.gen(function* () {
+  const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
+  const makeClientFor = Effect.fnUntraced(function* <M extends RequestsAny>(
+    resource: M,
+    requestLevelLayers = Layer.empty,
+    options?: ClientForOptions
+  ) {
+    const meta = getMeta(resource)
 
-      const TheClient = makeRpcTag(resource, meta.middleware)
+    const TheClient = makeRpcTag(resource, meta.middleware)
 
-      // TODO: somehow we need a protocol per REQUEST kind of it seems ...
-      // otherwise it locks up on the client, navigation remains empty...
-      const clientLayer = TheClient.layer.pipe(
-        // add ApiClientFactory for nested schemas
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
-        Layer.provide(
-          RpcClient
-            .layerProtocolHttp({ url: "" }) // why not here set meta.moduleName as root?
-            .pipe(
-              Layer.provideMerge(Layer.succeedContext(ctx))
-            )
-        )
+    // TODO: somehow we need a protocol per REQUEST kind of it seems ...
+    // otherwise it locks up on the client, navigation remains empty...
+    const clientLayer = TheClient.layer.pipe(
+      // add ApiClientFactory for nested schemas
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
+      Layer.provide(
+        RpcClient.layerProtocolHttp({ url: "" }) // why not here set meta.moduleName as root?
+          .pipe(Layer.provideMerge(Layer.succeedContext(ctx)))
       )
-      const mr = ManagedRuntime.make(clientLayer)
+    )
+    const mr = ManagedRuntime.make(clientLayer)
 
-      const filtered = getFiltered(resource)
+    const filtered = getFiltered(resource)
 
-      // Unwrap `CommandResponseWithMetaData` (success) and `CommandFailureWithMetaData`
-      // (handler-thrown failure): forward accumulated invalidation keys to
-      // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
-      // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
-      // strip) — the `else` branch passes them through.
-      const forwardDependencies = (
-        dependencies: DataDependencies.DataDependencySet | undefined,
-        options?: { readonly reads?: boolean }
-      ) =>
-        dependencies === undefined
-          ? Effect.void
-          : Effect.gen(function*() {
+    // Unwrap `CommandResponseWithMetaData` (success) and `CommandFailureWithMetaData`
+    // (handler-thrown failure): forward accumulated invalidation keys to
+    // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
+    // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
+    // strip) — the `else` branch passes them through.
+    const forwardDependencies = (
+      dependencies: DataDependencies.DataDependencySet | undefined,
+      options?: { readonly reads?: boolean }
+    ) =>
+      dependencies === undefined
+        ? Effect.void
+        : Effect.gen(function* () {
             const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
             if (options?.reads) {
               yield* Effect.forEach(dependencies.reads, dependencyRecorder.read, { discard: true })
@@ -227,228 +214,212 @@ const makeApiClientFactory = Effect
             yield* Effect.forEach(dependencies.writes, dependencyRecorder.write, { discard: true })
           })
 
-      const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
-        eff.pipe(
-          Effect.flatMap((result: any) =>
-            Effect.gen(function*() {
-              const keys: ReadonlyArray<Invalidation.InvalidationKey> = result?.metadata?.invalidateQueries ?? []
-              const invalidationKeys = yield* InvalidationKeysFromServer
-              yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
-              yield* forwardDependencies(result?.metadata?.dataDependencies)
-              return result.payload
-            })
-          ),
-          Effect.catch((result: any) =>
-            result?._tag === "CommandFailureWithMetaData"
-              ? Effect.gen(function*() {
+    const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
+      eff.pipe(
+        Effect.flatMap((result: any) =>
+          Effect.gen(function* () {
+            const keys: ReadonlyArray<Invalidation.InvalidationKey> = result?.metadata?.invalidateQueries ?? []
+            const invalidationKeys = yield* InvalidationKeysFromServer
+            yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+            yield* forwardDependencies(result?.metadata?.dataDependencies)
+            return result.payload
+          })
+        ),
+        Effect.catch((result: any) =>
+          result?._tag === "CommandFailureWithMetaData"
+            ? Effect.gen(function* () {
                 const keys: ReadonlyArray<Invalidation.InvalidationKey> = result.metadata?.invalidateQueries ?? []
                 const invalidationKeys = yield* InvalidationKeysFromServer
                 yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
                 yield* forwardDependencies(result.metadata?.dataDependencies)
                 return yield* Effect.fail(result.error)
               })
-              : Effect.fail(result)
-          )
+            : Effect.fail(result)
         )
+      )
 
-      const unwrapQuery = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
-        eff.pipe(
-          Effect.flatMap((result: any) =>
-            Effect.gen(function*() {
-              yield* forwardDependencies(result?.metadata?.dataDependencies, { reads: true })
-              return result.payload
-            })
-          )
+    const unwrapQuery = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
+      eff.pipe(
+        Effect.flatMap((result: any) =>
+          Effect.gen(function* () {
+            yield* forwardDependencies(result?.metadata?.dataDependencies, { reads: true })
+            return result.payload
+          })
         )
+      )
 
-      return {
-        mr,
-        client: Struct
-          .keys(filtered)
-          .reduce((prev, cur) => {
-            const h = filtered[cur]!
+    return {
+      mr,
+      client: Struct.keys(filtered).reduce(
+        (prev, cur) => {
+          const h = filtered[cur]!
 
-            const Request = h
+          const Request = h
 
-            const id = `${meta.moduleName}.${cur}`
-              .replaceAll(".js", "")
+          const id = `${meta.moduleName}.${cur}`.replaceAll(".js", "")
 
-            const requestMeta = {
-              Request,
-              id,
-              options,
-              disableQueryInvalidation: (h as { config?: { disableQueryInvalidation?: boolean } })
-                .config
-                ?.disableQueryInvalidation === true
-            }
+          const requestMeta = {
+            Request,
+            id,
+            options,
+            disableQueryInvalidation:
+              (h as { config?: { disableQueryInvalidation?: boolean } }).config?.disableQueryInvalidation === true
+          }
 
-            const requestNameLayer = Layer.succeed(RequestName, {
-              requestName: cur,
-              moduleName: meta.moduleName
-            })
+          const requestNameLayer = Layer.succeed(RequestName, {
+            requestName: cur,
+            moduleName: meta.moduleName
+          })
 
-            const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
+          const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
 
-            const fields = Struct.omit(Request.fields, ["_tag"] as const)
-            const requestAttr = `${meta.moduleName}.${h._tag}`
-            const isCommand = h.type === "command"
-            const isStream = h.stream
+          const fields = Struct.omit(Request.fields, ["_tag"] as const)
+          const requestAttr = `${meta.moduleName}.${h._tag}`
+          const isCommand = h.type === "command"
+          const isStream = h.stream
 
-            const buildEffect = (input: any) =>
+          const buildEffect = (input: any) =>
+            mr.contextEffect.pipe(
+              Effect.flatMap((svcs) => {
+                const rpcEffect = TheClient.use(
+                  (client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>
+                ).pipe(
+                  // local: true → isolate to this RPC call. `layers` is pure today
+                  // (RequestName + caller-supplied requestLevelLayers), but the
+                  // flag prevents a stateful caller-supplied layer from leaking
+                  // across RPC calls via the ambient fiber MemoMap.
+                  Effect.provide(layers, { local: true }),
+                  Effect.provide(svcs)
+                )
+                return isCommand ? unwrapCommand(rpcEffect) : isStream ? rpcEffect : unwrapQuery(rpcEffect)
+              }),
+              // Forwarding the server's dependency metadata needs a recorder in scope. A parent
+              // query/command (vue) provides one; a top-level call gets a fresh per-request one.
+              DataDependencies.ensureDataDependencyRecorder
+            )
+
+          const buildStream = (input: any) => {
+            const stream = Stream.unwrap(
               mr.contextEffect.pipe(
-                Effect.flatMap((svcs) => {
-                  const rpcEffect = TheClient
-                    .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
-                    .pipe(
-                      // local: true → isolate to this RPC call. `layers` is pure today
-                      // (RequestName + caller-supplied requestLevelLayers), but the
-                      // flag prevents a stateful caller-supplied layer from leaking
-                      // across RPC calls via the ambient fiber MemoMap.
-                      Effect.provide(layers, { local: true }),
-                      Effect.provide(svcs)
-                    )
-                  return isCommand ? unwrapCommand(rpcEffect) : isStream ? rpcEffect : unwrapQuery(rpcEffect)
-                }),
-                // Forwarding the server's dependency metadata needs a recorder in scope. A parent
-                // query/command (vue) provides one; a top-level call gets a fresh per-request one.
-                DataDependencies.ensureDataDependencyRecorder
-              )
-
-            const buildStream = (input: any) => {
-              const stream = Stream.unwrap(
-                mr.contextEffect.pipe(
-                  Effect.flatMap((svcs) =>
-                    TheClient
-                      .useSync((client) => {
-                        const rpcStream = (client as any)[requestAttr]!(
-                          Request.make(input)
-                        ) as Stream.Stream<any, any, any>
-                        return rpcStream.pipe(
-                          // Collect server invalidation keys from the "done" chunk, then discard it.
-                          Stream.tap((item: any) =>
-                            item._tag === "done" || item._tag === "metadata"
-                              ? Effect.gen(function*() {
-                                const metadata = item.metadata as Invalidation.CommandMetaData
+                Effect.flatMap((svcs) =>
+                  TheClient.useSync((client) => {
+                    const rpcStream = (client as any)[requestAttr]!(Request.make(input)) as Stream.Stream<any, any, any>
+                    return rpcStream.pipe(
+                      // Collect server invalidation keys from the "done" chunk, then discard it.
+                      Stream.tap((item: any) =>
+                        item._tag === "done" || item._tag === "metadata"
+                          ? Effect.gen(function* () {
+                              const metadata = item.metadata as Invalidation.CommandMetaData
+                              const invalidationKeys = yield* InvalidationKeysFromServer
+                              yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
+                                discard: true
+                              })
+                              const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
+                              yield* Effect.forEach(metadata.dataDependencies.reads, dependencyRecorder.read, {
+                                discard: true
+                              })
+                              yield* Effect.forEach(metadata.dataDependencies.writes, dependencyRecorder.write, {
+                                discard: true
+                              })
+                            })
+                          : Effect.void
+                      ),
+                      Stream.filter((item: any) => item._tag === "value"),
+                      Stream.map((item: any) => item.value),
+                      // V2: unwrap StreamFailureChunk — forward keys from failures too,
+                      // then re-fail with the original error so callers see the unmodified
+                      // error type.
+                      Stream.catch((err: any) =>
+                        err?._tag === "error" && err?.metadata
+                          ? Stream.fromEffect(
+                              Effect.gen(function* () {
+                                const metadata = err.metadata as Invalidation.CommandMetaData
                                 const invalidationKeys = yield* InvalidationKeysFromServer
                                 yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
                                   discard: true
                                 })
                                 const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
-                                yield* Effect.forEach(
-                                  metadata.dataDependencies.reads,
-                                  dependencyRecorder.read,
-                                  { discard: true }
-                                )
-                                yield* Effect.forEach(
-                                  metadata.dataDependencies.writes,
-                                  dependencyRecorder.write,
-                                  { discard: true }
-                                )
-                              })
-                              : Effect.void
-                          ),
-                          Stream.filter((item: any) => item._tag === "value"),
-                          Stream.map((item: any) => item.value),
-                          // V2: unwrap StreamFailureChunk — forward keys from failures too,
-                          // then re-fail with the original error so callers see the unmodified
-                          // error type.
-                          Stream.catch((err: any) =>
-                            err?._tag === "error" && err?.metadata
-                              ? Stream.fromEffect(
-                                Effect.gen(function*() {
-                                  const metadata = err.metadata as Invalidation.CommandMetaData
-                                  const invalidationKeys = yield* InvalidationKeysFromServer
-                                  yield* Effect.forEach(metadata.invalidateQueries, invalidationKeys.add, {
-                                    discard: true
-                                  })
-                                  const dependencyRecorder = yield* DataDependencies.getDataDependencyRecorder
-                                  yield* Effect.forEach(
-                                    metadata.dataDependencies.writes,
-                                    dependencyRecorder.write,
-                                    { discard: true }
-                                  )
-                                  return yield* Effect.fail(err.error)
+                                yield* Effect.forEach(metadata.dataDependencies.writes, dependencyRecorder.write, {
+                                  discard: true
                                 })
-                              )
-                              : Stream.fail(err)
-                          ),
-                          // local: true — see buildEffect above.
-                          Stream.provide(layers, { local: true }),
-                          Stream.provide(svcs)
-                        )
-                      })
-                      .pipe(Effect.provide(svcs))
-                  )
+                                return yield* Effect.fail(err.error)
+                              })
+                            )
+                          : Stream.fail(err)
+                      ),
+                      // local: true — see buildEffect above.
+                      Stream.provide(layers, { local: true }),
+                      Stream.provide(svcs)
+                    )
+                  }).pipe(Effect.provide(svcs))
                 )
               )
-              // Forwarding the server's dependency metadata needs a recorder in scope. A parent
-              // query/command (vue) provides one; a top-level stream call gets a fresh per-request one.
-              return Stream.unwrap(
-                Effect.map(
-                  DataDependencies.DataDependencyRecorder,
-                  (current) =>
-                    current === "root"
-                      ? Stream.provide(stream, DataDependencies.DataDependencyRecorder.layer)
-                      : stream
-                )
+            )
+            // Forwarding the server's dependency metadata needs a recorder in scope. A parent
+            // query/command (vue) provides one; a top-level stream call gets a fresh per-request one.
+            return Stream.unwrap(
+              Effect.map(DataDependencies.DataDependencyRecorder, (current) =>
+                current === "root" ? Stream.provide(stream, DataDependencies.DataDependencyRecorder.layer) : stream
               )
-            }
+            )
+          }
 
-            // @ts-expect-error doc
-            prev[cur] = Object.keys(fields).length === 0
+          // @ts-expect-error doc
+          prev[cur] =
+            Object.keys(fields).length === 0
               ? {
-                handler: isStream ? constant(buildStream({})) : constant(buildEffect({})),
-                ...requestMeta
-              }
+                  handler: isStream ? constant(buildStream({})) : constant(buildEffect({})),
+                  ...requestMeta
+                }
               : {
-                handler: isStream
-                  ? (req: any) => buildStream(req)
-                  : (req: any) => buildEffect(req),
-                ...requestMeta
-              }
+                  handler: isStream ? (req: any) => buildStream(req) : (req: any) => buildEffect(req),
+                  ...requestMeta
+                }
 
-            return prev
-          }, {} as Client<M, ExtractModuleName<M>>)
-      }
-    })
+          return prev
+        },
+        {} as Client<M, ExtractModuleName<M>>
+      )
+    }
+  })
 
-    const register: ManagedRuntime.ManagedRuntime<any, any>[] = []
-    yield* Effect.addFinalizer(() => Effect.forEach(register, (mr) => mr.disposeEffect))
+  const register: ManagedRuntime.ManagedRuntime<any, any>[] = []
+  yield* Effect.addFinalizer(() => Effect.forEach(register, (mr) => mr.disposeEffect))
 
-    const cacheL = new Map<any, Map<any, Client<any, any>>>()
+  const cacheL = new Map<any, Map<any, Client<any, any>>>()
 
-    function makeClientForCached(requestLevelLayers: Layer.Layer<never>, options?: ClientForOptions) {
-      let cache = cacheL.get(requestLevelLayers)
-      if (!cache) {
-        cache = new Map<any, Client<any, any>>()
-        cacheL.set(requestLevelLayers, cache)
-      }
-
-      return Effect.fnUntraced(function*<M extends RequestsAny>(models: M) {
-        const found = cache.get(models) as Client<M, ExtractModuleName<M>> | undefined
-        if (found) {
-          return found
-        }
-        const m = yield* makeClientFor(models, requestLevelLayers, options)
-        cache.set(models, m.client)
-        register.push(m.mr)
-        return m.client
-      })
+  function makeClientForCached(requestLevelLayers: Layer.Layer<never>, options?: ClientForOptions) {
+    let cache = cacheL.get(requestLevelLayers)
+    if (!cache) {
+      cache = new Map<any, Client<any, any>>()
+      cacheL.set(requestLevelLayers, cache)
     }
 
-    return makeClientForCached
-  })
+    return Effect.fnUntraced(function* <M extends RequestsAny>(models: M) {
+      const found = cache.get(models) as Client<M, ExtractModuleName<M>> | undefined
+      if (found) {
+        return found
+      }
+      const m = yield* makeClientFor(models, requestLevelLayers, options)
+      cache.set(models, m.client)
+      register.push(m.mr)
+      return m.client
+    })
+  }
+
+  return makeClientForCached
+})
 
 /**
  * Used to create clients for resource modules.
  */
-export class ApiClientFactory
-  extends Context.Opaque<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()("ApiClientFactory")
-{
+export class ApiClientFactory extends Context.Opaque<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()(
+  "ApiClientFactory"
+) {
   static readonly layer = (config: ApiConfig) =>
     ApiClientFactory.toLayer(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))
   static readonly layerFromConfig = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const config = yield* DefaultApiConfig
       return ApiClientFactory.layer(config)
     })
@@ -456,9 +427,7 @@ export class ApiClientFactory
 
   static readonly makeFor =
     (requestLevelLayers: Layer.Layer<never>, options?: ClientForOptions) =>
-    <M extends RequestsAny>(
-      resource: M
-    ) =>
+    <M extends RequestsAny>(resource: M) =>
       ApiClientFactory.use((apiClientFactory) => {
         const f = apiClientFactory(requestLevelLayers, options)
         return f(resource)

@@ -147,12 +147,12 @@ export const makeRepo: {
     idKey?: IdKey
   }
 ) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const mkRepo = makeRepoInternal<Evt>()(
       itemType,
       schema,
       (e, _etag) => ({ ...e, _etag }),
-      options.idKey ?? "id" as any
+      options.idKey ?? ("id" as any)
     )
     // `jitM` belongs to the store: it migrates the raw JSON document before the
     // store decodes JSON→Encoded, so it travels as part of the store config.

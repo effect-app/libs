@@ -15,9 +15,11 @@ const invalidationModes = MutableHashMap.empty<ReadonlyArray<unknown>, Invalidat
 export const registerQueryInvalidationMode = (
   key: ReadonlyArray<unknown>,
   mode: QueryInvalidationMode
-): () => void => {
-  const entry = Option.getOrUndefined(MutableHashMap.get(invalidationModes, key))
-    ?? { awaitSubscribers: 0, softSubscribers: 0 }
+): (() => void) => {
+  const entry = Option.getOrUndefined(MutableHashMap.get(invalidationModes, key)) ?? {
+    awaitSubscribers: 0,
+    softSubscribers: 0
+  }
   if (mode === "soft") entry.softSubscribers++
   else entry.awaitSubscribers++
   MutableHashMap.set(invalidationModes, key, entry)
@@ -28,10 +30,11 @@ export const registerQueryInvalidationMode = (
     if (mode === "soft") entry.softSubscribers--
     else entry.awaitSubscribers--
     if (
-      entry.awaitSubscribers === 0
-      && entry.softSubscribers === 0
-      && Option.getOrUndefined(MutableHashMap.get(invalidationModes, key)) === entry
-    ) MutableHashMap.remove(invalidationModes, key)
+      entry.awaitSubscribers === 0 &&
+      entry.softSubscribers === 0 &&
+      Option.getOrUndefined(MutableHashMap.get(invalidationModes, key)) === entry
+    )
+      MutableHashMap.remove(invalidationModes, key)
   }
 }
 
@@ -40,10 +43,7 @@ export const getQueryInvalidationMode = (key: ReadonlyArray<unknown>): QueryInva
   return entry !== undefined && entry.awaitSubscribers === 0 && entry.softSubscribers > 0 ? "soft" : "await"
 }
 
-export const setQueryReadDependencies = (
-  key: ReadonlyArray<unknown>,
-  reads: DataDependencies.DataDependencies
-) => {
+export const setQueryReadDependencies = (key: ReadonlyArray<unknown>, reads: DataDependencies.DataDependencies) => {
   if (!DataDependencies.isNonEmpty(reads)) MutableHashMap.remove(readDependencies, key)
   else MutableHashMap.set(readDependencies, key, { key, reads })
 }
@@ -52,9 +52,7 @@ export const clearQueryReadDependencies = (key: ReadonlyArray<unknown>) => {
   MutableHashMap.remove(readDependencies, key)
 }
 
-export const getQueryReadDependencies = (
-  key: ReadonlyArray<unknown>
-): DataDependencies.DataDependencies =>
+export const getQueryReadDependencies = (key: ReadonlyArray<unknown>): DataDependencies.DataDependencies =>
   Option.getOrUndefined(MutableHashMap.get(readDependencies, key))?.reads ?? DataDependencies.empty()
 
 /**

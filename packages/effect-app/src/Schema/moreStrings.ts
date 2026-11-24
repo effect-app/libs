@@ -187,9 +187,7 @@ const nanoidFromBytes = (bytes: Uint8Array) =>
 const StringIdSchemaBase = S.declareConstructor<StringId, string>()(
   [],
   () => (input, ast, options) =>
-    S.is(StringIdString)(input)
-      ? Effect.succeed(input)
-      : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
+    S.is(StringIdString)(input) ? Effect.succeed(input) : Effect.fail(new SchemaIssue.InvalidType(ast, input, options)),
   {
     identifier: "StringId",
     expected: "StringId",
@@ -199,17 +197,14 @@ const StringIdSchemaBase = S.declareConstructor<StringId, string>()(
         encode: Getter.passthrough()
       }),
     toCodecArbitrary: () =>
-      S.link<StringId>()(
-        S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
-        {
-          decode: Getter.transform(nanoidFromBytes),
-          encode: Getter.forbiddenEncoding
-        }
-      )
+      S.link<StringId>()(S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)), {
+        decode: Getter.transform(nanoidFromBytes),
+        encode: Getter.forbiddenEncoding
+      })
   }
 )
 const makeStringId = (s?: string): StringId =>
-  s !== undefined ? S.decodeSync(StringIdString)(s) : nanoid() as unknown as StringId
+  s !== undefined ? S.decodeSync(StringIdString)(s) : (nanoid() as unknown as StringId)
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  *
@@ -226,20 +221,16 @@ export interface StringIdSchema extends S.declareConstructor<StringId, string, r
     S.declareConstructor<StringId, string, readonly [], StringId>
   >
 }
-export const StringId: StringIdSchema = extendM(
-  StringIdSchemaBase,
-  (s) => ({
-    make: makeStringId,
-    /**
-     * Construction-only default: fresh `nanoid()`-shaped `StringId`. Applied
-     * only when the field is omitted from `.make(...)` input. NOT applied
-     * during decode — cannot be used to JIT-migrate database fields. See
-     * file-level note.
-     */
-    withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
-  })
-)
-  .pipe(withDefaultMake)
+export const StringId: StringIdSchema = extendM(StringIdSchemaBase, (s) => ({
+  make: makeStringId,
+  /**
+   * Construction-only default: fresh `nanoid()`-shaped `StringId`. Applied
+   * only when the field is omitted from `.make(...)` input. NOT applied
+   * during decode — cannot be used to JIT-migrate database fields. See
+   * file-level note.
+   */
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
+})).pipe(withDefaultMake)
 
 /**
  * Build a `StringId` schema whose values are required to start with a fixed
@@ -257,9 +248,7 @@ export function prefixedStringId<Type extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const PrefixedString = StringIdString.pipe(
-      S.refine((x): x is Type => x.startsWith(pref), { identifier: name })
-    )
+    const PrefixedString = StringIdString.pipe(S.refine((x): x is Type => x.startsWith(pref), { identifier: name }))
     // Pre-rc.114: StringIdArb().map(x => pref + x.substring(0, 50 - pref.length))
     const s = S.declareConstructor<Type, string>()(
       [],
@@ -276,46 +265,38 @@ export function prefixedStringId<Type extends StringId>() {
             encode: Getter.passthrough()
           }),
         toCodecArbitrary: () =>
-          S.link<Type>()(
-            S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)),
-            {
-              decode: Getter.transform((bytes) =>
-                (pref + nanoidFromBytes(bytes).substring(0, maxLength - pref.length)) as Type
-              ),
-              encode: Getter.forbiddenEncoding
-            }
-          )
+          S.link<Type>()(S.Uint8Array.check(S.isMinLength(nanoidByteLength), S.isMaxLength(nanoidByteLength)), {
+            decode: Getter.transform(
+              (bytes) => (pref + nanoidFromBytes(bytes).substring(0, maxLength - pref.length)) as Type
+            ),
+            encode: Getter.forbiddenEncoding
+          })
       }
     )
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Type
 
-    return extendM(
-      schema,
-      (ex): PrefixedStringUtils<Type, Prefix, Separator> => ({
-        make,
-        /**
-         * Automatically adds the prefix.
-         */
-        unsafeFrom: (str: string) => ex(pref + str),
-        /**
-         * Must provide a literal string starting with prefix.
-         */
-        prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
-        prefix,
-        /**
-         * Construction-only default: fresh prefixed id. Applied only when
-         * the field is omitted from `.make(...)` input. NOT applied during
-         * decode — cannot be used to JIT-migrate database fields. See
-         * file-level note.
-         */
-        withConstructorDefault: schema.pipe(
-          S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
-            Effect.sync(make)
-          )
-        )
-      })
-    )
+    return extendM(schema, (ex): PrefixedStringUtils<Type, Prefix, Separator> => ({
+      make,
+      /**
+       * Automatically adds the prefix.
+       */
+      unsafeFrom: (str: string) => ex(pref + str),
+      /**
+       * Must provide a literal string starting with prefix.
+       */
+      prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
+      prefix,
+      /**
+       * Construction-only default: fresh prefixed id. Applied only when
+       * the field is omitted from `.make(...)` input. NOT applied during
+       * decode — cannot be used to JIT-migrate database fields. See
+       * file-level note.
+       */
+      withConstructorDefault: schema.pipe(
+        S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(Effect.sync(make))
+      )
+    }))
   }
 }
 
@@ -326,15 +307,9 @@ export function prefixedStringId<Type extends StringId>() {
  * Construction-only — not applied during decode; see file-level note.
  */
 export const brandedStringId = <Id extends string & B.Brand<any>>(): BrandedStringIdSchema<Id> =>
-  withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as BrandedStringIdSchema<Id>
-  )
+  withDefaultMake(Object.assign(Object.create(StringId), StringId) as BrandedStringIdSchema<Id>)
 
-export interface PrefixedStringUtils<
-  Type extends StringId,
-  Prefix extends string,
-  Separator extends string
-> {
+export interface PrefixedStringUtils<Type extends StringId, Prefix extends string, Separator extends string> {
   readonly make: () => Type
   readonly unsafeFrom: (str: string) => Type
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Type
@@ -367,24 +342,24 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
 export interface UrlSchema extends S.refine<Url, S.String> {
   (i: string, options?: SchemaAST.ParseOptions): Url
 }
-export const Url: UrlSchema = S
-  .String
-  .pipe(
-    S.annotate({
-      title: "Url",
-      format: "uri"
-    }),
-    S.refine(isUrl, {
-      identifier: "Url",
-      jsonSchema: { format: "uri" },
-      // Native Arbitrary otherwise emits strings that `isURL({ require_tld: false })`
-      // accepts (`"R"`, `"prototype"`). Restore the old fast-check `fc.webUrl()` shape.
-      arbitraryConstraint: {
-        patterns: [{
+export const Url: UrlSchema = S.String.pipe(
+  S.annotate({
+    title: "Url",
+    format: "uri"
+  }),
+  S.refine(isUrl, {
+    identifier: "Url",
+    jsonSchema: { format: "uri" },
+    // Native Arbitrary otherwise emits strings that `isURL({ require_tld: false })`
+    // accepts (`"R"`, `"prototype"`). Restore the old fast-check `fc.webUrl()` shape.
+    arbitraryConstraint: {
+      patterns: [
+        {
           source: "^https://[a-z]{3,12}\\.(?:com|net|org|de)(?:/[a-z0-9-]{0,16})?$",
           flags: ""
-        }]
-      }
-    }),
-    withDefaultMake
-  )
+        }
+      ]
+    }
+  }),
+  withDefaultMake
+)

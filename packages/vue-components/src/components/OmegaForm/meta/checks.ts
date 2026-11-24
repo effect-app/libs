@@ -20,9 +20,7 @@ const metaFromFilter = (check: {
   const rep = check.annotations?.representation
   if (rep && typeof rep.id === "string") {
     const tag = rep.id.replace(/^effect\/schema\//, "")
-    const payload = rep.payload !== null && typeof rep.payload === "object"
-      ? rep.payload as Record<string, any>
-      : {}
+    const payload = rep.payload !== null && typeof rep.payload === "object" ? (rep.payload as Record<string, any>) : {}
     return [{ _tag: tag, ...payload }]
   }
 
@@ -92,11 +90,9 @@ export const getFieldMetadataFromAst = (property: S.AST.AST) => {
   } else if (S.AST.isBoolean(property)) {
     base.type = "boolean"
   } else if (
-    S.AST.isDeclaration(property)
-    && (
-      (property.annotations as any)?.typeConstructor?._tag === "Date"
-      || (property.annotations as any)?.representation?.id === "effect/schema/Date"
-    )
+    S.AST.isDeclaration(property) &&
+    ((property.annotations as any)?.typeConstructor?._tag === "Date" ||
+      (property.annotations as any)?.representation?.id === "effect/schema/Date")
   ) {
     base.type = "date"
   } else {

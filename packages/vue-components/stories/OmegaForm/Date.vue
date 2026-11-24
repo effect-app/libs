@@ -1,22 +1,19 @@
 <template>
   <form.Form>
-    <form.Input
-      label="date"
-      name="date"
-    >
+    <form.Input label="date" name="date">
       <template #default="{ field, state }">
         <input
           :model-value="state.value"
           type="date"
-          @change="() => {
-            field.handleChange('2024-06-01T00:00:00.000Z')
-          }"
-        >
+          @change="
+            () => {
+              field.handleChange('2024-06-01T00:00:00.000Z')
+            }
+          "
+        />
       </template>
     </form.Input>
-    <v-btn type="submit">
-      submit
-    </v-btn>
+    <v-btn type="submit"> submit </v-btn>
     <form.Errors />
   </form.Form>
 </template>

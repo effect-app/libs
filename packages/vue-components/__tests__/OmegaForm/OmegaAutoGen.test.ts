@@ -220,10 +220,7 @@ describe("OmegaAutoGen", () => {
           )
 
           // Create a sorter that sorts by name alphabetically
-          const sortByName = Order.mapInput(
-            Order.String,
-            (item: { name: string }) => item.name
-          )
+          const sortByName = Order.mapInput(Order.String, (item: { name: string }) => item.name)
 
           return { form, sortByName }
         }
@@ -321,8 +318,8 @@ describe("OmegaAutoGen", () => {
     const customElements = wrapper.findAll(".custom-slot")
     expect(customElements.length).toBe(2)
 
-    expect(wrapper.find("[data-testid=\"string-custom\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"number-custom\"]").exists()).toBe(true)
+    expect(wrapper.find('[data-testid="string-custom"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="number-custom"]').exists()).toBe(true)
 
     const labels = wrapper.findAll("label")
     expect(labels[0].text()).toBe("Custom string")

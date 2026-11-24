@@ -4,22 +4,18 @@ import type { FieldPath, FieldPathValue } from "./path/index.ts"
 
 export type ValidationValue = boolean | number | string | RegExp
 
-export type ValidationRule<
-  TValidationValue extends ValidationValue = ValidationValue
-> = TValidationValue | ValidationValueMessage<TValidationValue>
+export type ValidationRule<TValidationValue extends ValidationValue = ValidationValue> =
+  | TValidationValue
+  | ValidationValueMessage<TValidationValue>
 
-export type ValidationValueMessage<
-  TValidationValue extends ValidationValue = ValidationValue
-> = {
+export type ValidationValueMessage<TValidationValue extends ValidationValue = ValidationValue> = {
   value: TValidationValue
   message: Message
 }
 
 export type ValidateResult = Message | Message[] | boolean | undefined
 
-export type Validate<TFieldValue> = (
-  value: TFieldValue
-) => ValidateResult | Promise<ValidateResult>
+export type Validate<TFieldValue> = (value: TFieldValue) => ValidateResult | Promise<ValidateResult>
 
 export type RegisterOptions<
   TFieldValues extends FieldValues = FieldValues,

@@ -12,6 +12,7 @@ export interface QueryLifetime {
 }
 
 const lifetimes = new WeakMap<Atom.Atom<any>, QueryLifetime>()
+const observedUnderlying = new WeakMap<Atom.Atom<any>, Atom.Atom<any>>()
 
 const rootOf = (atom: Atom.Atom<any>): Atom.Atom<any> => {
   let target = atom
@@ -23,6 +24,10 @@ const rootOf = (atom: Atom.Atom<any>): Atom.Atom<any> => {
 
 export const queryLifetimeOf = (atom: Atom.Atom<any>): QueryLifetime | undefined =>
   lifetimes.get(rootOf(atom)) ?? lifetimes.get(atom)
+
+export const unwrapObservedQueryAtom = <A, E>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+): Atom.Atom<AsyncResult.AsyncResult<A, E>> => observedUnderlying.get(atom) ?? atom
 
 export const attachQueryLifetime = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): QueryLifetime => {
   const existing = queryLifetimeOf(atom)
@@ -38,11 +43,12 @@ export const attachQueryLifetime = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResul
  * pending invalidation and refresh the family atom.
  */
 export const observeQueryAtom = <A, E>(
-  family: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+  outer: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  family: Atom.Atom<AsyncResult.AsyncResult<A, E>> = outer
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
   const life = attachQueryLifetime(family)
-  return Atom.transform(
-    family,
+  const wrapped = Atom.transform(
+    outer,
     (get) => {
       life.observers++
       get.addFinalizer(() => {
@@ -52,10 +58,12 @@ export const observeQueryAtom = <A, E>(
         life.invalidated = false
         get.refresh(family)
       }
-      return get(family)
+      return get(outer)
     },
-    { initialValueTarget: family }
+    { initialValueTarget: outer }
   )
+  observedUnderlying.set(wrapped, family)
+  return wrapped
 }
 
 /**

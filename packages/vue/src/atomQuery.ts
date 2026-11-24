@@ -49,7 +49,7 @@ import {
   registerLiveQuery,
   releaseLiveQueryFetch
 } from "./liveQueryInvalidation.ts"
-import { atomsToRefetch, observeQueryAtom } from "./queryLifetime.ts"
+import { atomsToRefetch, observeQueryAtom, unwrapObservedQueryAtom } from "./queryLifetime.ts"
 
 /** All non-empty prefixes of a key, longest last. `[a,b,c]` -> `[[a],[a,b],[a,b,c]]`. */
 const prefixesOf = (key: ReadonlyArray<unknown>): ReadonlyArray<ReadonlyArray<unknown>> =>
@@ -415,9 +415,11 @@ export const withQueryOptions = <A, E>(
   opts: AtomQueryOptions = {},
   liveKey?: ReadonlyArray<unknown>
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
+  const base = unwrapObservedQueryAtom(self)
   setAtomQueryMetadata(self, opts)
+  if (base !== self) setAtomQueryMetadata(base, opts)
   const staleTime: Duration.Input = opts.staleTime ?? defaults.staleTime
-  let atom = self
+  let atom = base
   if (liveKey !== undefined) {
     atom = withMountLifetime<A, E>((get) => {
       get.addFinalizer(registerQueryInvalidationMode(liveKey, opts.invalidation ?? "await"))
@@ -435,10 +437,10 @@ export const withQueryOptions = <A, E>(
     revalidateOnFocus,
     focusSignal: revalidateOnFocus ? focusOrReconnectSignal : undefined
   })(atom)
-  atom = recoverStuckWaitingOnMount(self)(atom)
+  atom = recoverStuckWaitingOnMount(base)(atom)
   if (opts.refetchInterval) atom = Atom.withRefresh(Duration.millis(opts.refetchInterval))(atom)
   if (opts.structuralSharing ?? true) atom = structuralShare(atom)
-  return atom
+  return base !== self ? observeQueryAtom(atom, base) : atom
 }
 
 /** Constant atom for disabled / `mode:"optional"`-None queries: stays Initial, never fetches. */

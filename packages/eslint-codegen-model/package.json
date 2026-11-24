@@ -15,8 +15,8 @@
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && pnpm check",
-    "check": "tsgo --build",
-    "build": "tsgo",
+    "check": "tsrs --build",
+    "build": "tsrs",
     "codegen": "pnpm build && node ./dist/cli.js",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
@@ -41,7 +41,7 @@
   "devDependencies": {
     "@types/js-yaml": "4.0.9",
     "madge": "8.0.0",
-    "oxlint": "1.67.0",
+    "oxlint": "1.94.0",
     "typescript": "~6.0.3",
     "effect-app": "workspace:*"
   },

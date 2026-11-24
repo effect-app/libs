@@ -1,4 +1,4 @@
-import type { OperationInput, PatchRequestBody } from "@azure/cosmos"
+import { type OperationInput, PartitionKeyDefinitionVersion, type PatchRequestBody } from "@azure/cosmos"
 import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -122,9 +122,15 @@ const isSuccessfulStatus = (statusCode: number | undefined): boolean =>
   statusCode !== undefined && statusCode >= 200 && statusCode < 300
 
 const isCosmosStatus = (u: unknown, code: number): boolean =>
-  Cause.isUnknownError(u)
+  Cause.isUnknownError(u) || u instanceof PersistenceError
     ? isCosmosStatus(u.cause, code)
     : typeof u === "object" && u !== null && "code" in u && u.code === code
+
+const tryCosmos = <A>(evaluate: () => Promise<A>) =>
+  Effect.tryPromise({
+    try: evaluate,
+    catch: (cause) => new PersistenceError({ cause })
+  })
 
 const isConflict = (u: unknown) => isCosmosStatus(u, 409)
 const isNotFound = (u: unknown) => isCosmosStatus(u, 404)
@@ -350,13 +356,12 @@ const createContainer = (prefix: string, throughput?: CosmosContainerThroughput)
   Effect.fnUntraced(function*() {
     const { db } = yield* CosmosClient
     const containerId = `${prefix}cluster`
-    yield* Effect
-      .tryPromise(() =>
-        createContainerIfNotExists(db, {
-          id: containerId,
-          partitionKey: { paths: ["/_partitionKey"], version: 2 }
-        }, throughput)
-      )
+    yield* tryCosmos(() =>
+      createContainerIfNotExists(db, {
+        id: containerId,
+        partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
+      }, throughput)
+    )
       .pipe(Effect.catchIf(isConflict, () => Effect.void))
     return db.container(containerId)
   })
@@ -369,23 +374,21 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
     annotateDb({ operation, system: "cosmosdb", collection: containerId, entity: "cluster-message-storage" })
 
   const readMessage = (id: string, partitionKey: string) =>
-    Effect.tryPromise(() => container.item(id, partitionKey).read<MessageDoc>()).pipe(
+    tryCosmos(() => container.item(id, partitionKey).read<MessageDoc>()).pipe(
       Effect.tap(annotateItem),
       Effect.map((resp) => Option.fromNullishOr(resp.resource)),
       Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
     )
 
   const queryMessages = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
-    Effect
-      .tryPromise(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
+    tryCosmos(() => container.items.query<MessageDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
       .pipe(
         Effect.tap(annotateFeed),
         Effect.map((resp) => resp.resources)
       )
 
   const queryReplies = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
-    Effect
-      .tryPromise(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
+    tryCosmos(() => container.items.query<ReplyDoc>({ query, parameters: Array.from(parameters) }).fetchAll())
       .pipe(
         Effect.tap(annotateFeed),
         Effect.map((resp) => resp.resources)
@@ -400,12 +403,11 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
         )
 
   const markReplyAcked = (requestId: string, replyId: string) =>
-    Effect
-      .tryPromise(() =>
-        container.item(cosmosId(replyId), replyPartition(requestId)).patch<ReplyDoc>([
-          { op: "set", path: "/acked", value: true }
-        ])
-      )
+    tryCosmos(() =>
+      container.item(cosmosId(replyId), replyPartition(requestId)).patch<ReplyDoc>([
+        { op: "set", path: "/acked", value: true }
+      ])
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.asVoid,
@@ -414,13 +416,12 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
       )
 
   const claimMessageRead = (doc: MessageDoc, now: number) =>
-    Effect
-      .tryPromise(() =>
-        container.item(doc.id, doc._partitionKey).patch<MessageDoc>(
-          [{ op: "set", path: "/lastRead", value: now }],
-          { accessCondition: { type: "IfMatch", condition: doc._etag ?? "" } }
-        )
+    tryCosmos(() =>
+      container.item(doc.id, doc._partitionKey).patch<MessageDoc>(
+        [{ op: "set", path: "/lastRead", value: now }],
+        { accessCondition: { type: "IfMatch", condition: doc._etag ?? "" } }
       )
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.as(true),
@@ -439,8 +440,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
           Arr.chunksOf(partitionDocs, maxCosmosBatchOperations),
           (chunk) => {
             const operations: Array<OperationInput> = chunk.map(operation)
-            return Effect
-              .tryPromise(() => container.items.batch(operations, partitionKey))
+            return tryCosmos(() => container.items.batch(operations, partitionKey))
               .pipe(
                 Effect.tap(annotateItem),
                 Effect.flatMap((resp) => {
@@ -459,7 +459,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
     doc: A,
     resourceBody: PatchRequestBody
   ): Effect.Effect<void, unknown, never> =>
-    Effect.tryPromise(() => container.item(doc.id, doc._partitionKey).patch(resourceBody)).pipe(
+    tryCosmos(() => container.item(doc.id, doc._partitionKey).patch(resourceBody)).pipe(
       Effect.tap(annotateItem),
       Effect.asVoid,
       Effect.catchIf(isNotFound, () => Effect.void)
@@ -482,7 +482,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
   const deleteDoc = <A extends { readonly id: string; readonly _partitionKey: string }>(
     doc: A
   ): Effect.Effect<void, unknown, never> =>
-    Effect.tryPromise(() => container.item(doc.id, doc._partitionKey).delete()).pipe(
+    tryCosmos(() => container.item(doc.id, doc._partitionKey).delete()).pipe(
       Effect.tap(annotateItem),
       Effect.asVoid,
       Effect.catchIf(isNotFound, () => Effect.void)
@@ -513,7 +513,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
             )
             yield* patchDocs(pendingAcks, () => [{ op: "set", path: "/processed", value: true }])
           }
-          return yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
+          return yield* tryCosmos(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),
             Effect.as<MessageStorage.SaveResult.Encoded>(SaveResultEncoded.Success()),
             Effect.catchIf(isConflict, () =>
@@ -541,7 +541,7 @@ export const makeMessageStorage = Effect.fnUntraced(function*(options?: StorageO
       Effect
         .gen(function*() {
           const doc = replyToDoc(reply)
-          yield* Effect.tryPromise(() => container.items.create(doc)).pipe(
+          yield* tryCosmos(() => container.items.create(doc)).pipe(
             Effect.tap(annotateItem),
             Effect.catchIf(isConflict, () => Effect.void)
           )
@@ -906,22 +906,20 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
     annotateDb({ operation, system: "cosmosdb", collection: containerId, entity: "cluster-runner-storage" })
 
   const queryRunners = (query: string, parameters: ReadonlyArray<CosmosParameter>) =>
-    Effect
-      .tryPromise(() =>
-        container
-          .items
-          .query<RunnerDoc>({ query, parameters: Array.from(parameters) }, { partitionKey: "runner" })
-          .fetchAll()
-      )
+    tryCosmos(() =>
+      container
+        .items
+        .query<RunnerDoc>({ query, parameters: Array.from(parameters) }, { partitionKey: "runner" })
+        .fetchAll()
+    )
       .pipe(Effect.tap(annotateFeed), Effect.map((resp) => resp.resources))
 
   const deleteRunner = (doc: RunnerDoc) =>
-    Effect
-      .tryPromise(() =>
-        container.item(doc.id, "runner").delete({
-          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-        })
-      )
+    tryCosmos(() =>
+      container.item(doc.id, "runner").delete({
+        accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+      })
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.asVoid,
@@ -930,7 +928,7 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       )
 
   const readRunner = (address: string) =>
-    Effect.tryPromise(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
+    tryCosmos(() => container.item(runnerDocId(address), "runner").read<RunnerDoc>()).pipe(
       Effect.tap(annotateItem),
       Effect.map((resp) => Option.fromNullishOr(resp.resource)),
       Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
@@ -941,40 +939,37 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
   // `machine_id` PK. A per-address string hash (the previous approach) could
   // collide mod 1024 across distinct runners, yielding duplicate Snowflake ids.
   // The counter doc is seeded at init below, so it always exists here.
-  const allocateMachineId = Effect
-    .tryPromise(() =>
-      container.item(machineIdCounterDocId, "runner").patch<MachineIdCounterDoc>([
-        { op: "incr", path: "/value", value: 1 }
-      ])
-    )
+  const allocateMachineId = tryCosmos(() =>
+    container.item(machineIdCounterDocId, "runner").patch<MachineIdCounterDoc>([
+      { op: "incr", path: "/value", value: 1 }
+    ])
+  )
     .pipe(Effect.tap(annotateItem), Effect.map((resp) => resp.resource!.value))
 
   // Seed the counter once (create-if-missing); a lost create race is fine.
-  yield* Effect
-    .tryPromise(() =>
-      container.items.create<MachineIdCounterDoc>({
-        id: machineIdCounterDocId,
-        _partitionKey: "runner",
-        type: "machine-id-counter",
-        value: 0
-      })
-    )
+  yield* tryCosmos(() =>
+    container.items.create<MachineIdCounterDoc>({
+      id: machineIdCounterDocId,
+      _partitionKey: "runner",
+      type: "machine-id-counter",
+      value: 0
+    })
+  )
     .pipe(Effect.catchIf(isConflict, () => Effect.void), Effect.orDie)
 
   const readLock = (shardId: string) =>
-    Effect.tryPromise(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
+    tryCosmos(() => container.item(lockDocId(shardId), "lock").read<LockDoc>()).pipe(
       Effect.tap(annotateItem),
       Effect.map((resp) => Option.fromNullishOr(resp.resource)),
       Effect.catchIf(isNotFound, () => Effect.succeed(Option.none()))
     )
 
   const writeLock = (doc: LockDoc) =>
-    Effect
-      .tryPromise(() =>
-        container.item(doc.id, "lock").replace(doc, {
-          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-        })
-      )
+    tryCosmos(() =>
+      container.item(doc.id, "lock").replace(doc, {
+        accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+      })
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.as(true),
@@ -982,12 +977,11 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       )
 
   const deleteLock = (doc: LockDoc) =>
-    Effect
-      .tryPromise(() =>
-        container.item(doc.id, "lock").delete({
-          accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-        })
-      )
+    tryCosmos(() =>
+      container.item(doc.id, "lock").delete({
+        accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+      })
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.asVoid,
@@ -996,17 +990,16 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       )
 
   const createLock = (address: string, shardId: string, now: number) =>
-    Effect
-      .tryPromise(() =>
-        container.items.create<LockDoc>({
-          id: lockDocId(shardId),
-          _partitionKey: "lock",
-          type: "lock",
-          shardId,
-          address,
-          acquiredAt: now
-        })
-      )
+    tryCosmos(() =>
+      container.items.create<LockDoc>({
+        id: lockDocId(shardId),
+        _partitionKey: "lock",
+        type: "lock",
+        shardId,
+        address,
+        acquiredAt: now
+      })
+    )
       .pipe(
         Effect.tap(annotateItem),
         Effect.as(true),
@@ -1055,19 +1048,18 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
           const machineId = Option.isSome(existing) && existing.value.machineId !== undefined
             ? existing.value.machineId
             : yield* allocateMachineId
-          yield* Effect
-            .tryPromise(() =>
-              container.items.upsert<RunnerDoc>({
-                id: runnerDocId(address),
-                _partitionKey: "runner",
-                type: "runner",
-                address,
-                runner,
-                healthy,
-                lastHeartbeat: now,
-                machineId
-              })
-            )
+          yield* tryCosmos(() =>
+            container.items.upsert<RunnerDoc>({
+              id: runnerDocId(address),
+              _partitionKey: "runner",
+              type: "runner",
+              address,
+              runner,
+              healthy,
+              lastHeartbeat: now,
+              machineId
+            })
+          )
             .pipe(Effect.tap(annotateItem))
           return machineId
         })
@@ -1091,12 +1083,11 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       ),
 
     setRunnerHealth: (address, healthy) =>
-      Effect
-        .tryPromise(() =>
-          container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
-            { op: "set", path: "/healthy", value: healthy }
-          ])
-        )
+      tryCosmos(() =>
+        container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
+          { op: "set", path: "/healthy", value: healthy }
+        ])
+      )
         .pipe(
           Effect.tap(annotateItem),
           Effect.asVoid,
@@ -1119,12 +1110,11 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       Effect
         .gen(function*() {
           const now = Date.now()
-          yield* Effect
-            .tryPromise(() =>
-              container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
-                { op: "set", path: "/lastHeartbeat", value: now }
-              ])
-            )
+          yield* tryCosmos(() =>
+            container.item(runnerDocId(address), "runner").patch<RunnerDoc>([
+              { op: "set", path: "/lastHeartbeat", value: now }
+            ])
+          )
             .pipe(
               Effect.tap(annotateItem),
               Effect.asVoid,
@@ -1164,16 +1154,15 @@ export const makeRunnerStorage = Effect.fnUntraced(function*(options?: StorageOp
       ),
 
     releaseAll: (address) =>
-      Effect
-        .tryPromise(() =>
-          container
-            .items
-            .query<LockDoc>({
-              query: "SELECT * FROM c WHERE c.type = 'lock' AND c.address = @address",
-              parameters: [{ name: "@address", value: address }]
-            }, { partitionKey: "lock" })
-            .fetchAll()
-        )
+      tryCosmos(() =>
+        container
+          .items
+          .query<LockDoc>({
+            query: "SELECT * FROM c WHERE c.type = 'lock' AND c.address = @address",
+            parameters: [{ name: "@address", value: address }]
+          }, { partitionKey: "lock" })
+          .fetchAll()
+      )
         .pipe(
           Effect.tap(annotateFeed),
           Effect.flatMap((resp) => Effect.forEach(resp.resources, deleteLock, { discard: true })),

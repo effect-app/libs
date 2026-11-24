@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import * as Effect from "effect-app/Effect"
+import * as Data from "effect/Data"
 import type { Abortable } from "events"
 import type { Mode, ObjectEncodingOptions, OpenMode } from "fs"
 import fs from "fs/promises"
@@ -8,8 +9,16 @@ import path from "path"
 import lockfile from "proper-lockfile"
 import type internal from "stream"
 
+export class FileUtilError extends Data.TaggedError("FileUtilError")<{ readonly cause: unknown }> {}
+
+const tryFs = <A>(evaluate: () => Promise<A>) =>
+  Effect.tryPromise({
+    try: evaluate,
+    catch: (cause) => new FileUtilError({ cause })
+  })
+
 export function readFile(fileName: string) {
-  return Effect.tryPromise(() => fs.readFile(fileName))
+  return tryFs(() => fs.readFile(fileName))
 }
 
 export function createReadableStream(fileName: string) {
@@ -17,7 +26,7 @@ export function createReadableStream(fileName: string) {
 }
 
 export function openFile(fileName: string) {
-  return Effect.acquireRelease(Effect.tryPromise(() => fs.open(fileName)), (f) => Effect.promise(() => f.close()))
+  return Effect.acquireRelease(tryFs(() => fs.open(fileName)), (f) => Effect.promise(() => f.close()))
 }
 
 export function tempFile(
@@ -53,8 +62,7 @@ export function tempFile_(
       Effect.acquireRelease(
         Effect
           .map(
-            Effect
-              .tryPromise(() => fs.writeFile(fp, data, options)),
+            tryFs(() => fs.writeFile(fp, data, options)),
             (_) => fp
           ),
         (p) => Effect.promise(() => fs.unlink(p))
@@ -67,22 +75,18 @@ export function tempFile_(
  */
 export function writeTextFile(fileName: string, content: string) {
   const tmp = fileName + ".tmp"
-  return Effect
-    .andThen(
-      Effect
-        .tryPromise(() => fs.writeFile(tmp, content, "utf-8")),
-      Effect.tryPromise(() => fs.rename(tmp, fileName))
-    )
-    .pipe(Effect.orDie)
+  return Effect.andThen(
+    Effect.promise(() => fs.writeFile(tmp, content, "utf-8")),
+    Effect.promise(() => fs.rename(tmp, fileName))
+  )
 }
 
 export function fileExists(fileName: string) {
-  return Effect.orDie(Effect
-    .tryPromise(() => fs.stat(fileName).then((_) => _.isFile())))
+  return Effect.promise(() => fs.stat(fileName).then((_) => _.isFile()))
 }
 
 export function readTextFile(fileName: string) {
-  return Effect.tryPromise(() => fs.readFile(fileName, "utf-8"))
+  return tryFs(() => fs.readFile(fileName, "utf-8"))
 }
 
 /**
@@ -101,27 +105,23 @@ export function withFileLock<A, E, R>(
   return Effect
     .gen(function*() {
       // get lock
-      const release = yield* Effect
-        .tryPromise(() =>
-          lockfile.lock(filePath, {
-            retries: {
-              retries: 100, // retry up to 100 times
-              minTimeout: 50, // start with 50ms delay
-              maxTimeout: 2000, // max 2s delay between retries
-              randomize: true // add randomness to avoid thundering herd
-            },
-            stale: 10000, // lock is stale after 10s (process crashed)
-            realpath: false // don't resolve symlinks
-          })
-        )
-        .pipe(Effect.orDie)
+      const release = yield* Effect.promise(() =>
+        lockfile.lock(filePath, {
+          retries: {
+            retries: 100, // retry up to 100 times
+            minTimeout: 50, // start with 50ms delay
+            maxTimeout: 2000, // max 2s delay between retries
+            randomize: true // add randomness to avoid thundering herd
+          },
+          stale: 10000, // lock is stale after 10s (process crashed)
+          realpath: false // don't resolve symlinks
+        })
+      )
 
       // ensure lock is released
       yield* Effect.addFinalizer(() =>
-        Effect
-          // we have to make sure we use a thunk, or the library will cause problems because effect passes abortsignal as first argument
-          .tryPromise(() => release())
-          .pipe(Effect.orDie)
+        // we have to make sure we use a thunk, or the library will cause problems because effect passes abortsignal as first argument
+        Effect.promise(() => release())
       )
 
       return yield* action

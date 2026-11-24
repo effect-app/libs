@@ -242,22 +242,21 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   const replaceExec = (doc: ExecDoc) =>
     Effect
       .gen(function*() {
-        const resp = yield* Effect.tryPromise(() =>
-          container.item(execId, doc._partitionKey).replace<ExecDoc>(doc, {
-            accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
-          })
-        )
+        const resp = yield* Effect.tryPromise({
+          try: () =>
+            container.item(execId, doc._partitionKey).replace<ExecDoc>(doc, {
+              accessCondition: { type: "IfMatch", condition: doc._etag ?? "" }
+            }),
+          catch: (cause) =>
+            isOptimisticError(cause)
+              ? new OptimisticConcurrencyException({ type: "workflow.exec", id: doc._partitionKey, code: 412 })
+              : new Cause.UnknownError(cause)
+        })
         yield* annotateCosmosResponse({ requestCharge: resp.requestCharge, statusCode: resp.statusCode })
         return { ...doc, _etag: resp.etag }
       })
       .pipe(
-        Effect.catch((u) =>
-          isOptimisticError(u)
-            ? Effect.fail(
-              new OptimisticConcurrencyException({ type: "workflow.exec", id: doc._partitionKey, code: 412 })
-            )
-            : Effect.die(u)
-        ),
+        Effect.catchIf(Cause.isUnknownError, Effect.die),
         annotate("replaceExec", doc._partitionKey)
       )
 

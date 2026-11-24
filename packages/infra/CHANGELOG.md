@@ -1,5 +1,24 @@
 # @effect-app/infra
 
+## 4.2.0
+
+### Minor Changes
+
+- 17ec58d: Drop `fast-check` (and `pure-rand` from `@effect-app/infra`). Schema generation uses Effect's native `effect/Arbitrary`.
+
+  Removed legacy `fast-check` exports:
+
+  - `effect-app/Schema/FastCheck` and `Schema.Arbitrary`
+  - `fakerArb` and `fakerToArb` from `effect-app/faker` (`setFaker` and `getFaker` remain)
+  - `generate` and `generateFromArbitrary` from `@effect-app/infra/arbs` / `@effect-app/infra/test` (`generateFromSchema` remains)
+
+### Patch Changes
+
+- 85fc987: Remove eager `@faker-js/faker` import and module-load `setFaker(faker)` side effect from `@effect-app/infra/arbs` (dropping `@faker-js/faker` from `@effect-app/infra` runtime dependencies), and deprecate `setFaker` / `getFaker` in `effect-app/faker`.
+- Updated dependencies [17ec58d]
+- Updated dependencies [85fc987]
+  - effect-app@4.2.0
+
 ## 4.1.2
 
 ### Patch Changes

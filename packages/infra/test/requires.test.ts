@@ -72,6 +72,7 @@ const testSuite = (_mw: typeof middleware3) =>
           payload: { _tag: "Test" },
           clientId: 0,
           requestId: "test-id" as any,
+          remoteParentSpan: undefined,
           rpc: { ...TestRpc, annotations: Context.make(_mw.requestContext, {}) }
         }
         const next = Effect.void as unknown as Effect.Effect<SuccessValue, unhandled, never>

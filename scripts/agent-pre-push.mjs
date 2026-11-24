@@ -10,8 +10,8 @@
  *
  * Ship gate — the JS quality path CI runs, and nothing else:
  *   1. `pnpm check`        — tsrs --build ./tsconfig.all.json
- *   2. `pnpm format:check` — oxfmt --check .
- *   3. `pnpm lint`
+ *   2. `pnpm lint`
+ *   3. `pnpm format:check` — oxfmt --check .
  *   4. `pnpm test`         — pnpm -r --no-bail test:run
  *
  * This is a library monorepo: there is no application to stand up and no browser
@@ -114,8 +114,8 @@ export const runAgentShipGate = async (opts = {}) => {
   }
 
   run("pnpm check", ["pnpm", "check"], { cwd: root, env })
-  run("pnpm format:check", ["pnpm", "format:check"], { cwd: root, env })
   run("pnpm lint", ["pnpm", "lint"], { cwd: root, env })
+  run("pnpm format:check", ["pnpm", "format:check"], { cwd: root, env })
   run("pnpm test", ["pnpm", "test"], { cwd: root, env })
 
   if (!isWorktreeClean(root)) {

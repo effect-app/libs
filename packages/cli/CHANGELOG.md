@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.4
+
+### Patch Changes
+
+- 64ffded: Upgrade `effect` and `@effect/*` packages to `4.1.5`.
+
 ## 2.1.3
 
 ### Patch Changes

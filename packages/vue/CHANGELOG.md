@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.1.1
+
+### Patch Changes
+
+- 64ffded: Upgrade `effect` and `@effect/*` packages to `4.1.5`.
+- f6b8a12: Place `observeQueryAtom` at the outer edge of `withQueryOptions` so unmounting a query decrements observer count on the first teardown tick instead of cascading through `Atom.swr` and `recoverStuckWaitingOnMount` macrotasks.
+- Updated dependencies [64ffded]
+  - effect-app@4.1.1
+
 ## 4.1.0
 
 ### Patch Changes

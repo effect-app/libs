@@ -3,11 +3,9 @@ import * as EffectSchemaParser from "effect/SchemaParser"
 import { type Simplify } from "effect/Struct"
 import type * as Tracer from "effect/Tracer"
 import type { RequiredKeys } from "effect/Types"
-import type { Arbitrary as FastCheckArbitrary } from "fast-check"
 import type { NonEmptyReadonlyArray } from "./Array.ts"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.ts"
 import { withDefaultMake, withDefaultParseOptions } from "./Schema/ext.ts"
-import type { FC } from "./Schema/FastCheck.ts"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.ts"
 import { type AST } from "./Schema/schema.ts"
 import * as SchemaAST from "./SchemaAST.ts"
@@ -151,9 +149,6 @@ export * from "./Schema/strings.ts"
 export { NonEmptyString } from "./Schema/strings.ts"
 
 export * as SchemaIssue from "effect/SchemaIssue"
-
-/** Fast-check generator factory previously exported as `Schema.Arbitrary`. */
-export type Arbitrary<T> = (fc: FC) => FastCheckArbitrary<T>
 
 export const decodeEffectConcurrently: typeof S.decodeEffect = withDefaultParseOptions(S.decodeEffect)
 export const decodeUnknownEffectConcurrently: typeof S.decodeUnknownEffect = withDefaultParseOptions(

@@ -54,7 +54,6 @@ minimumReleaseAgeExclude:
   - oxfmt@0.80.0
 overrides:
   date-fns: ^4.4.0
-  fast-check: ^4.9.0
   vue: ^3.5.35
 patchedDependencies:
   ts-plugin-sort-import-suggestions: patches/ts-plugin-sort-import-suggestions.patch

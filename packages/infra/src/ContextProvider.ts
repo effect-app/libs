@@ -23,7 +23,10 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // the various type parameters, not anymore because of () => Generator<YieldWrap<Effect.Effect craziness
   // existential types may help, and all the following usages of infer _ have that meaning: I do not care which is the
   // actual type in that position, I just wanna set the overall structure
-  [K in keyof TDeps]: TDeps[K] extends ContextTagWithDefault.Base< //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope? // E = never => the context provided cannot trigger errors //
+  // _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
+  // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope?
+  // E = never => the context provided cannot trigger errors
+  [K in keyof TDeps]: TDeps[K] extends ContextTagWithDefault.Base<
     Effect.Effect<Context.Context<infer _1>, never, infer _R>
   > // & { _tag: infer _2 }>
     ? [_R] extends [HttpRouter.Provided]

@@ -16,7 +16,7 @@ import { ExportComplete, OperationProgress, Something } from "./stubs.js"
 // ---------------------------------------------------------------------------
 
 it.live("asStreamResult returns void and updates ref with each element", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const events: number[] = [1, 2, 3]
     const [ref, execute] = asStreamResult(() => Stream.fromIterable(events))
 
@@ -28,7 +28,8 @@ it.live("asStreamResult returns void and updates ref with each element", () =>
       expect(ref.value.value).toBe(3)
       expect(ref.value.waiting).toBe(false)
     }
-  }))
+  })
+)
 
 it("stream request without final: .final is undefined", () => {
   const req = Something.StreamWithoutFinal
@@ -48,7 +49,7 @@ it("stream request with final: .final holds the ExportComplete schema", () => {
 // ---------------------------------------------------------------------------
 
 it.live("last stream value is accessible via reactive ref after stream ends", () =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const progress = new OperationProgress({ completed: 1 as S.NonNegativeInt, total: 2 as S.NonNegativeInt })
     const complete = new ExportComplete({ fileUrl: "https://example.com/file.csv" as S.NonEmptyString })
 
@@ -61,4 +62,5 @@ it.live("last stream value is accessible via reactive ref after stream ends", ()
       expect(ref.value.value).toBe(complete)
       expect(ref.value.waiting).toBe(false)
     }
-  }))
+  })
+)

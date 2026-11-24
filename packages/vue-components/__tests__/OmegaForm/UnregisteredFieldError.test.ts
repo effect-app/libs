@@ -81,7 +81,7 @@ describe("eHoc unregistered-field error path (errorMap.onDynamic)", () => {
     expect(onDynamic, "errorMap.onDynamic should be populated after a failed submit").toBeTruthy()
 
     const allIssues = Object.values(onDynamic ?? {}).flat()
-    const bIssue = allIssues.find((iss) => Array.isArray(iss?.path) && iss!.path!.join(".") === "b")
+    const bIssue = allIssues.find((iss) => Array.isArray(iss?.path) && iss.path.join(".") === "b")
     expect(bIssue, "errorMap.onDynamic should include an issue for unregistered field b").toBeTruthy()
 
     // 2. Integration check: eHoc must read onDynamic and surface `b` in
@@ -89,6 +89,6 @@ describe("eHoc unregistered-field error path (errorMap.onDynamic)", () => {
     const errorDiv = wrapper.find(".mock-omega-errors")
     expect(errorDiv.exists()).toBe(true)
     const rendered = errorDiv.text()
-    expect(rendered).toContain("\"inputId\":\"b\"")
+    expect(rendered).toContain('"inputId":"b"')
   })
 })

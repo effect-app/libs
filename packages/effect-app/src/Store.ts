@@ -93,16 +93,16 @@ export type Where =
   | { key: string; t?: "eq" | "not-eq"; value: SupportedValues }
   | { key: string; t: "gt" | "lt" | "gte" | "lte"; value: SupportedValues2 }
   | {
-    key: string
-    t: "contains" | "starts-with" | "ends-with" | "not-contains" | "not-starts-with" | "not-ends-with"
-    value: string
-  }
+      key: string
+      t: "contains" | "starts-with" | "ends-with" | "not-contains" | "not-starts-with" | "not-ends-with"
+      value: string
+    }
   | { key: string; t: "includes" | "not-includes"; value: string }
   | {
-    key: string
-    t: "in" | "not-in"
-    value: readonly (SupportedValues)[]
-  }
+      key: string
+      t: "in" | "not-in"
+      value: readonly SupportedValues[]
+    }
 
 export type Filter = readonly FilterResult[]
 
@@ -116,17 +116,21 @@ export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded
   filter?: Filter | undefined
   select?:
     | NonEmptyReadonlyArray<
-      U | { key: string; subKeys: readonly string[] } | {
-        key: string
-        computed: ComputedProjectionIrExpression
-      } | {
-        key: string
-        path: string
-      } | {
-        key: string
-        aggregate: AggregateIrExpression
-      }
-    >
+        | U
+        | { key: string; subKeys: readonly string[] }
+        | {
+            key: string
+            computed: ComputedProjectionIrExpression
+          }
+        | {
+            key: string
+            path: string
+          }
+        | {
+            key: string
+            aggregate: AggregateIrExpression
+          }
+      >
     | undefined
   order?: NonEmptyReadonlyArray<O<NoInfer<Encoded>>>
   limit?: number | undefined
@@ -171,15 +175,17 @@ export interface Store<
   seedNamespace: (namespace: string) => Effect.Effect<void, DatabaseError>
 }
 
-export class StoreMaker extends Context.Opaque<StoreMaker, {
-  make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
-    name: string,
-    idKey: IdKey,
-    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-    config?: StoreConfig<Encoded>
-  ) => Effect.Effect<Store<IdKey, Encoded>, E, R>
-}>()("effect-app/StoreMaker") {
-}
+export class StoreMaker extends Context.Opaque<
+  StoreMaker,
+  {
+    make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+      name: string,
+      idKey: IdKey,
+      seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+      config?: StoreConfig<Encoded>
+    ) => Effect.Effect<Store<IdKey, Encoded>, E, R>
+  }
+>()("effect-app/StoreMaker") {}
 
 export const makeContextMap = () => {
   const etags = new Map<string, string>()
@@ -259,13 +265,17 @@ export const makeContextMap = () => {
       return value
     },
     getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
-      sem.withPermits(1)(Effect.uninterruptible(Effect.gen(function*() {
-        const value = store.get(key) as T | undefined
-        if (value !== undefined) return value
-        const v = yield* make
-        store.set(key, v)
-        return v
-      }))),
+      sem.withPermits(1)(
+        Effect.uninterruptible(
+          Effect.gen(function* () {
+            const value = store.get(key) as T | undefined
+            if (value !== undefined) return value
+            const v = yield* make
+            store.set(key, v)
+            return v
+          })
+        )
+      ),
     clear: () => {
       etags.clear()
       store.clear()
@@ -278,8 +288,7 @@ const makeMap = Effect.acquireRelease(
   (m) => Effect.sync(() => m.clear())
 )
 
-export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
-}
+export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {}
 
 export const ContextMapContainer = RequestScopedDependencies.make(
   "ContextMapContainer",
@@ -301,9 +310,7 @@ export const cachedPerRequest = <A, E, R>(
   make: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E | ContextMapNotStartedError, R> => {
   const cacheKey = Symbol()
-  return getContextMap.pipe(
-    Effect.flatMap((ctxMap) => ctxMap.getOrCreateStoreEffect(cacheKey, make))
-  )
+  return getContextMap.pipe(Effect.flatMap((ctxMap) => ctxMap.getOrCreateStoreEffect(cacheKey, make)))
 }
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")

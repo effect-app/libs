@@ -11,10 +11,13 @@ function bySpecifier(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-type PresetFn<T = Record<string, unknown>> = (args: {
-  meta: { filename: string; existingContent: string }
-  options: T
-}, context?: unknown) => string
+type PresetFn<T = Record<string, unknown>> = (
+  args: {
+    meta: { filename: string; existingContent: string }
+    options: T
+  },
+  context?: unknown
+) => string
 
 function last<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1]
@@ -75,10 +78,7 @@ export const barrel: PresetFn<{
   include?: string
   exclude?: string | string[]
   import?: "default" | "star"
-  export?:
-    | string
-    | { name: string; keys: "path" | "camelCase" }
-    | { as: "PascalCase"; postfix?: string }
+  export?: string | { name: string; keys: "path" | "camelCase" } | { as: "PascalCase"; postfix?: string }
   nodir?: boolean
   modulegen?: boolean
   importExtension?: string
@@ -94,11 +94,7 @@ export const barrel: PresetFn<{
   const relativeFiles = globSync(pattern, { cwd, nodir, ...(opts.exclude ? { ignore: opts.exclude } : {}) })
     .filter((f) => path.resolve(cwd, f) !== path.resolve(meta.filename))
     .map((f) => `./${f}`.replace(/(\.\/)+\./g, "."))
-    .filter((file) =>
-      nodir
-        ? [".js", ".mjs", ".ts", ".tsx"].includes(path.extname(file))
-        : true
-    )
+    .filter((file) => (nodir ? [".js", ".mjs", ".ts", ".tsx"].includes(path.extname(file)) : true))
     .map((f) => {
       const isDir = f.endsWith("/")
       const cleaned = f.replace(/\.\w+$/, "").replace(/\/$/, "")
@@ -114,12 +110,7 @@ export const barrel: PresetFn<{
 
   if (opts.import === undefined) {
     const exportOpt = opts.export
-    if (
-      typeof exportOpt === "object"
-      && exportOpt !== null
-      && "as" in exportOpt
-      && exportOpt.as === "PascalCase"
-    ) {
+    if (typeof exportOpt === "object" && exportOpt !== null && "as" in exportOpt && exportOpt.as === "PascalCase") {
       expectedContent = relativeFiles
         .map(
           (f) =>
@@ -140,17 +131,12 @@ export const barrel: PresetFn<{
         .replace(/([\^/])Index$/, "$1")
     }))
 
-    const grouped = rawIdentifiers.reduce<Record<string, Array<{ file: string; identifier: string }>>>(
-      (acc, info) => {
-        ;(acc[info.identifier] ??= []).push(info)
-        return acc
-      },
-      {}
-    )
+    const grouped = rawIdentifiers.reduce<Record<string, Array<{ file: string; identifier: string }>>>((acc, info) => {
+      ;(acc[info.identifier] ??= []).push(info)
+      return acc
+    }, {})
     const withIdentifiers = Object.values(grouped).flatMap((group) =>
-      group.length === 1
-        ? group
-        : group.map((info, i) => ({ ...info, identifier: `${info.identifier}_${i + 1}` }))
+      group.length === 1 ? group : group.map((info, i) => ({ ...info, identifier: `${info.identifier}_${i + 1}` }))
     )
 
     const imports = withIdentifiers
@@ -160,12 +146,12 @@ export const barrel: PresetFn<{
     const exportOpt = opts.export
     const exportProps = modulegen
       ? []
-      : typeof exportOpt === "object"
-          && exportOpt !== null
-          && "keys" in exportOpt
-          && (exportOpt as { name: string; keys: "path" | "camelCase" }).keys === "path"
-      ? withIdentifiers.map((i) => `${JSON.stringify(i.file)}: ${i.identifier}`)
-      : withIdentifiers.map((i) => i.identifier)
+      : typeof exportOpt === "object" &&
+          exportOpt !== null &&
+          "keys" in exportOpt &&
+          (exportOpt as { name: string; keys: "path" | "camelCase" }).keys === "path"
+        ? withIdentifiers.map((i) => `${JSON.stringify(i.file)}: ${i.identifier}`)
+        : withIdentifiers.map((i) => i.identifier)
 
     let exportPrefix: string
     if (exportOpt === undefined) {
@@ -208,8 +194,8 @@ export const ${up}: ${up} = ${i.identifier}`
   // Slow path: AST-based comparison (handles /index equivalence etc.)
   try {
     if (
-      normaliseModuleForBarrel(expectedContent, meta.filename)
-        === normaliseModuleForBarrel(meta.existingContent, meta.filename)
+      normaliseModuleForBarrel(expectedContent, meta.filename) ===
+      normaliseModuleForBarrel(meta.existingContent, meta.filename)
     ) {
       return meta.existingContent
     }

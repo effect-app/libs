@@ -6,9 +6,7 @@
       <form.Input name="height" />
       <form.Input name="width" />
       <form.Input name="z" />
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <v-btn type="submit"> submit </v-btn>
       <form.Errors />
     </template>
   </form.Form>

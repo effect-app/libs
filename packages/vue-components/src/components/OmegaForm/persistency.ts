@@ -103,19 +103,14 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
 
     if (
       // query string has higher priority than local/session storage
-      persistency?.policies
-      && !persistencyDefaultValues
-      && (includesPolicy(persistency.policies, "local")
-        || includesPolicy(persistency.policies, "session"))
+      persistency?.policies &&
+      !persistencyDefaultValues &&
+      (includesPolicy(persistency.policies, "local") || includesPolicy(persistency.policies, "session"))
     ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
+      const storage = includesPolicy(persistency.policies, "local") ? localStorage : sessionStorage
       if (storage) {
         try {
-          const value = JSON.parse(
-            storage.getItem(persistencyKey.value) || "{}"
-          )
+          const value = JSON.parse(storage.getItem(persistencyKey.value) || "{}")
           storage.removeItem(persistencyKey.value)
           persistencyDefaultValues = value
         } catch (error) {
@@ -145,30 +140,32 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
       schema: schemaDefaultValues()
     }
 
-    return [...(opts.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const)].reverse().reduce(
-      (acc: any, m: DefaultValuesPriorityUnion) => {
+    return [...(opts.defaultValuesPriority || (["tanstack", "persistency", "schema"] as const))]
+      .reverse()
+      .reduce((acc: any, m: DefaultValuesPriorityUnion) => {
         if (!Object.keys(acc).length) {
           return defaults[m]
         }
         return deepMerge(acc, defaults[m])
-      },
-      {}
-    )
+      }, {})
   })
 
   const createNestedObjectFromPaths = (paths: string[]) =>
-    paths.reduce((result, path) => {
-      const parts = path.split(".")
-      parts.reduce((acc, part, i) => {
-        if (i === parts.length - 1) {
-          acc[part] = getForm().getFieldValue(path as any)
-        } else {
-          acc[part] = acc[part] ?? {}
-        }
-        return acc[part]
-      }, result)
-      return result
-    }, {} as Record<string, any>)
+    paths.reduce(
+      (result, path) => {
+        const parts = path.split(".")
+        parts.reduce((acc, part, i) => {
+          if (i === parts.length - 1) {
+            acc[part] = getForm().getFieldValue(path as any)
+          } else {
+            acc[part] = acc[part] ?? {}
+          }
+          return acc[part]
+        }, result)
+        return result
+      },
+      {} as Record<string, any>
+    )
 
   const persistFilter = (p: PersistencyConfig | undefined) => {
     if (!p) return
@@ -187,13 +184,8 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
     if (!persistency?.policies || persistency.policies.length === 0) {
       return
     }
-    if (
-      includesPolicy(persistency.policies, "local")
-      || includesPolicy(persistency.policies, "session")
-    ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
+    if (includesPolicy(persistency.policies, "local") || includesPolicy(persistency.policies, "session")) {
+      const storage = includesPolicy(persistency.policies, "local") ? localStorage : sessionStorage
       if (!storage) return
       const values = persistFilter(persistency)
       return storage.setItem(persistencyKey.value, JSON.stringify(values))

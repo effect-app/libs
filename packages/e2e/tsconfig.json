@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "esnext",
-      "DOM"
-    ],
+    "lib": ["esnext", "DOM"],
     "moduleResolution": "Node16",
     "esModuleInterop": true,
     "noEmit": true,
@@ -14,15 +11,8 @@
     "incremental": false,
     "declarationMap": false,
     "rootDir": "../..",
-    "types": [
-      "node",
-      "vitest/globals"
-    ]
+    "types": ["node", "vitest/globals"]
   },
-  "include": [
-    "./test/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./test/**/*.ts"],
+  "exclude": ["node_modules"]
 }

@@ -30,11 +30,11 @@ export function getExportedModelNames(code: string): Array<string> {
     const braceIdx = rawWindow.indexOf("{")
     const extendsWindow = braceIdx === -1 ? rawWindow : rawWindow.slice(0, braceIdx)
     if (
-      baseClassWithEncodedRe.test(extendsWindow)
-      || (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow))
-      || opaqueFacadeRe.test(extendsWindow)
+      baseClassWithEncodedRe.test(extendsWindow) ||
+      (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow)) ||
+      opaqueFacadeRe.test(extendsWindow) ||
       // base mode: `export class X extends __X` (facade lives on the generated `__X`)
-      || new RegExp(`extends\\s+__${name}\\b`).test(extendsWindow)
+      new RegExp(`extends\\s+__${name}\\b`).test(extendsWindow)
     ) {
       add(name)
     }
@@ -125,9 +125,8 @@ export function model(
   resolver?: ModelTypeResolver
 ): string {
   try {
-    const targetContent = typeof context === "string" && context.length > 0
-      ? context
-      : fs.readFileSync(meta.filename).toString()
+    const targetContent =
+      typeof context === "string" && context.length > 0 ? context : fs.readFileSync(meta.filename).toString()
 
     const modelNames: Array<string> = []
     const seen = new Set<string>()
@@ -152,20 +151,21 @@ export function model(
       const facadeable = options.facade ? new Set(getFacadeableModelNames(targetContent)) : null
       const resolveNames = facadeable ? modelNames.filter((n) => facadeable.has(n)) : modelNames
       const standardNames = facadeable ? modelNames.filter((n) => !facadeable.has(n)) : []
-      const block = resolveNames.length > 0
-        ? resolver.generate(meta.filename, resolveNames, {
-          facade: options.facade ?? false,
-          make: options.facade || (options.make ?? false),
-          type: options.facade || options.type || options.make || false
-        })
-        : ""
+      const block =
+        resolveNames.length > 0
+          ? resolver.generate(meta.filename, resolveNames, {
+              facade: options.facade ?? false,
+              make: options.facade || (options.make ?? false),
+              type: options.facade || options.type || options.make || false
+            })
+          : ""
       if (block === null) {
         // Could not resolve (file outside program, etc.) — leave existing content.
         return meta.existingContent
       }
       const standardBlock = standardNames
-        .map((n) =>
-          `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
+        .map(
+          (n) => `export namespace ${n} {\n  export interface Encoded extends S.StructNestedEncoded<typeof ${n}> {}\n}`
         )
         .join("\n")
       expectedContent = ["//", [block, standardBlock].filter((s) => s.length > 0).join("\n"), "//"].join("\n")
@@ -184,11 +184,6 @@ export function model(
     }
     return expectedContent
   } catch (e) {
-    return (
-      "/** Got exception: "
-      + ("stack" in (e as any) ? (e as any).stack : "")
-      + JSON.stringify(e)
-      + "*/"
-    )
+    return "/** Got exception: " + ("stack" in (e as any) ? (e as any).stack : "") + JSON.stringify(e) + "*/"
   }
 }

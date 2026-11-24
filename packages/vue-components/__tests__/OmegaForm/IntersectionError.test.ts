@@ -56,12 +56,13 @@ describe("OmegaForm Intersection/Union", () => {
   })
 
   const createWrapper = () =>
-    mount({
-      components: {
-        OmegaIntlProvider,
-        CustomInput: mockComponents.CustomInput
-      },
-      template: `
+    mount(
+      {
+        components: {
+          OmegaIntlProvider,
+          CustomInput: mockComponents.CustomInput
+        },
+        template: `
       <OmegaIntlProvider>
         <component :is="form.Form" :subscribe="['values']">
           <template #default="{ subscribedValues: { values } }">
@@ -105,23 +106,25 @@ describe("OmegaForm Intersection/Union", () => {
         </component>
       </OmegaIntlProvider>
     `,
-      setup() {
-        let submittedValue: any = null
-        const form = useOmegaForm(MySchema, {
-          onSubmit: async ({ value }) => {
-            submittedValue = value
+        setup() {
+          let submittedValue: any = null
+          const form = useOmegaForm(MySchema, {
+            onSubmit: async ({ value }) => {
+              submittedValue = value
+            }
+          })
+          return { form, getSubmittedValue: () => submittedValue }
+        }
+      },
+      {
+        global: {
+          stubs: {
+            CustomInput: mockComponents.CustomInput,
+            OmegaErrorsInternal: mockComponents.OmegaErrors
           }
-        })
-        return { form, getSubmittedValue: () => submittedValue }
-      }
-    }, {
-      global: {
-        stubs: {
-          CustomInput: mockComponents.CustomInput,
-          OmegaErrorsInternal: mockComponents.OmegaErrors
         }
       }
-    })
+    )
 
   let wrapper: ReturnType<typeof createWrapper>
 

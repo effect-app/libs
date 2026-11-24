@@ -2,7 +2,20 @@
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
-import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocationAsRelativeTyped, type RouteLocationAsString, type RouteLocationNormalizedLoaded, type RouteLocationRaw, type RouteLocationResolved, type RouteMap, type RouteRecordNameGeneric, type RouteRecordRaw, useRoute, useRouter } from "vue-router"
+import {
+  type RouteLocationAsPath,
+  type RouteLocationAsRelative,
+  type RouteLocationAsRelativeTyped,
+  type RouteLocationAsString,
+  type RouteLocationNormalizedLoaded,
+  type RouteLocationRaw,
+  type RouteLocationResolved,
+  type RouteMap,
+  type RouteRecordNameGeneric,
+  type RouteRecordRaw,
+  useRoute,
+  useRouter
+} from "vue-router"
 
 /**
  * Effectified version of `useRouter`
@@ -23,7 +36,7 @@ export const useEffectRouter = () => {
         return (effectified as any)[prop as any]
       }
       // eslint-disable-next-line prefer-rest-params
-      return Reflect.get(...arguments as unknown as [any, any, any])
+      return Reflect.get(...(arguments as unknown as [any, any, any]))
     }
   })
   return proxy
@@ -39,10 +52,7 @@ export class Router extends Context.Service<Router, ReturnType<typeof useEffectR
      * @param parentName - Parent Route Record where `route` should be appended at
      * @param route - Route Record to add
      */
-    (
-      parentName: NonNullable<RouteRecordNameGeneric>,
-      route: RouteRecordRaw
-    ): Effect.Effect<void, never, Router>
+    (parentName: NonNullable<RouteRecordNameGeneric>, route: RouteRecordRaw): Effect.Effect<void, never, Router>
     /**
      * Add a new {@link RouteRecordRaw | route record} to the router.
      *

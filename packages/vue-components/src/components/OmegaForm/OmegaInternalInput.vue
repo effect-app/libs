@@ -6,25 +6,15 @@
         v-if="renderComponent"
         v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"
       >
-        <template
-          v-if="$slots.label"
-          #label="labelProps"
-        >
-          <slot
-            name="label"
-            v-bind="labelProps"
-          />
+        <template v-if="$slots.label" #label="labelProps">
+          <slot name="label" v-bind="labelProps" />
         </template>
       </component>
     </div>
   </slot>
 </template>
 
-<script
-  setup
-  lang="ts"
-  generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
->
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
 /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form / Vue attrs interop */
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { type Component, computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
@@ -103,10 +93,7 @@ const fieldType = computed(() => {
   return props.meta?.type || "unknown"
 })
 
-const renderComponent = computed(() =>
-  props.inputs?.[fieldType.value]
-    ?? (vuetified ? OmegaInputVuetify : undefined)
-)
+const renderComponent = computed(() => props.inputs?.[fieldType.value] ?? (vuetified ? OmegaInputVuetify : undefined))
 
 props.register(computed(() => ({ name: props.field.name, label: props.label, id })))
 
@@ -135,8 +122,8 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
       props.field.handleChange(
         props.meta.nullableOrUndefined === "undefined"
           ? undefined
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          : null as any
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (null as any)
       )
     } else if (props.meta?.isOptionalKey) {
       // `S.optionalKey` expects the key to be ABSENT from the submitted
@@ -169,7 +156,7 @@ const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
       if (prop === "handleChange") {
         return handleChange
       }
-      return Reflect.get(...arguments as unknown as [any, any, any])
+      return Reflect.get(...(arguments as unknown as [any, any, any]))
     }
   }
 
@@ -183,14 +170,16 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     required: isRequired.value,
     minLength: props.meta?.type === "string" && props.meta?.minLength,
     maxLength: props.meta?.type === "string" && props.meta?.maxLength,
-    max: (props.meta?.type === "number")
-      ? (props.meta?.maximum
-        ?? (typeof props.meta?.exclusiveMaximum === "number" ? props.meta.exclusiveMaximum - 1 : undefined))
-      : undefined,
-    min: (props.meta?.type === "number")
-      ? (props.meta?.minimum
-        ?? (typeof props.meta?.exclusiveMinimum === "number" ? props.meta.exclusiveMinimum + 1 : undefined))
-      : undefined,
+    max:
+      props.meta?.type === "number"
+        ? (props.meta?.maximum ??
+          (typeof props.meta?.exclusiveMaximum === "number" ? props.meta.exclusiveMaximum - 1 : undefined))
+        : undefined,
+    min:
+      props.meta?.type === "number"
+        ? (props.meta?.minimum ??
+          (typeof props.meta?.exclusiveMinimum === "number" ? props.meta.exclusiveMinimum + 1 : undefined))
+        : undefined,
     refinement: props.meta?.type === "number" ? props.meta?.refinement : undefined,
     errorMessages: errors.value,
     error: !!errors.value.length,

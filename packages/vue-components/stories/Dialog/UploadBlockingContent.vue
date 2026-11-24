@@ -1,35 +1,18 @@
 <template>
   <div>
-    <p class="mb-4 text-caption">
-      Upload in progress: <strong>{{ uploadInProgress }}</strong>
-    </p>
+    <p class="mb-4 text-caption">Upload in progress: <strong>{{ uploadInProgress }}</strong></p>
     <p class="mb-4">
       Click "Start Upload" to simulate a file upload. Try to close while uploading - you'll get a confirmation asking if
       you want to cancel the upload.
     </p>
 
-    <v-text-field
-      v-model="fileName"
-      label="File Name"
-      variant="outlined"
-      :disabled="uploadInProgress"
-    />
+    <v-text-field v-model="fileName" label="File Name" variant="outlined" :disabled="uploadInProgress" />
 
-    <v-btn
-      class="mt-2"
-      :disabled="uploadInProgress"
-      @click="startUpload"
-    >
+    <v-btn class="mt-2" :disabled="uploadInProgress" @click="startUpload">
       {{ uploadInProgress ? `Uploading... ${uploadProgress}%` : "Start Upload" }}
     </v-btn>
 
-    <v-progress-linear
-      v-if="uploadInProgress"
-      :model-value="uploadProgress"
-      class="mt-4"
-      color="primary"
-      height="20"
-    >
+    <v-progress-linear v-if="uploadInProgress" :model-value="uploadProgress" class="mt-4" color="primary" height="20">
       <template #default="{ value }">
         <strong>{{ Math.ceil(value) }}%</strong>
       </template>
@@ -71,9 +54,7 @@ if (bus) {
   onMountedWithCleanup(() => {
     const handler = (evt: DialogClosing) => {
       if (uploadInProgress.value) {
-        const confirmed = confirm(
-          "File upload is in progress. Closing will cancel the upload. Continue?"
-        )
+        const confirmed = confirm("File upload is in progress. Closing will cancel the upload. Continue?")
         if (!confirmed) {
           evt.prevent = true
         } else {

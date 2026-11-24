@@ -1,10 +1,16 @@
 <!-- eslint-disable vue/html-closing-bracket-newline -- dprint wraps long inline-tag prose; let dprint own layout -->
 <template>
   <div>
-    <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #e65100">
-      <h1 style="margin-top: 0">
-        Root-Level TaggedUnion — Legacy Literal Pattern
-      </h1>
+    <div
+      style="
+        background: #f5f5f5;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        border-left: 4px solid #e65100;
+      "
+    >
+      <h1 style="margin-top: 0">Root-Level TaggedUnion — Legacy Literal Pattern</h1>
 
       <h2>Overview</h2>
       <p>
@@ -15,11 +21,10 @@
 
       <h2>Known Issue</h2>
       <p>
-        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code
-        >Union([Literal("A")])</code>). OmegaForm now unwraps this single-element Union for meta extraction, so <code
-        >unionMeta</code> is populated, but using the legacy
-        <code>_tag: S.Literal(...)</code> pattern is deprecated and will emit a warning. Prefer <code
-        >S.TaggedStruct</code> for new code.
+        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union
+        (<code>Union([Literal("A")])</code>). OmegaForm now unwraps this single-element Union for meta extraction, so
+        <code>unionMeta</code> is populated, but using the legacy <code>_tag: S.Literal(...)</code> pattern is
+        deprecated and will emit a warning. Prefer <code>S.TaggedStruct</code> for new code.
       </p>
     </div>
 
@@ -27,40 +32,30 @@
       <template #default="{ subscribedValues: { values } }">
         <form.TaggedUnion
           label="Select Type"
-          :options="[
-            { value: 'A', title: 'Option A' },
-            { value: 'B', title: 'Option B' }
-          ] as const"
+          :options="
+            [
+              { value: 'A', title: 'Option A' },
+              { value: 'B', title: 'Option B' }
+            ] as const
+          "
         >
           <!-- Default slot: rendered for ALL branches (common fields) -->
           <!-- In branch A: common is required (NonEmptyString255) -->
           <!-- In branch B: common is nullable (NullOr(String)) -->
-          <form.Input
-            name="common"
-            label="Common Field (required in A, nullable in B)"
-          />
+          <form.Input name="common" label="Common Field (required in A, nullable in B)" />
           <!-- Named slot #A: rendered only when _tag === "A" -->
           <template #A>
-            <form.Input
-              name="a"
-              label="Field A (string)"
-            />
+            <form.Input name="a" label="Field A (string)" />
           </template>
           <!-- Named slot #B: rendered only when _tag === "B" -->
           <template #B>
-            <form.Input
-              name="b"
-              label="Field B (number)"
-              type="number"
-            />
+            <form.Input name="b" label="Field B (number)" type="number" />
           </template>
         </form.TaggedUnion>
         <pre>values: {{ values }}</pre>
         <pre>unionMeta: {{ JSON.stringify(form.unionMeta, null, 2) }}</pre>
         <form.Errors />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </form.Form>
   </div>
@@ -88,24 +83,23 @@ const schema = S.Union([
   })
 ])
 
-const form = useOmegaForm(
-  schema,
-  {
-    onSubmit: async ({ value }) => {
-      console.log("Form submitted:", value)
-    },
-    defaultValues: {
-      _tag: "A"
-    }
+const form = useOmegaForm(schema, {
+  onSubmit: async ({ value }) => {
+    console.log("Form submitted:", value)
+  },
+  defaultValues: {
+    _tag: "A"
   }
-)
+})
 </script>
 
 <style scoped>
 h1 {
   margin-bottom: 1rem;
 }
-ul, ol, p {
+ul,
+ol,
+p {
   margin-left: 1rem;
   margin-bottom: 1rem;
 }

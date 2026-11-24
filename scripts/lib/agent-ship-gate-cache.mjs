@@ -20,8 +20,9 @@ export const shipGateCachePath = (root = process.cwd()) => path.join(root, SHIP_
  * @returns {string | null} full SHA or null
  */
 export const readHeadSha = (root = process.cwd(), opts = {}) => {
-  const runGit = opts.runGit
-    ?? ((args, runOpts) => {
+  const runGit =
+    opts.runGit ??
+    ((args, runOpts) => {
       const result = spawnSync("git", args, {
         encoding: "utf8",
         cwd: runOpts.cwd,
@@ -47,9 +48,7 @@ export const readShipGateCache = (root = process.cwd(), opts = {}) => {
     const raw = readFileSync(file, "utf8")
     const parsed = JSON.parse(raw)
     const parsedSha = typeof parsed?.sha === "string" ? parsed.sha.trim().toLowerCase() : ""
-    const parsedAutomatedSha = typeof parsed?.automatedSha === "string"
-      ? parsed.automatedSha.trim().toLowerCase()
-      : ""
+    const parsedAutomatedSha = typeof parsed?.automatedSha === "string" ? parsed.automatedSha.trim().toLowerCase() : ""
     const sha = /^[0-9a-f]{40}$/i.test(parsedSha) ? parsedSha : undefined
     const automatedSha = /^[0-9a-f]{40}$/i.test(parsedAutomatedSha) ? parsedAutomatedSha : sha
     if (!sha && !automatedSha) return null
@@ -57,11 +56,12 @@ export const readShipGateCache = (root = process.cwd(), opts = {}) => {
       sha,
       validatedAt: typeof parsed.validatedAt === "string" ? parsed.validatedAt : undefined,
       automatedSha,
-      automatedAt: typeof parsed.automatedAt === "string"
-        ? parsed.automatedAt
-        : typeof parsed.validatedAt === "string"
-        ? parsed.validatedAt
-        : undefined
+      automatedAt:
+        typeof parsed.automatedAt === "string"
+          ? parsed.automatedAt
+          : typeof parsed.validatedAt === "string"
+            ? parsed.validatedAt
+            : undefined
     }
   } catch {
     return null
@@ -83,9 +83,10 @@ export const writeShipGateCache = (root, sha, opts = {}) => {
   }
   const file = shipGateCachePath(root)
   const at = now().toISOString()
-  const value = opts.stage === "automated"
-    ? { automatedSha: normalized, automatedAt: at }
-    : { sha: normalized, validatedAt: at, automatedSha: normalized, automatedAt: at }
+  const value =
+    opts.stage === "automated"
+      ? { automatedSha: normalized, automatedAt: at }
+      : { sha: normalized, validatedAt: at, automatedSha: normalized, automatedAt: at }
   mkdirSync(path.dirname(file), { recursive: true })
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8")
 }

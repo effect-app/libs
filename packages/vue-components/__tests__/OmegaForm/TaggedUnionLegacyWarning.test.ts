@@ -14,17 +14,13 @@ afterEach(() => {
 
 describe("legacy _tag deprecation warning (removed in Phase 4; regression guard)", () => {
   it("does NOT warn for the legacy S.Struct({_tag: S.Literal(...)}) pattern", () => {
-    const schema = S.Union([
-      S.Struct({ _tag: S.Literal("Legacy"), x: S.String })
-    ])
+    const schema = S.Union([S.Struct({ _tag: S.Literal("Legacy"), x: S.String })])
     generateMetaFromSchema(schema)
     expect(warnSpy).not.toHaveBeenCalled()
   })
 
   it("does NOT warn for S.TaggedStruct either", () => {
-    const schema = S.Union([
-      S.TaggedStruct("Modern", { x: S.String })
-    ])
+    const schema = S.Union([S.TaggedStruct("Modern", { x: S.String })])
     generateMetaFromSchema(schema)
     expect(warnSpy).not.toHaveBeenCalled()
   })

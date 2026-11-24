@@ -5,7 +5,14 @@ import fs from "fs"
 
 import * as Effect from "effect-app/Effect"
 import type { FieldValues } from "effect-app/Model/filter/types"
-import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
+import {
+  type PersistenceModelType,
+  type StorageConfig,
+  type Store,
+  type StoreConfig,
+  storeId,
+  StoreMaker
+} from "effect-app/Store"
 import * as Console from "effect/Console"
 import { flow } from "effect/Function"
 import * as Semaphore from "effect/Semaphore"
@@ -31,7 +38,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   // the file is the raw JSON boundary for this adapter:
   // stored JSON -> jitM -> JSON→Encoded decode
   const decodeStored = makeStoredDecode<Encoded>(schema, jitM)
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     if (namespace !== "primary") {
       dir = dir + "/" + namespace
       if (!fs.existsSync(dir)) {
@@ -41,68 +48,20 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
     const file = dir + "/" + prefix + name + ".json"
     const fileExtra = { "disk.file.path": file }
     const fsStore = {
-      get: fu
-        .readTextFile(file)
-        .pipe(
-          annotateDb({
-            operation: "read.readFile",
-            system: "disk",
-            collection: name,
-            namespace,
-            entity: name,
-            extra: fileExtra
-          }),
-          Effect.flatMap((x) =>
-            Effect.sync(() => JSON.parse(x) as PM[]).pipe(
-              Effect.flatMap((docs) => Effect.fromResult(decodeStoredMany(docs, decodeStored))),
-              annotateDb({
-                operation: "read.parse",
-                system: "disk",
-                collection: name,
-                namespace,
-                entity: name,
-                extra: fileExtra
-              })
-            )
-          ),
-          Effect.orDie,
-          annotateDb({
-            operation: "read",
-            system: "disk",
-            collection: name,
-            namespace,
-            entity: name,
-            extra: fileExtra
-          })
-        ),
-      setRaw: (v: Iterable<PM>) =>
-        Effect
-          .sync(() => JSON.stringify([...v].map((row) => codec.encode(row)), undefined, 2))
-          .pipe(
+      get: fu.readTextFile(file).pipe(
+        annotateDb({
+          operation: "read.readFile",
+          system: "disk",
+          collection: name,
+          namespace,
+          entity: name,
+          extra: fileExtra
+        }),
+        Effect.flatMap((x) =>
+          Effect.sync(() => JSON.parse(x) as PM[]).pipe(
+            Effect.flatMap((docs) => Effect.fromResult(decodeStoredMany(docs, decodeStored))),
             annotateDb({
-              operation: "stringify",
-              system: "disk",
-              collection: name,
-              namespace,
-              entity: name,
-              extra: fileExtra
-            }),
-            Effect
-              .flatMap(
-                (json) =>
-                  fu
-                    .writeTextFile(file, json)
-                    .pipe(annotateDb({
-                      operation: "write.writeFile",
-                      system: "disk",
-                      collection: name,
-                      namespace,
-                      entity: name,
-                      extra: { ...fileExtra, "disk.file.size": json.length }
-                    }))
-              ),
-            annotateDb({
-              operation: "write",
+              operation: "read.parse",
               system: "disk",
               collection: name,
               namespace,
@@ -110,6 +69,54 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
               extra: fileExtra
             })
           )
+        ),
+        Effect.orDie,
+        annotateDb({
+          operation: "read",
+          system: "disk",
+          collection: name,
+          namespace,
+          entity: name,
+          extra: fileExtra
+        })
+      ),
+      setRaw: (v: Iterable<PM>) =>
+        Effect.sync(() =>
+          JSON.stringify(
+            [...v].map((row) => codec.encode(row)),
+            undefined,
+            2
+          )
+        ).pipe(
+          annotateDb({
+            operation: "stringify",
+            system: "disk",
+            collection: name,
+            namespace,
+            entity: name,
+            extra: fileExtra
+          }),
+          Effect.flatMap((json) =>
+            fu.writeTextFile(file, json).pipe(
+              annotateDb({
+                operation: "write.writeFile",
+                system: "disk",
+                collection: name,
+                namespace,
+                entity: name,
+                extra: { ...fileExtra, "disk.file.size": json.length }
+              })
+            )
+          ),
+          annotateDb({
+            operation: "write",
+            system: "disk",
+            collection: name,
+            namespace,
+            entity: name,
+            extra: fileExtra
+          })
+        )
     }
 
     // lock file for cross-process coordination during initialization
@@ -117,16 +124,14 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
     // wrap initialization in file lock to prevent race conditions in multi-worker setups
     const store = yield* fu.withFileLock(
       file,
-      Effect.gen(function*() {
-        const shouldSeed = !(fs.existsSync(file))
+      Effect.gen(function* () {
+        const shouldSeed = !fs.existsSync(file)
 
         const store = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
           name,
           idKey,
           namespace,
-          shouldSeed
-            ? seed
-            : fsStore.get,
+          shouldSeed ? seed : fsStore.get,
           defaultValues,
           schema,
           json,
@@ -145,31 +150,18 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
     const sem = Semaphore.makeUnsafe(1)
     const withPermit = sem.withPermits(1)
     const flushToDisk = Effect.flatMap(store.all, fsStore.setRaw).pipe(withPermit)
-    const flushToDiskInBackground = flushToDisk
-      .pipe(
-        Effect.tapCause(Console.error),
-        Effect.uninterruptible,
-        Effect.forkDetach
-      )
+    const flushToDiskInBackground = flushToDisk.pipe(
+      Effect.tapCause(Console.error),
+      Effect.uninterruptible,
+      Effect.forkDetach
+    )
 
     return {
       ...store,
-      batchSet: flow(
-        store.batchSet,
-        Effect.tap(flushToDiskInBackground)
-      ),
-      batchRemove: flow(
-        store.batchRemove,
-        Effect.tap(flushToDiskInBackground)
-      ),
-      bulkSet: flow(
-        store.bulkSet,
-        Effect.tap(flushToDiskInBackground)
-      ),
-      set: flow(
-        store.set,
-        Effect.tap(flushToDiskInBackground)
-      )
+      batchSet: flow(store.batchSet, Effect.tap(flushToDiskInBackground)),
+      batchRemove: flow(store.batchRemove, Effect.tap(flushToDiskInBackground)),
+      bulkSet: flow(store.bulkSet, Effect.tap(flushToDiskInBackground)),
+      set: flow(store.set, Effect.tap(flushToDiskInBackground))
     } satisfies Store<IdKey, Encoded>
   })
 }
@@ -184,7 +176,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
       fs.mkdirSync(dir)
     }
     return {
-      make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+      make: Effect.fnUntraced(function* <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
         name: string,
         idKey: IdKey,
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
@@ -202,10 +194,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
           config?.schema,
           json,
           config?.jitM
-        )
-          .pipe(
-            Effect.orDie
-          )
+        ).pipe(Effect.orDie)
         const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
         const ctx = yield* Effect.context<R>()
         const semaphores = new Map<string, Semaphore.Semaphore>()
@@ -236,12 +225,11 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
                 config?.schema,
                 json,
                 config?.jitM
+              ).pipe(
+                Effect.orDie,
+                Effect.provide(ctx),
+                Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
               )
-                .pipe(
-                  Effect.orDie,
-                  Effect.provide(ctx),
-                  Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-                )
             })
           )
         const getStore = !config?.allowNamespace

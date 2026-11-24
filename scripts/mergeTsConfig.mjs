@@ -14,11 +14,7 @@ function loadConfigRecursive(configPath) {
   const baseDir = _path.dirname(configPath)
   const configs = []
 
-  const extendEntries = Array.isArray(config.extends)
-    ? config.extends
-    : config.extends
-    ? [config.extends]
-    : []
+  const extendEntries = Array.isArray(config.extends) ? config.extends : config.extends ? [config.extends] : []
 
   for (const ext of extendEntries) {
     let extendsPath = _path.resolve(baseDir, ext)
@@ -34,12 +30,15 @@ function loadConfigRecursive(configPath) {
 
 const allConfigs = loadConfigRecursive(rootPath)
 
-const config = allConfigs.reduce((prev, cur) => {
-  const { compilerOptions, ...rest } = cur
-  Object.assign(prev, rest)
-  Object.assign(prev.compilerOptions, compilerOptions)
-  return prev
-}, { compilerOptions: {} })
+const config = allConfigs.reduce(
+  (prev, cur) => {
+    const { compilerOptions, ...rest } = cur
+    Object.assign(prev, rest)
+    Object.assign(prev.compilerOptions, compilerOptions)
+    return prev
+  },
+  { compilerOptions: {} }
+)
 
 Object.assign(config, {
   extends: undefined,

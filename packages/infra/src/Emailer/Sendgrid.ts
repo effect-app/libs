@@ -24,62 +24,62 @@ export interface SendgridConfig {
   fakeMailAddress: string
 }
 
-const makeSendgrid = (
-  { apiKey, defaultFrom, defaultReplyTo, fakeMailAddress, realMail, subjectPrefix }: SendgridConfig
-) =>
+const makeSendgrid = ({
+  apiKey,
+  defaultFrom,
+  defaultReplyTo,
+  fakeMailAddress,
+  realMail,
+  subjectPrefix
+}: SendgridConfig) =>
   Effect.sync(() => {
     sgMail.setApiKey(Redacted.value(apiKey))
 
     return Emailer.of({
-      sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(
-        function*(msg_: EmailMsgOptionalFrom) {
-          const replyTo = msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
-          const msg = dropUndefinedT({
-            ...msg_,
-            from: msg_.from ?? defaultFrom,
-            replyTo
-          }) satisfies EmailMsg
-          const render = renderMessage(!realMail, fakeMailAddress)
+      sendMail: Effect.fn("Emailer.sendMail", { attributes: { "messaging.system": "sendgrid" } })(function* (
+        msg_: EmailMsgOptionalFrom
+      ) {
+        const replyTo = msg_.replyTo ?? (msg_.from ? undefined : defaultReplyTo)
+        const msg = dropUndefinedT({
+          ...msg_,
+          from: msg_.from ?? defaultFrom,
+          replyTo
+        }) satisfies EmailMsg
+        const render = renderMessage(!realMail, fakeMailAddress)
 
-          const renderedMsg_ = render(msg)
-          const renderedMsg = {
-            ...renderedMsg_ as Omit<typeof renderedMsg_, "content">,
-            subject: `${subjectPrefix}${renderedMsg_.subject}`,
-            ..."content" in renderedMsg_
-              ? { content: [...renderedMsg_.content] as [MailContent, ...MailContent[]] }
-              : {}
-          }
-          yield* InfraLogger.logDebug("Sending email").pipe(Effect.annotateLogs("msg", inspect(renderedMsg, false, 5)))
-
-          const ret = yield* Effect
-            .callback<
-              [sgMail.ClientResponse, Record<string, unknown>],
-              Error | sgMail.ResponseError
-            >(
-              (resume) =>
-                void sgMail.send(
-                  renderedMsg as any, // sue me
-                  msg.isMultiple ?? true,
-                  (err, result) =>
-                    err
-                      ? resume(Effect.fail(err))
-                      : resume(Effect.sync(() => result))
-                )
-            )
-            .pipe(Effect.mapError((raw) => new SendMailError({ raw })))
-
-          // const event = {
-          //   name: "EmailSent",
-          //   properties: {
-          //     templateId: msg.templateId
-          //   }
-          // }
-          // yield* InfraLogger.logDebug("Tracking email event").annotateLogs("event", event.$$.pretty)
-          // const { trackEvent } = yield* AiContextService
-          // trackEvent(event)
-          return ret
+        const renderedMsg_ = render(msg)
+        const renderedMsg = {
+          ...(renderedMsg_ as Omit<typeof renderedMsg_, "content">),
+          subject: `${subjectPrefix}${renderedMsg_.subject}`,
+          ...("content" in renderedMsg_
+            ? { content: [...renderedMsg_.content] as [MailContent, ...MailContent[]] }
+            : {})
         }
-      )
+        yield* InfraLogger.logDebug("Sending email").pipe(Effect.annotateLogs("msg", inspect(renderedMsg, false, 5)))
+
+        const ret = yield* Effect.callback<
+          [sgMail.ClientResponse, Record<string, unknown>],
+          Error | sgMail.ResponseError
+        >(
+          (resume) =>
+            void sgMail.send(
+              renderedMsg as any, // sue me
+              msg.isMultiple ?? true,
+              (err, result) => (err ? resume(Effect.fail(err)) : resume(Effect.sync(() => result)))
+            )
+        ).pipe(Effect.mapError((raw) => new SendMailError({ raw })))
+
+        // const event = {
+        //   name: "EmailSent",
+        //   properties: {
+        //     templateId: msg.templateId
+        //   }
+        // }
+        // yield* InfraLogger.logDebug("Tracking email event").annotateLogs("event", event.$$.pretty)
+        // const { trackEvent } = yield* AiContextService
+        // trackEvent(event)
+        return ret
+      })
     })
   })
 
@@ -96,19 +96,19 @@ export function renderMessage(forceFake: boolean, fakeMailAddress: string) {
   const makeFakeEmail = () => fakeMailAddress.replace("{i}", String(makeId()))
   return forceFake
     ? (msg: EmailMsg) =>
-      dropUndefinedT({
-        ...msg,
-        to: msg.to && renderFake(msg.to, makeFakeEmail),
-        cc: msg.cc && renderFake(msg.cc, makeFakeEmail),
-        bcc: msg.bcc && renderFake(msg.bcc, makeFakeEmail)
-      })
+        dropUndefinedT({
+          ...msg,
+          to: msg.to && renderFake(msg.to, makeFakeEmail),
+          cc: msg.cc && renderFake(msg.cc, makeFakeEmail),
+          bcc: msg.bcc && renderFake(msg.bcc, makeFakeEmail)
+        })
     : (msg: EmailMsg) =>
-      dropUndefinedT({
-        ...msg,
-        to: msg.to && renderFakeIfTest(msg.to, makeFakeEmail),
-        cc: msg.cc && renderFakeIfTest(msg.cc, makeFakeEmail),
-        bcc: msg.bcc && renderFakeIfTest(msg.bcc, makeFakeEmail)
-      })
+        dropUndefinedT({
+          ...msg,
+          to: msg.to && renderFakeIfTest(msg.to, makeFakeEmail),
+          cc: msg.cc && renderFakeIfTest(msg.cc, makeFakeEmail),
+          bcc: msg.bcc && renderFakeIfTest(msg.bcc, makeFakeEmail)
+        })
 }
 
 /**
@@ -116,10 +116,8 @@ export function renderMessage(forceFake: boolean, fakeMailAddress: string) {
  */
 export function isTestAddress(to: EmailData) {
   return (
-    (typeof to === "string" && to.toLowerCase().endsWith(".test"))
-    || (typeof to === "object"
-      && "email" in to
-      && to.email.toLowerCase().endsWith(".test"))
+    (typeof to === "string" && to.toLowerCase().endsWith(".test")) ||
+    (typeof to === "object" && "email" in to && to.email.toLowerCase().endsWith(".test"))
   )
 }
 
@@ -129,9 +127,8 @@ function renderFake(addr: EmailData | readonly EmailData[], makeEmail: () => str
     email: makeEmail()
   }
 }
-const eq = Equivalence.mapInput(
-  Equivalence.String,
-  (to: { name?: string; email: string } | string) => typeof to === "string" ? to.toLowerCase() : to.email.toLowerCase()
+const eq = Equivalence.mapInput(Equivalence.String, (to: { name?: string; email: string } | string) =>
+  typeof to === "string" ? to.toLowerCase() : to.email.toLowerCase()
 )
 
 function isEmailDataArray(md: EmailData | readonly EmailData[]): md is readonly EmailData[] {

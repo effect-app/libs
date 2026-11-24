@@ -25,7 +25,7 @@ const querySpanParentName = Effect.currentSpan.pipe(
   Effect.map((span) =>
     Option.match(span.parent, {
       onNone: () => "none",
-      onSome: (parent) => parent._tag === "Span" ? parent.name : "external"
+      onSome: (parent) => (parent._tag === "Span" ? parent.name : "external")
     })
   )
 )
@@ -50,9 +50,10 @@ it("passes the current parent span through legacy TanStack refetch", async () =>
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } }
   })
-  const query = makeTanstackQuery(() => Context.empty(), queryClient)(
-    fakeHandler("Test/TanStackSpan", () => querySpanParentName)
-  )
+  const query = makeTanstackQuery(
+    () => Context.empty(),
+    queryClient
+  )(fakeHandler("Test/TanStackSpan", () => querySpanParentName))
   const ctx = makeTanstackContext(queryClient)
 
   const [, , , handle] = ctx.run(() => query(undefined, {}))
@@ -67,7 +68,10 @@ it("passes the current parent span through legacy TanStack refetch", async () =>
 it("passes the current parent span through atom query refetch", async () => {
   defaultRegistry.reset()
   const rt = makeAtomClientRuntime(() => Layer.empty, Layer.makeMemoMapUnsafe())
-  const family = buildQueryFamily(rt, fakeHandler("Test/AtomSpan", () => querySpanParentName))
+  const family = buildQueryFamily(
+    rt,
+    fakeHandler("Test/AtomSpan", () => querySpanParentName)
+  )
   const atom = family(undefined)
   let view!: ReturnType<typeof useAtomQuery<string, Cause.NoSuchElementError>>
   const host = document.createElement("div")

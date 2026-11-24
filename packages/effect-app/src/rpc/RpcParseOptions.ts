@@ -8,6 +8,5 @@ import { DefaultParseOptions } from "../Schema/ext.ts"
  * payloads, successes, stream chunks, and exits. Schema `parseOptions` annotations
  * are not consulted. Call this after `prefix` and `middleware`, which clone RPCs.
  */
-export const annotateRpcParseOptions = <R extends Rpc.Any>(
-  group: RpcGroup.RpcGroup<R>
-): RpcGroup.RpcGroup<R> => group.annotateRpcs(Rpc.ParseOptions, DefaultParseOptions)
+export const annotateRpcParseOptions = <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>): RpcGroup.RpcGroup<R> =>
+  group.annotateRpcs(Rpc.ParseOptions, DefaultParseOptions)

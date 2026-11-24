@@ -6,9 +6,9 @@ export class DevMode extends Context.Reference("DevMode", { defaultValue: () => 
 
 export class RequestCacheMiddleware extends RpcMiddleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware") {}
 
-export class ConfigureInterruptibilityMiddleware
-  extends RpcMiddleware.Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware")
-{}
+export class ConfigureInterruptibilityMiddleware extends RpcMiddleware.Tag<ConfigureInterruptibilityMiddleware>()(
+  "ConfigureInterruptibilityMiddleware"
+) {}
 
 export class LoggerMiddleware extends RpcMiddleware.Tag<LoggerMiddleware>()("LoggerMiddleware") {}
 

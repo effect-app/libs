@@ -54,9 +54,10 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
 >
 
 const concurrencySetting = Effect.runSync(
-  Config
-    .Literal("unbounded", "SCHEMA_CONCURRENCY")
-    .pipe(Config.orElse(() => Config.Number("SCHEMA_CONCURRENCY")), Config.option)
+  Config.Literal("unbounded", "SCHEMA_CONCURRENCY").pipe(
+    Config.orElse(() => Config.Number("SCHEMA_CONCURRENCY")),
+    Config.option
+  )
 )
 
 export const DefaultParseOptions: SchemaAST.ParseOptions = {
@@ -188,73 +189,69 @@ export const Finite = Object.assign(FiniteSchema, {
 
 /** Like the default Schema `Literals` but with default helpers. Default value is `literals[0]`. */
 export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(literals: Literals) =>
-  pipe(
-    S.Literals(literals),
-    (s) =>
-      Object.assign(s, {
-        /** Override the default literal value used by `withConstructorDefault` / `withDecodingDefaultType`. */
-        changeDefault: <A extends Literals[number]>(a: A) => {
-          return Object.assign(S.Literals(literals), {
-            Default: a,
-            /**
-             * Construction-only default. Applied only when the field is
-             * omitted from `.make(...)` input. NOT applied during decode —
-             * cannot be used to JIT-migrate database fields. See file-level
-             * note.
-             */
-            withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(a))),
-            /**
-             * Decode-time default. **Discouraged for persisted data:** a
-             * missing field may be data corruption, not an old-shape
-             * document; silently substituting hides the problem. Prefer an
-             * explicit, preferably versioned migration over a decode-time
-             * fallback. See file-level note.
-             */
-            withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(a)))
-          }) // todo: copy annotations from original?
-        },
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- load-bearing: Object.assign widens the field type without it, breaking `expectTypeOf(l.Default).toEqualTypeOf<"a">()` in tests
-        Default: literals[0] as Literals[0],
-        /**
-         * Construction-only default `literals[0]`. Applied only when the
-         * field is omitted from `.make(...)` input. NOT applied during
-         * decode — cannot be used to JIT-migrate database fields. See
-         * file-level note.
-         */
-        withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0]))),
-        /**
-         * Decode-time default `literals[0]`. **Discouraged for persisted
-         * data:** a missing field may be data corruption, not an old-shape
-         * document; silently substituting hides the problem. Prefer an
-         * explicit, preferably versioned migration over a decode-time
-         * fallback. See file-level note.
-         */
-        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(literals[0])))
-      })
+  pipe(S.Literals(literals), (s) =>
+    Object.assign(s, {
+      /** Override the default literal value used by `withConstructorDefault` / `withDecodingDefaultType`. */
+      changeDefault: <A extends Literals[number]>(a: A) => {
+        return Object.assign(S.Literals(literals), {
+          Default: a,
+          /**
+           * Construction-only default. Applied only when the field is
+           * omitted from `.make(...)` input. NOT applied during decode —
+           * cannot be used to JIT-migrate database fields. See file-level
+           * note.
+           */
+          withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(a))),
+          /**
+           * Decode-time default. **Discouraged for persisted data:** a
+           * missing field may be data corruption, not an old-shape
+           * document; silently substituting hides the problem. Prefer an
+           * explicit, preferably versioned migration over a decode-time
+           * fallback. See file-level note.
+           */
+          withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(a)))
+        }) // todo: copy annotations from original?
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- load-bearing: Object.assign widens the field type without it, breaking `expectTypeOf(l.Default).toEqualTypeOf<"a">()` in tests
+      Default: literals[0] as Literals[0],
+      /**
+       * Construction-only default `literals[0]`. Applied only when the
+       * field is omitted from `.make(...)` input. NOT applied during
+       * decode — cannot be used to JIT-migrate database fields. See
+       * file-level note.
+       */
+      withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0]))),
+      /**
+       * Decode-time default `literals[0]`. **Discouraged for persisted
+       * data:** a missing field may be data corruption, not an old-shape
+       * document; silently substituting hides the problem. Prefer an
+       * explicit, preferably versioned migration over a decode-time
+       * fallback. See file-level note.
+       */
+      withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(literals[0])))
+    })
   )
 
 /** Like the default Schema `Array` but with default helpers. */
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
-  return pipe(
-    S.Array(value),
-    (s) =>
-      Object.assign(s, {
-        /**
-         * Construction-only default `[]`. Applied only when the field is
-         * omitted from `.make(...)` input. NOT applied during decode —
-         * cannot be used to JIT-migrate database fields. See file-level
-         * note.
-         */
-        withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
-        /**
-         * Decode-time default `[]`. **Discouraged for persisted data:** a
-         * missing field may be data corruption, not an old-shape document;
-         * silently substituting `[]` hides the problem. Prefer an explicit,
-         * preferably versioned migration over a decode-time fallback. See
-         * file-level note.
-         */
-        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => [])))
-      })
+  return pipe(S.Array(value), (s) =>
+    Object.assign(s, {
+      /**
+       * Construction-only default `[]`. Applied only when the field is
+       * omitted from `.make(...)` input. NOT applied during decode —
+       * cannot be used to JIT-migrate database fields. See file-level
+       * note.
+       */
+      withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
+      /**
+       * Decode-time default `[]`. **Discouraged for persisted data:** a
+       * missing field may be data corruption, not an old-shape document;
+       * silently substituting `[]` hides the problem. Prefer an explicit,
+       * preferably versioned migration over a decode-time fallback. See
+       * file-level note.
+       */
+      withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => [])))
+    })
   )
 }
 
@@ -262,9 +259,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
  * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
  */
 export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
-  const from = S
-    .Array(value)
-    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+  const from = S.Array(value).annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
   const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<ValueSchema["Type"]>>
   const schema = from.pipe(
     S.decodeTo(
@@ -285,24 +280,16 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
   readonly key: KeySchema
   readonly value: ValueSchema
 }) => {
-  const from = S
-    .Array(S.Tuple([pair.key, pair.value]))
-    .annotate({
-      expected: "an array of key-value tuples that will be decoded as a ReadonlyMap"
-    })
-  const to = S.instanceOf(Map) as S.instanceOf<
-    ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>
-  >
+  const from = S.Array(S.Tuple([pair.key, pair.value])).annotate({
+    expected: "an array of key-value tuples that will be decoded as a ReadonlyMap"
+  })
+  const to = S.instanceOf(Map) as S.instanceOf<ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>>
   const schema = from.pipe(
     S.decodeTo(
       to,
       SchemaTransformation.transform({
-        decode: (
-          arr
-        ) => new Map(arr) as ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>,
-        encode: (
-          map
-        ) => [...map.entries()] as any // fu
+        decode: (arr) => new Map(arr) as ReadonlyMap<KeySchema["Type"], ValueSchema["Type"]>,
+        encode: (map) => [...map.entries()] as any // fu
       })
     )
   )
@@ -311,30 +298,24 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
 
 /** Like the default Schema `ReadonlySet` (Encoded is `Set`) with default helpers. */
 export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
-  pipe(
-    S.ReadonlySet(value),
-    (s) =>
-      Object.assign(s, {
-        /**
-         * Construction-only default `new Set()`. Applied only when the field
-         * is omitted from `.make(...)` input. NOT applied during decode —
-         * cannot be used to JIT-migrate database fields. See file-level
-         * note.
-         */
-        withConstructorDefault: s.pipe(
-          S.withConstructorDefault(Effect.sync(() => new Set<ValueSchema["Type"]>()))
-        ),
-        /**
-         * Decode-time default `new Set()`. **Discouraged for persisted
-         * data:** a missing field may be data corruption, not an old-shape
-         * document; silently substituting an empty set hides the problem.
-         * Prefer an explicit, preferably versioned migration over a
-         * decode-time fallback. See file-level note.
-         */
-        withDecodingDefaultType: s.pipe(
-          S.withDecodingDefaultType(Effect.sync(() => new Set<ValueSchema["Type"]>()))
-        )
-      })
+  pipe(S.ReadonlySet(value), (s) =>
+    Object.assign(s, {
+      /**
+       * Construction-only default `new Set()`. Applied only when the field
+       * is omitted from `.make(...)` input. NOT applied during decode —
+       * cannot be used to JIT-migrate database fields. See file-level
+       * note.
+       */
+      withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Set<ValueSchema["Type"]>()))),
+      /**
+       * Decode-time default `new Set()`. **Discouraged for persisted
+       * data:** a missing field may be data corruption, not an old-shape
+       * document; silently substituting an empty set hides the problem.
+       * Prefer an explicit, preferably versioned migration over a
+       * decode-time fallback. See file-level note.
+       */
+      withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new Set<ValueSchema["Type"]>())))
+    })
   )
 
 /** Like the default Schema `ReadonlyMap` (Encoded is `Map`) with default helpers. */
@@ -342,50 +323,46 @@ export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(
   readonly key: KeySchema
   readonly value: ValueSchema
 }) =>
-  pipe(
-    S.ReadonlyMap(pair.key, pair.value),
-    (s) =>
-      Object.assign(s, {
-        /**
-         * Construction-only default `new Map()`. Applied only when the field
-         * is omitted from `.make(...)` input. NOT applied during decode —
-         * cannot be used to JIT-migrate database fields. See file-level
-         * note.
-         */
-        withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map()))),
-        /**
-         * Decode-time default `new Map()`. **Discouraged for persisted
-         * data:** a missing field may be data corruption, not an old-shape
-         * document; silently substituting an empty map hides the problem.
-         * Prefer an explicit, preferably versioned migration over a
-         * decode-time fallback. See file-level note.
-         */
-        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new Map())))
-      })
+  pipe(S.ReadonlyMap(pair.key, pair.value), (s) =>
+    Object.assign(s, {
+      /**
+       * Construction-only default `new Map()`. Applied only when the field
+       * is omitted from `.make(...)` input. NOT applied during decode —
+       * cannot be used to JIT-migrate database fields. See file-level
+       * note.
+       */
+      withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map()))),
+      /**
+       * Decode-time default `new Map()`. **Discouraged for persisted
+       * data:** a missing field may be data corruption, not an old-shape
+       * document; silently substituting an empty map hides the problem.
+       * Prefer an explicit, preferably versioned migration over a
+       * decode-time fallback. See file-level note.
+       */
+      withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new Map())))
+    })
   )
 
 /** Like the default Schema `NullOr` but with default helpers. */
 export const NullOr = <Schema extends S.Top>(self: Schema) =>
-  pipe(
-    S.NullOr(self),
-    (s) =>
-      Object.assign(s, {
-        /**
-         * Construction-only default `null`. Applied only when the field is
-         * omitted from `.make(...)` input. NOT applied during decode —
-         * cannot be used to JIT-migrate database fields. See file-level
-         * note.
-         */
-        withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(null))),
-        /**
-         * Decode-time default `null`. **Discouraged for persisted data:** a
-         * missing field may be data corruption, not an old-shape document;
-         * silently substituting `null` hides the problem. Prefer an
-         * explicit, preferably versioned migration over a decode-time
-         * fallback. See file-level note.
-         */
-        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(null)))
-      })
+  pipe(S.NullOr(self), (s) =>
+    Object.assign(s, {
+      /**
+       * Construction-only default `null`. Applied only when the field is
+       * omitted from `.make(...)` input. NOT applied during decode —
+       * cannot be used to JIT-migrate database fields. See file-level
+       * note.
+       */
+      withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.succeed(null))),
+      /**
+       * Decode-time default `null`. **Discouraged for persisted data:** a
+       * missing field may be data corruption, not an old-shape document;
+       * silently substituting `null` hides the problem. Prefer an
+       * explicit, preferably versioned migration over a decode-time
+       * fallback. See file-level note.
+       */
+      withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(null)))
+    })
   )
 
 /**
@@ -456,10 +433,7 @@ export const withDefaultMake = <Self extends S.Top>(s: Self) => {
   // return s as Self & WithDefaults<Self>
 }
 
-export type WithDefaults<Self extends S.Top> = (
-  i: Self["Encoded"],
-  options?: SchemaAST.ParseOptions
-) => Self["Type"]
+export type WithDefaults<Self extends S.Top> = (i: Self["Encoded"], options?: SchemaAST.ParseOptions) => Self["Type"]
 
 // type GetKeys<U> = U extends Record<infer K, any> ? K : never
 // type UnionToIntersection2<U extends object> = {
@@ -476,25 +450,22 @@ export type WithDefaults<Self extends S.Top> = (
 //   : never
 
 /** Union of core `Schema.Date` (Date objects) and string-encoded `DateFromString`, with default helpers. */
-export const inputDate = extendM(
-  S.Union([S.Date, DateFromString]),
-  (s) => ({
-    /**
-     * Construction-only default `new Date()`. Applied only when the field is
-     * omitted from `.make(...)` input. NOT applied during decode — cannot be
-     * used to JIT-migrate database fields. See file-level note.
-     */
-    withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
-    /**
-     * Decode-time default `new Date()`. **Discouraged for persisted data:** a
-     * missing field may be data corruption, not an old-shape document;
-     * silently substituting `new Date()` hides the problem. Prefer an
-     * explicit, preferably versioned migration over a decode-time fallback.
-     * See file-level note.
-     */
-    withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
-  })
-)
+export const inputDate = extendM(S.Union([S.Date, DateFromString]), (s) => ({
+  /**
+   * Construction-only default `new Date()`. Applied only when the field is
+   * omitted from `.make(...)` input. NOT applied during decode — cannot be
+   * used to JIT-migrate database fields. See file-level note.
+   */
+  withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
+  /**
+   * Decode-time default `new Date()`. **Discouraged for persisted data:** a
+   * missing field may be data corruption, not an old-shape document;
+   * silently substituting `new Date()` hides the problem. Prefer an
+   * explicit, preferably versioned migration over a decode-time fallback.
+   * See file-level note.
+   */
+  withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
+}))
 
 export interface UnionBrand {}
 
@@ -515,21 +486,19 @@ export function makeOptional<NER extends S.Struct.Fields>(
 // `check`, `rebuild`): extracting them through a mapped type binds their `this["Rebuild"]` back to
 // the original `T`, not to this intersection. So overriding just `Rebuild` above is not enough, those
 // four methods have to be redeclared here with a concrete return type instead of `this["Rebuild"]`.
-export type DropConstructorDefault<T extends S.Top> =
-  & Omit<
-    T,
-    "~type.constructor.default" | "Rebuild" | "annotate" | "annotateKey" | "check" | "rebuild"
-  >
-  & {
-    readonly "~type.constructor.default": "no-default"
-    readonly "Rebuild": DropConstructorDefault<T>
-    annotate(annotations: S.Annotations.Bottom<T["Type"], T["~type.parameters"]>): DropConstructorDefault<T>
-    annotateKey(annotations: S.Annotations.Key<T["Type"]>): DropConstructorDefault<T>
-    check(
-      ...checks: readonly [SchemaAST.Check<T["Type"]>, ...Array<SchemaAST.Check<T["Type"]>>]
-    ): DropConstructorDefault<T>
-    rebuild(ast: T["ast"]): DropConstructorDefault<T>
-  }
+export type DropConstructorDefault<T extends S.Top> = Omit<
+  T,
+  "~type.constructor.default" | "Rebuild" | "annotate" | "annotateKey" | "check" | "rebuild"
+> & {
+  readonly "~type.constructor.default": "no-default"
+  readonly Rebuild: DropConstructorDefault<T>
+  annotate(annotations: S.Annotations.Bottom<T["Type"], T["~type.parameters"]>): DropConstructorDefault<T>
+  annotateKey(annotations: S.Annotations.Key<T["Type"]>): DropConstructorDefault<T>
+  check(
+    ...checks: readonly [SchemaAST.Check<T["Type"]>, ...Array<SchemaAST.Check<T["Type"]>>]
+  ): DropConstructorDefault<T>
+  rebuild(ast: T["ast"]): DropConstructorDefault<T>
+}
 
 // `replaceContext` is `@internal` in `effect/SchemaAST` (stripped from its public types, though the
 // export itself still ships in the compiled JS). Effect's own `withConstructorDefault` goes through the
@@ -581,7 +550,8 @@ export const dropConstructorDefault: DropConstructorDefaultLambda = Struct.lambd
 export function makeExactOptional<NER extends S.Struct.Fields>(
   t: NER
 ): {
-  [K in keyof NER]: NER[K] extends S.Top ? DropConstructorDefault<ReturnType<typeof S.optionalKey<NER[K] & S.Top>>>
+  [K in keyof NER]: NER[K] extends S.Top
+    ? DropConstructorDefault<ReturnType<typeof S.optionalKey<NER[K] & S.Top>>>
     : any
 } {
   return Struct.keys(t).reduce((prev, cur) => {
@@ -594,10 +564,7 @@ export function makeExactOptional<NER extends S.Struct.Fields>(
 export const transformTo = <To extends S.Top, From extends S.Top>(
   from: From,
   to: To,
-  decode: (
-    fromA: From["Type"],
-    options: SchemaAST.ParseOptions
-  ) => To["Encoded"]
+  decode: (fromA: From["Type"], options: SchemaAST.ParseOptions) => To["Encoded"]
 ) =>
   from.pipe(
     S.decodeTo(
@@ -606,10 +573,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
         decode: (input: any, options: any) => Effect.sync(() => decode(input, options)),
         encode: (i: any) =>
           Effect.fail(
-            new SchemaIssue.Forbidden(
-              { message: "One way schema transformation, encoding is not allowed" },
-              i
-            )
+            new SchemaIssue.Forbidden({ message: "One way schema transformation, encoding is not allowed" }, i)
           )
       })
     )
@@ -619,10 +583,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
 export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
   from: From,
   to: To,
-  decode: (
-    fromA: From["Type"],
-    options: SchemaAST.ParseOptions
-  ) => Effect.Effect<To["Encoded"], SchemaIssue.Issue, RD>
+  decode: (fromA: From["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<To["Encoded"], SchemaIssue.Issue, RD>
 ) =>
   from.pipe(
     S.decodeTo(
@@ -631,10 +592,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
         decode,
         encode: (i: any) =>
           Effect.fail(
-            new SchemaIssue.Forbidden(
-              { message: "One way schema transformation, encoding is not allowed" },
-              i
-            )
+            new SchemaIssue.Forbidden({ message: "One way schema transformation, encoding is not allowed" }, i)
           )
       })
     )
@@ -650,7 +608,7 @@ export const provide: {
     S.middlewareEncoding((effect) => prov(effect))
   )
 })
-export const contextFromServices = Effect.fnUntraced(function*<
+export const contextFromServices = Effect.fnUntraced(function* <
   Self extends S.Top,
   Tags extends ReadonlyArray<Context.Key<any, any>>
 >(self: Self, ...services: Tags) {
@@ -658,10 +616,7 @@ export const contextFromServices = Effect.fnUntraced(function*<
     yield* Effect.context<Context.Service.Identifier<Tags[number]>>()
   )
   return provide(self, context)
-}) as <
-  Self extends S.Top,
-  Tags extends ReadonlyArray<Context.Key<any, any>>
->(
+}) as <Self extends S.Top, Tags extends ReadonlyArray<Context.Key<any, any>>>(
   self: Self,
   ...services: Tags
 ) => Effect.Effect<

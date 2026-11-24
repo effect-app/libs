@@ -9,11 +9,11 @@ describe("Nullable field initialization", () => {
     const schema = S.Struct({
       aString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
       bString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
-      cStruct: S
-        .NullOr(S.Struct({
+      cStruct: S.NullOr(
+        S.Struct({
           dString: S.NullOr(S.NonEmptyString255).withConstructorDefault
-        }))
-        .withConstructorDefault,
+        })
+      ).withConstructorDefault,
       cLiteral: S.NullOr(S.Literal("test", "test2")).withConstructorDefault
     })
 
@@ -82,14 +82,14 @@ describe("Nullable field initialization", () => {
 
     // Check that both fields are initialized with null (not empty string)
     await vi.waitFor(() => {
-      const valuesText = wrapper.find("[data-testid=\"values\"]").text()
-      expect(valuesText).toContain("\"aString\":null")
-      expect(valuesText).toContain("\"bString\":null")
-      expect(valuesText).toContain("\"cStruct\":null")
+      const valuesText = wrapper.find('[data-testid="values"]').text()
+      expect(valuesText).toContain('"aString":null')
+      expect(valuesText).toContain('"bString":null')
+      expect(valuesText).toContain('"cStruct":null')
     })
 
     // Submit the form
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
 
     // Wait for the submission to complete
     await vi.waitFor(() => {
@@ -168,15 +168,15 @@ describe("Nullable field initialization", () => {
     await wrapper.vm.$nextTick()
 
     // aString should be null (nullable field with empty string)
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
-    expect(valuesText).toContain("\"aString\":null")
+    const valuesText = wrapper.find('[data-testid="values"]').text()
+    expect(valuesText).toContain('"aString":null')
 
     // Submit the form - should fail because bString is required
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await wrapper.vm.$nextTick()
 
     // Check that there's an error for bString
-    const errors = wrapper.find("[data-testid=\"omega-errors\"]")
+    const errors = wrapper.find('[data-testid="omega-errors"]')
     if (errors.exists()) {
       expect(errors.text()).toContain("bString")
     }

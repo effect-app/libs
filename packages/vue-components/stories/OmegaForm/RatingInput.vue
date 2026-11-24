@@ -12,19 +12,11 @@
         {{ Number(state.value) >= n ? "★" : "☆" }}
       </button>
     </div>
-    <span
-      v-for="msg in inputProps.errorMessages"
-      :key="msg"
-      class="error"
-    >{{ msg }}</span>
+    <span v-for="msg in inputProps.errorMessages" :key="msg" class="error">{{ msg }}</span>
   </div>
 </template>
 
-<script
-  setup
-  lang="ts"
-  generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
->
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
 import { type DeepKeys } from "@tanstack/vue-form"
 // `OmegaRendererProps` is the public contract for registered `omegaConfig.inputs` components.
 import type { OmegaRendererProps } from "../../src/components/OmegaForm"

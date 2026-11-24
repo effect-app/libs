@@ -1,9 +1,7 @@
 import * as Chunk from "effect/Chunk"
 import type * as Equivalence from "effect/Equivalence"
 
-export function toArray<A>(
-  gen: Generator<A, void, unknown>
-) {
+export function toArray<A>(gen: Generator<A, void, unknown>) {
   return Array.from(gen)
 }
 

@@ -11,10 +11,12 @@ describe("OmegaForm TransformationSchema", () => {
     age: S.String
   })
 
-  const transformedSchema = schema.pipe(S.decodeTo(schema, {
-    decode: SchemaGetter.passthrough({ strict: false }),
-    encode: SchemaGetter.passthrough({ strict: false })
-  }))
+  const transformedSchema = schema.pipe(
+    S.decodeTo(schema, {
+      decode: SchemaGetter.passthrough({ strict: false }),
+      encode: SchemaGetter.passthrough({ strict: false })
+    })
+  )
 
   it("should generate correct meta from a transformed schema", () => {
     const base = generateMetaFromSchema(schema)
@@ -73,7 +75,7 @@ describe("OmegaForm TransformationSchema", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({

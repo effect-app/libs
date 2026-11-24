@@ -24,7 +24,10 @@ import { layerCosmos } from "../src/WorkflowEngineCosmos.js"
 // --- Shared mutable counter for activity-side-effect assertions --------
 
 class CounterRef extends Context.Service<CounterRef, { count: number }>()("CounterRef") {
-  static readonly layer = Layer.effect(CounterRef, Effect.sync(() => ({ count: 0 })))
+  static readonly layer = Layer.effect(
+    CounterRef,
+    Effect.sync(() => ({ count: 0 }))
+  )
 }
 
 // --- Workflow definitions ----------------------------------------------
@@ -45,17 +48,19 @@ const CounterWorkflow = Workflow.make("WorkflowEngineCosmos/CounterWorkflow", {
   idempotencyKey: ({ id }) => id
 })
 
-const CounterHandler = CounterWorkflow.toLayer(Effect.fn(function*() {
-  const counter = yield* CounterRef
-  return yield* Activity.make({
-    name: "Bump",
-    success: Schema.Number,
-    execute: Effect.sync(() => {
-      counter.count++
-      return counter.count
+const CounterHandler = CounterWorkflow.toLayer(
+  Effect.fn(function* () {
+    const counter = yield* CounterRef
+    return yield* Activity.make({
+      name: "Bump",
+      success: Schema.Number,
+      execute: Effect.sync(() => {
+        counter.count++
+        return counter.count
+      })
     })
   })
-}))
+)
 
 // Suspends on a deferred, then composes the persisted activity result
 // with the resumed deferred value. Exercises Result/Exit round-trip.
@@ -67,15 +72,17 @@ const SuspendWorkflow = Workflow.make("WorkflowEngineCosmos/SuspendWorkflow", {
   idempotencyKey: ({ id }) => id
 })
 
-const SuspendHandler = SuspendWorkflow.toLayer(Effect.fn(function*({ id }) {
-  const n = yield* Activity.make({
-    name: "step",
-    success: Schema.Number,
-    execute: Effect.succeed(1)
+const SuspendHandler = SuspendWorkflow.toLayer(
+  Effect.fn(function* ({ id }) {
+    const n = yield* Activity.make({
+      name: "step",
+      success: Schema.Number,
+      execute: Effect.succeed(1)
+    })
+    const v = yield* DurableDeferred.await(Trigger)
+    return `${id}:${n}:${v}`
   })
-  const v = yield* DurableDeferred.await(Trigger)
-  return `${id}:${n}:${v}`
-}))
+)
 
 // Plain durable-deferred await — used to assert first-writer-wins on done().
 const AwaitOnly = Workflow.make("WorkflowEngineCosmos/AwaitOnly", {
@@ -84,9 +91,11 @@ const AwaitOnly = Workflow.make("WorkflowEngineCosmos/AwaitOnly", {
   idempotencyKey: ({ id }) => id
 })
 
-const AwaitOnlyHandler = AwaitOnly.toLayer(Effect.fn(function*() {
-  return yield* DurableDeferred.await(Trigger)
-}))
+const AwaitOnlyHandler = AwaitOnly.toLayer(
+  Effect.fn(function* () {
+    return yield* DurableDeferred.await(Trigger)
+  })
+)
 
 const Handlers = Layer.mergeAll(IncrementHandler, SuspendHandler, CounterHandler, AwaitOnlyHandler)
 
@@ -97,7 +106,7 @@ const waitForComplete = (
   step = Duration.millis(10),
   maxIterations = 200
 ) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     for (let i = 0; i < maxIterations; i++) {
       const polled = yield* workflow.poll(executionId)
       if (Option.isSome(polled) && polled.value._tag === "Complete") {
@@ -109,101 +118,88 @@ const waitForComplete = (
   })
 
 const runSuite = (engineLayer: Layer.Layer<WorkflowEngine.WorkflowEngine>) => {
-  const TestLayer = Handlers.pipe(
-    Layer.provideMerge(CounterRef.layer),
-    Layer.provideMerge(engineLayer)
-  )
+  const TestLayer = Handlers.pipe(Layer.provideMerge(CounterRef.layer), Layer.provideMerge(engineLayer))
 
   it.live("executes a workflow and polls the result", () =>
-    Effect
-      .gen(function*() {
-        const executionId = yield* IncrementWorkflow.execute({ value: 41 }, { discard: true })
-        const result = yield* IncrementWorkflow.execute({ value: 41 })
-        const polled = yield* IncrementWorkflow.poll(executionId)
+    Effect.gen(function* () {
+      const executionId = yield* IncrementWorkflow.execute({ value: 41 }, { discard: true })
+      const result = yield* IncrementWorkflow.execute({ value: 41 })
+      const polled = yield* IncrementWorkflow.poll(executionId)
 
-        assert.strictEqual(result, 42)
-        assert(
-          Option.isSome(polled)
-            && polled.value._tag === "Complete"
-            && Exit.isSuccess(polled.value.exit)
-        )
-        assert.strictEqual(polled.value.exit.value, 42)
-      })
-      .pipe(Effect.provide(TestLayer)))
+      assert.strictEqual(result, 42)
+      assert(Option.isSome(polled) && polled.value._tag === "Complete" && Exit.isSuccess(polled.value.exit))
+      assert.strictEqual(polled.value.exit.value, 42)
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.live("re-executing the same id is idempotent", () =>
-    Effect
-      .gen(function*() {
-        const a = yield* IncrementWorkflow.execute({ value: 7 })
-        const b = yield* IncrementWorkflow.execute({ value: 7 })
-        assert.strictEqual(a, b)
-      })
-      .pipe(Effect.provide(TestLayer)))
+    Effect.gen(function* () {
+      const a = yield* IncrementWorkflow.execute({ value: 7 })
+      const b = yield* IncrementWorkflow.execute({ value: 7 })
+      assert.strictEqual(a, b)
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.live("activity side effects run once across re-executions", () =>
-    Effect
-      .gen(function*() {
-        const counter = yield* CounterRef
-        yield* CounterWorkflow.execute({ id: "once" })
-        yield* CounterWorkflow.execute({ id: "once" })
-        yield* CounterWorkflow.execute({ id: "once" })
-        assert.strictEqual(counter.count, 1)
-      })
-      .pipe(Effect.provide(TestLayer)))
+    Effect.gen(function* () {
+      const counter = yield* CounterRef
+      yield* CounterWorkflow.execute({ id: "once" })
+      yield* CounterWorkflow.execute({ id: "once" })
+      yield* CounterWorkflow.execute({ id: "once" })
+      assert.strictEqual(counter.count, 1)
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.live("suspends on a durable deferred, then resumes with the decoded result", () =>
-    Effect
-      .gen(function*() {
-        // The execution suspends on `Trigger`; completing the deferred resumes
-        // it (the workflow body replays, the `step` activity is served from its
-        // persisted result), and the final value round-trips through the engine.
-        const executionId = yield* SuspendWorkflow.execute({ id: "abc" }, { discard: true })
+    Effect.gen(function* () {
+      // The execution suspends on `Trigger`; completing the deferred resumes
+      // it (the workflow body replays, the `step` activity is served from its
+      // persisted result), and the final value round-trips through the engine.
+      const executionId = yield* SuspendWorkflow.execute({ id: "abc" }, { discard: true })
 
-        const token = yield* DurableDeferred.tokenFromPayload(Trigger, {
-          workflow: SuspendWorkflow,
-          payload: { id: "abc" }
-        })
-        yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("ok") })
-
-        const done = yield* waitForComplete(SuspendWorkflow, executionId)
-        assert(done && Exit.isSuccess(done.exit))
-        assert.strictEqual(done.exit.value, "abc:1:ok")
+      const token = yield* DurableDeferred.tokenFromPayload(Trigger, {
+        workflow: SuspendWorkflow,
+        payload: { id: "abc" }
       })
-      .pipe(Effect.provide(TestLayer)))
+      yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("ok") })
+
+      const done = yield* waitForComplete(SuspendWorkflow, executionId)
+      assert(done && Exit.isSuccess(done.exit))
+      assert.strictEqual(done.exit.value, "abc:1:ok")
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.live("deferredDone is idempotent (first-writer-wins)", () =>
-    Effect
-      .gen(function*() {
-        const executionId = yield* AwaitOnly.execute({ id: "dup" }, { discard: true })
-        const token = yield* DurableDeferred.tokenFromPayload(Trigger, {
-          workflow: AwaitOnly,
-          payload: { id: "dup" }
-        })
-        yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("first") })
-        // Second completion must lose; the workflow body sees "first".
-        yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("second") })
-
-        const done = yield* waitForComplete(AwaitOnly, executionId)
-        assert(done && Exit.isSuccess(done.exit))
-        assert.strictEqual(done.exit.value, "first")
+    Effect.gen(function* () {
+      const executionId = yield* AwaitOnly.execute({ id: "dup" }, { discard: true })
+      const token = yield* DurableDeferred.tokenFromPayload(Trigger, {
+        workflow: AwaitOnly,
+        payload: { id: "dup" }
       })
-      .pipe(Effect.provide(TestLayer)))
+      yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("first") })
+      // Second completion must lose; the workflow body sees "first".
+      yield* DurableDeferred.done(Trigger, { token, exit: Exit.succeed("second") })
+
+      const done = yield* waitForComplete(AwaitOnly, executionId)
+      assert(done && Exit.isSuccess(done.exit))
+      assert.strictEqual(done.exit.value, "first")
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.live("interrupt eventually completes a suspended execution", () =>
-    Effect
-      .gen(function*() {
-        const executionId = yield* AwaitOnly.execute({ id: "int" }, { discard: true })
-        // Give the workflow time to suspend on the deferred.
-        yield* Effect.sleep(Duration.millis(50))
-        yield* AwaitOnly.interrupt(executionId)
+    Effect.gen(function* () {
+      const executionId = yield* AwaitOnly.execute({ id: "int" }, { discard: true })
+      // Give the workflow time to suspend on the deferred.
+      yield* Effect.sleep(Duration.millis(50))
+      yield* AwaitOnly.interrupt(executionId)
 
-        // Interrupt collapses the suspended execution into a completion. A
-        // durable engine re-drives across several storage round-trips, so poll
-        // until it reports Complete rather than asserting a fixed delay.
-        const done = yield* waitForComplete(AwaitOnly, executionId)
-        assert(done !== undefined && done._tag === "Complete")
-      })
-      .pipe(Effect.provide(TestLayer)))
+      // Interrupt collapses the suspended execution into a completion. A
+      // durable engine re-drives across several storage round-trips, so poll
+      // until it reports Complete rather than asserting a fixed delay.
+      const done = yield* waitForComplete(AwaitOnly, executionId)
+      assert(done !== undefined && done._tag === "Complete")
+    }).pipe(Effect.provide(TestLayer))
+  )
 }
 
 describe("WorkflowEngine (in-memory)", () => {
@@ -236,110 +232,100 @@ describe.skipIf(!cosmosUrl)("WorkflowEngine (Cosmos) — adapter internals", () 
   const prefixFor = (label: string) => `test-${Date.now()}-${label}-`
 
   const adapterLayer = (prefix: string) =>
-    Layer
-      .mergeAll(
-        IncrementHandler,
-        AwaitOnlyHandler,
-        CounterRef.layer,
-        CosmosClientLayer(cosmosUrl ?? "", cosmosDb)
+    Layer.mergeAll(
+      IncrementHandler,
+      AwaitOnlyHandler,
+      CounterRef.layer,
+      CosmosClientLayer(cosmosUrl ?? "", cosmosDb)
+    ).pipe(
+      Layer.provideMerge(
+        layerCosmos({
+          url: Redacted.make(cosmosUrl ?? ""),
+          dbName: cosmosDb,
+          prefix,
+          recoveryInterval: Duration.millis(500),
+          clockPollInterval: Duration.millis(500)
+        })
       )
-      .pipe(
-        Layer.provideMerge(
-          layerCosmos({
-            url: Redacted.make(cosmosUrl ?? ""),
-            dbName: cosmosDb,
-            prefix,
-            recoveryInterval: Duration.millis(500),
-            clockPollInterval: Duration.millis(500)
-          })
-        )
-      )
+    )
 
   it.live("recovery poller drives execs with stale leases", () => {
     const prefix = prefixFor("recovery")
     const containerId = `${prefix}workflow-engine`
-    return Effect
-      .gen(function*() {
-        const { db } = yield* CosmosClient
-        const container = db.container(containerId)
-        // Pre-seed a running exec whose lease has already expired and whose
-        // payload is the schema-encoded form of `{ value: 99 }`.
-        yield* Effect.promise(() =>
-          container.items.upsert({
-            id: "exec",
-            _partitionKey: "recover-1",
-            type: "exec",
-            workflowName: IncrementWorkflow._tag,
-            payload: JSON.stringify({ value: 99 }),
-            status: "running",
-            suspended: false,
-            interrupted: false,
-            worker: "ghost",
-            leaseExpiresAt: new Date(Date.now() - 60_000).toISOString(),
-            etag: "seed"
-          })
-        )
+    return Effect.gen(function* () {
+      const { db } = yield* CosmosClient
+      const container = db.container(containerId)
+      // Pre-seed a running exec whose lease has already expired and whose
+      // payload is the schema-encoded form of `{ value: 99 }`.
+      yield* Effect.promise(() =>
+        container.items.upsert({
+          id: "exec",
+          _partitionKey: "recover-1",
+          type: "exec",
+          workflowName: IncrementWorkflow._tag,
+          payload: JSON.stringify({ value: 99 }),
+          status: "running",
+          suspended: false,
+          interrupted: false,
+          worker: "ghost",
+          leaseExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+          etag: "seed"
+        })
+      )
 
-        // Wait for the recovery poller (500ms cadence) to drive it.
-        yield* Effect.sleep(Duration.seconds(2))
+      // Wait for the recovery poller (500ms cadence) to drive it.
+      yield* Effect.sleep(Duration.seconds(2))
 
-        const polled = yield* IncrementWorkflow.poll("recover-1")
-        assert(
-          Option.isSome(polled)
-            && polled.value._tag === "Complete"
-            && Exit.isSuccess(polled.value.exit)
-        )
-        assert.strictEqual(polled.value.exit.value, 100)
-      })
-      .pipe(Effect.provide(adapterLayer(prefix)))
+      const polled = yield* IncrementWorkflow.poll("recover-1")
+      assert(Option.isSome(polled) && polled.value._tag === "Complete" && Exit.isSuccess(polled.value.exit))
+      assert.strictEqual(polled.value.exit.value, 100)
+    }).pipe(Effect.provide(adapterLayer(prefix)))
   })
 
   it.live("clock poller fires past-due clocks", () => {
     const prefix = prefixFor("clocks")
     const containerId = `${prefix}workflow-engine`
-    return Effect
-      .gen(function*() {
-        const { db } = yield* CosmosClient
-        const container = db.container(containerId)
-        // Seed an exec + a clock that fired in the past. No in-process timer
-        // exists (we never called scheduleClock), so only the poller can
-        // resolve the deferred.
-        yield* Effect.promise(() =>
-          container.items.upsert({
-            id: "exec",
-            _partitionKey: "exec-clock",
-            type: "exec",
-            workflowName: AwaitOnly._tag,
-            payload: JSON.stringify({ id: "wake" }),
-            status: "running",
-            suspended: false,
-            interrupted: false,
-            etag: "seed"
-          })
-        )
-        yield* Effect.promise(() =>
-          container.items.upsert({
-            id: "clock::wake",
-            _partitionKey: "exec-clock",
-            type: "clock",
-            workflowName: AwaitOnly._tag,
-            deferredName: Trigger.name,
-            fireAt: new Date(Date.now() - 60_000).toISOString()
-          })
-        )
+    return Effect.gen(function* () {
+      const { db } = yield* CosmosClient
+      const container = db.container(containerId)
+      // Seed an exec + a clock that fired in the past. No in-process timer
+      // exists (we never called scheduleClock), so only the poller can
+      // resolve the deferred.
+      yield* Effect.promise(() =>
+        container.items.upsert({
+          id: "exec",
+          _partitionKey: "exec-clock",
+          type: "exec",
+          workflowName: AwaitOnly._tag,
+          payload: JSON.stringify({ id: "wake" }),
+          status: "running",
+          suspended: false,
+          interrupted: false,
+          etag: "seed"
+        })
+      )
+      yield* Effect.promise(() =>
+        container.items.upsert({
+          id: "clock::wake",
+          _partitionKey: "exec-clock",
+          type: "clock",
+          workflowName: AwaitOnly._tag,
+          deferredName: Trigger.name,
+          fireAt: new Date(Date.now() - 60_000).toISOString()
+        })
+      )
 
-        yield* Effect.sleep(Duration.seconds(2))
+      yield* Effect.sleep(Duration.seconds(2))
 
-        // The clock fire is a deferred-complete; assert the deferred row
-        // now exists for this execution.
-        const deferred = yield* Effect.promise(() =>
-          container.item(encodeURIComponent(`deferred::${Trigger.name}`), "exec-clock").read<{ exit: string }>()
-        )
-        assert(deferred.resource !== undefined)
-        // And the clock doc has been deleted.
-        const clockGone = yield* Effect.promise(() => container.item("clock::wake", "exec-clock").read())
-        assert.strictEqual(clockGone.statusCode, 404)
-      })
-      .pipe(Effect.provide(adapterLayer(prefix)))
+      // The clock fire is a deferred-complete; assert the deferred row
+      // now exists for this execution.
+      const deferred = yield* Effect.promise(() =>
+        container.item(encodeURIComponent(`deferred::${Trigger.name}`), "exec-clock").read<{ exit: string }>()
+      )
+      assert(deferred.resource !== undefined)
+      // And the clock doc has been deleted.
+      const clockGone = yield* Effect.promise(() => container.item("clock::wake", "exec-clock").read())
+      assert.strictEqual(clockGone.statusCode, 404)
+    }).pipe(Effect.provide(adapterLayer(prefix)))
   })
 })

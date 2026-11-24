@@ -13,13 +13,11 @@ describe("OmegaForm Defaults", () => {
     c: S.NonEmptyArray(S.String).pipe(
       S.withConstructorDefault(Effect.sync(() => [S.NonEmptyString("C"), S.NonEmptyString("Non Empty Array")]))
     ),
-    d: S
-      .NonEmptyArray(S.Struct({
+    d: S.NonEmptyArray(
+      S.Struct({
         e: S.NonEmptyString
-      }))
-      .pipe(
-        S.withConstructorDefault(Effect.sync(() => [{ e: S.NonEmptyString("default") }]))
-      ),
+      })
+    ).pipe(S.withConstructorDefault(Effect.sync(() => [{ e: S.NonEmptyString("default") }]))),
     f: S.Union([
       S.Struct({
         _tag: S.Literal("taggo1").pipe(S.withConstructorDefault(Effect.succeed("taggo1"))),
@@ -54,12 +52,12 @@ describe("OmegaForm Defaults", () => {
     }),
     p: S.NullOr(S.Struct({ z: S.String })),
     q: S.UndefinedOr(S.Struct({ z: S.String })),
-    r: S
-      .NullOr(S.Struct({
+    r: S.NullOr(
+      S.Struct({
         p: S.NullOr(S.Struct({ z: S.String })),
         r: S.UndefinedOr(S.Struct({ z: S.String }))
-      }))
-      .withConstructorDefault,
+      })
+    ).withConstructorDefault,
     s: S.NullOr(S.Struct({ z: S.String })).withConstructorDefault,
     t: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000))),
     u: S.NullOr(S.NonEmptyString),
@@ -102,24 +100,24 @@ describe("OmegaForm Defaults", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "default",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "default",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -142,24 +140,24 @@ describe("OmegaForm Defaults", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "default",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "default",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -182,28 +180,28 @@ describe("OmegaForm Defaults", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "_tag": "tag1",
-      "a": "default",
-      "b": "default",
-      "c": {
-        "a": "default",
-        "b": "",
-        "c": ["C", "Non Empty Array"],
-        "d": [{ "e": "default" }],
-        "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-        "j": 0,
-        "k": true,
-        "l": null,
-        "m": { "n": null },
-        "p": null,
-        "r": null,
-        "s": null,
-        "t": 1000,
-        "u": null
+      _tag: "tag1",
+      a: "default",
+      b: "default",
+      c: {
+        a: "default",
+        b: "",
+        c: ["C", "Non Empty Array"],
+        d: [{ e: "default" }],
+        f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+        j: 0,
+        k: true,
+        l: null,
+        m: { n: null },
+        p: null,
+        r: null,
+        s: null,
+        t: 1000,
+        u: null
       }
     })
   })
@@ -221,16 +219,18 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(S.Union([
-          S.Struct({
-            _tag: S.Literal("one"),
-            a: S.Struct({ z: S.NonEmptyString100 })
-          }),
-          S.Struct({
-            _tag: S.Literal("two"),
-            a: S.Struct({ y: S.NonNegativeInt })
-          })
-        ]))
+        const form = useOmegaForm(
+          S.Union([
+            S.Struct({
+              _tag: S.Literal("one"),
+              a: S.Struct({ z: S.NonEmptyString100 })
+            }),
+            S.Struct({
+              _tag: S.Literal("two"),
+              a: S.Struct({ y: S.NonNegativeInt })
+            })
+          ])
+        )
 
         return { form }
       }
@@ -238,7 +238,7 @@ describe("OmegaForm Defaults", () => {
 
     await wrapper.vm.$nextTick()
 
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     expect(JSON.parse(valuesText)).not.toHaveProperty("_tag")
   })
 
@@ -265,24 +265,24 @@ describe("OmegaForm Defaults", () => {
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "aaaaah",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "aaaaah",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -299,36 +299,40 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(schema, {
-          defaultValues: {
-            a: "aaaaah"
+        const form = useOmegaForm(
+          schema,
+          {
+            defaultValues: {
+              a: "aaaaah"
+            }
+          },
+          {
+            defaultValuesPriority: ["schema"]
           }
-        }, {
-          defaultValuesPriority: ["schema"]
-        })
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "default",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "default",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -345,23 +349,27 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(schema, {
-          defaultValues: {
-            a: "aaaaah"
+        const form = useOmegaForm(
+          schema,
+          {
+            defaultValues: {
+              a: "aaaaah"
+            }
+          },
+          {
+            defaultValuesPriority: ["tanstack"]
           }
-        }, {
-          defaultValuesPriority: ["tanstack"]
-        })
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "aaaaah"
+      a: "aaaaah"
     })
   })
 
@@ -378,36 +386,40 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(schema, {
-          defaultValues: {
-            a: "aaaaah"
+        const form = useOmegaForm(
+          schema,
+          {
+            defaultValues: {
+              a: "aaaaah"
+            }
+          },
+          {
+            defaultValuesPriority: ["tanstack", "schema"]
           }
-        }, {
-          defaultValuesPriority: ["tanstack", "schema"]
-        })
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "aaaaah",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "aaaaah",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -424,31 +436,33 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(S.Union([
-          S.Struct({
-            _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
-            a: S.NonEmptyString,
-            s: S.NullOr(S.Finite).withConstructorDefault
-          }),
-          S.Struct({
-            _tag: S.Literal("tag2"),
-            b: S.NonEmptyString,
-            t: S.Finite
-          })
-        ]))
+        const form = useOmegaForm(
+          S.Union([
+            S.Struct({
+              _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
+              a: S.NonEmptyString,
+              s: S.NullOr(S.Finite).withConstructorDefault
+            }),
+            S.Struct({
+              _tag: S.Literal("tag2"),
+              b: S.NonEmptyString,
+              t: S.Finite
+            })
+          ])
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "_tag": "tag1",
-      "a": "",
-      "s": null,
-      "b": ""
+      _tag: "tag1",
+      a: "",
+      s: null,
+      b: ""
     })
   })
 
@@ -465,40 +479,43 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(ClassSchema
-          .pipe(
-            S.check(S.makeFilter((form) => {
-              if (form.a !== form.b) {
-                return {
-                  path: ["a"],
-                  message: "Email and confirmation must match!"
+        const form = useOmegaForm(
+          ClassSchema.pipe(
+            S.check(
+              S.makeFilter((form) => {
+                if (form.a !== form.b) {
+                  return {
+                    path: ["a"],
+                    message: "Email and confirmation must match!"
+                  }
                 }
-              }
-            }))
-          ))
+              })
+            )
+          )
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "default",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "default",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 
@@ -515,37 +532,43 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
-          if (form.a !== form.b) {
-            return {
-              path: ["a"],
-              message: "Email and confirmation must match!"
-            }
-          }
-        }))))
+        const form = useOmegaForm(
+          ClassSchema.pipe(
+            S.check(
+              S.makeFilter((form) => {
+                if (form.a !== form.b) {
+                  return {
+                    path: ["a"],
+                    message: "Email and confirmation must match!"
+                  }
+                }
+              })
+            )
+          )
+        )
         return { form }
       }
     })
 
     await wrapper.vm.$nextTick()
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    const valuesText = wrapper.find('[data-testid="values"]').text()
     const values = JSON.parse(valuesText)
 
     expect(values).toEqual({
-      "a": "default",
-      "b": "",
-      "c": ["C", "Non Empty Array"],
-      "d": [{ "e": "default" }],
-      "f": { "_tag": "taggo1", "g": "default", "i": "default", "h": "default" },
-      "j": 0,
-      "k": true,
-      "l": null,
-      "m": { "n": null },
-      "p": null,
-      "r": null,
-      "s": null,
-      "t": 1000,
-      "u": null
+      a: "default",
+      b: "",
+      c: ["C", "Non Empty Array"],
+      d: [{ e: "default" }],
+      f: { _tag: "taggo1", g: "default", i: "default", h: "default" },
+      j: 0,
+      k: true,
+      l: null,
+      m: { n: null },
+      p: null,
+      r: null,
+      s: null,
+      t: 1000,
+      u: null
     })
   })
 })

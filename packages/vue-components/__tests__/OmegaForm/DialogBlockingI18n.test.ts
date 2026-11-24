@@ -14,9 +14,7 @@ import { useIntlKey } from "../../src/utils"
 describe("usePreventClose i18n", () => {
   it("calls window.confirm with the formatted message when dirty and dialog is closing", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
-    const formatMessage = vi.fn(
-      (descriptor: { id: string; defaultMessage?: string }) => `de:${descriptor.id}`
-    )
+    const formatMessage = vi.fn((descriptor: { id: string; defaultMessage?: string }) => `de:${descriptor.id}`)
 
     let bus: ReturnType<typeof provideBus> | undefined
     const Outer = defineComponent({

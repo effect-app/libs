@@ -22,7 +22,8 @@ export function flatMapOption<R, E, A, R2, E2, A2>(
     Option.match(d, {
       onNone: () => Effect.sync(() => Option.none()),
       onSome: (_) => Effect.map(fm(_), Option.some)
-    }))
+    })
+  )
 }
 
 export function tapOption<R, E, A, R2, E2, A2>(
@@ -33,7 +34,8 @@ export function tapOption<R, E, A, R2, E2, A2>(
     Option.match(d, {
       onNone: () => Effect.sync(() => Option.none()),
       onSome: (_) => Effect.map(fm(_), () => Option.some(_))
-    }))
+    })
+  )
 }
 
 export function zipRightOption<R, E, A, R2, E2, A2>(
@@ -44,7 +46,8 @@ export function zipRightOption<R, E, A, R2, E2, A2>(
     Option.match(d, {
       onNone: () => Effect.sync(() => Option.none()),
       onSome: (_) => Effect.map(fm, () => Option.some(_))
-    }))
+    })
+  )
 }
 
 export function mapOption<R, E, A, A2>(
@@ -55,16 +58,15 @@ export function mapOption<R, E, A, A2>(
     Option.match(d, {
       onNone: () => Option.none(),
       onSome: (_) => Option.some(fm(_))
-    }))
+    })
+  )
 }
 
 /**
  * Takes [A, B], applies it to a curried Effect function,
  * taps the Effect, returning A.
  */
-export function tupleTap<A, B, R, E, C>(
-  f: (b: B) => (a: A) => Effect.Effect<C, E, R>
-) {
+export function tupleTap<A, B, R, E, C>(f: (b: B) => (a: A) => Effect.Effect<C, E, R>) {
   return (t: readonly [A, B]) => Effect.sync(() => t[0]).pipe(Effect.tap(f(t[1])))
 }
 
@@ -80,11 +82,7 @@ export function ifDiffR<I, R, E, A>(f: (i: I) => Effect.Effect<A, E, R>) {
   return (n: I, orig: I) => ifDiff_(n, orig, f)
 }
 
-export function ifDiff_<I, R, E, A>(
-  n: I,
-  orig: I,
-  f: (i: I) => Effect.Effect<A, E, R>
-) {
+export function ifDiff_<I, R, E, A>(n: I, orig: I, f: (i: I) => Effect.Effect<A, E, R>) {
   return n !== orig ? f(n) : Effect.void
 }
 
@@ -99,21 +97,15 @@ export function modifyWithPermitWithEffect<A>(ref: Ref.Ref<A>, semaphore: Semaph
   const withPermit = semaphore.withPermits(1)
   return <R, E, A2>(mod: (a: A) => Effect.Effect<readonly [A2, A], E, R>) =>
     withPermit(
-      Effect
-        .flatMap(Ref.get(ref), mod)
-        .pipe(
-          Effect.tap(([, _]) => Ref.set(ref, _)),
-          Effect.map(([_]) => _)
-        )
+      Effect.flatMap(Ref.get(ref), mod).pipe(
+        Effect.tap(([, _]) => Ref.set(ref, _)),
+        Effect.map(([_]) => _)
+      )
     )
 }
 
-type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S
-  : T extends Context.Service<any, infer S> ? S
-  : never
-type ServiceR<T> = T extends Effect.Effect<any, any, infer R> ? R
-  : T extends Context.Service<infer I, any> ? I
-  : never
+type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S : T extends Context.Service<any, infer S> ? S : never
+type ServiceR<T> = T extends Effect.Effect<any, any, infer R> ? R : T extends Context.Service<infer I, any> ? I : never
 type ServiceE<T> = T extends Effect.Effect<any, infer E, any> ? E : never
 // type Values<T> = T extends { [s: string]: infer S } ? ServiceA<S> : never
 type ValuesR<T> = T extends { [s: string]: infer S } ? ServiceR<S> : never
@@ -136,7 +128,8 @@ type ValuesE<T> = T extends { [s: string]: infer S } ? ServiceE<S> : never
 // eslint-disable-next-line import/namespace
 export interface EffectUnunified<R, E, A> extends Effect.Effect<R, E, A> {}
 
-export type LowerFirst<S extends PropertyKey> = S extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}`
+export type LowerFirst<S extends PropertyKey> = S extends `${infer First}${infer Rest}`
+  ? `${Lowercase<First>}${Rest}`
   : S
 export type LowerServices<T extends Record<string, Context.Service<any, any> | Effect.Effect<any, any, any>>> = {
   [key in keyof T as LowerFirst<key>]: ServiceA<T[key]>
@@ -167,10 +160,7 @@ export function allLowerWithEffect<
   R,
   E,
   A
->(
-  services: T,
-  fn: (services: LowerServices<T>) => Effect.Effect<A, E, R>
-) {
+>(services: T, fn: (services: LowerServices<T>) => Effect.Effect<A, E, R>) {
   return Effect.flatMap(allLower(services), fn)
 }
 

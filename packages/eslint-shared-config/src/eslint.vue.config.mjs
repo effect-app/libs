@@ -45,8 +45,8 @@ export function vueConfig(dirName, forceTS = false) {
         parserOptions: {
           parser: {
             "<template>": tsParser,
-            "ts": tsParser,
-            "js": tsParser
+            ts: tsParser,
+            js: tsParser
           },
           tsconfigRootDir: dirName,
           extraFileExtensions: [".vue"],

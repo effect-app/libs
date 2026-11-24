@@ -8,8 +8,7 @@ describe("deepMerge", () => {
   })
 
   it("recursively merges objects", () => {
-    expect(deepMerge({ a: { b: 1, c: 2 } }, { a: { c: 9, d: 3 } }))
-      .toEqual({ a: { b: 1, c: 9, d: 3 } })
+    expect(deepMerge({ a: { b: 1, c: 2 } }, { a: { c: 9, d: 3 } })).toEqual({ a: { b: 1, c: 9, d: 3 } })
   })
 
   it("source wins for primitives", () => {

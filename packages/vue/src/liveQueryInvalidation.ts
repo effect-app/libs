@@ -10,10 +10,7 @@ export interface LiveQueryOptions {
 export interface LiveQueryInvalidationSource {
   /** Resolve only after events received after this point can no longer be missed. */
   readonly ready: () => Promise<void>
-  readonly subscribe: (
-    onWrites: (writes: DataDependencies.DataDependencies) => void,
-    onReset: () => void
-  ) => () => void
+  readonly subscribe: (onWrites: (writes: DataDependencies.DataDependencies) => void, onReset: () => void) => () => void
   readonly invalidate: (keys: ReadonlyArray<ReadonlyArray<unknown>>) => void
 }
 
@@ -51,10 +48,13 @@ interface FetchState {
 
 const entries = MutableHashMap.empty<ReadonlyArray<unknown>, LiveQueryEntry>()
 const fetches = new WeakMap<LiveQueryFetch, FetchState>()
-type ReadyOutcome = { readonly _tag: "ready" } | { readonly _tag: "switched" } | {
-  readonly _tag: "failed"
-  readonly error: unknown
-}
+type ReadyOutcome =
+  | { readonly _tag: "ready" }
+  | { readonly _tag: "switched" }
+  | {
+      readonly _tag: "failed"
+      readonly error: unknown
+    }
 /** One shared `ready()` call per epoch; waiters detach on abort so none accumulate on the promise. */
 let observation: { readonly epoch: number; readonly waiters: Set<(outcome: ReadyOutcome) => void> } | undefined
 let source: LiveQueryInvalidationSource | undefined
@@ -137,7 +137,10 @@ const observeReady = (waiter: (outcome: ReadyOutcome) => void) => {
     } catch (error) {
       ready = Promise.reject(error)
     }
-    ready.then(() => settle(started, { _tag: "ready" }), (error) => settle(started, { _tag: "failed", error }))
+    ready.then(
+      () => settle(started, { _tag: "ready" }),
+      (error) => settle(started, { _tag: "failed", error })
+    )
   } else {
     current.waiters.add(waiter)
   }
@@ -193,11 +196,14 @@ const catchUp = (entry: LiveQueryEntry) => {
   const target = epoch
   const controller = new AbortController()
   entry.catchUp = controller
-  readyOnce(controller.signal).then((ready) => {
-    if (entry.catchUp === controller) entry.catchUp = undefined
-    if (!ready || epoch !== target || !isCurrent(entry)) return
-    if (entry.awaitingReady === 0 && entry.coveredEpoch !== target) invalidateNow(entry)
-  }, () => {})
+  readyOnce(controller.signal).then(
+    (ready) => {
+      if (entry.catchUp === controller) entry.catchUp = undefined
+      if (!ready || epoch !== target || !isCurrent(entry)) return
+      if (entry.awaitingReady === 0 && entry.coveredEpoch !== target) invalidateNow(entry)
+    },
+    () => {}
+  )
 }
 
 const unsubscribeNow = () => {
@@ -361,7 +367,7 @@ export const liveQueryReady = async (): Promise<void> => {
   for (;;) {
     const target = epoch
     try {
-      if (await waitReady() === epoch) return
+      if ((await waitReady()) === epoch) return
     } catch (error) {
       if (epoch === target) throw error
     }

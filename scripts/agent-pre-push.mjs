@@ -9,9 +9,10 @@
  * raw `gh pr ready`, which the shim gates rather than refuses.
  *
  * Ship gate — the JS quality path CI runs, and nothing else:
- *   1. `pnpm check`  — tsrs --build ./tsconfig.all.json
+ *   1. `pnpm check`        — tsrs --build ./tsconfig.all.json
  *   2. `pnpm lint`
- *   3. `pnpm test`   — pnpm -r --no-bail test:run
+ *   3. `pnpm format:check` — oxfmt --check .
+ *   4. `pnpm test`         — pnpm -r --no-bail test:run
  *
  * This is a library monorepo: there is no application to stand up and no browser
  * suite, so the unit run is the whole story. That keeps the gate honest about
@@ -34,7 +35,13 @@ import path from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
 import { isCodingAgent } from "./lib/agent-env.mjs"
-import { isShipGateForce, isShipGateShaCached, readHeadSha, readShipGateCache, writeShipGateCache } from "./lib/agent-ship-gate-cache.mjs"
+import {
+  isShipGateForce,
+  isShipGateShaCached,
+  readHeadSha,
+  readShipGateCache,
+  writeShipGateCache
+} from "./lib/agent-ship-gate-cache.mjs"
 
 export { isCodingAgent }
 
@@ -71,8 +78,8 @@ const run = (label, args, opts = {}) => {
 }
 
 export const isWorktreeClean = (root = process.cwd(), opts = {}) => {
-  const runGit = opts.runGit
-    ?? ((args, runOpts) => spawnSync("git", args, { cwd: runOpts.cwd, encoding: "utf8", shell: false }))
+  const runGit =
+    opts.runGit ?? ((args, runOpts) => spawnSync("git", args, { cwd: runOpts.cwd, encoding: "utf8", shell: false }))
   const result = runGit(["status", "--porcelain=v1", "--untracked-files=normal"], { cwd: root })
   return result.status === 0 && String(result.stdout ?? "").trim() === ""
 }
@@ -98,15 +105,17 @@ export const runAgentShipGate = async (opts = {}) => {
 
   if (!force && headSha && isShipGateShaCached(headSha, readShipGateCache(root))) {
     console.error(
-      `agent ship-gate: skip — ${
-        headSha.slice(0, 12)
-      } already validated (cache .run/agent-ship-gate.json; force with AGENT_SHIP_GATE_FORCE=1)`
+      `agent ship-gate: skip — ${headSha.slice(
+        0,
+        12
+      )} already validated (cache .run/agent-ship-gate.json; force with AGENT_SHIP_GATE_FORCE=1)`
     )
     return { status: "cached", sha: headSha }
   }
 
   run("pnpm check", ["pnpm", "check"], { cwd: root, env })
   run("pnpm lint", ["pnpm", "lint"], { cwd: root, env })
+  run("pnpm format:check", ["pnpm", "format:check"], { cwd: root, env })
   run("pnpm test", ["pnpm", "test"], { cwd: root, env })
 
   if (!isWorktreeClean(root)) {

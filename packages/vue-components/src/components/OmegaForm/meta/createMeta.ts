@@ -8,28 +8,23 @@ import { classifyAndWalkUnion, leafMetaForAst, type ParentMeta, type WalkerConte
 
 export type FilterItems = {
   items: readonly [string, ...string[]]
-  message:
-    | string
-    | Effect.Effect<string>
-    | { readonly message: string | Effect.Effect<string> }
+  message: string | Effect.Effect<string> | { readonly message: string | Effect.Effect<string> }
 }
 
-export type CreateMeta =
-  & {
-    parent?: string
-    meta?: Record<string, any>
-    nullableOrUndefined?: false | "undefined" | "null"
-  }
-  & (
-    | {
+export type CreateMeta = {
+  parent?: string
+  meta?: Record<string, any>
+  nullableOrUndefined?: false | "undefined" | "null"
+} & (
+  | {
       propertySignatures: readonly S.AST.PropertySignature[]
       property?: never
     }
-    | {
+  | {
       propertySignatures?: never
       property: S.AST.AST
     }
-  )
+)
 
 export const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
   let current = getTransformationFrom(property)
@@ -68,9 +63,7 @@ export const createMeta = <T = any>(
   if (property) {
     const nullableOrUndefined = isNullableOrUndefined(property)
     const unwrapped = unwrapDeclaration(property)
-    const required = !Object.hasOwnProperty.call(meta, "required")
-      ? !nullableOrUndefined
-      : (meta.required as boolean)
+    const required = !Object.hasOwnProperty.call(meta, "required") ? !nullableOrUndefined : (meta.required as boolean)
 
     const parentMeta: ParentMeta = {
       required,

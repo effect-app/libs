@@ -27,7 +27,7 @@ browser or API suite here that a draft could usefully defer, and a pushed commit
 that does not compile or whose tests fail is worth nothing to a reviewer whatever
 the PR says.
 
-The gate is `pnpm check` → `pnpm lint` → `pnpm test`, which is what CI runs and
+The gate is `pnpm check` → `pnpm lint` → `pnpm format:check` → `pnpm test`, which is what CI runs and
 nothing more. This is a library monorepo — no application to stand up, no browser
 suite — so the unit run _is_ the gate. It caches the validated HEAD SHA in
 `.run/agent-ship-gate.json`, so **one commit is validated once** however many
@@ -78,12 +78,11 @@ Anti-patterns that mean you skipped the checklist:
 ### Validation
 
 The ship gate owns validation — see _The gate runs the checks — you do not_. It
-runs `pnpm check` → `pnpm lint` → `pnpm test` on every push and on publish, once
+runs `pnpm check` → `pnpm lint` → `pnpm format:check` → `pnpm test` on every push and on publish, once
 per commit.
 
-`pnpm lint-fix` is the one thing worth running by hand, because it _writes_: it
-formats and auto-fixes across packages, and the gate only reports what it would
-have fixed. Run it when you are done editing, stage what it changes, then push.
+`pnpm lint-fix` and `pnpm format` (in that order — lint auto-fixes first, then formatting) are the things worth running by hand, because they _write_, and the gate only reports what they would
+have fixed. Run them when you are done editing, stage what they change, then push.
 
 If type checking fails in a way that makes no sense against the diff, `pnpm clean`
 clears the caches — stale incremental state produces phantom errors.
@@ -98,7 +97,7 @@ clears the caches — stale incremental state produces phantom errors.
 established patterns before writing new code.
 
 Do not worry about getting code formatting perfect while writing. Use `pnpm lint-fix`
-to automatically format code according to the project's style guidelines.
+followed by `pnpm format` to automatically fix lint issues and format code according to the project's style guidelines.
 
 ## Prefer `Effect.fnUntraced` over functions that return `Effect.gen`
 
@@ -106,7 +105,7 @@ Instead of writing:
 
 ```ts
 const fn = (param: string) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     // ...
   })
 ```
@@ -114,7 +113,7 @@ const fn = (param: string) =>
 Prefer:
 
 ```ts
-const fn = Effect.fnUntraced(function*(param: string) {
+const fn = Effect.fnUntraced(function* (param: string) {
   // ...
 })
 ```
@@ -126,9 +125,12 @@ Prefer the class syntax when working with `Context.Service`. For example:
 ```ts
 import { Context } from "effect-app"
 
-class MyService extends Context.Service<MyService, {
-  readonly doSomething: (input: string) => number
-}>()("MyService") {}
+class MyService extends Context.Service<
+  MyService,
+  {
+    readonly doSomething: (input: string) => number
+  }
+>()("MyService") {}
 ```
 
 ## Checking Array is not empty

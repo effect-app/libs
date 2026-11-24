@@ -1,23 +1,18 @@
 <template>
-  <slot
-    v-for="({ name, label, ...attrs }) in children"
-    :child="{ name, label, ...attrs }"
-  >
-    <form.Input
-      :name="name as FieldPath<From>"
-      :label="label"
-      v-bind="attrs"
-    />
+  <slot v-for="{ name, label, ...attrs } in children" :child="{ name, label, ...attrs }">
+    <form.Input :name="name as FieldPath<From>" :label="label" v-bind="attrs" />
   </slot>
 </template>
 
 <script
   setup
   lang="ts"
-  generic="// dprint-ignore
-  From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>,
-  Name extends DeepKeys<From>"
+  generic="
+    // dprint-ignore
+    From extends Record<PropertyKey, string>,
+    To extends Record<PropertyKey, string>,
+    Name extends DeepKeys<From>
+  "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import * as Order from "effect/Order"
@@ -27,19 +22,19 @@ import { type FieldPath, type OmegaAutoGenMeta, type OmegaInputProps } from "./t
 
 type NewMeta = OmegaAutoGenMeta<From, To, Name>
 
-const mapObject = <K extends string, A, B>(fn: (value: A, key: K) => B) => (obj: Record<K, A>): Record<K, B> =>
-  Object.fromEntries(
-    (Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)])
-  ) as Record<K, B> // Cast needed for Object.fromEntries
+const mapObject =
+  <K extends string, A, B>(fn: (value: A, key: K) => B) =>
+  (obj: Record<K, A>): Record<K, B> =>
+    Object.fromEntries((Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)])) as Record<K, B> // Cast needed for Object.fromEntries
 
 const filterRecord =
-  <K extends string, V>(predicate: (value: V, key: K) => boolean) => (obj: Record<K, V>): Record<K, V> =>
-    Object.fromEntries(
-      (Object.entries(obj) as [K, V][]).filter(([k, v]) => predicate(v, k))
-    ) as Record<K, V>
+  <K extends string, V>(predicate: (value: V, key: K) => boolean) =>
+  (obj: Record<K, V>): Record<K, V> =>
+    Object.fromEntries((Object.entries(obj) as [K, V][]).filter(([k, v]) => predicate(v, k))) as Record<K, V>
 
 const filterMapRecord =
-  <K extends string, A, B>(fn: (value: A, key: K) => false | B) => (obj: Record<K, A>): Record<K, B> =>
+  <K extends string, A, B>(fn: (value: A, key: K) => false | B) =>
+  (obj: Record<K, A>): Record<K, B> =>
     (Object.entries(obj) as [K, A][]).reduce(
       (acc, [key, value]) => {
         const result = fn(value, key)
@@ -66,19 +61,15 @@ const namePosition = (name: DeepKeys<From>, order: DeepKeys<From>[]) => {
   return index === -1 ? Number.MAX_SAFE_INTEGER : index
 }
 
-const orderBy: Order.Order<NewMeta> = Order.mapInput(
-  Order.Number,
-  (x: NewMeta) => namePosition(x.name, props.order || [])
+const orderBy: Order.Order<NewMeta> = Order.mapInput(Order.Number, (x: NewMeta) =>
+  namePosition(x.name, props.order || [])
 )
 
 const children = computed<NewMeta[]>(() => {
-  const included = filterRecord((value, metaKey) =>
-    Boolean(value)
-    && (
-      props.pick
-        ? props.pick.includes(metaKey) && !props.omit?.includes(metaKey)
-        : !props.omit?.includes(metaKey)
-    )
+  const included = filterRecord(
+    (value, metaKey) =>
+      Boolean(value) &&
+      (props.pick ? props.pick.includes(metaKey) && !props.omit?.includes(metaKey) : !props.omit?.includes(metaKey))
   )(props.form.meta as Record<DeepKeys<From>, FieldMeta | undefined>) as Record<DeepKeys<From>, FieldMeta>
 
   const withLabels = mapObject((metaValue: FieldMeta, metaKey) => ({
@@ -88,13 +79,13 @@ const children = computed<NewMeta[]>(() => {
   }))(included) as unknown as Record<DeepKeys<From>, NewMeta>
 
   const filtered = props.filterMap
-    ? filterMapRecord((m: NewMeta) => {
-      const result = props.filterMap?.(m.name, m)
-      return result === undefined || result === true ? m : result
-    })(withLabels) as Record<DeepKeys<From>, NewMeta>
+    ? (filterMapRecord((m: NewMeta) => {
+        const result = props.filterMap?.(m.name, m)
+        return result === undefined || result === true ? m : result
+      })(withLabels) as Record<DeepKeys<From>, NewMeta>)
     : withLabels
 
-  const sorted = [...Object.values(filtered) as NewMeta[]].sort(orderBy)
+  const sorted = [...(Object.values(filtered) as NewMeta[])].sort(orderBy)
 
   return props.sort ? sorted.sort(props.sort) : sorted
 })

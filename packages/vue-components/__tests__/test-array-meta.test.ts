@@ -3,29 +3,40 @@ import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema } from "../src/components/OmegaForm"
 
 const schema = S.Struct({
-  a: S.Array(S.Struct({
-    b: S.String,
-    c: S.Array(S.Struct({
-      d: S.String
-    })),
-    e: S.Array(S.Finite)
-  })),
+  a: S.Array(
+    S.Struct({
+      b: S.String,
+      c: S.Array(
+        S.Struct({
+          d: S.String
+        })
+      ),
+      e: S.Array(S.Finite)
+    })
+  ),
   aMultiple: S.Array(S.String),
-  aNullable: S.NullOr(S.Struct({
-    a: S.String
-  })),
-  foo: S
-    .NullOr(
-      S.Struct({
-        bar: S.UndefinedOr(S.Array(S.Struct({
-          baz: S.String,
-          items: S.NonEmptyArray(S.Struct({
+  aNullable: S.NullOr(
+    S.Struct({
+      a: S.String
+    })
+  ),
+  foo: S.NullOr(
+    S.Struct({
+      bar: S.UndefinedOr(
+        S.Array(
+          S.Struct({
             baz: S.String,
-            value: S.Finite
-          }))
-        })))
-      })
-    )
+            items: S.NonEmptyArray(
+              S.Struct({
+                baz: S.String,
+                value: S.Finite
+              })
+            )
+          })
+        )
+      )
+    })
+  )
 })
 
 describe("test-array-meta", () => {

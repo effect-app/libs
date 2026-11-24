@@ -16,7 +16,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return proto === Object.prototype || proto === null
 }
 
-const unwrapAst = (ast: SchemaAST.AST): SchemaAST.AST => SchemaAST.isSuspend(ast) ? unwrapAst(ast.thunk()) : ast
+const unwrapAst = (ast: SchemaAST.AST): SchemaAST.AST => (SchemaAST.isSuspend(ast) ? unwrapAst(ast.thunk()) : ast)
 
 const unionAst = (hits: readonly SchemaAST.AST[]): SchemaAST.AST | undefined => {
   if (hits.length === 0) return undefined
@@ -132,9 +132,7 @@ const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => 
     return out
   }
   if (Array.isArray(value)) {
-    const element = SchemaAST.isArrays(current) || SchemaAST.isUnion(current)
-      ? elementAst(current)
-      : current
+    const element = SchemaAST.isArrays(current) || SchemaAST.isUnion(current) ? elementAst(current) : current
     return value.map((item) => encodeJson(element, item))
   }
   if (value instanceof Set) {
@@ -146,9 +144,7 @@ const encodeJson = (ast: SchemaAST.AST | undefined, value: unknown): unknown => 
       encodeJson(mapValueAst(current), v)
     ])
   }
-  return Effect.runSync(
-    S.encodeUnknownEffect(S.toCodecJson(S.make(current)))(value) as Effect.Effect<S.Json>
-  )
+  return Effect.runSync(S.encodeUnknownEffect(S.toCodecJson(S.make(current)))(value) as Effect.Effect<S.Json>)
 }
 
 const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: unknown): unknown => {
@@ -157,12 +153,12 @@ const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: 
     return asArray(value).map((item) => encodeJson(fieldAst, item))
   }
   if (
-    op === "includes"
-    || op === "notIncludes"
-    || op === "includes-any"
-    || op === "notIncludes-any"
-    || op === "includes-all"
-    || op === "notIncludes-all"
+    op === "includes" ||
+    op === "notIncludes" ||
+    op === "includes-any" ||
+    op === "notIncludes-any" ||
+    op === "includes-all" ||
+    op === "notIncludes-all"
   ) {
     const element = elementAst(fieldAst)
     return op === "includes" || op === "notIncludes"
@@ -170,12 +166,12 @@ const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: 
       : asArray(value).map((item) => encodeJson(element, item))
   }
   if (
-    op === "hasKeyValue"
-    || op === "notHasKeyValue"
-    || op === "hasKeyValue-any"
-    || op === "notHasKeyValue-any"
-    || op === "hasKeyValue-all"
-    || op === "notHasKeyValue-all"
+    op === "hasKeyValue" ||
+    op === "notHasKeyValue" ||
+    op === "hasKeyValue-any" ||
+    op === "notHasKeyValue-any" ||
+    op === "hasKeyValue-all" ||
+    op === "notHasKeyValue-all"
   ) {
     const keyAst = mapKeyAst(fieldAst)
     const valueAst = mapValueAst(fieldAst)
@@ -186,12 +182,12 @@ const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: 
     return op === "hasKeyValue" || op === "notHasKeyValue" ? pair(value) : asArray(value).map(pair)
   }
   if (
-    op === "hasKey"
-    || op === "notHasKey"
-    || op === "hasKey-any"
-    || op === "notHasKey-any"
-    || op === "hasKey-all"
-    || op === "notHasKey-all"
+    op === "hasKey" ||
+    op === "notHasKey" ||
+    op === "hasKey-any" ||
+    op === "notHasKey-any" ||
+    op === "hasKey-all" ||
+    op === "notHasKey-all"
   ) {
     const keyAst = mapKeyAst(fieldAst)
     return op === "hasKey" || op === "notHasKey"
@@ -199,12 +195,12 @@ const encodeFilterValue = (fieldAst: SchemaAST.AST | undefined, op: Ops, value: 
       : asArray(value).map((item) => encodeJson(keyAst, item))
   }
   if (
-    op === "hasValue"
-    || op === "notHasValue"
-    || op === "hasValue-any"
-    || op === "notHasValue-any"
-    || op === "hasValue-all"
-    || op === "notHasValue-all"
+    op === "hasValue" ||
+    op === "notHasValue" ||
+    op === "hasValue-any" ||
+    op === "notHasValue-any" ||
+    op === "hasValue-all" ||
+    op === "notHasValue-all"
   ) {
     const valueAst = mapValueAst(fieldAst)
     return op === "hasValue" || op === "notHasValue"
@@ -252,10 +248,7 @@ export function encodeWithSchema(schema: S.Top | undefined, value: unknown): unk
   return encodeJson(SchemaAST.toEncoded(schema.ast), value)
 }
 
-export function jsonifyFilter(
-  filter: readonly FilterResult[],
-  schema?: S.Top
-): FilterResult[] {
+export function jsonifyFilter(filter: readonly FilterResult[], schema?: S.Top): FilterResult[] {
   const ast = schema === undefined ? undefined : SchemaAST.toEncoded(schema.ast)
   return filter.map((r) =>
     r.t === "and-scope" || r.t === "or-scope" || r.t === "where-scope"
@@ -279,9 +272,7 @@ export function get(obj: any, path: string): any {
   return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
 }
 
-export const makeETag = <E extends PersistenceModelType<{}>>(
-  { _etag, ...e }: E
-): E =>
+export const makeETag = <E extends PersistenceModelType<{}>>({ _etag, ...e }: E): E =>
   ({
     ...e,
     // we have to hash the JSON, as hashing the object might contain elements that won't be serialized anyway
@@ -289,7 +280,7 @@ export const makeETag = <E extends PersistenceModelType<{}>>(
   }) as any
 
 export const makeUpdateETag = (type: string) =>
-  Effect.fnUntraced(function*<IdKey extends keyof E, E extends PersistenceModelType<{}>>(
+  Effect.fnUntraced(function* <IdKey extends keyof E, E extends PersistenceModelType<{}>>(
     e: E,
     idKey: IdKey,
     current: Option.Option<E>

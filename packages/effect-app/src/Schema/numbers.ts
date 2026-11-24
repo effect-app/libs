@@ -18,9 +18,9 @@ import { type BrandedSchema, fromBrand, nominal } from "./brand.ts"
 import { withDefaultMake } from "./ext.ts"
 import { type B } from "./schema.ts"
 
-export interface PositiveIntBrand
-  extends Simplify<B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand>
-{}
+export interface PositiveIntBrand extends Simplify<
+  B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand
+> {}
 export type PositiveInt = number & PositiveIntBrand
 /** Positive integer. `.withConstructorDefault` => `1` (construction-only). */
 export interface PositiveIntSchema extends BrandedSchema<S.Int, PositiveInt> {
@@ -101,10 +101,12 @@ export interface PositiveNumberSchema extends BrandedSchema<S.Finite, PositiveNu
 }
 export const PositiveNumber: PositiveNumberSchema = extendM(
   S.Finite.pipe(
-    S.check(S.isGreaterThan(0, {
-      // the full constraint: annotations replace the check default, which carries `order` + `minimum`
-      arbitraryConstraint: { order: Order.Number, minimum: 0, exclusiveMinimum: true, maximum: realisticMaximum }
-    })),
+    S.check(
+      S.isGreaterThan(0, {
+        // the full constraint: annotations replace the check default, which carries `order` + `minimum`
+        arbitraryConstraint: { order: Order.Number, minimum: 0, exclusiveMinimum: true, maximum: realisticMaximum }
+      })
+    ),
     fromBrand<PositiveNumber>(nominal<PositiveNumber>(), {
       identifier: "PositiveNumber",
       jsonSchema: {}
@@ -129,18 +131,18 @@ export interface NonNegativeNumberSchema extends BrandedSchema<S.Finite, NonNega
   readonly withConstructorDefault: S.withConstructorDefault<BrandedSchema<S.Finite, NonNegativeNumber>>
 }
 export const NonNegativeNumber: NonNegativeNumberSchema = extendM(
-  S
-    .Finite
-    .pipe(
-      S.check(S.isGreaterThanOrEqualTo(0, {
+  S.Finite.pipe(
+    S.check(
+      S.isGreaterThanOrEqualTo(0, {
         arbitraryConstraint: { order: Order.Number, minimum: 0, maximum: realisticMaximum }
-      })),
-      fromBrand<NonNegativeNumber>(nominal<NonNegativeNumber>(), {
-        identifier: "NonNegativeNumber",
-        jsonSchema: {}
-      }),
-      withDefaultMake
+      })
     ),
+    fromBrand<NonNegativeNumber>(nominal<NonNegativeNumber>(), {
+      identifier: "NonNegativeNumber",
+      jsonSchema: {}
+    }),
+    withDefaultMake
+  ),
   (s) => ({
     /**
      * Construction-only default `0`. Applied only when the field is omitted
@@ -204,9 +206,9 @@ export const Int32: Int32Schema = extendM(
   })
 )
 
-export interface NonNegativeInt32Brand
-  extends Simplify<B.Brand<"NonNegativeInt32"> & Int32Brand & NonNegativeIntBrand & NonNegativeNumber32Brand>
-{}
+export interface NonNegativeInt32Brand extends Simplify<
+  B.Brand<"NonNegativeInt32"> & Int32Brand & NonNegativeIntBrand & NonNegativeNumber32Brand
+> {}
 export type NonNegativeInt32 = number & NonNegativeInt32Brand
 /**
  * Non-negative signed 32-bit integer (`[0, 2147483647]`), JSON Schema `format: "int32"`.
@@ -228,9 +230,9 @@ export const NonNegativeInt32: NonNegativeInt32Schema = extendM(
   })
 )
 
-export interface PositiveInt32Brand
-  extends Simplify<B.Brand<"PositiveInt32"> & NonNegativeInt32Brand & PositiveIntBrand & PositiveNumber32Brand>
-{}
+export interface PositiveInt32Brand extends Simplify<
+  B.Brand<"PositiveInt32"> & NonNegativeInt32Brand & PositiveIntBrand & PositiveNumber32Brand
+> {}
 export type PositiveInt32 = number & PositiveInt32Brand
 /**
  * Positive signed 32-bit integer (`[1, 2147483647]`), JSON Schema `format: "int32"`.
@@ -288,9 +290,9 @@ export const NonNegativeNumber32: NonNegativeNumber32Schema = extendM(
   })
 )
 
-export interface PositiveNumber32Brand
-  extends Simplify<B.Brand<"PositiveNumber32"> & NonNegativeNumber32Brand & PositiveNumberBrand>
-{}
+export interface PositiveNumber32Brand extends Simplify<
+  B.Brand<"PositiveNumber32"> & NonNegativeNumber32Brand & PositiveNumberBrand
+> {}
 export type PositiveNumber32 = number & PositiveNumber32Brand
 /**
  * Positive finite number within IEEE 754 binary32 range

@@ -16,33 +16,31 @@ export function StoreMakerLayer(
   cfg: StorageConfig,
   options?: { makeSqlClientLayer?: (namespace: string) => Layer.Layer<SqlClient.SqlClient> }
 ) {
-  return Effect
-    .sync(() => {
-      const storageUrl = Redacted.value(cfg.url)
-      if (storageUrl.startsWith("mem://")) {
-        console.log("Using in memory store")
-        return MemoryStoreLive
-      }
-      if (storageUrl.startsWith("disk://")) {
-        const dir = storageUrl.replace("disk://", "")
-        console.log("Using disk store at " + dir)
-        return DiskStoreLayer(cfg, dir)
-      }
-      if (storageUrl.startsWith("sqlite://")) {
-        console.log("Using SQLite store")
-        return SQLiteStoreLayer(cfg, options)
-      }
-      if (storageUrl.startsWith("pg://")) {
-        console.log("Using PostgreSQL store")
-        return PgStoreLayer(cfg)
-      }
-      // if (storageUrl.startsWith("redis://")) {
-      //   console.log("Using Redis store")
-      //   return RedisStoreLayer(cfg)
-      // }
+  return Effect.sync(() => {
+    const storageUrl = Redacted.value(cfg.url)
+    if (storageUrl.startsWith("mem://")) {
+      console.log("Using in memory store")
+      return MemoryStoreLive
+    }
+    if (storageUrl.startsWith("disk://")) {
+      const dir = storageUrl.replace("disk://", "")
+      console.log("Using disk store at " + dir)
+      return DiskStoreLayer(cfg, dir)
+    }
+    if (storageUrl.startsWith("sqlite://")) {
+      console.log("Using SQLite store")
+      return SQLiteStoreLayer(cfg, options)
+    }
+    if (storageUrl.startsWith("pg://")) {
+      console.log("Using PostgreSQL store")
+      return PgStoreLayer(cfg)
+    }
+    // if (storageUrl.startsWith("redis://")) {
+    //   console.log("Using Redis store")
+    //   return RedisStoreLayer(cfg)
+    // }
 
-      console.log("Using Cosmos DB store")
-      return CosmosStoreLayer(cfg)
-    })
-    .pipe(Layer.unwrap, Layer.merge(RepositoryRegistryLive))
+    console.log("Using Cosmos DB store")
+    return CosmosStoreLayer(cfg)
+  }).pipe(Layer.unwrap, Layer.merge(RepositoryRegistryLive))
 }

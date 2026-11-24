@@ -125,7 +125,7 @@ const decodeActivityResult = (s: string) => Effect.orDie(S.decodeEffect(Activity
 const encodeDeferredExit = (e: Exit.Exit<unknown, unknown>) => Effect.orDie(S.encodeEffect(DeferredExitCodec)(e))
 const decodeDeferredExit = (s: string) => Effect.orDie(S.decodeEffect(DeferredExitCodec)(s))
 
-const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngineSqliteConfig) {
+const makeSqliteWorkflowEngine = Effect.fnUntraced(function* (cfg: WorkflowEngineSqliteConfig) {
   const sql = yield* SqlClient.SqlClient
   const scope = yield* Effect.scope
   const prefix = cfg.prefix ?? ""
@@ -169,9 +169,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        etag TEXT NOT NULL
      )`
   )
-  yield* exec(
-    `CREATE INDEX IF NOT EXISTS "${execTable}_recovery" ON "${execTable}" (status, lease_expires_at)`
-  )
+  yield* exec(`CREATE INDEX IF NOT EXISTS "${execTable}_recovery" ON "${execTable}" (status, lease_expires_at)`)
   yield* exec(
     `CREATE TABLE IF NOT EXISTS "${activityTable}" (
        execution_id TEXT NOT NULL,
@@ -199,9 +197,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        PRIMARY KEY (execution_id, name)
      )`
   )
-  yield* exec(
-    `CREATE INDEX IF NOT EXISTS "${clockTable}_due" ON "${clockTable}" (fire_at)`
-  )
+  yield* exec(`CREATE INDEX IF NOT EXISTS "${clockTable}_due" ON "${clockTable}" (fire_at)`)
 
   // --- In-process bookkeeping -------------------------------------------
 
@@ -261,17 +257,13 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Core SQL operations ----------------------------------------------
 
   const readExec = (executionId: string): Effect.Effect<Option.Option<ExecState>> =>
-    exec(
-      `SELECT * FROM "${execTable}" WHERE execution_id = ?`,
-      [executionId]
+    exec(`SELECT * FROM "${execTable}" WHERE execution_id = ?`, [executionId]).pipe(
+      Effect.map((rows) => {
+        const r = (rows as ReadonlyArray<ExecRow>)[0]
+        return r ? Option.some(parseExec(r)) : Option.none<ExecState>()
+      }),
+      annotate("readExec", executionId)
     )
-      .pipe(
-        Effect.map((rows) => {
-          const r = (rows as ReadonlyArray<ExecRow>)[0]
-          return r ? Option.some(parseExec(r)) : Option.none<ExecState>()
-        }),
-        annotate("readExec", executionId)
-      )
 
   /**
    * OCC-guarded write. Generates a fresh etag on success; returns
@@ -281,12 +273,11 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     state: ExecState,
     next: Partial<Omit<ExecState, "executionId" | "etag" | "workflowName" | "payload" | "parent">>
   ) =>
-    Effect
-      .gen(function*() {
-        const newEtag = randomUUID()
-        const merged = { ...state, ...next, etag: newEtag }
-        const rows = yield* exec(
-          `UPDATE "${execTable}"
+    Effect.gen(function* () {
+      const newEtag = randomUUID()
+      const merged = { ...state, ...next, etag: newEtag }
+      const rows = yield* exec(
+        `UPDATE "${execTable}"
            SET status = ?,
                suspended = ?,
                interrupted = ?,
@@ -296,28 +287,27 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
                etag = ?
          WHERE execution_id = ? AND etag = ?
          RETURNING etag`,
-          [
-            merged.status,
-            merged.suspended ? 1 : 0,
-            merged.interrupted ? 1 : 0,
-            merged.completedResult ?? null,
-            merged.worker ?? null,
-            merged.leaseExpiresAt ?? null,
-            newEtag,
-            state.executionId,
-            state.etag
-          ]
-        )
-        if ((rows as ReadonlyArray<unknown>).length === 0) {
-          return yield* new OptimisticConcurrencyException({
-            type: "workflow.exec",
-            id: state.executionId,
-            code: 412
-          })
-        }
-        return merged
-      })
-      .pipe(annotate("replaceExec", state.executionId))
+        [
+          merged.status,
+          merged.suspended ? 1 : 0,
+          merged.interrupted ? 1 : 0,
+          merged.completedResult ?? null,
+          merged.worker ?? null,
+          merged.leaseExpiresAt ?? null,
+          newEtag,
+          state.executionId,
+          state.etag
+        ]
+      )
+      if ((rows as ReadonlyArray<unknown>).length === 0) {
+        return yield* new OptimisticConcurrencyException({
+          type: "workflow.exec",
+          id: state.executionId,
+          code: 412
+        })
+      }
+      return merged
+    }).pipe(annotate("replaceExec", state.executionId))
 
   const createExec = (initial: ExecState): Effect.Effect<boolean> =>
     exec(
@@ -336,11 +326,10 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         initial.interrupted ? 1 : 0,
         initial.etag
       ]
+    ).pipe(
+      Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0),
+      annotate("createExec", initial.executionId)
     )
-      .pipe(
-        Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0),
-        annotate("createExec", initial.executionId)
-      )
 
   // First-writer-wins persistence of an activity result; returns true if this
   // call won, false if another writer beat us to the (exec, name, attempt) row.
@@ -356,69 +345,46 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        ON CONFLICT DO NOTHING
        RETURNING execution_id`,
       [executionId, name, attempt, encoded]
-    )
-      .pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
+    ).pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
 
   // Overwrites a previously persisted *suspended* activity result so the next
   // attempt can record its real outcome.
-  const upsertActivity = (
-    executionId: string,
-    name: string,
-    attempt: number,
-    encoded: string
-  ): Effect.Effect<void> =>
+  const upsertActivity = (executionId: string, name: string, attempt: number, encoded: string): Effect.Effect<void> =>
     exec(
       `INSERT INTO "${activityTable}" (execution_id, name, attempt, result)
        VALUES (?, ?, ?, ?)
        ON CONFLICT(execution_id, name, attempt) DO UPDATE SET result = excluded.result`,
       [executionId, name, attempt, encoded]
-    )
-      .pipe(Effect.asVoid)
+    ).pipe(Effect.asVoid)
 
-  const readActivity = (
-    executionId: string,
-    name: string,
-    attempt: number
-  ): Effect.Effect<Option.Option<string>> =>
-    exec(
-      `SELECT result FROM "${activityTable}" WHERE execution_id = ? AND name = ? AND attempt = ?`,
-      [executionId, name, attempt]
+  const readActivity = (executionId: string, name: string, attempt: number): Effect.Effect<Option.Option<string>> =>
+    exec(`SELECT result FROM "${activityTable}" WHERE execution_id = ? AND name = ? AND attempt = ?`, [
+      executionId,
+      name,
+      attempt
+    ]).pipe(
+      Effect.map((rows) => {
+        const r = (rows as ReadonlyArray<{ result: string }>)[0]
+        return r ? Option.some(r.result) : Option.none<string>()
+      })
     )
-      .pipe(
-        Effect.map((rows) => {
-          const r = (rows as ReadonlyArray<{ result: string }>)[0]
-          return r ? Option.some(r.result) : Option.none<string>()
-        })
-      )
 
-  const createDeferred = (
-    executionId: string,
-    name: string,
-    encoded: string
-  ): Effect.Effect<boolean> =>
+  const createDeferred = (executionId: string, name: string, encoded: string): Effect.Effect<boolean> =>
     exec(
       `INSERT INTO "${deferredTable}" (execution_id, name, exit)
        VALUES (?, ?, ?)
        ON CONFLICT DO NOTHING
        RETURNING execution_id`,
       [executionId, name, encoded]
-    )
-      .pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
+    ).pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
 
-  const readDeferred = (
-    executionId: string,
-    name: string
-  ): Effect.Effect<Option.Option<string>> =>
-    exec(
-      `SELECT exit FROM "${deferredTable}" WHERE execution_id = ? AND name = ?`,
-      [executionId, name]
+  const readDeferred = (executionId: string, name: string): Effect.Effect<Option.Option<string>> =>
+    exec(`SELECT exit FROM "${deferredTable}" WHERE execution_id = ? AND name = ?`, [executionId, name]).pipe(
+      Effect.map((rows) => {
+        const r = (rows as ReadonlyArray<{ exit: string }>)[0]
+        return r ? Option.some(r.exit) : Option.none<string>()
+      })
     )
-      .pipe(
-        Effect.map((rows) => {
-          const r = (rows as ReadonlyArray<{ exit: string }>)[0]
-          return r ? Option.some(r.exit) : Option.none<string>()
-        })
-      )
 
   const insertClock = (
     executionId: string,
@@ -433,14 +399,10 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
        ON CONFLICT DO NOTHING
        RETURNING execution_id`,
       [executionId, name, workflowName, deferredName, fireAt]
-    )
-      .pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
+    ).pipe(Effect.map((rows) => (rows as ReadonlyArray<unknown>).length > 0))
 
   const deleteClock = (executionId: string, name: string) =>
-    exec(
-      `DELETE FROM "${clockTable}" WHERE execution_id = ? AND name = ?`,
-      [executionId, name]
-    )
+    exec(`DELETE FROM "${clockTable}" WHERE execution_id = ? AND name = ?`, [executionId, name])
 
   // --- Workflow result helpers ------------------------------------------
 
@@ -455,45 +417,41 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Lease / claim ----------------------------------------------------
 
   const leaseActive = (state: ExecState, now: number): boolean =>
-    state.worker !== undefined
-    && state.worker !== workerId
-    && state.leaseExpiresAt !== undefined
-    && state.leaseExpiresAt > now
+    state.worker !== undefined &&
+    state.worker !== workerId &&
+    state.leaseExpiresAt !== undefined &&
+    state.leaseExpiresAt > now
 
   const tryClaim = (state: ExecState): Effect.Effect<Option.Option<ExecState>> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const now = Date.now()
       if (leaseActive(state, now)) return Option.none<ExecState>()
       return yield* replaceExec(state, {
         worker: workerId,
         leaseExpiresAt: now + Duration.toMillis(leaseTtl)
-      })
-        .pipe(
-          Effect.map(Option.some),
-          Effect.catchTag("OptimisticConcurrencyException", () => Effect.succeed(Option.none<ExecState>()))
-        )
+      }).pipe(
+        Effect.map(Option.some),
+        Effect.catchTag("OptimisticConcurrencyException", () => Effect.succeed(Option.none<ExecState>()))
+      )
     })
 
   const heartbeat = (executionId: string): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       while (true) {
         yield* Effect.sleep(heartbeatInterval)
         const local = locals.get(executionId)
         const polled = local?.fiber?.pollUnsafe()
         if (!local?.fiber || polled) return
-        const cur = yield* readExec(executionId).pipe(
-          Effect.catchCause(() => Effect.succeed(Option.none<ExecState>()))
-        )
+        const cur = yield* readExec(executionId).pipe(Effect.catchCause(() => Effect.succeed(Option.none<ExecState>())))
         if (Option.isNone(cur)) continue
         const state = cur.value
         if (state.status === "complete" || state.worker !== workerId) return
         yield* replaceExec(state, {
           leaseExpiresAt: Date.now() + Duration.toMillis(leaseTtl)
-        })
-          .pipe(
-            Effect.catchTag("OptimisticConcurrencyException", () => Effect.void),
-            Effect.catchCause(() => Effect.void)
-          )
+        }).pipe(
+          Effect.catchTag("OptimisticConcurrencyException", () => Effect.void),
+          Effect.catchCause(() => Effect.void)
+        )
       }
     })
 
@@ -505,7 +463,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     parent: string | undefined,
     entry: Registered
   ): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let local = locals.get(executionId)
       if (local?.fiber) {
         const polled = local.fiber.pollUnsafe()
@@ -529,7 +487,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         local.instance = instance
       }
 
-      const onComplete = Effect.fnUntraced(function*(result: Workflow.Result<unknown, unknown>) {
+      const onComplete = Effect.fnUntraced(function* (result: Workflow.Result<unknown, unknown>) {
         const current = yield* readExec(executionId)
         if (Option.isNone(current) || current.value.status === "complete") return
         const isComplete = result._tag === "Complete"
@@ -541,8 +499,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
           completedResult,
           worker: isComplete ? undefined : current.value.worker,
           leaseExpiresAt: isComplete ? undefined : current.value.leaseExpiresAt
-        })
-          .pipe(Effect.catchTag("OptimisticConcurrencyException", () => Effect.void))
+        }).pipe(Effect.catchTag("OptimisticConcurrencyException", () => Effect.void))
         if (parent && isComplete) {
           yield* Effect.forkIn(driveById(parent), scope)
         }
@@ -567,7 +524,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     })
 
   const driveById = (executionId: string): Effect.Effect<void> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const stateOpt = yield* readExec(executionId)
       if (Option.isNone(stateOpt)) return
       const state = stateOpt.value
@@ -579,36 +536,32 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
 
   // --- Clock firing -----------------------------------------------------
 
-  const fireClock = (
-    executionId: string,
-    name: string,
-    deferredName: string
-  ): Effect.Effect<void> =>
-    Effect
-      .gen(function*() {
-        const encoded = yield* encodeDeferredExit(Exit.void)
-        const inserted = yield* sql
-          .withTransaction(Effect.gen(function*() {
+  const fireClock = (executionId: string, name: string, deferredName: string): Effect.Effect<void> =>
+    Effect.gen(function* () {
+      const encoded = yield* encodeDeferredExit(Exit.void)
+      const inserted = yield* sql
+        .withTransaction(
+          Effect.gen(function* () {
             const got = yield* createDeferred(executionId, deferredName, encoded)
             yield* deleteClock(executionId, name)
             return got
-          }))
-          .pipe(Effect.orDie)
-        if (inserted) yield* driveById(executionId)
-      })
-      .pipe(annotate("clockFire", executionId))
+          })
+        )
+        .pipe(Effect.orDie)
+      if (inserted) yield* driveById(executionId)
+    }).pipe(annotate("clockFire", executionId))
 
   // --- Encoded engine ---------------------------------------------------
 
   const encoded: Encoded = {
-    register: Effect.fnUntraced(function*(workflow, execute) {
+    register: Effect.fnUntraced(function* (workflow, execute) {
       workflows.set(workflow._tag, {
         workflow,
         execute,
         scope: yield* Effect.scope
       })
     }),
-    execute: Effect.fnUntraced(function*(workflow, options) {
+    execute: Effect.fnUntraced(function* (workflow, options) {
       const entry = workflows.get(workflow._tag)
       if (!entry) {
         return yield* Effect.orDie(Effect.fail(`Workflow ${workflow._tag} is not registered`))
@@ -644,7 +597,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       }
     }),
     poll: (workflow, executionId) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const local = locals.get(executionId)
         if (local?.fiber) {
           const exitVal = local.fiber.pollUnsafe()
@@ -656,7 +609,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
         if (Option.isNone(state)) return Option.none<Workflow.Result<unknown, unknown>>()
         return yield* completeResult(workflow, state.value)
       }),
-    interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
+    interrupt: Effect.fnUntraced(function* (_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
       const current = yield* readExec(executionId)
@@ -666,7 +619,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       )
       yield* driveById(executionId)
     }),
-    interruptUnsafe: Effect.fnUntraced(function*(_workflow, executionId) {
+    interruptUnsafe: Effect.fnUntraced(function* (_workflow, executionId) {
       const local = locals.get(executionId)
       if (local) local.instance.interrupted = true
       const current = yield* readExec(executionId)
@@ -678,7 +631,7 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       if (local?.fiber) yield* Fiber.interrupt(local.fiber)
     }),
     resume: (_workflow, executionId) => driveById(executionId),
-    activityExecute: Effect.fnUntraced(function*(activity, attempt) {
+    activityExecute: Effect.fnUntraced(function* (activity, attempt) {
       const instance = yield* WorkflowInstance
       const existing = yield* readActivity(instance.executionId, activity.name, attempt)
       if (Option.isSome(existing)) {
@@ -712,13 +665,13 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
       }
       return result
     }),
-    deferredResult: Effect.fnUntraced(function*(deferred) {
+    deferredResult: Effect.fnUntraced(function* (deferred) {
       const instance = yield* WorkflowInstance
       const got = yield* readDeferred(instance.executionId, deferred.name)
       if (Option.isNone(got)) return Option.none<Exit.Exit<unknown, unknown>>()
       return Option.some(yield* decodeDeferredExit(got.value))
     }),
-    deferredDone: Effect.fnUntraced(function*(options) {
+    deferredDone: Effect.fnUntraced(function* (options) {
       const encoded = yield* encodeDeferredExit(options.exit)
       const inserted = yield* createDeferred(options.executionId, options.deferredName, encoded)
       if (!inserted) return
@@ -726,14 +679,8 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
     }),
     scheduleClock: (workflow, options) => {
       const fireAt = Date.now() + Duration.toMillis(options.clock.duration)
-      return Effect.gen(function*() {
-        yield* insertClock(
-          options.executionId,
-          options.clock.name,
-          workflow._tag,
-          options.clock.deferred.name,
-          fireAt
-        )
+      return Effect.gen(function* () {
+        yield* insertClock(options.executionId, options.clock.name, workflow._tag, options.clock.deferred.name, fireAt)
         yield* fireClock(options.executionId, options.clock.name, options.clock.deferred.name).pipe(
           Effect.delay(options.clock.duration),
           FiberMap.run(clocks, `${options.executionId}/${options.clock.name}`, { onlyIfMissing: true }),
@@ -748,56 +695,50 @@ const makeSqliteWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   // --- Recovery poller --------------------------------------------------
 
   if (Duration.toMillis(recoveryInterval) > 0) {
-    const recoverStep = Effect
-      .gen(function*() {
-        const rows = yield* exec(
-          `SELECT execution_id, workflow_name FROM "${execTable}"
+    const recoverStep = Effect.gen(function* () {
+      const rows = yield* exec(
+        `SELECT execution_id, workflow_name FROM "${execTable}"
          WHERE status = 'running' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)
          LIMIT 100`,
-          [Date.now()]
-        )
-        for (const row of rows as ReadonlyArray<{ execution_id: string; workflow_name: string }>) {
-          if (!workflows.has(row.workflow_name)) continue
-          const local = locals.get(row.execution_id)
-          if (local?.fiber && !local.fiber.pollUnsafe()) continue
-          yield* Effect.forkIn(driveById(row.execution_id), scope)
-        }
-      })
-      .pipe(annotate("recoveryScan"), Effect.catchCause(() => Effect.void))
-
-    yield* recoverStep.pipe(
-      Effect.repeat(Schedule.spaced(recoveryInterval)),
-      Effect.forkIn(scope)
+        [Date.now()]
+      )
+      for (const row of rows as ReadonlyArray<{ execution_id: string; workflow_name: string }>) {
+        if (!workflows.has(row.workflow_name)) continue
+        const local = locals.get(row.execution_id)
+        if (local?.fiber && !local.fiber.pollUnsafe()) continue
+        yield* Effect.forkIn(driveById(row.execution_id), scope)
+      }
+    }).pipe(
+      annotate("recoveryScan"),
+      Effect.catchCause(() => Effect.void)
     )
+
+    yield* recoverStep.pipe(Effect.repeat(Schedule.spaced(recoveryInterval)), Effect.forkIn(scope))
   }
 
   // --- Clock poller -----------------------------------------------------
 
   if (Duration.toMillis(clockPollInterval) > 0) {
-    const clockStep = Effect
-      .gen(function*() {
-        const rows = yield* exec(
-          `SELECT execution_id, name, deferred_name FROM "${clockTable}"
+    const clockStep = Effect.gen(function* () {
+      const rows = yield* exec(
+        `SELECT execution_id, name, deferred_name FROM "${clockTable}"
          WHERE fire_at <= ?
          LIMIT 100`,
-          [Date.now()]
-        )
-        for (
-          const row of rows as ReadonlyArray<{
-            execution_id: string
-            name: string
-            deferred_name: string
-          }>
-        ) {
-          yield* Effect.forkIn(fireClock(row.execution_id, row.name, row.deferred_name), scope)
-        }
-      })
-      .pipe(annotate("clockScan"), Effect.catchCause(() => Effect.void))
-
-    yield* clockStep.pipe(
-      Effect.repeat(Schedule.spaced(clockPollInterval)),
-      Effect.forkIn(scope)
+        [Date.now()]
+      )
+      for (const row of rows as ReadonlyArray<{
+        execution_id: string
+        name: string
+        deferred_name: string
+      }>) {
+        yield* Effect.forkIn(fireClock(row.execution_id, row.name, row.deferred_name), scope)
+      }
+    }).pipe(
+      annotate("clockScan"),
+      Effect.catchCause(() => Effect.void)
     )
+
+    yield* clockStep.pipe(Effect.repeat(Schedule.spaced(clockPollInterval)), Effect.forkIn(scope))
   }
 
   return engine

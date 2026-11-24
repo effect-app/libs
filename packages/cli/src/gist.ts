@@ -29,12 +29,14 @@ export class GistError extends Data.TaggedError("GistError")<{ message: string }
 // Schemas
 //
 
-export class GistEntry extends Schema.Opaque<GistEntry>()(Schema.Struct({
-  description: Schema.String,
-  public: Schema.Boolean,
-  company: Schema.String,
-  files: Schema.Array(Schema.String)
-})) {}
+export class GistEntry extends Schema.Opaque<GistEntry>()(
+  Schema.Struct({
+    description: Schema.String,
+    public: Schema.Boolean,
+    company: Schema.String,
+    files: Schema.Array(Schema.String)
+  })
+) {}
 
 /**
  * Extended gist entry that validates file_name uniqueness and extracts base filenames.
@@ -65,13 +67,15 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
         public: Schema.Boolean,
         company: Schema.String,
         files: Schema.Array(Schema.String),
-        files_with_name: Schema.Array(Schema.Struct({
-          path: Schema.String,
-          name: Schema.String
-        }))
+        files_with_name: Schema.Array(
+          Schema.Struct({
+            path: Schema.String,
+            name: Schema.String
+          })
+        )
       }),
       SchemaTransformation.transformEffect({
-        decode: Effect.fnUntraced(function*(entry) {
+        decode: Effect.fnUntraced(function* (entry) {
           const files_with_name = entry.files.map((file) => ({
             path: file,
             name: path.basename(file) // <-- I'm using Node's path module here so that this schema works without requirements on Effect's Path module
@@ -90,17 +94,13 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
           const messages: string[] = []
           for (const [fileName, paths] of nameMap.entries()) {
             if (paths.length > 1) {
-              messages.push(
-                `Duplicate file name detected: "${fileName}". Colliding paths: ${paths.join(", ")}`
-              )
+              messages.push(`Duplicate file name detected: "${fileName}". Colliding paths: ${paths.join(", ")}`)
             }
           }
 
           // if there are any collisions, fail with a combined message
           if (messages.length > 0) {
-            return yield* Effect.fail(
-              new SchemaIssue.InvalidValue({ message: messages.join("; ") }, entry.files)
-            )
+            return yield* Effect.fail(new SchemaIssue.InvalidValue({ message: messages.join("; ") }, entry.files))
           }
 
           return yield* Effect.succeed({ ...entry, files_with_name })
@@ -111,24 +111,26 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
   )
 ) {}
 
-export class GistYAML extends Schema.Opaque<GistYAML>()(Schema.Struct({
-  gists: Schema.optional(Schema.NullOr(
-    Schema.Record(Schema.String, GistEntryDecoded)
-  )),
-  settings: Schema.Struct({
-    token_env: Schema.String,
-    base_directory: Schema.String
+export class GistYAML extends Schema.Opaque<GistYAML>()(
+  Schema.Struct({
+    gists: Schema.optional(Schema.NullOr(Schema.Record(Schema.String, GistEntryDecoded))),
+    settings: Schema.Struct({
+      token_env: Schema.String,
+      base_directory: Schema.String
+    })
   })
-})) {}
+) {}
 
 /**
  * Cache entry representing a gist mapping.
  * Each entry contains the gist's human-readable name and GitHub ID.
  */
-export class GistCacheEntry extends Schema.Opaque<GistCacheEntry>()(Schema.Struct({
-  name: Schema.String,
-  id: Schema.String
-})) {}
+export class GistCacheEntry extends Schema.Opaque<GistCacheEntry>()(
+  Schema.Struct({
+    name: Schema.String,
+    id: Schema.String
+  })
+) {}
 
 export const GistCacheEntries = Schema.Array(GistCacheEntry)
 export interface GistCacheEntries extends Schema.Schema.Type<typeof GistCacheEntries> {}
@@ -174,7 +176,7 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 //
 
 export class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     const { runGetExitCode, runGetString } = yield* RunCommandService
 
     // the client cannot recover from PlatformErrors, so we convert failures into defects to clean up the signatures
@@ -204,221 +206,196 @@ export class GHGistService extends Context.Service<GHGistService>()("GHGistServi
       return gist_id && gist_id.length > 0 ? Option.some(gist_id) : Option.none()
     }
 
-    const loadGistCache = Effect.fn("effa-cli.gist.loadGistCache")(
-      function*(cacheGistId: string, company: string) {
-        const filesInCache = yield* runGetStringSuppressed(`gh gist view ${cacheGistId} --files`).pipe(
-          Effect.map((files) =>
-            files
-              .trim()
-              .split("\n")
-              .map((f) => f.trim())
-          )
+    const loadGistCache = Effect.fn("effa-cli.gist.loadGistCache")(function* (cacheGistId: string, company: string) {
+      const filesInCache = yield* runGetStringSuppressed(`gh gist view ${cacheGistId} --files`).pipe(
+        Effect.map((files) =>
+          files
+            .trim()
+            .split("\n")
+            .map((f) => f.trim())
         )
+      )
 
-        if (!filesInCache.includes(`${company}.json`)) {
-          yield* Effect.logInfo(`Cache for company ${company} not found, creating company-specific cache file...`)
-          yield* runGetStringSuppressed(
-            `echo "[]" | gh gist edit ${cacheGistId} -a ${company}.json -`
-          )
-          return new GistCache({ entries: [], gist_id: cacheGistId, company })
-        }
-
-        const cacheContent = yield* runGetStringSuppressed(`gh gist view ${cacheGistId} -f "${company}.json"`)
-
-        const entries = yield* pipe(
-          cacheContent,
-          Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
-          Effect.orDie
-        )
-
-        return new GistCache({ entries, gist_id: cacheGistId, company })
+      if (!filesInCache.includes(`${company}.json`)) {
+        yield* Effect.logInfo(`Cache for company ${company} not found, creating company-specific cache file...`)
+        yield* runGetStringSuppressed(`echo "[]" | gh gist edit ${cacheGistId} -a ${company}.json -`)
+        return new GistCache({ entries: [], gist_id: cacheGistId, company })
       }
-    )
 
-    const saveGistCache = Effect.fn("effa-cli.gist.saveGistCache")(
-      function*(cache: GistCache) {
-        const cacheJson = yield* pipe(
-          cache.entries,
-          Schema.encodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
-          // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
-          Effect.orDie
-        )
+      const cacheContent = yield* runGetStringSuppressed(`gh gist view ${cacheGistId} -f "${company}.json"`)
 
-        yield* runGetExitCodeSuppressed(
-          `echo '${cacheJson}' | gh gist edit ${cache.gist_id} -f ${cache.company}.json -`
-        )
-      }
-    )
+      const entries = yield* pipe(
+        cacheContent,
+        Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
+        Effect.orDie
+      )
 
-    const createGistWithFiles = Effect.fn("GHGistService.createGistWithFiles")(
-      function*({ description, env, files, gist_name, is_public }: {
-        gist_name: string
-        description: string
-        files: {
-          path: string
-          name: string
-        }[]
-        is_public: boolean
-        env: string
-      }) {
-        yield* Effect.logInfo(`Creating gist ${gist_name} with ${files.length} file(s)`)
+      return new GistCache({ entries, gist_id: cacheGistId, company })
+    })
 
-        const ghCommand = [
-          "gh",
-          "gist",
-          "create",
-          `--desc="${description}"`,
-          is_public ? "--public" : "",
-          ...files.map((file) => `"${file.path}"`)
-        ]
-          .filter((x) => !!x)
-          .join(" ")
+    const saveGistCache = Effect.fn("effa-cli.gist.saveGistCache")(function* (cache: GistCache) {
+      const cacheJson = yield* pipe(
+        cache.entries,
+        Schema.encodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
+        // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
+        Effect.orDie
+      )
 
-        // create and capture the created gist URL
-        const gistUrl = yield* runGetStringSuppressed(ghCommand)
+      yield* runGetExitCodeSuppressed(`echo '${cacheJson}' | gh gist edit ${cache.gist_id} -f ${cache.company}.json -`)
+    })
 
-        // extract ID from URL
-        const gistNameId = yield* pipe(
-          gistUrl,
-          extractGistIdFromUrl,
-          Option.match({
-            onNone: () => Effect.die(`Failed to extract gist ID from URL: ${gistUrl}`),
-            onSome: (id) =>
-              Effect
-                .succeed(
-                  { name: gist_name, id }
-                )
-                .pipe(Effect.tap(Effect.logInfo(`Created gist with ID ${id}`)))
-          })
-        )
+    const createGistWithFiles = Effect.fn("GHGistService.createGistWithFiles")(function* ({
+      description,
+      env,
+      files,
+      gist_name,
+      is_public
+    }: {
+      gist_name: string
+      description: string
+      files: {
+        path: string
+        name: string
+      }[]
+      is_public: boolean
+      env: string
+    }) {
+      yield* Effect.logInfo(`Creating gist ${gist_name} with ${files.length} file(s)`)
 
-        // rename all files to include environment prefix for multi-environment support
-        for (const file of files) {
-          const originalName = file.name
-          const name_with_env = `${env}.${originalName}`
-          const ghRenameCommand = [
-            "gh",
-            "gist",
-            "rename",
-            gistNameId.id,
-            originalName,
-            name_with_env
-          ]
-            .join(" ")
+      const ghCommand = [
+        "gh",
+        "gist",
+        "create",
+        `--desc="${description}"`,
+        is_public ? "--public" : "",
+        ...files.map((file) => `"${file.path}"`)
+      ]
+        .filter((x) => !!x)
+        .join(" ")
 
-          yield* Effect.logInfo(`Renaming file ${originalName} to ${name_with_env} in gist ${gist_name}`)
-          yield* runGetStringSuppressed(ghRenameCommand)
-        }
+      // create and capture the created gist URL
+      const gistUrl = yield* runGetStringSuppressed(ghCommand)
 
-        return gistNameId
-      }
-    )
-
-    const getGistFileNames = Effect.fn("getGistFileNames")(
-      function*({ env, gist_id, gist_name }: {
-        gist_id: string
-        gist_name: string
-        env: string
-      }) {
-        yield* Effect.logInfo(`Retrieving file names from gist ${gist_name} with ID ${gist_id}`)
-        const output = yield* runGetStringSuppressed(`gh gist view ${gist_id} --files`)
-
-        // filter file names by environment prefix and remove the prefix
-        // files in gists are prefixed with "env." to support multiple environments
-        return Array.filterMap(output.trim().split("\n"), (fn) => {
-          const fnTrimmed = fn.trim()
-          if (!fnTrimmed.startsWith(env + ".")) return Result.fail(fn)
-          return Result.succeed(fnTrimmed.substring(env.length + 1)) // remove env prefix and dot
+      // extract ID from URL
+      const gistNameId = yield* pipe(
+        gistUrl,
+        extractGistIdFromUrl,
+        Option.match({
+          onNone: () => Effect.die(`Failed to extract gist ID from URL: ${gistUrl}`),
+          onSome: (id) =>
+            Effect.succeed({ name: gist_name, id }).pipe(Effect.tap(Effect.logInfo(`Created gist with ID ${id}`)))
         })
+      )
+
+      // rename all files to include environment prefix for multi-environment support
+      for (const file of files) {
+        const originalName = file.name
+        const name_with_env = `${env}.${originalName}`
+        const ghRenameCommand = ["gh", "gist", "rename", gistNameId.id, originalName, name_with_env].join(" ")
+
+        yield* Effect.logInfo(`Renaming file ${originalName} to ${name_with_env} in gist ${gist_name}`)
+        yield* runGetStringSuppressed(ghRenameCommand)
       }
-    )
 
-    const removeFileFromGist = Effect.fn("removeFileFromGist")(
-      function*({ env, file_name, gist_id, gist_name }: {
-        gist_id: string
-        gist_name: string
-        file_name: string
-        env: string
-      }) {
-        const name_with_env = `${env}.${file_name}`
-        yield* Effect.logInfo(`Removing file ${name_with_env} from gist ${gist_name}`)
-        return yield* runGetExitCodeSuppressed(`gh gist edit ${gist_id} --remove "${name_with_env}"`)
+      return gistNameId
+    })
+
+    const getGistFileNames = Effect.fn("getGistFileNames")(function* ({
+      env,
+      gist_id,
+      gist_name
+    }: {
+      gist_id: string
+      gist_name: string
+      env: string
+    }) {
+      yield* Effect.logInfo(`Retrieving file names from gist ${gist_name} with ID ${gist_id}`)
+      const output = yield* runGetStringSuppressed(`gh gist view ${gist_id} --files`)
+
+      // filter file names by environment prefix and remove the prefix
+      // files in gists are prefixed with "env." to support multiple environments
+      return Array.filterMap(output.trim().split("\n"), (fn) => {
+        const fnTrimmed = fn.trim()
+        if (!fnTrimmed.startsWith(env + ".")) return Result.fail(fn)
+        return Result.succeed(fnTrimmed.substring(env.length + 1)) // remove env prefix and dot
+      })
+    })
+
+    const removeFileFromGist = Effect.fn("removeFileFromGist")(function* ({
+      env,
+      file_name,
+      gist_id,
+      gist_name
+    }: {
+      gist_id: string
+      gist_name: string
+      file_name: string
+      env: string
+    }) {
+      const name_with_env = `${env}.${file_name}`
+      yield* Effect.logInfo(`Removing file ${name_with_env} from gist ${gist_name}`)
+      return yield* runGetExitCodeSuppressed(`gh gist edit ${gist_id} --remove "${name_with_env}"`)
+    })
+
+    const updateFileOfGist = Effect.fn("updateFileOfGist")(function* ({
+      env,
+      file_name,
+      file_path,
+      gist_id,
+      gist_name
+    }: {
+      gist_id: string
+      gist_name: string
+      file_name: string
+      file_path: string
+      env: string
+    }) {
+      const name_with_env = `${env}.${file_name}`
+      yield* Effect.logInfo(`Updating file ${name_with_env} located at ${file_path} of gist ${gist_name}`)
+
+      // it seems this does not require renaming the file
+      const editCommand = ["gh", "gist", "edit", gist_id, "-f", name_with_env, `"${file_path}"`].join(" ")
+
+      return yield* runGetExitCodeSuppressed(editCommand)
+    })
+
+    const addFileToGist = Effect.fn("addFileToGist")(function* ({
+      env,
+      file,
+      gist_id,
+      gist_name
+    }: {
+      gist_id: string
+      gist_name: string
+      file: {
+        path: string
+        name: string
       }
-    )
+      env: string
+    }) {
+      yield* Effect.logInfo(`Adding file ${file.path} to gist ${gist_name}`)
+      const editCommand = ["gh", "gist", "edit", gist_id, "-a", `"${file.path}"`].join(" ")
 
-    const updateFileOfGist = Effect.fn("updateFileOfGist")(
-      function*({ env, file_name, file_path, gist_id, gist_name }: {
-        gist_id: string
-        gist_name: string
-        file_name: string
-        file_path: string
-        env: string
-      }) {
-        const name_with_env = `${env}.${file_name}`
-        yield* Effect.logInfo(`Updating file ${name_with_env} located at ${file_path} of gist ${gist_name}`)
+      yield* runGetExitCodeSuppressed(editCommand)
 
-        // it seems this does not require renaming the file
-        const editCommand = [
-          "gh",
-          "gist",
-          "edit",
-          gist_id,
-          "-f",
-          name_with_env,
-          `"${file_path}"`
-        ]
-          .join(" ")
+      const renameCommand = ["gh", "gist", "rename", gist_id, file.name, `${env}.${file.name}`].join(" ")
 
-        return yield* runGetExitCodeSuppressed(editCommand)
-      }
-    )
+      yield* Effect.logInfo(`Renaming file ${file.name} to ${env}.${file.name} in gist ${gist_name}`)
+      return yield* runGetExitCodeSuppressed(renameCommand)
+    })
 
-    const addFileToGist = Effect.fn("addFileToGist")(
-      function*({ env, file, gist_id, gist_name }: {
-        gist_id: string
-        gist_name: string
-        file: {
-          path: string
-          name: string
-        }
-        env: string
-      }) {
-        yield* Effect.logInfo(`Adding file ${file.path} to gist ${gist_name}`)
-        const editCommand = [
-          "gh",
-          "gist",
-          "edit",
-          gist_id,
-          "-a",
-          `"${file.path}"`
-        ]
-          .join(" ")
+    const deleteGist = Effect.fn("deleteGist")(function* ({
+      gist_id,
+      gist_name
+    }: {
+      gist_id: string
+      gist_name: string
+    }) {
+      yield* Effect.logInfo(`Deleting gist ${gist_name} with ID ${gist_id}`)
+      return yield* runGetExitCodeSuppressed(`gh gist delete ${gist_id}`)
+    })
 
-        yield* runGetExitCodeSuppressed(editCommand)
-
-        const renameCommand = [
-          "gh",
-          "gist",
-          "rename",
-          gist_id,
-          file.name,
-          `${env}.${file.name}`
-        ]
-          .join(" ")
-
-        yield* Effect.logInfo(`Renaming file ${file.name} to ${env}.${file.name} in gist ${gist_name}`)
-        return yield* runGetExitCodeSuppressed(renameCommand)
-      }
-    )
-
-    const deleteGist = Effect.fn("deleteGist")(
-      function*({ gist_id, gist_name }: { gist_id: string; gist_name: string }) {
-        yield* Effect.logInfo(`Deleting gist ${gist_name} with ID ${gist_id}`)
-        return yield* runGetExitCodeSuppressed(`gh gist delete ${gist_id}`)
-      }
-    )
-
-    const login = Effect.fn("GHGistService.login")(function*(token: string) {
+    const login = Effect.fn("GHGistService.login")(function* (token: string) {
       if ((yield* runGetExitCode("gh --version").pipe(Effect.orDie)) !== 0) {
         return yield* Effect.die(
           "GitHub CLI (gh) is not installed or not found in PATH. Please install it to use the gist command."
@@ -530,13 +507,11 @@ export class GHGistService extends Context.Service<GHGistService>()("GHGistServi
   })
 }) {
   static DefaultWithoutDependencies = Layer.effect(this, this.make)
-  static Default = this.DefaultWithoutDependencies.pipe(
-    Layer.provide(RunCommandService.Default)
-  )
+  static Default = this.DefaultWithoutDependencies.pipe(Layer.provide(RunCommandService.Default))
 }
 
 export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     const GH = yield* GHGistService
 
     // I prefer to provide these two only once during the main CLI pipeline setup
@@ -544,7 +519,7 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
     const path = yield* Path.Path
 
     return {
-      handler: Effect.fn("effa-cli.gist.GistHandler")(function*({ YAMLPath }: { YAMLPath: string }) {
+      handler: Effect.fn("effa-cli.gist.GistHandler")(function* ({ YAMLPath }: { YAMLPath: string }) {
         // load company and environment from environment variables
         const CONFIG = yield* Config.all({
           company: Config.String("COMPANY"),
@@ -589,20 +564,18 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
 
         // filter YAML gists by company to ensure isolation between different organizations
         // this prevents cross-company gist operations and maintains data separation
-        const thisCompanyGistsFromYaml = Object
-          .entries(configFromYaml.gists ?? {})
-          .filter(([, v]) => v.company === CONFIG.company)
+        const thisCompanyGistsFromYaml = Object.entries(configFromYaml.gists ?? {}).filter(
+          ([, v]) => v.company === CONFIG.company
+        )
 
-        for (
-          const [name, gistConfig] of thisCompanyGistsFromYaml
-        ) {
+        for (const [name, gistConfig] of thisCompanyGistsFromYaml) {
           const { description, files_with_name, public: is_public } = gistConfig
 
           yield* Effect.logInfo(`Processing gist ${name}`)
 
-          const filesOnDiskWithFullPath = yield* Effect
-            .all(
-              files_with_name.map(Effect.fnUntraced(function*(f) {
+          const filesOnDiskWithFullPath = yield* Effect.all(
+            files_with_name.map(
+              Effect.fnUntraced(function* (f) {
                 const fullPath = path.join(configFromYaml.settings.base_directory, f.path)
                 const fileExists = yield* fs.exists(fullPath)
 
@@ -615,12 +588,12 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
                   path: fullPath,
                   name: f.name
                 })
-              })),
-              {
-                concurrency: "unbounded"
-              }
-            )
-            .pipe(Effect.map(Array.getSomes))
+              })
+            ),
+            {
+              concurrency: "unbounded"
+            }
+          ).pipe(Effect.map(Array.getSomes))
 
           const gistFromCache = (yield* SynchronizedRef.get(cache)).entries.find((_) => _.name === name)
 
@@ -675,7 +648,7 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
             if (filesOnDiskWithFullPath.length !== 0) {
               yield* SynchronizedRef.getAndUpdateEffect(
                 cache,
-                Effect.fnUntraced(function*(cache) {
+                Effect.fnUntraced(function* (cache) {
                   return new GistCache({
                     gist_id: cache.gist_id,
                     entries: [
@@ -703,14 +676,11 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
 
         // cache cleanup: remove gists that are no longer in YAML configuration
         // only affects entries for the current company to maintain isolation
-        const configGistNames = new Set(
-          thisCompanyGistsFromYaml
-            .map(([name]) => name)
-        )
+        const configGistNames = new Set(thisCompanyGistsFromYaml.map(([name]) => name))
 
         const newCache = yield* SynchronizedRef.updateAndGetEffect(
           cache,
-          Effect.fnUntraced(function*(cache) {
+          Effect.fnUntraced(function* (cache) {
             const newEntries = [...cache.entries]
 
             // remove obsolete cache entries for current company only
@@ -742,7 +712,5 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
   })
 }) {
   static DefaultWithoutDependencies = Layer.effect(this, this.make)
-  static Default = this.DefaultWithoutDependencies.pipe(
-    Layer.provide(GHGistService.Default)
-  )
+  static Default = this.DefaultWithoutDependencies.pipe(Layer.provide(GHGistService.Default))
 }

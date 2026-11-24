@@ -16,7 +16,7 @@ const supportedInputs = [
   "url"
 ] as const
 
-export type SupportedInputs = typeof supportedInputs[number]
+export type SupportedInputs = (typeof supportedInputs)[number]
 
 export const getInputType = (input: string): SupportedInputs =>
-  (supportedInputs as readonly string[]).includes(input) ? input as SupportedInputs : "text"
+  (supportedInputs as readonly string[]).includes(input) ? (input as SupportedInputs) : "text"

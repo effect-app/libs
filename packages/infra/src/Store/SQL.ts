@@ -5,7 +5,15 @@ import * as Effect from "effect-app/Effect"
 import type { FieldValues } from "effect-app/Model/filter/types"
 import type { ComputedProjectionIrExpression } from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
+import {
+  type FilterArgs,
+  type PersistenceModelType,
+  type StorageConfig,
+  type Store,
+  type StoreConfig,
+  storeId,
+  StoreMaker
+} from "effect-app/Store"
 import * as Context from "effect/Context"
 import * as Layer from "effect/Layer"
 import * as LayerMap from "effect/LayerMap"
@@ -18,7 +26,7 @@ import { decodeStoredMany, decodeStoredOption, makeJsonDocumentCodec, makeStored
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.ts"
 import { makeETag, makeJsonLower, toJsonQueryValue } from "./utils.ts"
 
-const sqlErrorMessage = (e: unknown) => (e as any)?.message ? String((e as any).message) : String(e)
+const sqlErrorMessage = (e: unknown) => ((e as any)?.message ? String((e as any).message) : String(e))
 const sqlIsTransient = (e: unknown) =>
   /timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|connection|deadlock|too many connections/i.test(sqlErrorMessage(e))
 // Map a SqlError into a typed, serializable DatabaseError (instead of `.orDie`,
@@ -38,9 +46,9 @@ const preserveStoreError = (e: unknown): DatabaseError | OptimisticConcurrencyEx
 
 export type WithNsTransactionFn = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 
-export class WithNsTransaction
-  extends Context.Service<WithNsTransaction, WithNsTransactionFn>()("effect-app/WithNsTransaction")
-{}
+export class WithNsTransaction extends Context.Service<WithNsTransaction, WithNsTransactionFn>()(
+  "effect-app/WithNsTransaction"
+) {}
 
 /**
  * Row -> raw stored JSON document: `data` parsed, `defaultValues` merged, `id`
@@ -60,10 +68,7 @@ export const parseRow = <Encoded extends FieldValues>(
   return { ...jsonDefaults, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
 }
 
-const parseSelectRow = (
-  row: Record<string, unknown>,
-  idKey: PropertyKey
-): any => {
+const parseSelectRow = (row: Record<string, unknown>, idKey: PropertyKey): any => {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
     if (key === "id") {
@@ -83,15 +88,15 @@ const parseSelectRow = (
 }
 
 function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: string) {
-  return Effect.fnUntraced(function*({ prefix }: StorageConfig) {
+  return Effect.fnUntraced(function* ({ prefix }: StorageConfig) {
     const sql = yield* SqlClient.SqlClient
     return {
-      make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
-        name: string,
-        idKey: IdKey,
-        seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-        config?: StoreConfig<Encoded>
-      ) {
+      make: Effect.fnUntraced(function* <
+        IdKey extends keyof Encoded,
+        Encoded extends FieldValues,
+        R = never,
+        E = never
+      >(name: string, idKey: IdKey, seed?: Effect.Effect<Iterable<Encoded>, E, R>, config?: StoreConfig<Encoded>) {
         type PM = PersistenceModelType<Encoded>
         const tableName = `${prefix}${name}`
         const json = makeJsonLower(config)
@@ -104,12 +109,14 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
 
         const resolveNamespace = !config?.allowNamespace
           ? Effect.succeed("primary")
-          : storeId.pipe(Effect.map((namespace) => {
-            if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
-              throw new Error(`Namespace ${namespace} not allowed!`)
-            }
-            return namespace
-          }))
+          : storeId.pipe(
+              Effect.map((namespace) => {
+                if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
+                  throw new Error(`Namespace ${namespace} not allowed!`)
+                }
+                return namespace
+              })
+            )
 
         const ensureTable = sql
           .unsafe(
@@ -136,17 +143,20 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
         const exec = (query: string, params?: readonly unknown[]) =>
           sql.unsafe(query, params as any).pipe(Effect.mapError(toDatabaseError))
 
-        const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
+        const setInternal = Effect.fnUntraced(function* (e: PM, ns: string) {
           const row = toRow(e)
           if (e._etag) {
-            yield* exec(
-              `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ? AND _namespace = ?`,
-              [row._etag, row.data, row.id, e._etag, ns]
-            )
-            const existing = yield* exec(
-              `SELECT _etag FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
-              [row.id, ns]
-            )
+            yield* exec(`UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ? AND _namespace = ?`, [
+              row._etag,
+              row.data,
+              row.id,
+              e._etag,
+              ns
+            ])
+            const existing = yield* exec(`SELECT _etag FROM "${tableName}" WHERE id = ? AND _namespace = ?`, [
+              row.id,
+              ns
+            ])
             const current = (existing as any[])[0]
             if (!current || current._etag !== row._etag) {
               if (current) {
@@ -167,45 +177,40 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               })
             }
           } else {
-            yield* exec(
-              `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
-              [row.id, ns, row._etag, row.data]
-            )
+            yield* exec(`INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`, [
+              row.id,
+              ns,
+              row._etag,
+              row.data
+            ])
           }
           return row.item
         })
 
         const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
-          sql
-            .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
-            .pipe(
-              Effect.mapError(preserveStoreError),
-              Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
-            )
+          sql.withTransaction(Effect.forEach(items, (e) => setInternal(e, ns))).pipe(
+            Effect.mapError(preserveStoreError),
+            Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+          )
 
         const ctx = yield* Effect.context<R>()
         const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
-        const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+        const makeSeedEffect = Effect.fnUntraced(function* (ns: string) {
           yield* ensureTable
           if (!seed) return
-          const existing = yield* exec(
-            `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`,
-            [`${tableName}::${ns}`, tableName]
-          )
+          const existing = yield* exec(`SELECT id FROM "_migrations" WHERE id = ? AND version = ?`, [
+            `${tableName}::${ns}`,
+            tableName
+          ])
           if ((existing as any[]).length > 0) return
           yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
           const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
           const ne = Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])
           // Seed inserts are not concurrent; OCC here is a programming defect.
           if (Option.isSome(ne)) {
-            yield* bulkSetInternal(ne.value, ns).pipe(
-              Effect.catchTag("OptimisticConcurrencyException", Effect.die)
-            )
+            yield* bulkSetInternal(ne.value, ns).pipe(Effect.catchTag("OptimisticConcurrencyException", Effect.die))
           }
-          yield* exec(
-            `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
-            [`${tableName}::${ns}`, tableName]
-          )
+          yield* exec(`INSERT INTO "_migrations" (id, version) VALUES (?, ?)`, [`${tableName}::${ns}`, tableName])
         })
         const seedNamespace = (ns: string) => {
           let cached = seedCache.get(ns)
@@ -229,18 +234,17 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
 
           all: resolveNamespace.pipe(
             Effect.flatMap((ns) => {
-              return exec(selectAllSql, [ns])
-                .pipe(
-                  Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
-                  annotateDb({
-                    operation: "all",
-                    system,
-                    collection: tableName,
-                    namespace: ns,
-                    entity: name,
-                    query: selectAllSql
-                  })
-                )
+              return exec(selectAllSql, [ns]).pipe(
+                Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
+                annotateDb({
+                  operation: "all",
+                  system,
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: selectAllSql
+                })
+              )
             })
           ),
 
@@ -248,145 +252,145 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             resolveNamespace.pipe(
               Effect.flatMap((ns) => {
                 const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`
-                return exec(sqlText, [id, ns])
-                  .pipe(
-                    Effect.flatMap((rows) =>
-                      Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
-                    ),
-                    annotateDb({
-                      operation: "find",
-                      system,
-                      collection: tableName,
-                      namespace: ns,
-                      entity: name,
-                      query: sqlText,
-                      extra: { "app.entity.id": id }
-                    })
-                  )
+                return exec(sqlText, [id, ns]).pipe(
+                  Effect.flatMap((rows) =>
+                    Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                  ),
+                  annotateDb({
+                    operation: "find",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlText,
+                    extra: { "app.entity.id": id }
+                  })
+                )
               })
             ),
 
           filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
-            const filter = f
-              .filter
-            type M = U extends undefined ? Encoded
-              : Pick<Encoded, U>
-            return resolveNamespace
-              .pipe(Effect
-                .flatMap((ns) =>
-                  Effect
-                    .sync(() => {
-                      return buildWhereSQLQuery(
-                        dialect,
-                        idKey,
-                        filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
-                        tableName,
-                        defaultValues,
-                        f
-                          .select as
-                            | NonEmptyReadonlyArray<
-                              string | {
-                                key: string
-                                subKeys: readonly string[]
-                              } | {
-                                key: string
-                                computed: ComputedProjectionIrExpression
-                              }
-                            >
-                            | undefined,
-                        f
-                          .order,
-                        f
-                          .skip,
-                        f
-                          .limit,
-                        ns,
-                        json
-                      )
-                    })
-                    .pipe(
-                      Effect
-                        .tap((q) => logQuery(q)),
-                      Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
-                      Effect.flatMap((q) =>
-                        exec(q.sql, q.params).pipe(
-                          Effect.flatMap((rows) => {
-                            if (f.select) {
-                              return Effect.succeed((rows as any[]).map((r) => {
-                                const selected = parseSelectRow(r, idKey)
-                                return {
-                                  ...Struct.pick(
-                                    defaultValues as any,
-                                    f.select!.filter((_) => typeof _ === "string") as never[]
-                                  ),
-                                  ...selected
-                                } as M
-                              }))
+            const filter = f.filter
+            type M = U extends undefined ? Encoded : Pick<Encoded, U>
+            return resolveNamespace.pipe(
+              Effect.flatMap((ns) =>
+                Effect.sync(() => {
+                  return buildWhereSQLQuery(
+                    dialect,
+                    idKey,
+                    filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
+                    tableName,
+                    defaultValues,
+                    f.select as
+                      | NonEmptyReadonlyArray<
+                          | string
+                          | {
+                              key: string
+                              subKeys: readonly string[]
                             }
-                            return Effect.map(
-                              Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
-                              (decoded) => decoded as any as M[]
-                            )
-                          })
+                          | {
+                              key: string
+                              computed: ComputedProjectionIrExpression
+                            }
+                        >
+                      | undefined,
+                    f.order,
+                    f.skip,
+                    f.limit,
+                    ns,
+                    json
+                  )
+                }).pipe(
+                  Effect.tap((q) => logQuery(q)),
+                  Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
+                  Effect.flatMap((q) =>
+                    exec(q.sql, q.params).pipe(
+                      Effect.flatMap((rows) => {
+                        if (f.select) {
+                          return Effect.succeed(
+                            (rows as any[]).map((r) => {
+                              const selected = parseSelectRow(r, idKey)
+                              return {
+                                ...Struct.pick(
+                                  defaultValues as any,
+                                  f.select!.filter((_) => typeof _ === "string") as never[]
+                                ),
+                                ...selected
+                              } as M
+                            })
+                          )
+                        }
+                        return Effect.map(
+                          Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
+                          (decoded) => decoded as any as M[]
                         )
-                      ),
-                      annotateDb({
-                        operation: "filter",
-                        system,
-                        collection: tableName,
-                        namespace: ns,
-                        entity: name
                       })
                     )
-                ))
+                  ),
+                  annotateDb({
+                    operation: "filter",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
+              )
+            )
           },
 
           set: (e) =>
-            resolveNamespace.pipe(Effect.flatMap((ns) =>
-              setInternal(e, ns).pipe(
-                annotateDb({
-                  operation: "set",
-                  system,
-                  collection: tableName,
-                  namespace: ns,
-                  entity: name,
-                  extra: { "app.entity.id": e[idKey] }
-                })
+            resolveNamespace.pipe(
+              Effect.flatMap((ns) =>
+                setInternal(e, ns).pipe(
+                  annotateDb({
+                    operation: "set",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    extra: { "app.entity.id": e[idKey] }
+                  })
+                )
               )
-            )),
+            ),
 
           batchSet: (items) =>
-            resolveNamespace.pipe(Effect.flatMap((ns) =>
-              bulkSetInternal(items, ns).pipe(
-                annotateDb({
-                  operation: "batchSet",
-                  system,
-                  collection: tableName,
-                  namespace: ns,
-                  entity: name
-                })
+            resolveNamespace.pipe(
+              Effect.flatMap((ns) =>
+                bulkSetInternal(items, ns).pipe(
+                  annotateDb({
+                    operation: "batchSet",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
               )
-            )),
+            ),
 
           bulkSet: (items) =>
-            resolveNamespace.pipe(Effect.flatMap((ns) =>
-              bulkSetInternal(items, ns).pipe(
-                annotateDb({
-                  operation: "bulkSet",
-                  system,
-                  collection: tableName,
-                  namespace: ns,
-                  entity: name
-                })
+            resolveNamespace.pipe(
+              Effect.flatMap((ns) =>
+                bulkSetInternal(items, ns).pipe(
+                  annotateDb({
+                    operation: "bulkSet",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
               )
-            )),
+            ),
 
           batchRemove: (ids) => {
             const placeholders = ids.map(() => "?").join(", ")
-            return resolveNamespace.pipe(Effect.flatMap((ns) => {
-              const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`
-              return exec(sqlText, [...ids, ns])
-                .pipe(
+            return resolveNamespace.pipe(
+              Effect.flatMap((ns) => {
+                const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`
+                return exec(sqlText, [...ids, ns]).pipe(
                   Effect.asVoid,
                   annotateDb({
                     operation: "batchRemove",
@@ -397,7 +401,8 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                     query: sqlText
                   })
                 )
-            }))
+              })
+            )
           },
 
           queryRaw: (query) =>
@@ -428,12 +433,9 @@ type WithNsSqlFn = <A, E2, R2>(
   f: (sql: SqlClient.SqlClient) => Effect.Effect<A, E2, R2>
 ) => Effect.Effect<A, E2, R2>
 
-function makeSQLiteStorePerNs(
-  withNsSql: WithNsSqlFn,
-  { prefix }: StorageConfig
-) {
+function makeSQLiteStorePerNs(withNsSql: WithNsSqlFn, { prefix }: StorageConfig) {
   return {
-    make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+    make: Effect.fnUntraced(function* <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
       name: string,
       idKey: IdKey,
       seed?: Effect.Effect<Iterable<Encoded>, E, R>,
@@ -451,12 +453,14 @@ function makeSQLiteStorePerNs(
 
       const resolveNamespace = !config?.allowNamespace
         ? Effect.succeed("primary")
-        : storeId.pipe(Effect.map((namespace) => {
-          if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
-            throw new Error(`Namespace ${namespace} not allowed!`)
-          }
-          return namespace
-        }))
+        : storeId.pipe(
+            Effect.map((namespace) => {
+              if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
+                throw new Error(`Namespace ${namespace} not allowed!`)
+              }
+              return namespace
+            })
+          )
 
       const toRow = (e: PM) => {
         const newE = makeETag(codec.encode(e))
@@ -483,21 +487,19 @@ function makeSQLiteStorePerNs(
               ),
               Effect.orDie,
               Effect.asVoid
-            ))
+            )
+        )
 
-      const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
+      const setInternal = Effect.fnUntraced(function* (e: PM, ns: string) {
         const row = toRow(e)
         if (e._etag) {
-          yield* exec(
-            ns,
-            `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ?`,
-            [row._etag, row.data, row.id, e._etag]
-          )
-          const existing = yield* exec(
-            ns,
-            `SELECT _etag FROM "${tableName}" WHERE id = ?`,
-            [row.id]
-          )
+          yield* exec(ns, `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ?`, [
+            row._etag,
+            row.data,
+            row.id,
+            e._etag
+          ])
+          const existing = yield* exec(ns, `SELECT _etag FROM "${tableName}" WHERE id = ?`, [row.id])
           const current = (existing as any[])[0]
           if (!current || current._etag !== row._etag) {
             if (current) {
@@ -518,49 +520,41 @@ function makeSQLiteStorePerNs(
             })
           }
         } else {
-          yield* exec(
-            ns,
-            `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`,
-            [row.id, row._etag, row.data]
-          )
+          yield* exec(ns, `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`, [
+            row.id,
+            row._etag,
+            row.data
+          ])
         }
         return row.item
       })
 
       const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
         withNsSql(ns, (sql) =>
-          sql
-            .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
-            .pipe(
-              Effect.mapError(preserveStoreError),
-              Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
-            ))
+          sql.withTransaction(Effect.forEach(items, (e) => setInternal(e, ns))).pipe(
+            Effect.mapError(preserveStoreError),
+            Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+          )
+        )
 
       const ctx = yield* Effect.context<R>()
       const seedCache = new Map<string, Effect.Effect<void, DatabaseError>>()
-      const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+      const makeSeedEffect = Effect.fnUntraced(function* (ns: string) {
         yield* ensureTable(ns)
         if (!seed) return
-        const existing = yield* exec(
-          ns,
-          `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`,
-          [tableName, tableName]
-        )
+        const existing = yield* exec(ns, `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`, [
+          tableName,
+          tableName
+        ])
         if ((existing as any[]).length > 0) return
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
         const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
         const ne = Option.liftPredicate(isReadonlyArrayNonEmpty)([...items])
         // Seed inserts are not concurrent; OCC here is a programming defect.
         if (Option.isSome(ne)) {
-          yield* bulkSetInternal(ne.value, ns).pipe(
-            Effect.catchTag("OptimisticConcurrencyException", Effect.die)
-          )
+          yield* bulkSetInternal(ne.value, ns).pipe(Effect.catchTag("OptimisticConcurrencyException", Effect.die))
         }
-        yield* exec(
-          ns,
-          `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
-          [tableName, tableName]
-        )
+        yield* exec(ns, `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`, [tableName, tableName])
       })
       const seedNamespace = (ns: string) => {
         let cached = seedCache.get(ns)
@@ -583,9 +577,9 @@ function makeSQLiteStorePerNs(
       const s: Store<IdKey, Encoded> = {
         seedNamespace: (ns) => seedNamespace(ns),
 
-        all: resolveNamespace.pipe(Effect.flatMap((ns) => {
-          return exec(ns, selectAllSql)
-            .pipe(
+        all: resolveNamespace.pipe(
+          Effect.flatMap((ns) => {
+            return exec(ns, selectAllSql).pipe(
               Effect.flatMap((rows) => Effect.fromResult(decodeStoredMany(rows as any[], decodeRow))),
               annotateDb({
                 operation: "all",
@@ -596,151 +590,152 @@ function makeSQLiteStorePerNs(
                 query: selectAllSql
               })
             )
-        })),
+          })
+        ),
 
         find: (id) =>
           resolveNamespace.pipe(
             Effect.flatMap((ns) => {
               const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`
-              return exec(ns, sqlText, [id])
-                .pipe(
-                  Effect.flatMap((rows) =>
-                    Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
-                  ),
-                  annotateDb({
-                    operation: "find",
-                    system: "sqlite",
-                    collection: tableName,
-                    namespace: ns,
-                    entity: name,
-                    query: sqlText,
-                    extra: { "app.entity.id": id }
-                  })
-                )
+              return exec(ns, sqlText, [id]).pipe(
+                Effect.flatMap((rows) =>
+                  Effect.fromResult(decodeStoredOption(Option.fromNullishOr((rows as any[])[0]), decodeRow))
+                ),
+                annotateDb({
+                  operation: "find",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: sqlText,
+                  extra: { "app.entity.id": id }
+                })
+              )
             })
           ),
 
         filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
-          const filter = f
-            .filter
-          type M = U extends undefined ? Encoded
-            : Pick<Encoded, U>
-          return resolveNamespace
-            .pipe(Effect
-              .flatMap((ns) =>
-                Effect
-                  .sync(() =>
-                    buildWhereSQLQuery(
-                      sqliteDialect,
-                      idKey,
-                      filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
-                      tableName,
-                      defaultValues,
-                      f
-                        .select as
-                          | NonEmptyReadonlyArray<
-                            string | {
-                              key: string
-                              subKeys: readonly string[]
-                            } | {
-                              key: string
-                              computed: ComputedProjectionIrExpression
-                            }
-                          >
-                          | undefined,
-                      f
-                        .order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
-                      f
-                        .skip,
-                      f
-                        .limit,
-                      undefined,
-                      json
-                    )
-                  )
-                  .pipe(
-                    Effect
-                      .tap((q) => logQuery(q)),
-                    Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
-                    Effect.flatMap((q) =>
-                      exec(ns, q.sql, q.params).pipe(
-                        Effect.flatMap((rows) => {
-                          if (f.select) {
-                            return Effect.succeed((rows as any[]).map((r) => {
-                              const selected = parseSelectRow(r, idKey)
-                              return {
-                                ...Struct.pick(
-                                  defaultValues as any,
-                                  f.select!.filter((_) => typeof _ === "string") as never[]
-                                ),
-                                ...selected
-                              } as M
-                            }))
+          const filter = f.filter
+          type M = U extends undefined ? Encoded : Pick<Encoded, U>
+          return resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              Effect.sync(() =>
+                buildWhereSQLQuery(
+                  sqliteDialect,
+                  idKey,
+                  filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
+                  tableName,
+                  defaultValues,
+                  f.select as
+                    | NonEmptyReadonlyArray<
+                        | string
+                        | {
+                            key: string
+                            subKeys: readonly string[]
                           }
-                          return Effect.map(
-                            Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
-                            (decoded) => decoded as any as M[]
-                          )
-                        })
+                        | {
+                            key: string
+                            computed: ComputedProjectionIrExpression
+                          }
+                      >
+                    | undefined,
+                  f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                  f.skip,
+                  f.limit,
+                  undefined,
+                  json
+                )
+              ).pipe(
+                Effect.tap((q) => logQuery(q)),
+                Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
+                Effect.flatMap((q) =>
+                  exec(ns, q.sql, q.params).pipe(
+                    Effect.flatMap((rows) => {
+                      if (f.select) {
+                        return Effect.succeed(
+                          (rows as any[]).map((r) => {
+                            const selected = parseSelectRow(r, idKey)
+                            return {
+                              ...Struct.pick(
+                                defaultValues as any,
+                                f.select!.filter((_) => typeof _ === "string") as never[]
+                              ),
+                              ...selected
+                            } as M
+                          })
+                        )
+                      }
+                      return Effect.map(
+                        Effect.fromResult(decodeStoredMany(rows as any[], decodeRow)),
+                        (decoded) => decoded as any as M[]
                       )
-                    ),
-                    annotateDb({
-                      operation: "filter",
-                      system: "sqlite",
-                      collection: tableName,
-                      namespace: ns,
-                      entity: name
                     })
                   )
-              ))
+                ),
+                annotateDb({
+                  operation: "filter",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
+              )
+            )
+          )
         },
 
         set: (e) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            setInternal(e, ns).pipe(
-              annotateDb({
-                operation: "set",
-                system: "sqlite",
-                collection: tableName,
-                namespace: ns,
-                entity: name,
-                extra: { "app.entity.id": e[idKey] }
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              setInternal(e, ns).pipe(
+                annotateDb({
+                  operation: "set",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  extra: { "app.entity.id": e[idKey] }
+                })
+              )
             )
-          )),
+          ),
 
         batchSet: (items) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            bulkSetInternal(items, ns).pipe(
-              annotateDb({
-                operation: "batchSet",
-                system: "sqlite",
-                collection: tableName,
-                namespace: ns,
-                entity: name
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              bulkSetInternal(items, ns).pipe(
+                annotateDb({
+                  operation: "batchSet",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
+              )
             )
-          )),
+          ),
 
         bulkSet: (items) =>
-          resolveNamespace.pipe(Effect.flatMap((ns) =>
-            bulkSetInternal(items, ns).pipe(
-              annotateDb({
-                operation: "bulkSet",
-                system: "sqlite",
-                collection: tableName,
-                namespace: ns,
-                entity: name
-              })
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) =>
+              bulkSetInternal(items, ns).pipe(
+                annotateDb({
+                  operation: "bulkSet",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
+              )
             )
-          )),
+          ),
 
         batchRemove: (ids) => {
           const placeholders = ids.map(() => "?").join(", ")
-          return resolveNamespace.pipe(Effect.flatMap((ns) => {
-            const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`
-            return exec(ns, sqlText, [...ids])
-              .pipe(
+          return resolveNamespace.pipe(
+            Effect.flatMap((ns) => {
+              const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`
+              return exec(ns, sqlText, [...ids]).pipe(
                 Effect.asVoid,
                 annotateDb({
                   operation: "batchRemove",
@@ -751,7 +746,8 @@ function makeSQLiteStorePerNs(
                   query: sqlText
                 })
               )
-          }))
+            })
+          )
         },
 
         queryRaw: (query) =>
@@ -779,27 +775,21 @@ export function SQLiteStoreLayer(
 ) {
   if (options?.makeSqlClientLayer) {
     return Layer.effectContext(
-      Effect.gen(function*() {
-        const layerMap = yield* LayerMap.make(
-          (namespace: string) => options.makeSqlClientLayer!(namespace),
-          { idleTimeToLive: "10 minutes" }
-        )
+      Effect.gen(function* () {
+        const layerMap = yield* LayerMap.make((namespace: string) => options.makeSqlClientLayer!(namespace), {
+          idleTimeToLive: "10 minutes"
+        })
 
         const withNsSql: WithNsSqlFn = (ns, f) => SqlClient.SqlClient.use(f).pipe(Effect.provide(layerMap.get(ns)))
 
         const storeMaker = makeSQLiteStorePerNs(withNsSql, cfg)
 
         const withTransaction: WithNsTransactionFn = (effect) =>
-          storeId.pipe(
-            Effect.flatMap((ns) => withNsSql(ns, (sql) => sql.withTransaction(effect).pipe(Effect.orDie)))
-          )
+          storeId.pipe(Effect.flatMap((ns) => withNsSql(ns, (sql) => sql.withTransaction(effect).pipe(Effect.orDie))))
 
-        return StoreMaker.context(storeMaker).pipe(
-          Context.add(WithNsTransaction, withTransaction)
-        )
+        return StoreMaker.context(storeMaker).pipe(Context.add(WithNsTransaction, withTransaction))
       })
     )
   }
-  return StoreMaker
-    .toLayer(makeSQLStoreInt("sqlite", sqliteDialect, "JSON")(cfg))
+  return StoreMaker.toLayer(makeSQLStoreInt("sqlite", sqliteDialect, "JSON")(cfg))
 }

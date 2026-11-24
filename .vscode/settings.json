@@ -30,35 +30,26 @@
     "source.fixAll.eslint": "explicit",
     "source.addMissingImports": "explicit"
   },
-  "editor.defaultFormatter": "dprint.dprint",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "[vue]": {
-    "editor.defaultFormatter": "dprint.dprint"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "dprint.dprint"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[javascriptreact]": {
-    "editor.defaultFormatter": "dprint.dprint"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "dprint.dprint"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "dprint.dprint"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "vue"
-  ],
+  "eslint.validate": ["javascript", "typescript", "vue"],
   "eslint.format.enable": false,
   "csv-preview.separator": ";",
-  "cSpell.words": [
-    "codegen",
-    "composables",
-    "pipeable",
-    "tsplus"
-  ],
+  "cSpell.words": ["codegen", "composables", "pipeable", "tsplus"],
   "files.watcherExclude": {
     "**/target": true
   },

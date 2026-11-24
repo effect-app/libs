@@ -1,37 +1,35 @@
 <template>
   <testForm.Form>
-    <testForm.Input
-      name="first"
-      label="First"
-    >
+    <testForm.Input name="first" label="First">
       <template #default="{ field, state }">
         <label for="first">First</label>
         <input
           id="first"
           v-model="state.value"
           type="number"
-          @change="(e: any) => {
-            field.handleChange(Number(e.target.value))
-          }"
+          @change="
+            (e: any) => {
+              field.handleChange(Number(e.target.value))
+            }
+          "
           @blur="field.handleBlur"
-        >
+        />
       </template>
     </testForm.Input>
-    <testForm.Input
-      name="second"
-      label="Second"
-    >
+    <testForm.Input name="second" label="Second">
       <template #default="{ field, state }">
         <label for="second">Second</label>
         <input
           id="second"
           v-model="state.value"
           type="number"
-          @change="(e: any) => {
-            field.handleChange(Number(e.target.value || '0'))
-          }"
+          @change="
+            (e: any) => {
+              field.handleChange(Number(e.target.value || '0'))
+            }
+          "
           @blur="field.handleBlur"
-        >
+        />
       </template>
     </testForm.Input>
     <div data-testid="valuez">

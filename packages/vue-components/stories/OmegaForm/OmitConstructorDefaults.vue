@@ -2,9 +2,9 @@
   <h1>Does editing one field wipe the others?</h1>
   <p>
     Each column starts with a record already saved on the server: <code>name</code> and <code>age</code> both filled in.
-    The edit dialog below it only exposes <b>name</b>, a narrow edit action that never shows or touches <code
-    >age</code>. Click <b>Save</b> without touching <code>age</code> and watch what happens to it in the "Saved record"
-    box above.
+    The edit dialog below it only exposes <b>name</b>, a narrow edit action that never shows or touches
+    <code>age</code>. Click <b>Save</b> without touching <code>age</code> and watch what happens to it in the "Saved
+    record" box above.
   </p>
   <div style="display: flex; gap: 2rem; flex-wrap: wrap">
     <section style="flex: 1; min-width: 320px">
@@ -16,20 +16,12 @@
       <h3>Edit dialog (only "name" is editable here)</h3>
       <buggyForm.Form>
         <template #default>
-          <buggyForm.Input
-            label="name"
-            name="name"
-          />
-          <v-btn type="submit">
-            Save
-          </v-btn>
+          <buggyForm.Input label="name" name="name" />
+          <v-btn type="submit"> Save </v-btn>
         </template>
       </buggyForm.Form>
 
-      <p
-        v-if="buggyResult"
-        :style="{ color: buggyResult.ageWiped ? 'crimson' : 'seagreen', fontWeight: 'bold' }"
-      >
+      <p v-if="buggyResult" :style="{ color: buggyResult.ageWiped ? 'crimson' : 'seagreen', fontWeight: 'bold' }">
         {{ buggyResult.ageWiped ? "age was wiped by an update that never touched it!" : "age survived the update" }}
       </p>
 
@@ -46,20 +38,12 @@
       <h3>Edit dialog (only "name" is editable here)</h3>
       <fixedForm.Form>
         <template #default>
-          <fixedForm.Input
-            label="name"
-            name="name"
-          />
-          <v-btn type="submit">
-            Save
-          </v-btn>
+          <fixedForm.Input label="name" name="name" />
+          <v-btn type="submit"> Save </v-btn>
         </template>
       </fixedForm.Form>
 
-      <p
-        v-if="fixedResult"
-        :style="{ color: fixedResult.ageWiped ? 'crimson' : 'seagreen', fontWeight: 'bold' }"
-      >
+      <p v-if="fixedResult" :style="{ color: fixedResult.ageWiped ? 'crimson' : 'seagreen', fontWeight: 'bold' }">
         {{ fixedResult.ageWiped ? "age was wiped by an update that never touched it!" : "age survived the update" }}
       </p>
 

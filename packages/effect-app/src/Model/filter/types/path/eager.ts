@@ -10,16 +10,16 @@ import type { ArrayKey, IsTuple, TupleKeys } from "./common.ts"
  * `Seen` carries the set of object types already entered on this branch so
  * recursion terminates on self-referential types (see {@link Path}).
  */
-type PathImpl<K extends string | number, V, Seen> = V extends
-  | Primitive
-  | BrowserNativeObject ? `${K}`
-  // Stop before re-entering a type already on this branch. Recursive types
-  // (notably `Json`, the encoded form of `Schema.Defect()`:
-  // `JsonObject = { [x: string]: Json }`) would otherwise descend forever and
-  // blow past TS's instantiation limit => TS2589. The key itself stays a valid
-  // leaf path; only the unbounded descent is cut.
-  : [V] extends [Seen] ? `${K}`
-  : `${K}` | `${K}.${Path<V, Seen | V>}`
+type PathImpl<K extends string | number, V, Seen> = V extends Primitive | BrowserNativeObject
+  ? `${K}`
+  : // Stop before re-entering a type already on this branch. Recursive types
+    // (notably `Json`, the encoded form of `Schema.Defect()`:
+    // `JsonObject = { [x: string]: Json }`) would otherwise descend forever and
+    // blow past TS's instantiation limit => TS2589. The key itself stays a valid
+    // leaf path; only the unbounded descent is cut.
+    [V] extends [Seen]
+    ? `${K}`
+    : `${K}` | `${K}.${Path<V, Seen | V>}`
 
 /**
  * Type which eagerly collects all paths through a type
@@ -31,13 +31,16 @@ type PathImpl<K extends string | number, V, Seen> = V extends
  * Path<{foo: {bar: string}}> = 'foo' | 'foo.bar'
  * ```
  */
-export type Path<T, Seen = never> = T extends ReadonlyArray<infer V> ? IsTuple<T> extends true ? {
-      [K in TupleKeys<T>]-?: PathImpl<K & string, T[K], Seen> | "length"
-    }[TupleKeys<T>]
-  : PathImpl<ArrayKey, V, Seen | T> | "length"
-  : {
-    [K in keyof T]-?: PathImpl<K & string, T[K], Seen | T>
-  }[keyof T]
+export type Path<T, Seen = never> =
+  T extends ReadonlyArray<infer V>
+    ? IsTuple<T> extends true
+      ? {
+          [K in TupleKeys<T>]-?: PathImpl<K & string, T[K], Seen> | "length"
+        }[TupleKeys<T>]
+      : PathImpl<ArrayKey, V, Seen | T> | "length"
+    : {
+        [K in keyof T]-?: PathImpl<K & string, T[K], Seen | T>
+      }[keyof T]
 
 /**
  * See {@link Path}
@@ -50,13 +53,7 @@ export type FieldPath<TFieldValues extends FieldValues> = Path<TFieldValues>
   // encoded form of `Schema.Defect()` — whose `{ [x: string]: Json }` index
   // signature previously made `Path` recurse forever. These aliases failing to
   // compile (rather than resolving to a string union) signals the regression.
-  type JsonLike =
-    | string
-    | number
-    | boolean
-    | null
-    | ReadonlyArray<JsonLike>
-    | { readonly [x: string]: JsonLike }
+  type JsonLike = string | number | boolean | null | ReadonlyArray<JsonLike> | { readonly [x: string]: JsonLike }
   type _RawDefect = Path<{ id: string; raw: JsonLike }>
   type _NestedDefect = Path<{ a: { b: { error: { raw: JsonLike } } } }>
   type _ArrayOfDefect = Path<{ items: ReadonlyArray<{ raw: JsonLike }> }>
@@ -78,57 +75,55 @@ export type FieldPath<TFieldValues extends FieldValues> = Path<TFieldValues>
  * ```
  */
 /* dprint-ignore-start */
-export type PathValue<T, P extends Path<T>> =
-  T extends any
-    ? P extends `${infer K}.${infer R}`
-      ? K extends keyof T
-        ? R extends Path<T[K]>
-          ? PathValue<T[K], R>
+export type PathValue<T, P extends Path<T>> = T extends any
+  ? P extends `${infer K}.${infer R}`
+    ? K extends keyof T
+      ? R extends Path<T[K]>
+        ? PathValue<T[K], R>
+        : never
+      : K extends `${ArrayKey}`
+        ? T extends ReadonlyArray<infer V>
+          ? PathValue<V, R & Path<V>>
           : never
-        : K extends `${ArrayKey}`
-          ? T extends ReadonlyArray<infer V>
-            ? PathValue<V, R & Path<V>>
-            : never
+        : never
+    : P extends keyof T
+      ? T[P]
+      : P extends `${ArrayKey}`
+        ? T extends ReadonlyArray<infer V>
+          ? V
           : never
-      : P extends keyof T
-        ? T[P]
-        : P extends `${ArrayKey}`
-          ? T extends ReadonlyArray<infer V>
-            ? V
-            : never
-          : never
-    : never
+        : never
+  : never
 /* dprint-ignore-end */
 
 /**
  * See {@link PathValue}
  */
-export type FieldPathValue<
-  TFieldValues extends FieldValues,
-  TFieldPath extends FieldPath<TFieldValues>
-> = PathValue<TFieldValues, TFieldPath>
+export type FieldPathValue<TFieldValues extends FieldValues, TFieldPath extends FieldPath<TFieldValues>> = PathValue<
+  TFieldValues,
+  TFieldPath
+>
 
 /* dprint-ignore-start */
-export type SetPathValue<T, P extends Path<T>, X> =
-  T extends any
-    ? P extends `${infer K}.${infer R}`
-      ? K extends keyof T
-        ? R extends Path<T[K]>
-          ? { [_ in keyof T]: _ extends K ? SetPathValue<T[K], R, X> : T[_] }
+export type SetPathValue<T, P extends Path<T>, X> = T extends any
+  ? P extends `${infer K}.${infer R}`
+    ? K extends keyof T
+      ? R extends Path<T[K]>
+        ? { [_ in keyof T]: _ extends K ? SetPathValue<T[K], R, X> : T[_] }
+        : never
+      : K extends `${ArrayKey}`
+        ? T extends ReadonlyArray<infer V>
+          ? { [_ in keyof T]: SetPathValue<V, R & Path<V>, X> }
           : never
-        : K extends `${ArrayKey}`
-          ? T extends ReadonlyArray<infer V>
-            ? { [_ in keyof T]: SetPathValue<V, R & Path<V>, X> }
-            : never
+        : never
+    : P extends keyof T
+      ? { [_ in keyof T]: _ extends P ? X : T[_] }
+      : P extends `${ArrayKey}`
+        ? T extends ReadonlyArray<any>
+          ? { [_ in keyof T]: X }
           : never
-      : P extends keyof T
-        ? { [_ in keyof T]: _ extends P ? X : T[_] }
-        : P extends `${ArrayKey}`
-          ? T extends ReadonlyArray<any>
-            ? { [_ in keyof T]: X }
-            : never
-          : never
-    : never
+        : never
+  : never
 /* dprint-ignore-end */
 
 export type SetFieldPathValue<
@@ -138,53 +133,60 @@ export type SetFieldPathValue<
 > = SetPathValue<TFieldValues, TFieldPath, X>
 
 /* dprint-ignore-start */
-export type RefinePathValue<T, P extends Path<T>, X extends string | number | boolean | null | bigint, Exclde extends boolean = false> =
-  T extends any
-    // recursive cases
-    ? P extends `${infer K}.${infer R}`
-      ? K extends keyof T
-        ? R extends Path<T[K]>
-          ? { [_ in keyof T]: _ extends K ? RefinePathValue<T[K], R, X, Exclde> : T[_] }
+export type RefinePathValue<
+  T,
+  P extends Path<T>,
+  X extends string | number | boolean | null | bigint,
+  Exclde extends boolean = false
+> = T extends any
+  ? // recursive cases
+    P extends `${infer K}.${infer R}`
+    ? K extends keyof T
+      ? R extends Path<T[K]>
+        ? { [_ in keyof T]: _ extends K ? RefinePathValue<T[K], R, X, Exclde> : T[_] }
+        : never
+      : K extends `${ArrayKey}`
+        ? T extends ReadonlyArray<infer V>
+          ? { [_ in keyof T]: RefinePathValue<V, R & Path<V>, X, Exclde> }
           : never
-        : K extends `${ArrayKey}`
-          ? T extends ReadonlyArray<infer V>
-            ? { [_ in keyof T]: RefinePathValue<V, R & Path<V>, X, Exclde> }
-            : never
+        : never
+    : // base cases
+      P extends keyof T
+      ? X extends T[P]
+        ? {
+            [_ in keyof T]: _ extends P
+              ? Equals<Exclde, true, Exclude<T[_], X>, IsLiteral<T[_], X, Equals<X, null, null, NonNullable<T[_]>>>>
+              : T[_]
+          } extends infer $T
+          ? Equals<IsNever<$T[P & keyof $T]>, true, never, $T>
           : never
-      // base cases
-      : P extends keyof T
-        ? X extends T[P]
-          ? ({ [_ in keyof T]: _ extends P
-              ? Equals<
+        : Equals<Exclde, true, T, never>
+      : P extends `${ArrayKey}`
+        ? T extends ReadonlyArray<infer V>
+          ? X extends V
+            ? {
+                [_ in keyof T]: Equals<
                   Exclde,
                   true,
                   Exclude<T[_], X>,
                   IsLiteral<T[_], X, Equals<X, null, null, NonNullable<T[_]>>>
                 >
-              : T[_]
-            }) extends infer $T
-              ? Equals<IsNever<$T[P & keyof $T]>, true, never, $T>
-              : never
-          : Equals<Exclde, true, T, never>
-        : P extends `${ArrayKey}`
-          ? T extends ReadonlyArray<infer V>
-            ? X extends V
-              ? { [_ in keyof T]: Equals<
-                  Exclde,
-                  true,
-                  Exclude<T[_], X>,
-                  IsLiteral<T[_], X, Equals<X, null, null, NonNullable<T[_]>>>
-                > }
-              : never
+              }
             : never
           : never
-    : never
+        : never
+  : never
 /* dprint-ignore-end */
 
-export type EraseNeverContainingUnionElements<T> = T extends any ? {
-  [K in keyof T]: IsNever<T[K]> extends true ? true : false
-} extends infer $NC ? true extends $NC[keyof $NC] ? never : T
-: never : never
+export type EraseNeverContainingUnionElements<T> = T extends any
+  ? {
+      [K in keyof T]: IsNever<T[K]> extends true ? true : false
+    } extends infer $NC
+    ? true extends $NC[keyof $NC]
+      ? never
+      : T
+    : never
+  : never
 
 export type RefineFieldPathValue<
   TFieldValues extends FieldValues,
@@ -301,14 +303,9 @@ export type RefineFieldPathValue<
 export type FieldPathValues<
   TFieldValues extends FieldValues,
   TPath extends FieldPath<TFieldValues>[] | readonly FieldPath<TFieldValues>[]
-> =
-  & {}
-  & {
-    [K in keyof TPath]: FieldPathValue<
-      TFieldValues,
-      TPath[K] & FieldPath<TFieldValues>
-    >
-  }
+> = {} & {
+  [K in keyof TPath]: FieldPathValue<TFieldValues, TPath[K] & FieldPath<TFieldValues>>
+}
 
 /**
  * Type which eagerly collects all paths through a fieldType that matches a give type
@@ -321,9 +318,5 @@ export type FieldPathValues<
  * ```
  */
 export type FieldPathByValue<TFieldValues extends FieldValues, TValue> = {
-  [Key in FieldPath<TFieldValues>]: FieldPathValue<
-    TFieldValues,
-    Key
-  > extends TValue ? Key
-    : never
+  [Key in FieldPath<TFieldValues>]: FieldPathValue<TFieldValues, Key> extends TValue ? Key : never
 }[FieldPath<TFieldValues>]

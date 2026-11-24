@@ -61,10 +61,12 @@ describe("defaultsValueFromSchema", () => {
 describe("fillNestedDefaults", () => {
   it("fills missing nullable children for a materialized nullable struct", () => {
     const schema = S.Struct({
-      override: S.NullOr(S.Struct({
-        min: S.NullOr(S.NonNegativeNumber),
-        max: S.NullOr(S.NonNegativeNumber)
-      }))
+      override: S.NullOr(
+        S.Struct({
+          min: S.NullOr(S.NonNegativeNumber),
+          max: S.NullOr(S.NonNegativeNumber)
+        })
+      )
     })
 
     expect(fillNestedDefaults(schema.ast, { override: { min: 100 } })).toEqual({
@@ -89,10 +91,14 @@ describe("fillNestedDefaults", () => {
 
   it("fills missing nullable children for materialized struct elements of an array", () => {
     const schema = S.Struct({
-      items: S.Array(S.NullOr(S.Struct({
-        a: S.NullOr(S.String),
-        b: S.NullOr(S.String)
-      })))
+      items: S.Array(
+        S.NullOr(
+          S.Struct({
+            a: S.NullOr(S.String),
+            b: S.NullOr(S.String)
+          })
+        )
+      )
     })
 
     expect(fillNestedDefaults(schema.ast, { items: [{ a: "x" }, null] })).toEqual({
@@ -102,10 +108,14 @@ describe("fillNestedDefaults", () => {
 
   it("returns the same reference when there is nothing to fill", () => {
     const schema = S.Struct({
-      items: S.Array(S.NullOr(S.Struct({
-        a: S.NullOr(S.String),
-        b: S.NullOr(S.String)
-      })))
+      items: S.Array(
+        S.NullOr(
+          S.Struct({
+            a: S.NullOr(S.String),
+            b: S.NullOr(S.String)
+          })
+        )
+      )
     })
 
     const value = { items: [{ a: "x", b: null }, null] }

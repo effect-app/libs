@@ -1,9 +1,15 @@
 <template>
   <div>
-    <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #1976d2">
-      <h1 style="margin-top: 0">
-        TaggedUnion Component Usage Guide
-      </h1>
+    <div
+      style="
+        background: #f5f5f5;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        border-left: 4px solid #1976d2;
+      "
+    >
+      <h1 style="margin-top: 0">TaggedUnion Component Usage Guide</h1>
 
       <h2>Requirements</h2>
       <ul>
@@ -35,10 +41,7 @@
 
     <form.Form :subscribe="['values', 'canSubmit']">
       <template #default="{ subscribedValues: { values } }">
-        <form.Input
-          label="aString"
-          name="aString"
-        />
+        <form.Input label="aString" name="aString" />
         <form.TaggedUnion
           name="union"
           label="Union!"
@@ -48,30 +51,19 @@
           ]"
         >
           <!-- Default slot: rendered for ALL branches (common fields) -->
-          <form.Input
-            name="union.common"
-            label="Common Field"
-          />
+          <form.Input name="union.common" label="Common Field" />
           <!-- Named slot #A: rendered only when _tag === "A" -->
           <template #union.A>
-            <form.Input
-              name="union.a"
-              label="A Field"
-            />
+            <form.Input name="union.a" label="A Field" />
           </template>
           <!-- Named slot #B: rendered only when _tag === "B" -->
           <template #union.B>
-            <form.Input
-              name="union.b"
-              label="B Field"
-            />
+            <form.Input name="union.b" label="B Field" />
           </template>
         </form.TaggedUnion>
         <pre>{{ values }}</pre>
         <form.Errors />
-        <v-btn type="submit">
-          Submit
-        </v-btn>
+        <v-btn type="submit"> Submit </v-btn>
       </template>
     </form.Form>
   </div>
@@ -109,7 +101,8 @@ const form = useOmegaForm(
 h1 {
   margin-bottom: 1rem;
 }
-ul, ol {
+ul,
+ol {
   margin-left: 1rem;
   margin-bottom: 1rem;
 }

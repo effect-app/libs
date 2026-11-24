@@ -30,7 +30,14 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { createApp, nextTick } from "vue"
-import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, queryFetchStates, withQueryOptions } from "../src/atomQuery.js"
+import {
+  awaitAtomResult,
+  buildQueryFamily,
+  invalidateAndAwait,
+  makeAtomClientRuntime,
+  queryFetchStates,
+  withQueryOptions
+} from "../src/atomQuery.js"
 import { invalidateQueries } from "../src/mutate.js"
 import { useAtomSuspense } from "../src/query.js"
 
@@ -69,7 +76,7 @@ const makeGated = (id: string, repo: DataDependencies.DataDependency) => {
   const self = {
     id,
     handler: () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* DataDependencies.read(repo)
         const n = ++starts
         if (blocking) {
@@ -118,7 +125,10 @@ const mountSuspense = (atom: any) => {
 
 const settle = (p: Promise<any> | undefined) =>
   Promise.race([
-    Promise.resolve(p).then(() => "resolved" as const, () => "rejected" as const),
+    Promise.resolve(p).then(
+      () => "resolved" as const,
+      () => "rejected" as const
+    ),
     new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 40))
   ])
 
@@ -128,7 +138,10 @@ const ignoreSuspenseInterrupt = (p: Promise<any> | undefined) => {
 
 const writeCommand = (repo: DataDependencies.DataDependency) => DataDependencies.write(repo).pipe(Effect.as(undefined))
 const drain = (fiber: Fiber.Fiber<any, any>) =>
-  Effect.runPromise(Fiber.interrupt(fiber) as any).then(() => {}, () => {})
+  Effect.runPromise(Fiber.interrupt(fiber) as any).then(
+    () => {},
+    () => {}
+  )
 
 // ===================================================================================
 // A. Interrupt on suspense page unload (query-side)
@@ -304,7 +317,10 @@ it("B3 — query UNMOUNTED when the mutation invalidation lands, then remounts: 
   // Command writes the repo; invalidation marks the (unmounted) query dirty
   // without refetching it (TanStack refetchType: "active").
   const mutation = invalidateQueries({ id: "Repro.B3.Save" }, undefined, invalidator)(writeCommand(repo), { id: "x" })
-  await Effect.runPromise(mutation as any).then(() => {}, () => {})
+  await Effect.runPromise(mutation as any).then(
+    () => {},
+    () => {}
+  )
   await ticks(2)
   expect(g.starts(), "unmounted invalidation must not refetch").toBe(1)
 
@@ -548,7 +564,10 @@ it("C1 — an explicit invalidation after an interrupted refetch DOES recover th
   expect(served(atom), "still stale before the explicit invalidation").toBe(1)
 
   // A subsequent invalidation (a later successful mutation) force-refreshes and unsticks it.
-  await Effect.runPromise(invalidator.invalidateAndAwait([fullKey]) as any).then(() => {}, () => {})
+  await Effect.runPromise(invalidator.invalidateAndAwait([fullKey]) as any).then(
+    () => {},
+    () => {}
+  )
   await ticks(2)
 
   expect(g.completes()).toBeGreaterThanOrEqual(2)

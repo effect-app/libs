@@ -15,9 +15,7 @@ export function groupByTChunk_<A, Key extends PropertyKey>(c: Chunk.Chunk<A>, f:
  *
  * Effect's `Chunk.findFirst` takes a predicate, not an `Option`-returning function.
  */
-export function findFirstMap<A, B>(
-  f: (a: A) => Option.Option<B>
-) {
+export function findFirstMap<A, B>(f: (a: A) => Option.Option<B>) {
   return (as: Chunk.Chunk<A>) => {
     const ass = Chunk.toReadonlyArray(as)
     const len = ass.length

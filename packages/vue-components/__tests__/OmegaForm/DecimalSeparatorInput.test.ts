@@ -3,11 +3,7 @@ import { handleDecimalSeparatorBeforeinput } from "../../src/components/OmegaFor
 
 // Simulates typing into a VNumberInput: the handler is attached in capture
 // phase on the component root, the native input is the event target.
-const setup = (
-  value: string,
-  separator: string,
-  cursor?: { start: number; end: number }
-) => {
+const setup = (value: string, separator: string, cursor?: { start: number; end: number }) => {
   const root = document.createElement("div")
   const input = document.createElement("input")
   root.appendChild(input)
@@ -25,11 +21,7 @@ const setup = (
   input.addEventListener("input", () => {
     inputEventFired = true
   })
-  root.addEventListener(
-    "beforeinput",
-    (e) => handleDecimalSeparatorBeforeinput(e, separator),
-    { capture: true }
-  )
+  root.addEventListener("beforeinput", (e) => handleDecimalSeparatorBeforeinput(e, separator), { capture: true })
 
   const type = (data: string) => {
     const e = new InputEvent("beforeinput", {

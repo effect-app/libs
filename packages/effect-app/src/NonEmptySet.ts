@@ -3,7 +3,22 @@ import type * as Equivalence from "effect/Equivalence"
 import * as Option from "effect/Option"
 import type * as Order from "effect/Order"
 import { flow, pipe } from "./Function.ts"
-import { filter_, filterMap, filterMap_, fromArray as fromArrayOriginal, insert as insertOriginal, insert_ as insert_Original, map, map_, reduce, reduce_, remove, remove_, type Set, toArray as toArrayOriginal } from "./Set.ts"
+import {
+  filter_,
+  filterMap,
+  filterMap_,
+  fromArray as fromArrayOriginal,
+  insert as insertOriginal,
+  insert_ as insert_Original,
+  map,
+  map_,
+  reduce,
+  reduce_,
+  remove,
+  remove_,
+  type Set,
+  toArray as toArrayOriginal
+} from "./Set.ts"
 
 export interface NonEmptyBrand {
   readonly NonEmpty: unique symbol
@@ -12,8 +27,7 @@ export interface NonEmptyBrand {
 export type NonEmptySet<A> = Set<A> & NonEmptyBrand
 
 function make_<A>(ord: Order.Order<A>, eq_?: Equivalence.Equivalence<A>) {
-  const eq = eq_
-    ?? ((x, y) => ord(x, y) === 0)
+  const eq = eq_ ?? ((x, y) => ord(x, y) === 0)
 
   const fromArray_ = fromArrayOriginal(eq)
   const fromArray = flow(fromArray_, fromSet)
@@ -24,7 +38,10 @@ function make_<A>(ord: Order.Order<A>, eq_?: Equivalence.Equivalence<A>) {
   const insert_: (set: NonEmptySet<A>, a: A) => NonEmptySet<A> = insert_Original as any
 
   function replace_(set: NonEmptySet<A>, a: A) {
-    return (pipe(filter_(set, (x) => !eq(x, a)), insert__(a)) as NonEmptySet<A>)
+    return pipe(
+      filter_(set, (x) => !eq(x, a)),
+      insert__(a)
+    ) as NonEmptySet<A>
   }
 
   const toArray__ = toArrayOriginal(ord)
@@ -54,14 +71,13 @@ function make_<A>(ord: Order.Order<A>, eq_?: Equivalence.Equivalence<A>) {
     concat: (it: Iterable<A>) => (set: NonEmptySet<A>) => concat_(set, it),
 
     // A and B the same, useful when editing elements.
-    map: map(eq) as unknown as <A>(
-      f: (x: A) => A
-    ) => (set: NonEmptySet<A>) => NonEmptySet<A>,
-    map_: map_(eq) as unknown as <A>(
-      set: NonEmptySet<A>,
-      f: (x: A) => A
-    ) => NonEmptySet<A>,
-    filterMap: (f: (a: A) => Option.Option<A>) => flow(filterMap__<A>((a) => f(a)), fromSet),
+    map: map(eq) as unknown as <A>(f: (x: A) => A) => (set: NonEmptySet<A>) => NonEmptySet<A>,
+    map_: map_(eq) as unknown as <A>(set: NonEmptySet<A>, f: (x: A) => A) => NonEmptySet<A>,
+    filterMap: (f: (a: A) => Option.Option<A>) =>
+      flow(
+        filterMap__<A>((a) => f(a)),
+        fromSet
+      ),
     filterMap_: flow(filterMap_(eq), fromSet)
   }
   // TODO: extend
@@ -75,10 +91,7 @@ class Wrapper<A> {
 
 export interface NonEmptySetSchemaExtensions<A> extends ReturnType<Wrapper<A>["wrapped"]> {}
 
-export const make: <A>(
-  ord: Order.Order<A>,
-  eq?: Equivalence.Equivalence<A>
-) => NonEmptySetSchemaExtensions<A> = make_
+export const make: <A>(ord: Order.Order<A>, eq?: Equivalence.Equivalence<A>) => NonEmptySetSchemaExtensions<A> = make_
 
 export function fromSet<A>(set: Set<A>) {
   if (set.size > 0) {

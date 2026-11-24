@@ -11,7 +11,7 @@ import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.ts"
 
 // Walk to the root span so a daemon fiber's spans aren't parented to a span that
 // may already be closing (e.g. the originating request).
-const getRootParentSpan = Effect.gen(function*() {
+const getRootParentSpan = Effect.gen(function* () {
   let span: Tracer.AnySpan | null = yield* Effect.currentSpan.pipe(
     Effect.catchTag("NoSuchElementError", () => Effect.succeed(null))
   )
@@ -23,9 +23,9 @@ const getRootParentSpan = Effect.gen(function*() {
 })
 
 export const setRootParentSpan = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-  getRootParentSpan.pipe(Effect.andThen((span) => span ? Effect.withParentSpan(self, span) : self))
+  getRootParentSpan.pipe(Effect.andThen((span) => (span ? Effect.withParentSpan(self, span) : self)))
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const set = yield* FiberSet.make<unknown, never>()
   const add = (...fibers: Fiber.Fiber<never>[]) => Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
   const addAll = (fibers: readonly Fiber.Fiber<never>[]) =>

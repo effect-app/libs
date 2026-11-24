@@ -4,10 +4,7 @@ import { toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm"
 
 const identityTrans = (id: string, values?: Record<string, any>) => {
   if (!values) return id
-  return Object.entries(values).reduce(
-    (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
-    id
-  )
+  return Object.entries(values).reduce((acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)), id)
 }
 
 const maxLineLengthCheck = (max: number) =>
@@ -19,10 +16,7 @@ const maxLineLengthCheck = (max: number) =>
 describe("OmegaForm form-level schema custom checks", () => {
   it("includes custom filter checks in the form-level localized schema", async () => {
     const schema = S.Struct({
-      height: S.NonEmptyString100.pipe(
-        S.check(S.isMinLength(10)),
-        S.check(maxLineLengthCheck(20))
-      )
+      height: S.NonEmptyString100.pipe(S.check(S.isMinLength(10)), S.check(maxLineLengthCheck(20)))
     })
 
     const standardSchema = toLocalizedStandardSchemaV1(schema as any, identityTrans)

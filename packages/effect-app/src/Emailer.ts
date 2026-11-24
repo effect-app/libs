@@ -8,14 +8,19 @@ export class SendMailError extends Data.TaggedError("SendMailError")<{
   readonly raw: Error
 }> {}
 
-export class Emailer extends Context.Opaque<Emailer, {
-  sendMail: (msg: EmailMsgOptionalFrom) => Effect.Effect<void, SendMailError>
-}>()("effect-app/Emailer") {}
+export class Emailer extends Context.Opaque<
+  Emailer,
+  {
+    sendMail: (msg: EmailMsgOptionalFrom) => Effect.Effect<void, SendMailError>
+  }
+>()("effect-app/Emailer") {}
 
-export type EmailData = Email | {
-  name?: string
-  email: Email
-}
+export type EmailData =
+  | Email
+  | {
+      name?: string
+      email: Email
+    }
 
 export interface EmailContentPart {
   type: string
@@ -44,8 +49,6 @@ export type EmailContent =
   | { templateId: string }
   | { content: NonEmptyReadonlyArray<EmailContentPart> }
 
-export type EmailMsg =
-  & EmailMsgBase
-  & EmailContent
+export type EmailMsg = EmailMsgBase & EmailContent
 
 export type EmailMsgOptionalFrom = Omit<EmailMsgBase, "from"> & Partial<Pick<EmailMsg, "from">> & EmailContent

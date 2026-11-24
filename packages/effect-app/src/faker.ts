@@ -16,17 +16,18 @@ export function getFaker() {
   return faker
 }
 
-export const fakerToArb = <T>(fakerGen: () => T) => (fc: typeof FC) => {
-  return FC.noBias(FC.noShrink(
-    fc
-      .integer()
-      .map((seed) => {
-        faker.seed(seed) // seed the generator
-        return fakerGen() // call it
-      })
-  ))
-}
+export const fakerToArb =
+  <T>(fakerGen: () => T) =>
+  (fc: typeof FC) => {
+    return FC.noBias(
+      FC.noShrink(
+        fc.integer().map((seed) => {
+          faker.seed(seed) // seed the generator
+          return fakerGen() // call it
+        })
+      )
+    )
+  }
 
-export const fakerArb = <T>(
-  gen: (fake: Faker) => () => T
-): (a: any) => FC.Arbitrary<T> => fakerToArb(() => gen(getFaker())())
+export const fakerArb = <T>(gen: (fake: Faker) => () => T): ((a: any) => FC.Arbitrary<T>) =>
+  fakerToArb(() => gen(getFaker())())

@@ -5,7 +5,13 @@ import { defaultRegistry } from "@effect/atom-vue"
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
-import { ApiClientFactory, InvalidStateError, makeRpcClient, NotLoggedInError, OptimisticConcurrencyException } from "effect-app/client"
+import {
+  ApiClientFactory,
+  InvalidStateError,
+  makeRpcClient,
+  NotLoggedInError,
+  OptimisticConcurrencyException
+} from "effect-app/client"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import { HttpRouter, HttpServer } from "effect-app/http"
@@ -40,23 +46,21 @@ class AllowAnonymous extends RpcMiddleware.Tag<AllowAnonymous>()("AllowAnonymous
 
 const AllowAnonymousLive = Layer.effect(
   AllowAnonymous,
-  Effect.succeed(Effect.fnUntraced(function*(effect, { rpc }) {
-    yield* Scope.Scope
-    if (!RequestContextMap.getConfig(rpc).allowAnonymous) {
-      return yield* new NotLoggedInError({ message: "Not logged in" })
-    }
-    return yield* effect
-  }))
+  Effect.succeed(
+    Effect.fnUntraced(function* (effect, { rpc }) {
+      yield* Scope.Scope
+      if (!RequestContextMap.getConfig(rpc).allowAnonymous) {
+        return yield* new NotLoggedInError({ message: "Not logged in" })
+      }
+      return yield* effect
+    })
+  )
 )
 
-class AppMiddleware extends MiddlewareMaker
-  .Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
+class AppMiddleware extends MiddlewareMaker.Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
   .middleware(AllowAnonymous)
-  .middleware(...DefaultGenericMiddlewares)
-{
-  static Default = this.layer.pipe(
-    Layer.provide([AllowAnonymousLive, DefaultGenericMiddlewaresLive] as const)
-  )
+  .middleware(...DefaultGenericMiddlewares) {
+  static Default = this.layer.pipe(Layer.provide([AllowAnonymousLive, DefaultGenericMiddlewaresLive] as const))
 }
 
 const { Router, matchAll } = makeRouter(AppMiddleware.Default)
@@ -82,32 +86,48 @@ class OtherItems extends Context.Service<OtherItems>()("OtherItems", {
   )
 }
 
-class GetRepoCount extends Req.Query<GetRepoCount>()("GetRepoCount", {}, {
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class GetRepoCount extends Req.Query<GetRepoCount>()(
+  "GetRepoCount",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
-class GetRepoCountRuns extends Req.Query<GetRepoCountRuns>()("GetRepoCountRuns", {}, {
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class GetRepoCountRuns extends Req.Query<GetRepoCountRuns>()(
+  "GetRepoCountRuns",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
-class SaveRepoItem extends Req.Command<SaveRepoItem>()("SaveRepoItem", {
-  id: S.String,
-  label: S.String
-}, {
-  allowAnonymous: true,
-  error: S.Union([InvalidStateError, OptimisticConcurrencyException]),
-  success: S.Void
-}) {}
+class SaveRepoItem extends Req.Command<SaveRepoItem>()(
+  "SaveRepoItem",
+  {
+    id: S.String,
+    label: S.String
+  },
+  {
+    allowAnonymous: true,
+    error: S.Union([InvalidStateError, OptimisticConcurrencyException]),
+    success: S.Void
+  }
+) {}
 
-class SaveOtherItem extends Req.Command<SaveOtherItem>()("SaveOtherItem", {
-  id: S.String,
-  label: S.String
-}, {
-  allowAnonymous: true,
-  success: S.Void
-}) {}
+class SaveOtherItem extends Req.Command<SaveOtherItem>()(
+  "SaveOtherItem",
+  {
+    id: S.String,
+    label: S.String
+  },
+  {
+    allowAnonymous: true,
+    success: S.Void
+  }
+) {}
 
 const RepoRpcs = { GetRepoCount, GetRepoCountRuns, SaveRepoItem, SaveOtherItem }
 let repoCountRuns = 0
@@ -119,9 +139,11 @@ const router = Router(RepoRpcs)({
     const otherRepo = yield* OtherItems
     return match({
       GetRepoCount: () =>
-        Effect
-          .sync(() => repoCountRuns++)
-          .pipe(Effect.andThen(repo.all), Effect.map((items) => items.length), Effect.orDie),
+        Effect.sync(() => repoCountRuns++).pipe(
+          Effect.andThen(repo.all),
+          Effect.map((items) => items.length),
+          Effect.orDie
+        ),
       GetRepoCountRuns: () => Effect.sync(() => repoCountRuns),
       SaveRepoItem: ({ id, label }) => repo.save(new RepoItem({ id, label })).pipe(Effect.orDie),
       SaveOtherItem: ({ id, label }) => otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie)
@@ -132,42 +154,33 @@ const router = Router(RepoRpcs)({
 const RpcRouterLayer = matchAll({ router })
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
-const ServerLayer = HttpRouter
-  .serve(RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer)))
-  .pipe(
-    Layer.provide(NodeServerLayer),
-    Layer.provide(RpcSerialization.layerNdjson)
-  )
+const ServerLayer = HttpRouter.serve(
+  RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer))
+).pipe(Layer.provide(NodeServerLayer), Layer.provide(RpcSerialization.layerNdjson))
 
-const ClientLayer = Layer
-  .unwrap(
-    Effect.gen(function*() {
-      const server = yield* HttpServer.HttpServer
-      const addr = server.address
-      if (NetAddress.isUnixPathAddress(addr)) {
-        return yield* Effect.die(new Error("expected inet address"))
-      }
-      const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
-      return ApiClientFactory
-        .layer({ url: `http://${host}:${addr.port}`, headers: Option.none() })
-        .pipe(Layer.provide(FetchHttpClient.layer))
-    })
-  )
-  .pipe(Layer.provide(NodeServerLayer))
+const ClientLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const addr = server.address
+    if (NetAddress.isUnixPathAddress(addr)) {
+      return yield* Effect.die(new Error("expected inet address"))
+    }
+    const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
+    return ApiClientFactory.layer({ url: `http://${host}:${addr.port}`, headers: Option.none() }).pipe(
+      Layer.provide(FetchHttpClient.layer)
+    )
+  })
+).pipe(Layer.provide(NodeServerLayer))
 
 const TestLayer = Layer.mergeAll(ServerLayer, ClientLayer, Reactivity.layer)
 
 const setup = () => {
   repoCountRuns = 0
   const runtime = ManagedRuntime.make(TestLayer)
-  return Effect
-    .all(
-      [
-        ApiClientFactory.makeFor(Layer.empty)(RepoRpcs),
-        Effect.context<any>()
-      ] as const
-    )
-    .pipe(Effect.map(([client, context]) => Tuple.make(runtime, client, context)), runtime.runPromise)
+  return Effect.all([ApiClientFactory.makeFor(Layer.empty)(RepoRpcs), Effect.context<any>()] as const).pipe(
+    Effect.map(([client, context]) => Tuple.make(runtime, client, context)),
+    runtime.runPromise
+  )
 }
 
 it("atom engine: rpc repo write invalidates and refetches; unrelated rpc write does not", async () => {
@@ -183,19 +196,25 @@ it("atom engine: rpc repo write invalidates and refetches; unrelated rpc write d
   const run = <A, E>(effect: Effect.Effect<A, E, never>) => Effect.runPromise(effect)
   const save = (id: string) =>
     run(
-      invalidateQueries(client.SaveRepoItem, undefined, invalidator)(client.SaveRepoItem.handler({ id, label: id }), {
+      invalidateQueries(
+        client.SaveRepoItem,
+        undefined,
+        invalidator
+      )(client.SaveRepoItem.handler({ id, label: id }), {
         id,
         label: id
-      })
-        .pipe(Effect.provide(context)) as any
+      }).pipe(Effect.provide(context)) as any
     )
   const saveOther = (id: string) =>
     run(
-      invalidateQueries(client.SaveOtherItem, undefined, invalidator)(client.SaveOtherItem.handler({ id, label: id }), {
+      invalidateQueries(
+        client.SaveOtherItem,
+        undefined,
+        invalidator
+      )(client.SaveOtherItem.handler({ id, label: id }), {
         id,
         label: id
-      })
-        .pipe(Effect.provide(context)) as any
+      }).pipe(Effect.provide(context)) as any
     )
 
   try {
@@ -229,19 +248,25 @@ it("tanstack engine: rpc repo write invalidates and refetches; unrelated rpc wri
   const run = <A, E>(effect: Effect.Effect<A, E, never>) => Effect.runPromise(effect)
   const save = (id: string) =>
     run(
-      invalidateQueries(client.SaveRepoItem, undefined, invalidator)(client.SaveRepoItem.handler({ id, label: id }), {
+      invalidateQueries(
+        client.SaveRepoItem,
+        undefined,
+        invalidator
+      )(client.SaveRepoItem.handler({ id, label: id }), {
         id,
         label: id
-      })
-        .pipe(Effect.provide(context)) as any
+      }).pipe(Effect.provide(context)) as any
     )
   const saveOther = (id: string) =>
     run(
-      invalidateQueries(client.SaveOtherItem, undefined, invalidator)(client.SaveOtherItem.handler({ id, label: id }), {
+      invalidateQueries(
+        client.SaveOtherItem,
+        undefined,
+        invalidator
+      )(client.SaveOtherItem.handler({ id, label: id }), {
         id,
         label: id
-      })
-        .pipe(Effect.provide(context)) as any
+      }).pipe(Effect.provide(context)) as any
     )
 
   app.runWithContext(() =>

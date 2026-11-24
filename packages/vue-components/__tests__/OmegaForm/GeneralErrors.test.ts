@@ -13,7 +13,7 @@ describe("OmegaForm general errors", () => {
         const form = useOmegaForm(S.Struct({ password: S.String, confirmation: S.String }), {
           defaultValues: { password: "secret", confirmation: "different" },
           validators: {
-            onSubmit: ({ value }) => value.password === value.confirmation ? undefined : message
+            onSubmit: ({ value }) => (value.password === value.confirmation ? undefined : message)
           }
         })
         return { form }
@@ -24,12 +24,12 @@ describe("OmegaForm general errors", () => {
 
     await wrapper.vm.form.handleSubmit()
     await nextTick()
-    expect(wrapper.get("[role=\"alert\"]").text()).toContain(message)
+    expect(wrapper.get('[role="alert"]').text()).toContain(message)
 
     wrapper.vm.form.setFieldValue("confirmation", "secret")
     await wrapper.vm.form.handleSubmit()
     await nextTick()
-    expect(wrapper.find("[role=\"alert\"]").exists()).toBe(false)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     wrapper.unmount()
   })
 

@@ -48,9 +48,7 @@ const missing = unreachable(value)
     expect(migrated).toContain(`const label = "tuple(typedKeysOf)"`)
     expect(migrated).toContain("const fields = compact({ a: 1, b: undefined })")
     expect(migrated).toContain("dropUndefined as compact")
-    expect(migrated).toContain(
-      "const next = pipeZonedLocal(today, DateTime.add({ days: 2 }))"
-    )
+    expect(migrated).toContain("const next = pipeZonedLocal(today, DateTime.add({ days: 2 }))")
     expect(migrated).toContain("const parts = Chunk.fromIterable(Array.chunksOf(items, 10))")
     expect(migrated).toContain("const some = Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(items)")
     expect(migrated).toContain(`import { Date } from "effect-app/Schema"`)

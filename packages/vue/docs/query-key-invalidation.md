@@ -35,6 +35,7 @@ invalidation does an exact structural-hash lookup.
 
   See `buildQueryFamily` → `prefixesOf` → `factory.withReactivity` in
   [`src/atomQuery.ts`](../src/atomQuery.ts) (registration around L416-424).
+
 - Invalidation hashes K and fires the handlers registered under that exact hash
   (`Reactivity.invalidate` → `keysToHashes` in
   `repos/effect/packages/effect/src/unstable/reactivity/Reactivity.ts`).

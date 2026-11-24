@@ -3,17 +3,8 @@
     <section>
       <h2>Native Vuetify form</h2>
       <form @submit.prevent="nativeSubmitCount++">
-        <v-text-field
-          v-model="nativePassword"
-          label="Native password"
-          type="password"
-        />
-        <v-btn
-          type="submit"
-          :disabled="!nativePassword.trim()"
-        >
-          submit
-        </v-btn>
+        <v-text-field v-model="nativePassword" label="Native password" type="password" />
+        <v-btn type="submit" :disabled="!nativePassword.trim()"> submit </v-btn>
       </form>
       <p>Submit count: {{ nativeSubmitCount }}</p>
     </section>
@@ -22,17 +13,8 @@
       <h2>OmegaForm Vuetify input</h2>
       <form.Form :subscribe="['values']">
         <template #default="{ subscribedValues: { values } }">
-          <form.Input
-            label="Omega password"
-            name="password"
-            type="password"
-          />
-          <v-btn
-            type="submit"
-            :disabled="!values.password?.trim()"
-          >
-            submit
-          </v-btn>
+          <form.Input label="Omega password" name="password" type="password" />
+          <v-btn type="submit" :disabled="!values.password?.trim()"> submit </v-btn>
         </template>
       </form.Form>
       <p>Submit count: {{ omegaSubmitCount }}</p>

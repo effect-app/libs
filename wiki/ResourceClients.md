@@ -17,11 +17,8 @@ See [Repository-derived query invalidation](./repository-derived-query-invalidat
 If you need to invalidate queries in another namespace, you can pass the following option to the Mutation constructor:
 
 ```ts
-queryInvalidation: ;
-;((queryKey) => [
-  { filters: { queryKey } },
-  { filters: { queryKey: makeQueryKey(meClient.GetMe) } }
-])
+queryInvalidation:;
+;(queryKey) => [{ filters: { queryKey } }, { filters: { queryKey: makeQueryKey(meClient.GetMe) } }]
 ```
 
 ## Command

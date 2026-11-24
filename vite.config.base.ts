@@ -12,9 +12,12 @@ import path from "path"
 //   ]
 // })
 
-export default function makeConfig(dirName?: string) {
+export default function makeConfig(_dirName?: string) {
   const prefix = path.resolve(__dirname, "packages")
-  const packages = fs.readdirSync(prefix).map((f) => prefix + "/" + f).filter((f) => fs.lstatSync(f).isDirectory())
+  const packages = fs
+    .readdirSync(prefix)
+    .map((f) => prefix + "/" + f)
+    .filter((f) => fs.lstatSync(f).isDirectory())
   const cfg = {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     // plugins: [autoImport],
@@ -26,13 +29,13 @@ export default function makeConfig(dirName?: string) {
       setupFiles: [path.join(__dirname, "vitest.setup.ts")]
     },
     resolve: {
-      alias: packages.map((pkg) => ({ pkg, json: pkg + "/package.json" })).filter((_) => fs.existsSync(_.json)).reduce(
-        (acc, { pkg, json }) => {
+      alias: packages
+        .map((pkg) => ({ pkg, json: pkg + "/package.json" }))
+        .filter((_) => fs.existsSync(_.json))
+        .reduce((acc, { pkg, json }) => {
           acc[JSON.parse(fs.readFileSync(json, "utf-8")).name] = path.resolve(pkg, "src")
           return acc
-        },
-        {}
-      ) // "effect-app/Prelude": path.join(__dirname, "packages/core/src/Prelude.code.ts")
+        }, {}) // "effect-app/Prelude": path.join(__dirname, "packages/core/src/Prelude.code.ts")
     }
   }
   // console.log(cfg)

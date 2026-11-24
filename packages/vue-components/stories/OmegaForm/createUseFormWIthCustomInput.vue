@@ -2,26 +2,16 @@
   <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>
-      <form.Input
-        label="asder2"
-        name="asder2"
-        class="test"
-        input-class="testina"
-      />
+      <form.Input label="asder2" name="asder2" class="test" input-class="testina" />
       <form.Input name="customLabel">
         <template #label="{ required }">
           <span style="color: blue; font-weight: bold">
             Custom HTML Label
-            <span
-              v-if="required"
-              style="color: red"
-            >*</span>
+            <span v-if="required" style="color: red">*</span>
           </span>
         </template>
       </form.Input>
-      <v-btn type="submit">
-        submit
-      </v-btn>
+      <v-btn type="submit"> submit </v-btn>
     </template>
   </form.Form>
 </template>

@@ -4,10 +4,7 @@ Historically, resource clients relied on manual invalidation lists:
 
 ```ts
 const options = {
-  queryInvalidation: (queryKey) => [
-    { filters: { queryKey } },
-    SomeOtherQuery
-  ]
+  queryInvalidation: (queryKey) => [{ filters: { queryKey } }, SomeOtherQuery]
 }
 ```
 
@@ -178,10 +175,7 @@ Example:
 
 ```ts
 const save = useMutation(SaveProduct, {
-  queryInvalidation: (queryKey) => [
-    { filters: { queryKey } },
-    DashboardSummary
-  ]
+  queryInvalidation: (queryKey) => [{ filters: { queryKey } }, DashboardSummary]
 })
 ```
 
@@ -195,12 +189,12 @@ Use `signal(name)` for data that has no repository boundary:
 ```ts
 const ExchangeRates = DataDependencies.signal("ExchangeRates")
 
-const getPrices = Effect.fnUntraced(function*() {
+const getPrices = Effect.fnUntraced(function* () {
   yield* DataDependencies.read(ExchangeRates)
   return yield* fetchPrices
 })
 
-const refreshRates = Effect.fnUntraced(function*() {
+const refreshRates = Effect.fnUntraced(function* () {
   yield* updateRates
   yield* DataDependencies.write(ExchangeRates)
 })

@@ -17,28 +17,30 @@ import type * as PlatformError from "effect/PlatformError"
  * This allows users to import individual modules instead of the entire package:
  * import { helper } from 'package/utils/helper' instead of 'package'
  */
-export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMappings")(function*() {
+export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMappings")(function* () {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
 
-  return Effect.fn("effa-cli.extractExportMappings.service")(function*(cwd: string) {
+  return Effect.fn("effa-cli.extractExportMappings.service")(function* (cwd: string) {
     // @effect-diagnostics-next-line effectFnOpportunity:off
     const findTsFiles = (dir: string): Effect.Effect<string[], PlatformError.PlatformError> =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const entries = yield* fs.readDirectory(dir)
 
         const results = yield* Effect.all(
-          entries.map(Effect.fnUntraced(function*(entry) {
-            const fullPath = path.join(dir, entry)
-            const stat = yield* fs.stat(fullPath)
+          entries.map(
+            Effect.fnUntraced(function* (entry) {
+              const fullPath = path.join(dir, entry)
+              const stat = yield* fs.stat(fullPath)
 
-            if (stat.type === "Directory") {
-              return yield* findTsFiles(fullPath)
-            } else if (entry.endsWith(".ts") && !entry.includes(".test.")) {
-              return [fullPath]
-            }
-            return []
-          }))
+              if (stat.type === "Directory") {
+                return yield* findTsFiles(fullPath)
+              } else if (entry.endsWith(".ts") && !entry.includes(".test.")) {
+                return [fullPath]
+              }
+              return []
+            })
+          )
         )
 
         return EffectArray.flatten(results)
@@ -64,11 +66,7 @@ export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMap
       return `"${exportKey}": { "types": "${typesPath}", "default": "${distPath}" }`
     })
 
-    const sortedMappings = pipe(
-      exportMappings,
-      EffectArray.sort(Order.String),
-      EffectArray.join(",\n")
-    )
+    const sortedMappings = pipe(exportMappings, EffectArray.sort(Order.String), EffectArray.join(",\n"))
 
     return sortedMappings
   })

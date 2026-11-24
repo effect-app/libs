@@ -1,58 +1,29 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-4">
-      Window Exit Prevention
-    </h1>
-    <p class="mb-6">
-      Demonstrates preventing browser window/tab exit when forms have unsaved changes.
-    </p>
+    <h1 class="text-h4 mb-4">Window Exit Prevention</h1>
+    <p class="mb-6">Demonstrates preventing browser window/tab exit when forms have unsaved changes.</p>
 
     <!-- Example 1: Basic Window Exit Prevention -->
     <v-card class="mb-6">
       <v-card-title>Example 1: Basic Window Exit Prevention</v-card-title>
       <v-card-text>
-        <p class="mb-4">
-          Edit the form below, then try to:
-        </p>
+        <p class="mb-4">Edit the form below, then try to:</p>
         <ul class="mb-4">
           <li>Refresh the page (Ctrl+R / Cmd+R)</li>
           <li>Close the browser tab</li>
           <li>Navigate away from the page</li>
         </ul>
-        <p class="mb-4 text-warning">
-          ⚠️ You'll see the browser's native "Leave site?" confirmation dialog.
-        </p>
+        <p class="mb-4 text-warning">⚠️ You'll see the browser's native "Leave site?" confirmation dialog.</p>
 
         <basicForm.Form>
-          <div class="mb-2">
-            isDirty: <strong>{{ isDirtyBasic }}</strong>
-          </div>
-          <basicForm.Input
-            label="Username"
-            name="username"
-          />
-          <basicForm.Input
-            label="Email"
-            name="email"
-          />
-          <basicForm.Input
-            label="Bio"
-            name="bio"
-          />
+          <div class="mb-2">isDirty: <strong>{{ isDirtyBasic }}</strong></div>
+          <basicForm.Input label="Username" name="username" />
+          <basicForm.Input label="Email" name="email" />
+          <basicForm.Input label="Bio" name="bio" />
 
           <div class="mt-4">
-            <v-btn
-              color="primary"
-              type="submit"
-            >
-              Save
-            </v-btn>
-            <v-btn
-              class="ml-2"
-              @click="basicForm.reset()"
-            >
-              Reset
-            </v-btn>
+            <v-btn color="primary" type="submit"> Save </v-btn>
+            <v-btn class="ml-2" @click="basicForm.reset()"> Reset </v-btn>
           </div>
         </basicForm.Form>
       </v-card-text>
@@ -62,9 +33,7 @@
     <v-card class="mb-6">
       <v-card-title>Example 2: Window Exit + Data Persistence (Independent Features)</v-card-title>
       <v-card-text>
-        <p class="mb-4">
-          This form has BOTH features enabled independently:
-        </p>
+        <p class="mb-4">This form has BOTH features enabled independently:</p>
         <ul class="mb-4">
           <li><strong>Window Exit Prevention:</strong> Shows confirmation dialog when trying to leave</li>
           <li><strong>Data Persistence:</strong> Saves form data to localStorage on exit</li>
@@ -74,25 +43,14 @@
           there!
         </p>
 
-        <v-alert
-          type="success"
-          class="mb-4"
-        >
+        <v-alert type="success" class="mb-4">
           These features work independently. Even if you dismiss the warning and leave, your data is saved.
         </v-alert>
 
         <persistentForm.Form>
-          <div class="mb-2">
-            isDirty: <strong>{{ isDirtyPersistent }}</strong>
-          </div>
-          <persistentForm.Input
-            label="Task Name"
-            name="taskName"
-          />
-          <persistentForm.Input
-            label="Description"
-            name="description"
-          />
+          <div class="mb-2">isDirty: <strong>{{ isDirtyPersistent }}</strong></div>
+          <persistentForm.Input label="Task Name" name="taskName" />
+          <persistentForm.Input label="Description" name="description" />
           <persistentForm.Input
             label="Priority"
             name="priority"
@@ -104,24 +62,9 @@
           />
 
           <div class="mt-4">
-            <v-btn
-              color="primary"
-              type="submit"
-            >
-              Save
-            </v-btn>
-            <v-btn
-              class="ml-2"
-              @click="persistentForm.reset()"
-            >
-              Reset
-            </v-btn>
-            <v-btn
-              class="ml-2"
-              @click="persistentForm.clear()"
-            >
-              Clear All
-            </v-btn>
+            <v-btn color="primary" type="submit"> Save </v-btn>
+            <v-btn class="ml-2" @click="persistentForm.reset()"> Reset </v-btn>
+            <v-btn class="ml-2" @click="persistentForm.clear()"> Clear All </v-btn>
           </div>
         </persistentForm.Form>
 
@@ -129,9 +72,7 @@
 
         <v-expansion-panels>
           <v-expansion-panel>
-            <v-expansion-panel-title>
-              View Configuration Code
-            </v-expansion-panel-title>
+            <v-expansion-panel-title> View Configuration Code </v-expansion-panel-title>
             <v-expansion-panel-text>
               <pre class="pa-4 bg-grey-lighten-4"><code>const form = useOmegaForm(
   schema,
@@ -161,41 +102,19 @@
           automatically resets after successful submission.
         </p>
 
-        <v-alert
-          type="success"
-          class="mb-4"
-        >
+        <v-alert type="success" class="mb-4">
           After submitting, the form becomes "clean" (isDirty = false) but keeps the submitted values. You can refresh
           without warnings!
         </v-alert>
 
         <preventAndReset.Form>
-          <div class="mb-2">
-            isDirty: <strong>{{ isDirtyPreventAndReset }}</strong>
-          </div>
-          <preventAndReset.Input
-            label="Comment"
-            name="comment"
-          />
-          <preventAndReset.Input
-            label="Rating"
-            name="rating"
-            type="number"
-          />
+          <div class="mb-2">isDirty: <strong>{{ isDirtyPreventAndReset }}</strong></div>
+          <preventAndReset.Input label="Comment" name="comment" />
+          <preventAndReset.Input label="Rating" name="rating" type="number" />
 
           <div class="mt-4">
-            <v-btn
-              color="primary"
-              type="submit"
-            >
-              Submit
-            </v-btn>
-            <v-btn
-              class="ml-2"
-              @click="preventAndReset.reset()"
-            >
-              Reset
-            </v-btn>
+            <v-btn color="primary" type="submit"> Submit </v-btn>
+            <v-btn class="ml-2" @click="preventAndReset.reset()"> Reset </v-btn>
           </div>
         </preventAndReset.Form>
 

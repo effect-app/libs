@@ -25,8 +25,8 @@
     "check": "tsrs --noEmit",
     "test": "vitest",
     "test:run": "vitest run --passWithNoTests",
-    "lint": "effect-tsgo oxlint --quiet --type-aware ./test && pnpm exec dprint check --config ../../dprint.jsonc .",
-    "lint-fix": "effect-tsgo oxlint --quiet --type-aware --fix ./test && pnpm exec dprint fmt --config ../../dprint.jsonc .",
+    "lint": "effect-tsgo oxlint --quiet --type-aware ./test",
+    "lint-fix": "effect-tsgo oxlint --quiet --type-aware --fix ./test",
     "testsuite": "pnpm lint && pnpm run test:run",
     "clean": "rm -rf dist"
   },

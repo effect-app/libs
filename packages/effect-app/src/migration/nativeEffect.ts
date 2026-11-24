@@ -25,7 +25,10 @@ const array = [["Array", "effect/Array"]] as const
 const chunk = [["Chunk", "effect/Chunk"]] as const
 const tuple = [["Tuple", "effect/Tuple"]] as const
 const effect = [["Effect", "effect/Effect"]] as const
-const dateTime = [["DateTime", "effect/DateTime"], ["pipeZonedLocal", "effect-app/DateTime"]] as const
+const dateTime = [
+  ["DateTime", "effect/DateTime"],
+  ["pipeZonedLocal", "effect-app/DateTime"]
+] as const
 const deferred = [["Deferred", "effect/Deferred"]] as const
 const result = [["Result", "effect/Result"]] as const
 const absurd = [["absurd", "effect/Function"]] as const
@@ -43,8 +46,7 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
     name: "typedValuesOf",
     expression: "Record.values",
     imports: record,
-    note:
-      "Record.values reads a record with one value type. When each value's type depends on its key, use Object.values."
+    note: "Record.values reads a record with one value type. When each value's type depends on its key, use Object.values."
   },
   {
     module: "effect-app/utils",
@@ -209,31 +211,31 @@ export const nativeEffectReplacements: ReadonlyArray<NativeEffectReplacement> = 
     imports: effect,
     note: "Runs the second effect inside the first effect's scope, then closes it."
   },
-  ...([
-    ["DateAddDays", "days", "date-add"],
-    ["DateAddHours", "hours", "date-add"],
-    ["DateAddMinutes", "minutes", "date-add"],
-    ["DateAddSeconds", "seconds", "date-add"],
-    ["DateAddWeeks", "weeks", "date-add"],
-    ["DateAddMonths", "months", "date-add"],
-    ["DateAddYears", "years", "date-add"],
-    ["DateSubDays", "days", "date-sub"],
-    ["DateSubHours", "hours", "date-sub"],
-    ["DateSubMinutes", "minutes", "date-sub"],
-    ["DateSubSeconds", "seconds", "date-sub"],
-    ["DateSubWeeks", "weeks", "date-sub"],
-    ["DateSubMonths", "months", "date-sub"],
-    ["DateSubYears", "years", "date-sub"]
-  ] as const)
-    .map(([name, unit, call]): NativeEffectReplacement => ({
-      module: "effect-app/_ext/date",
-      name,
-      expression: unit,
-      imports: dateTime,
-      call,
-      note:
-        "pipeZonedLocal attaches the process timezone, runs DateTime.add or DateTime.subtract, and returns the instant with toDateUtc."
-    }))
+  ...(
+    [
+      ["DateAddDays", "days", "date-add"],
+      ["DateAddHours", "hours", "date-add"],
+      ["DateAddMinutes", "minutes", "date-add"],
+      ["DateAddSeconds", "seconds", "date-add"],
+      ["DateAddWeeks", "weeks", "date-add"],
+      ["DateAddMonths", "months", "date-add"],
+      ["DateAddYears", "years", "date-add"],
+      ["DateSubDays", "days", "date-sub"],
+      ["DateSubHours", "hours", "date-sub"],
+      ["DateSubMinutes", "minutes", "date-sub"],
+      ["DateSubSeconds", "seconds", "date-sub"],
+      ["DateSubWeeks", "weeks", "date-sub"],
+      ["DateSubMonths", "months", "date-sub"],
+      ["DateSubYears", "years", "date-sub"]
+    ] as const
+  ).map(([name, unit, call]): NativeEffectReplacement => ({
+    module: "effect-app/_ext/date",
+    name,
+    expression: unit,
+    imports: dateTime,
+    call,
+    note: "pipeZonedLocal attaches the process timezone, runs DateTime.add or DateTime.subtract, and returns the instant with toDateUtc."
+  }))
 ]
 
 interface Binding {
@@ -437,7 +439,7 @@ const splitArgs = (
   if (balanced === undefined) return undefined
   const args: Array<string> = []
   let depth = 0
-  let quote: "'" | "\"" | "`" | undefined
+  let quote: "'" | '"' | "`" | undefined
   let start = 0
   const body = balanced.body
   for (let i = 0; i < body.length; i++) {
@@ -450,7 +452,7 @@ const splitArgs = (
       if (char === quote) quote = undefined
       continue
     }
-    if (char === "'" || char === "\"" || char === "`") {
+    if (char === "'" || char === '"' || char === "`") {
       quote = char
       continue
     }
@@ -474,7 +476,7 @@ const readBalanced = (
 ): { readonly body: string; readonly end: number } | undefined => {
   if (source[open] !== left) return undefined
   let depth = 0
-  let quote: "'" | "\"" | "`" | undefined
+  let quote: "'" | '"' | "`" | undefined
   for (let i = open; i < source.length; i++) {
     const char = source[i]
     if (quote !== undefined) {
@@ -485,7 +487,7 @@ const readBalanced = (
       if (char === quote) quote = undefined
       continue
     }
-    if (char === "'" || char === "\"" || char === "`") {
+    if (char === "'" || char === '"' || char === "`") {
       quote = char
       continue
     }
@@ -537,9 +539,7 @@ const insertImports = (source: string, needed: ReadonlyMap<string, Set<string>>)
     for (const name of names) {
       if (hasImport(source, name, from)) continue
       lines.push(
-        namedImportNames.has(name)
-          ? `import { ${name} } from "${from}"`
-          : `import * as ${name} from "${from}"`
+        namedImportNames.has(name) ? `import { ${name} } from "${from}"` : `import * as ${name} from "${from}"`
       )
     }
   }
@@ -556,9 +556,10 @@ const hasImport = (source: string, name: string, from: string): boolean => {
   const fromPattern = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   const namespace = new RegExp(`import\\s+\\*\\s+as\\s+${name}\\s+from\\s+["']${fromPattern}["']`)
   const named = new RegExp(`import\\s+(type\\s+)?\\{[^}]*\\b${name}\\b[^}]*}\\s+from\\s+["']${fromPattern}["']`)
-  const barrel = name === name[0]?.toUpperCase()
-    ? new RegExp(`import\\s+(type\\s+)?\\{[^}]*\\b${name}\\b[^}]*}\\s+from\\s+["']effect["']`)
-    : undefined
+  const barrel =
+    name === name[0]?.toUpperCase()
+      ? new RegExp(`import\\s+(type\\s+)?\\{[^}]*\\b${name}\\b[^}]*}\\s+from\\s+["']effect["']`)
+      : undefined
   return namespace.test(source) || named.test(source) || barrel?.test(source) === true
 }
 
@@ -595,7 +596,7 @@ const maskNonCode = (source: string): string => {
       continue
     }
     const char = source[i]
-    if (char === "'" || char === "\"") {
+    if (char === "'" || char === '"') {
       const stop = scanQuoted(source, i, char)
       blank(i, stop)
       i = stop
@@ -612,7 +613,7 @@ const maskNonCode = (source: string): string => {
   return chars.join("")
 }
 
-const scanQuoted = (source: string, start: number, quote: "'" | "\""): number => {
+const scanQuoted = (source: string, start: number, quote: "'" | '"'): number => {
   for (let i = start + 1; i < source.length; i++) {
     if (source[i] === "\\") {
       i++

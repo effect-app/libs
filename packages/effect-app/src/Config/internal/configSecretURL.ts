@@ -9,10 +9,9 @@ export const isSecretURL = (u: unknown): u is SecretURL.SecretURL => {
 
 /** @internal */
 export const make = (bytes: Array<number>): SecretURL.SecretURL => {
-  const secret = Object.assign(
-    Redacted.make(bytes.map((byte) => String.fromCharCode(byte)).join("")),
-    { raw: undefined as any } as const
-  )
+  const secret = Object.assign(Redacted.make(bytes.map((byte) => String.fromCharCode(byte)).join("")), {
+    raw: undefined as any
+  } as const)
   let protocol = "unknown"
   try {
     const url = new URL(bytes.map((byte) => String.fromCharCode(byte)).join(""))
@@ -26,10 +25,10 @@ export const make = (bytes: Array<number>): SecretURL.SecretURL => {
   Object.defineProperty(secret, "toJSON", {
     enumerable: false,
     value() {
-      return ({
+      return {
         _tag: "SecretURL",
         protocol
-      })
+      }
     }
   })
   Object.defineProperty(secret, "toString", {

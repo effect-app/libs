@@ -29,32 +29,35 @@ import { makeJsonLower } from "../src/Store/utils.js"
  * strict JSON→Encoded decode - is applied on top via {@link makeStoredDecode}.
  */
 const LegacyDocStoreLive = (docs: readonly Record<string, unknown>[]) =>
-  StoreMaker.toLayer(Effect.sync(() => ({
-    make: ((modelName: string, idKey: any, _seed: any, config: any) =>
-      Effect.map(
-        makeMemoryStoreInt(
-          modelName,
-          idKey,
-          "primary",
-          Effect.succeed(docs as any),
-          config?.defaultValues,
-          undefined,
-          makeJsonLower(config)
-        ),
-        (store) => {
-          const decode = makeStoredDecode<any>(config?.schema, config?.jitM)
-          return {
-            ...store,
-            all: Effect.flatMap(store.all, (rows) => Effect.fromResult(decodeStoredMany(rows, decode))),
-            find: (id: any) =>
-              Effect.flatMap(store.find(id), (doc) => Effect.fromResult(decodeStoredOption(doc, decode))),
-            filter: (f: any) =>
-              Effect.flatMap(store.filter(f), (rows: any[]) =>
-                f.select ? Effect.succeed(rows) : Effect.fromResult(decodeStoredMany(rows, decode)))
+  StoreMaker.toLayer(
+    Effect.sync(() => ({
+      make: ((modelName: string, idKey: any, _seed: any, config: any) =>
+        Effect.map(
+          makeMemoryStoreInt(
+            modelName,
+            idKey,
+            "primary",
+            Effect.succeed(docs as any),
+            config?.defaultValues,
+            undefined,
+            makeJsonLower(config)
+          ),
+          (store) => {
+            const decode = makeStoredDecode<any>(config?.schema, config?.jitM)
+            return {
+              ...store,
+              all: Effect.flatMap(store.all, (rows) => Effect.fromResult(decodeStoredMany(rows, decode))),
+              find: (id: any) =>
+                Effect.flatMap(store.find(id), (doc) => Effect.fromResult(decodeStoredOption(doc, decode))),
+              filter: (f: any) =>
+                Effect.flatMap(store.filter(f), (rows: any[]) =>
+                  f.select ? Effect.succeed(rows) : Effect.fromResult(decodeStoredMany(rows, decode))
+                )
+            }
           }
-        }
-      )) as any
-  })))
+        )) as any
+    }))
+  )
 
 class Shop extends S.Class<Shop>("LegacyDocShop")({
   id: S.String,
@@ -67,7 +70,7 @@ class Shop extends S.Class<Shop>("LegacyDocShop")({
 }) {}
 
 // `vatRate` was added later; stored documents from before that do not have it.
-const jitM = (json: JsonRecord): JsonRecord => "vatRate" in json ? json : { ...json, vatRate: 19 }
+const jitM = (json: JsonRecord): JsonRecord => ("vatRate" in json ? json : { ...json, vatRate: 19 })
 
 /** does *not* repair `vatRate`, so `legacyDoc` cannot decode at the store boundary */
 const jitMThatDoesNotRepair = (json: JsonRecord): JsonRecord => ({
@@ -107,177 +110,135 @@ const DefaultsLive = Layer.merge(LegacyDocStoreLive([legacyDoc, zeroDoc]), Repos
 
 describe("repository reads of legacy documents", () => {
   it("all: jitM fills the key the stored document is missing", () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
+    Effect.gen(function* () {
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
 
-        const items = yield* repo.all
+      const items = yield* repo.all
 
-        expect(items).toHaveLength(2)
-        const legacy = items.find((_) => _.id === "shop-legacy")!
-        expect(legacy).toBeInstanceOf(Shop)
-        expect(legacy.vatRate).toBe(19)
-        expect(legacy.createdAt).toBeInstanceOf(Date)
-        expect(legacy.tags).toBeInstanceOf(Set)
-        expect([...legacy.tags]).toEqual(["a"])
-        expect(items.find((_) => _.id === "shop-current")!.vatRate).toBe(7)
-      })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      expect(items).toHaveLength(2)
+      const legacy = items.find((_) => _.id === "shop-legacy")!
+      expect(legacy).toBeInstanceOf(Shop)
+      expect(legacy.vatRate).toBe(19)
+      expect(legacy.createdAt).toBeInstanceOf(Date)
+      expect(legacy.tags).toBeInstanceOf(Set)
+      expect([...legacy.tags]).toEqual(["a"])
+      expect(items.find((_) => _.id === "shop-current")!.vatRate).toBe(7)
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("find: a legacy document decodes through jitM", () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
+    Effect.gen(function* () {
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
 
-        const found = yield* repo.find("shop-legacy")
+      const found = yield* repo.find("shop-legacy")
 
-        expect(Option.isSome(found)).toBe(true)
-        const shop = Option.getOrThrow(found)
-        expect(shop.vatRate).toBe(19)
-        expect(shop.name).toBe("Legacy Shop")
-        expect(shop.createdAt).toBeInstanceOf(Date)
-      })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      expect(Option.isSome(found)).toBe(true)
+      const shop = Option.getOrThrow(found)
+      expect(shop.vatRate).toBe(19)
+      expect(shop.name).toBe("Legacy Shop")
+      expect(shop.createdAt).toBeInstanceOf(Date)
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("validateSample: legacy documents validate because jitM runs at the store boundary", () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
+    Effect.gen(function* () {
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM })
 
-        const result = yield* repo.validateSample({ percentage: 1.0 })
+      const result = yield* repo.validateSample({ percentage: 1.0 })
 
-        expect(result.total).toBe(2)
-        expect(result.sampled).toBe(2)
-        expect(result.errors).toHaveLength(0)
-        expect(result.valid).toBe(2)
-      })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      expect(result.total).toBe(2)
+      expect(result.sampled).toBe(2)
+      expect(result.errors).toHaveLength(0)
+      expect(result.valid).toBe(2)
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("jitM repairs an explicit null, and the document decodes end-to-end", () =>
-    Effect
-      .gen(function*() {
-        // the case the store boundary exists for: `null` is not a valid
-        // `S.Date` encoding, so no schema decode could ever fix it
-        const repairNull = (json: JsonRecord): JsonRecord =>
-          json["updatedAt"] === null ? { ...json, updatedAt: "2024-06-05T00:00:00.000Z" } : json
+    Effect.gen(function* () {
+      // the case the store boundary exists for: `null` is not a valid
+      // `S.Date` encoding, so no schema decode could ever fix it
+      const repairNull = (json: JsonRecord): JsonRecord =>
+        json["updatedAt"] === null ? { ...json, updatedAt: "2024-06-05T00:00:00.000Z" } : json
 
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: repairNull })
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: repairNull })
 
-        const shop = Option.getOrThrow(yield* repo.find("shop-null"))
-        expect(shop.updatedAt).toBeInstanceOf(Date)
-        expect(shop.updatedAt.toISOString()).toBe("2024-06-05T00:00:00.000Z")
+      const shop = Option.getOrThrow(yield* repo.find("shop-null"))
+      expect(shop.updatedAt).toBeInstanceOf(Date)
+      expect(shop.updatedAt.toISOString()).toBe("2024-06-05T00:00:00.000Z")
 
-        const all = yield* repo.all
-        expect(all).toHaveLength(1)
-        expect(all[0]!.updatedAt.toISOString()).toBe("2024-06-05T00:00:00.000Z")
-      })
-      .pipe(
-        Effect.provide(NullDocLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      const all = yield* repo.all
+      expect(all).toHaveLength(1)
+      expect(all[0]!.updatedAt.toISOString()).toBe("2024-06-05T00:00:00.000Z")
+    }).pipe(Effect.provide(NullDocLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("jitM receives the raw JSON document, and its JSON result is what the decode consumes", () =>
-    Effect
-      .gen(function*() {
-        const seen: JsonRecord[] = []
-        const observe = (json: JsonRecord): JsonRecord => {
-          seen.push(json)
-          // returning JSON - an ISO string, not a `Date` - is what decodes
-          return { ...json, updatedAt: "2024-06-09T00:00:00.000Z" }
-        }
+    Effect.gen(function* () {
+      const seen: JsonRecord[] = []
+      const observe = (json: JsonRecord): JsonRecord => {
+        seen.push(json)
+        // returning JSON - an ISO string, not a `Date` - is what decodes
+        return { ...json, updatedAt: "2024-06-09T00:00:00.000Z" }
+      }
 
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: observe })
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: observe })
 
-        const shop = Option.getOrThrow(yield* repo.find("shop-current"))
+      const shop = Option.getOrThrow(yield* repo.find("shop-current"))
 
-        expect(seen).toHaveLength(1)
-        const raw = seen[0]!
-        // a `Date` field arrives as an ISO string
-        expect(typeof raw["createdAt"]).toBe("string")
-        expect(raw["createdAt"]).toBe("2024-06-02T00:00:00.000Z")
-        // a `ReadonlySet` as an array, a `ReadonlyMap` as an array of pairs
-        expect(raw["tags"]).toEqual(["b"])
-        expect(raw["meta"]).toEqual([["k2", "v2"]])
-        // never native Encoded values
-        expect(raw["createdAt"]).not.toBeInstanceOf(Date)
-        expect(raw["meta"]).not.toBeInstanceOf(Map)
-        // `_etag` is infra metadata and is not part of the document
-        expect("_etag" in raw).toBe(false)
+      expect(seen).toHaveLength(1)
+      const raw = seen[0]!
+      // a `Date` field arrives as an ISO string
+      expect(typeof raw["createdAt"]).toBe("string")
+      expect(raw["createdAt"]).toBe("2024-06-02T00:00:00.000Z")
+      // a `ReadonlySet` as an array, a `ReadonlyMap` as an array of pairs
+      expect(raw["tags"]).toEqual(["b"])
+      expect(raw["meta"]).toEqual([["k2", "v2"]])
+      // never native Encoded values
+      expect(raw["createdAt"]).not.toBeInstanceOf(Date)
+      expect(raw["meta"]).not.toBeInstanceOf(Map)
+      // `_etag` is infra metadata and is not part of the document
+      expect("_etag" in raw).toBe(false)
 
-        // the JSON the jitM returned was decoded to the native Encoded value
-        expect(shop.updatedAt).toBeInstanceOf(Date)
-        expect(shop.updatedAt.toISOString()).toBe("2024-06-09T00:00:00.000Z")
-        expect(shop.meta).toBeInstanceOf(Map)
-        expect([...shop.meta]).toEqual([["k2", "v2"]])
-      })
-      .pipe(
-        Effect.provide(CurrentDocLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      // the JSON the jitM returned was decoded to the native Encoded value
+      expect(shop.updatedAt).toBeInstanceOf(Date)
+      expect(shop.updatedAt.toISOString()).toBe("2024-06-09T00:00:00.000Z")
+      expect(shop.meta).toBeInstanceOf(Map)
+      expect([...shop.meta]).toEqual([["k2", "v2"]])
+    }).pipe(Effect.provide(CurrentDocLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("defaultValues only fill absent keys, and a stored null still reaches jitM", () =>
-    Effect
-      .gen(function*() {
-        const seen: JsonRecord[] = []
-        const repo = yield* makeRepo("LegacyDocShop", Shop, {
-          jitM: (json) => {
-            seen.push(json)
-            return json["updatedAt"] === null ? { ...json, updatedAt: "2024-06-08T00:00:00.000Z" } : json
-          },
-          config: {
-            defaultValues: {
-              vatRate: 19,
-              updatedAt: new Date("2024-01-01T00:00:00.000Z")
-            }
+    Effect.gen(function* () {
+      const seen: JsonRecord[] = []
+      const repo = yield* makeRepo("LegacyDocShop", Shop, {
+        jitM: (json) => {
+          seen.push(json)
+          return json["updatedAt"] === null ? { ...json, updatedAt: "2024-06-08T00:00:00.000Z" } : json
+        },
+        config: {
+          defaultValues: {
+            vatRate: 19,
+            updatedAt: new Date("2024-01-01T00:00:00.000Z")
           }
-        })
-
-        const items = yield* repo.all
-        expect(items).toHaveLength(2)
-
-        // absent key -> filled by defaultValues
-        const missing = items.find((_) => _.id === "shop-legacy")!
-        expect(missing.vatRate).toBe(19)
-        // present key -> the stored value wins, even when falsy
-        const present = items.find((_) => _.id === "shop-zero")!
-        expect(present.vatRate).toBe(0)
-
-        // defaultValues are merged *before* jitM runs
-        const filledSeen = seen.find((_) => _["id"] === "shop-legacy")!
-        expect(filledSeen["vatRate"]).toBe(19)
-        // ...but never overwrite a key the document has
-        expect(filledSeen["updatedAt"]).toBe("2024-06-03T00:00:00.000Z")
-
-        // a stored explicit `null` is NOT replaced by the default: it reaches jitM
-        const nullSeen = seen.find((_) => _["id"] === "shop-zero")!
-        expect(nullSeen["updatedAt"]).toBe(null)
-        expect(present.updatedAt.toISOString()).toBe("2024-06-08T00:00:00.000Z")
+        }
       })
-      .pipe(
-        Effect.provide(DefaultsLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+
+      const items = yield* repo.all
+      expect(items).toHaveLength(2)
+
+      // absent key -> filled by defaultValues
+      const missing = items.find((_) => _.id === "shop-legacy")!
+      expect(missing.vatRate).toBe(19)
+      // present key -> the stored value wins, even when falsy
+      const present = items.find((_) => _.id === "shop-zero")!
+      expect(present.vatRate).toBe(0)
+
+      // defaultValues are merged *before* jitM runs
+      const filledSeen = seen.find((_) => _["id"] === "shop-legacy")!
+      expect(filledSeen["vatRate"]).toBe(19)
+      // ...but never overwrite a key the document has
+      expect(filledSeen["updatedAt"]).toBe("2024-06-03T00:00:00.000Z")
+
+      // a stored explicit `null` is NOT replaced by the default: it reaches jitM
+      const nullSeen = seen.find((_) => _["id"] === "shop-zero")!
+      expect(nullSeen["updatedAt"]).toBe(null)
+      expect(present.updatedAt.toISOString()).toBe("2024-06-08T00:00:00.000Z")
+    }).pipe(Effect.provide(DefaultsLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   /**
    * The store boundary decode is deliberately **strict**: `jitM` is the one and
@@ -290,35 +251,28 @@ describe("repository reads of legacy documents", () => {
    * `validateSample` report the document instead of losing the whole run.
    */
   it("a document jitM does not repair fails as a typed SchemaError at the store boundary", () =>
-    Effect
-      .gen(function*() {
-        const { make } = yield* StoreMaker
-        // `vatRate` is still missing after this jitM ran: it only touches `updatedAt`
-        const store = yield* make<"id", any>("LegacyDocShop", "id", undefined, {
-          partitionValue: () => "primary",
-          schema: Shop,
-          jitM: jitMThatDoesNotRepair
-        })
-
-        // `Effect.result` only catches typed failures - a defect would reject here
-        const result = yield* store.all.pipe(Effect.result)
-
-        expect(Result.isFailure(result)).toBe(true)
-        if (!Result.isFailure(result)) return
-        const failure = result.failure
-        expect(S.isSchemaError(failure)).toBe(true)
-        expect((failure as S.SchemaError)._tag).toBe("SchemaError")
-        // the strict `toCodecJson(toEncoded(schema))` decode still reports the
-        // key jitM failed to add, with the path to it
-        expect((failure as S.SchemaError).message).toContain("Missing key")
-        expect((failure as S.SchemaError).message).toContain("vatRate")
+    Effect.gen(function* () {
+      const { make } = yield* StoreMaker
+      // `vatRate` is still missing after this jitM ran: it only touches `updatedAt`
+      const store = yield* make<"id", any>("LegacyDocShop", "id", undefined, {
+        partitionValue: () => "primary",
+        schema: Shop,
+        jitM: jitMThatDoesNotRepair
       })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+
+      // `Effect.result` only catches typed failures - a defect would reject here
+      const result = yield* store.all.pipe(Effect.result)
+
+      expect(Result.isFailure(result)).toBe(true)
+      if (!Result.isFailure(result)) return
+      const failure = result.failure
+      expect(S.isSchemaError(failure)).toBe(true)
+      expect((failure as S.SchemaError)._tag).toBe("SchemaError")
+      // the strict `toCodecJson(toEncoded(schema))` decode still reports the
+      // key jitM failed to add, with the path to it
+      expect((failure as S.SchemaError).message).toContain("Missing key")
+      expect((failure as S.SchemaError).message).toContain("vatRate")
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   /**
    * ...and the *public* repository surface is unchanged: `Repository.find`/`all`
@@ -326,60 +280,43 @@ describe("repository reads of legacy documents", () => {
    * when the public members are produced.
    */
   it("the same document still dies on a public repository read", () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
+    Effect.gen(function* () {
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
 
-        const exit = yield* repo.all.pipe(Effect.exit)
-        expect(Exit.isFailure(exit)).toBe(true)
-        if (Exit.isFailure(exit)) {
-          expect(Cause.hasDies(exit.cause)).toBe(true)
-          expect(Cause.hasFails(exit.cause)).toBe(false)
-        }
+      const exit = yield* repo.all.pipe(Effect.exit)
+      expect(Exit.isFailure(exit)).toBe(true)
+      if (Exit.isFailure(exit)) {
+        expect(Cause.hasDies(exit.cause)).toBe(true)
+        expect(Cause.hasFails(exit.cause)).toBe(false)
+      }
 
-        // a defect is not catchable as a typed failure
-        const notCaught = yield* repo.find("shop-legacy").pipe(Effect.result, Effect.exit)
-        expect(Exit.isFailure(notCaught)).toBe(true)
-      })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      // a defect is not catchable as a typed failure
+      const notCaught = yield* repo.find("shop-legacy").pipe(Effect.result, Effect.exit)
+      expect(Exit.isFailure(notCaught)).toBe(true)
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("validateSample reports a document that fails at the store boundary and keeps going", () =>
-    Effect
-      .gen(function*() {
-        const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
+    Effect.gen(function* () {
+      const repo = yield* makeRepo("LegacyDocShop", Shop, { jitM: jitMThatDoesNotRepair })
 
-        const result = yield* repo.validateSample({ percentage: 1.0 })
+      const result = yield* repo.validateSample({ percentage: 1.0 })
 
-        expect(result.total).toBe(2)
-        expect(result.sampled).toBe(2)
-        // `shop-current` decodes, `shop-legacy` does not
-        expect(result.valid).toBe(1)
-        expect(result.errors).toHaveLength(1)
-        const error = result.errors[0]!
-        expect(error.id).toBe("shop-legacy")
-        expect(S.isSchemaError(error.error)).toBe(true)
-      })
-      .pipe(
-        Effect.provide(TestLive),
-        setupRequestContextFromCurrent(),
-        Effect.scoped,
-        Effect.runPromise
-      ))
+      expect(result.total).toBe(2)
+      expect(result.sampled).toBe(2)
+      // `shop-current` decodes, `shop-legacy` does not
+      expect(result.valid).toBe(1)
+      expect(result.errors).toHaveLength(1)
+      const error = result.errors[0]!
+      expect(error.id).toBe("shop-legacy")
+      expect(S.isSchemaError(error.error)).toBe(true)
+    }).pipe(Effect.provide(TestLive), setupRequestContextFromCurrent(), Effect.scoped, Effect.runPromise))
 
   it("_etag is not visible to jitM and survives the round trip", () => {
     const seen: JsonRecord[] = []
-    const decode = makeStoredDecode<any>(
-      Shop,
-      (json) => {
-        seen.push(json)
-        return { ...json, vatRate: 19 }
-      }
-    )
+    const decode = makeStoredDecode<any>(Shop, (json) => {
+      seen.push(json)
+      return { ...json, vatRate: 19 }
+    })
 
     const decoded = Result.getOrThrow(decode({ ...legacyDoc, _etag: "etag-1" } as any))
 

@@ -5,7 +5,16 @@ import * as path from "node:path"
 import { globSync } from "glob"
 
 import { getExportedModelNames, getFacadeableModelNames } from "./presets/model.ts"
-import { applyDefaults, blockRe, type CodegenDefaults, indentBlock, normaliseGeneratedContent, parseBlockOptions, renderPreset, trimTrailingNewline } from "./shared/codegen-block.ts"
+import {
+  applyDefaults,
+  blockRe,
+  type CodegenDefaults,
+  indentBlock,
+  normaliseGeneratedContent,
+  parseBlockOptions,
+  renderPreset,
+  trimTrailingNewline
+} from "./shared/codegen-block.ts"
 import { createNativeModelTypeResolver } from "./shared/native-type-resolver.ts"
 import { createModelTypeResolver, type ModelTypeResolver } from "./shared/type-resolver.ts"
 
@@ -55,11 +64,12 @@ function syncCtor(source: string, modelNames: ReadonlyArray<string>, mode: CtorM
       `((?:[A-Za-z_$][\\w$]*\\.)?)(?:Opaque|OpaqueType|OpaqueShape)<\\s*${n}(?:\\.Type)?\\s*,\\s*${n}\\.Encoded(?:\\s*,\\s*${n}\\.Make)?\\s*>`,
       "g"
     )
-    const target = mode === "make"
-      ? `$1OpaqueShape<${name}.Type, ${name}.Encoded, ${name}.Make>`
-      : mode === "type"
-      ? `$1OpaqueType<${name}.Type, ${name}.Encoded>`
-      : `$1Opaque<${name}, ${name}.Encoded>`
+    const target =
+      mode === "make"
+        ? `$1OpaqueShape<${name}.Type, ${name}.Encoded, ${name}.Make>`
+        : mode === "type"
+          ? `$1OpaqueType<${name}.Type, ${name}.Encoded>`
+          : `$1Opaque<${name}, ${name}.Encoded>`
     out = out.replace(re, target)
   }
   return out
@@ -67,7 +77,7 @@ function syncCtor(source: string, modelNames: ReadonlyArray<string>, mode: CtorM
 
 function findMatchingBrace(source: string, openIndex: number): number {
   let depth = 0
-  let quote: "\"" | "'" | "`" | undefined
+  let quote: '"' | "'" | "`" | undefined
   let escaped = false
   let lineComment = false
   let blockComment = false
@@ -108,7 +118,7 @@ function findMatchingBrace(source: string, openIndex: number): number {
       index++
       continue
     }
-    if (char === "\"" || char === "'" || char === "`") {
+    if (char === '"' || char === "'" || char === "`") {
       quote = char
       continue
     }
@@ -128,7 +138,7 @@ function findMatchingBrace(source: string, openIndex: number): number {
 function findClassBodyOpen(source: string, start: number): number {
   let parenDepth = 0
   let bracketDepth = 0
-  let quote: "\"" | "'" | "`" | undefined
+  let quote: '"' | "'" | "`" | undefined
   let escaped = false
   let lineComment = false
   let blockComment = false
@@ -169,7 +179,7 @@ function findClassBodyOpen(source: string, start: number): number {
       index++
       continue
     }
-    if (char === "\"" || char === "'" || char === "`") {
+    if (char === '"' || char === "'" || char === "`") {
       quote = char
       continue
     }
@@ -232,10 +242,7 @@ function syncFacadeSourceCtor(classText: string, name: string): string {
   // NOTE: only the `X.` (member-access) form is rewritten — a bare `\bX\b` rewrite
   // would also corrupt `TaggedStruct("X")` tag strings. Bare value self-refs
   // (`S.decodeTo(X, ...)`) in a static body are rare; such models stay standard.
-  const selfValueRef = new RegExp(
-    `\\b${n}\\.(?!(?:Encoded|Make|Type|DecodingServices|EncodingServices)\\b)`,
-    "g"
-  )
+  const selfValueRef = new RegExp(`\\b${n}\\.(?!(?:Encoded|Make|Type|DecodingServices|EncodingServices)\\b)`, "g")
   return rewritten.replace(selfValueRef, `_${name}.`)
 }
 
@@ -252,7 +259,11 @@ function tryStructPrivate(classText: string, name: string, indent: string): stri
   if (open === -1) return null
   const close = findMatchingBrace(classText, open)
   if (close === -1) return null
-  const body = classText.slice(open + 1, close).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim()
+  const body = classText
+    .slice(open + 1, close)
+    .replace(/\/\/[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .trim()
   if (body.length > 0) return null // has statics/getters/methods -> keep class
   // Extract STRUCT from `extends (prefix)Opaque<X, X.Encoded>()(STRUCT)`.
   const m = /\bextends\s+(?:[A-Za-z_$][\w$]*\.)?Opaque\s*<[^(]*>\s*\(\s*\)\s*\(/.exec(classText.slice(0, open))
@@ -326,8 +337,7 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
               `${lineStart}${indent}// codegen:start {preset: modelFacade, className: _${name}${schemaOption(prefix)}}`,
               `${indent}${facadeClassLine(name, prefix)}`,
               `${indent}// codegen:end`
-            ]
-              .join("\n")
+            ].join("\n")
           })
         }
         continue
@@ -346,16 +356,17 @@ function syncFacade(source: string, modelNames: ReadonlyArray<string>, enabled: 
       // No-statics `S.Opaque` model -> emit the private as a plain `S.Struct` const
       // (lighter type; ~-14.5% definition instantiations). The facade class still
       // wraps it and is constructable (OpaqueFacade uses overloads for class vs struct schemas).
-      const privateClass = tryStructPrivate(classText, name, indent) ?? syncFacadeSourceCtor(
-        classText.replace(new RegExp(`^${indent}export\\s+class\\s+${n}\\b`), `${indent}class _${name}`),
-        name
-      )
+      const privateClass =
+        tryStructPrivate(classText, name, indent) ??
+        syncFacadeSourceCtor(
+          classText.replace(new RegExp(`^${indent}export\\s+class\\s+${n}\\b`), `${indent}class _${name}`),
+          name
+        )
       const facade = [
         `${indent}// codegen:start {preset: modelFacade, className: _${name}${schemaOption(prefix)}}`,
         `${indent}${facadeClassLine(name, prefix)}`,
         `${indent}// codegen:end`
-      ]
-        .join("\n")
+      ].join("\n")
       out = `${out.slice(0, start)}${privateClass}\n${facade}${out.slice(end)}`
     } else {
       const classRe = new RegExp(`(^|\\n)(\\s*)class\\s+_${n}\\b`)
@@ -389,8 +400,8 @@ function syncModelSource(source: string): string {
     const mode: CtorMode = staticMakeModelBlockRe.test(source)
       ? "make"
       : staticTypeModelBlockRe.test(source)
-      ? "type"
-      : "plain"
+        ? "type"
+        : "plain"
     const modelNames = getExportedModelNames(source)
     if (facade) {
       // Only rewrite Opaque-struct models into facades; leave Class-based models
@@ -520,14 +531,8 @@ function defaultFiles(): Array<string> {
   return globSync("**/*.{ts,tsx,mts,cts}", {
     cwd: process.cwd(),
     nodir: true,
-    ignore: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/.git/**"
-    ]
-  })
-    .map((filePath) => path.resolve(process.cwd(), filePath))
+    ignore: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/.git/**"]
+  }).map((filePath) => path.resolve(process.cwd(), filePath))
 }
 
 function findNearestTsconfig(fromDir: string): string | undefined {
@@ -572,9 +577,8 @@ function run() {
       preSynced.add(filePath)
     }
   }
-  const tsconfigPath = staticFiles.length > 0
-    ? (tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!)))
-    : undefined
+  const tsconfigPath =
+    staticFiles.length > 0 ? (tsconfig ?? findNearestTsconfig(path.dirname(staticFiles[0]!))) : undefined
   if (staticFiles.length > 0 && !tsconfigPath) {
     throw new Error("static model blocks require a tsconfig; pass --tsconfig <path>")
   }

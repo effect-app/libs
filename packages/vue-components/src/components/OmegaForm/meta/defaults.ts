@@ -20,9 +20,7 @@ const extractDecodingDefault = (property: S.AST.AST): unknown | undefined => {
   if (decode === undefined || property.context?.isOptional !== true) return undefined
   try {
     const getter = decode as SchemaGetter.Getter<unknown, unknown>
-    const result: Option.Option<unknown> = Effect.runSync(
-      SchemaGetter.run(getter, Option.none(), {})
-    )
+    const result: Option.Option<unknown> = Effect.runSync(SchemaGetter.run(getter, Option.none(), {}))
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined
@@ -52,9 +50,7 @@ const isNullishAst = (ast: S.AST.AST) => S.AST.isNull(ast) || S.AST.isUndefined(
 
 const unionMembers = (ast: S.AST.AST): readonly S.AST.AST[] => {
   const resolved = unwrapDeclaration(ast)
-  return S.AST.isUnion(resolved)
-    ? resolved.types.flatMap(unionMembers)
-    : [resolved]
+  return S.AST.isUnion(resolved) ? resolved.types.flatMap(unionMembers) : [resolved]
 }
 
 const literalValue = (ast: S.AST.AST): unknown => {
@@ -65,10 +61,7 @@ const literalValue = (ast: S.AST.AST): unknown => {
   }
 }
 
-const findTaggedObjectMember = (
-  members: readonly S.AST.Objects[],
-  value: unknown
-): S.AST.Objects | undefined => {
+const findTaggedObjectMember = (members: readonly S.AST.Objects[], value: unknown): S.AST.Objects | undefined => {
   if (!isRecord(value) || value._tag === undefined) return undefined
 
   return members.find((member) => {
@@ -78,10 +71,7 @@ const findTaggedObjectMember = (
 }
 
 // Internal implementation with WeakSet tracking
-export const defaultsValueFromSchema = (
-  schema: S.Schema<any>,
-  record: Record<string, any> = {}
-): any => {
+export const defaultsValueFromSchema = (schema: S.Schema<any>, record: Record<string, any> = {}): any => {
   const ast = schema.ast
   const defaultValue = getDefaultFromAst(ast)
 
@@ -97,11 +87,7 @@ export const defaultsValueFromSchema = (
   }
 
   // Handle structs via AST (covers plain structs, transformed schemas like decodeTo, Class, etc.)
-  const objectsAst = S.AST.isObjects(ast)
-    ? ast
-    : S.AST.isDeclaration(ast)
-    ? unwrapDeclaration(ast)
-    : undefined
+  const objectsAst = S.AST.isObjects(ast) ? ast : S.AST.isDeclaration(ast) ? unwrapDeclaration(ast) : undefined
   if (objectsAst && S.AST.isObjects(objectsAst)) {
     const result: Record<string, any> = {}
 
@@ -129,11 +115,7 @@ export const defaultsValueFromSchema = (
   }
 
   // Handle unions via AST or schema-level .members
-  const unionTypes = S.AST.isUnion(ast)
-    ? ast.types
-    : hasMembers(schema)
-    ? schema.members.map((m) => m.ast)
-    : undefined
+  const unionTypes = S.AST.isUnion(ast) ? ast.types : hasMembers(schema) ? schema.members.map((m) => m.ast) : undefined
   if (unionTypes) {
     const mergedFields: Record<string, { ast: S.AST.AST }> = {}
 
@@ -191,11 +173,7 @@ export const defaultsValueFromSchema = (
  * is nothing to fill, so callers can detect a no-op with `===` and the result
  * is idempotent (`fill(fill(v)) === fill(v)`).
  */
-export const fillNestedDefaults = (
-  ast: S.AST.AST,
-  value: unknown,
-  fillMissing = false
-): unknown => {
+export const fillNestedDefaults = (ast: S.AST.AST, value: unknown, fillMissing = false): unknown => {
   const resolved = unwrapDeclaration(ast)
 
   switch (resolved._tag) {

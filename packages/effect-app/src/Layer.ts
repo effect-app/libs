@@ -30,39 +30,32 @@ type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Any> }
 type MakeDepsE<Opts> = Opts extends { dependencies: ReadonlyArray<Layer.Layer<any, infer E, any>> } ? E : never
 type MakeDepsOut<Opts> = Opts extends { dependencies: ReadonlyArray<Layer.Layer<infer Out, any, any>> } ? Out : never
 
-type PackedLayers<I, Opts> =
-  & Layer.Layer<
-    I,
-    MakeErr<Opts> | MakeDepsE<Opts>,
-    Exclude<MakeContext<Opts>, Scope.Scope | MakeDepsOut<Opts>>
-  >
-  & {
-    withoutDependencies: Layer.Layer<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>
-  }
+type PackedLayers<I, Opts> = Layer.Layer<
+  I,
+  MakeErr<Opts> | MakeDepsE<Opts>,
+  Exclude<MakeContext<Opts>, Scope.Scope | MakeDepsOut<Opts>>
+> & {
+  withoutDependencies: Layer.Layer<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>
+}
 
-type PackedOrUnpackedLayer<I, Opts> = Opts extends Dependencies ? PackedLayers<I, Opts> & {}
+type PackedOrUnpackedLayer<I, Opts> = Opts extends Dependencies
+  ? PackedLayers<I, Opts> & {}
   : Layer.Layer<I, MakeErr<Opts>, MakeContext<Opts>>
 
 export const make: {
   <I, S>(
     tag: Context.Service<I, S>
-  ): <Opts extends Make<Types.NoInfer<S>, any, any>>(
-    options: Opts
-  ) => PackedOrUnpackedLayer<I, Opts>
+  ): <Opts extends Make<Types.NoInfer<S>, any, any>>(options: Opts) => PackedOrUnpackedLayer<I, Opts>
   <I, S, Opts extends Make<Types.NoInfer<S>, any, any>>(
     tag: Context.Service<I, S>,
     options: Opts
   ): PackedOrUnpackedLayer<I, Opts>
 } = dual(2, (tag, options) => {
-  const effect = options.make[Symbol.toStringTag] === "GeneratorFunction"
-    ? Effect.fnUntraced(options.make)()
-    : options.make
+  const effect =
+    options.make[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(options.make)() : options.make
   const withoutDependencies = Layer.effect(tag, effect)
   if (options.dependencies) {
-    return Object.assign(
-      withoutDependencies.pipe(Layer.provide(options.dependencies)),
-      { withoutDependencies }
-    )
+    return Object.assign(withoutDependencies.pipe(Layer.provide(options.dependencies)), { withoutDependencies })
   } else {
     return withoutDependencies
   }

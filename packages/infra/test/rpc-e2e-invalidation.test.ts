@@ -14,7 +14,15 @@
  */
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
-import { ApiClientFactory, DataDependencies, InvalidationKeysFromServer, InvalidStateError, makeInvalidationKeysService, makeRpcClient, OptimisticConcurrencyException } from "effect-app/client"
+import {
+  ApiClientFactory,
+  DataDependencies,
+  InvalidationKeysFromServer,
+  InvalidStateError,
+  makeInvalidationKeysService,
+  makeRpcClient,
+  OptimisticConcurrencyException
+} from "effect-app/client"
 import * as Context from "effect-app/Context"
 import { HttpRouter, HttpServer } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
@@ -37,29 +45,36 @@ import { RequestContextMiddleware } from "../src/internal/RequestContextMiddlewa
 import { makeRouter } from "../src/routing.js"
 import { DefaultGenericMiddlewaresLive } from "../src/routing/middleware.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
-import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, SomeElseMiddleware, SomeElseMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
+import {
+  AllowAnonymous,
+  AllowAnonymousLive,
+  RequestContextMap,
+  RequireRoles,
+  RequireRolesLive,
+  SomeElseMiddleware,
+  SomeElseMiddlewareLive,
+  SomeService,
+  Test,
+  TestLive
+} from "./fixtures.js"
 
 // ---------------------------------------------------------------------------
 // Middleware (mirrors AppMiddleware shape — same composite as other e2e tests).
 // ---------------------------------------------------------------------------
 
-class AppMiddleware extends MiddlewareMaker
-  .Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
+class AppMiddleware extends MiddlewareMaker.Tag<AppMiddleware>()("AppMiddleware", RequestContextMap)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(SomeElseMiddleware)
-  .middleware(...DefaultGenericMiddlewares)
-{
+  .middleware(...DefaultGenericMiddlewares) {
   static Default = this.layer.pipe(
-    Layer.provide(
-      [
-        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-        AllowAnonymousLive,
-        TestLive,
-        SomeElseMiddlewareLive,
-        DefaultGenericMiddlewaresLive
-      ] as const
-    )
+    Layer.provide([
+      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+      AllowAnonymousLive,
+      TestLive,
+      SomeElseMiddlewareLive,
+      DefaultGenericMiddlewaresLive
+    ] as const)
   )
 }
 
@@ -78,57 +93,89 @@ const Req = TaggedRequestFor("Inv")
 
 class CmdBoom extends TaggedErrorClass<CmdBoom>()("CmdBoom", { reason: S.String }) {}
 
-class DoNothing extends Req.Command<DoNothing>()("DoNothing", {}, {
-  allowAnonymous: true,
-  success: S.Void
-}) {}
+class DoNothing extends Req.Command<DoNothing>()(
+  "DoNothing",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Void
+  }
+) {}
 
-class DoWithDynamicKey extends Req.Command<DoWithDynamicKey>()("DoWithDynamicKey", {}, {
-  allowAnonymous: true,
-  success: S.String
-}) {}
+class DoWithDynamicKey extends Req.Command<DoWithDynamicKey>()(
+  "DoWithDynamicKey",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.String
+  }
+) {}
 
-class DoWithBothKeys extends Req.Command<DoWithBothKeys>()("DoWithBothKeys", {}, {
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class DoWithBothKeys extends Req.Command<DoWithBothKeys>()(
+  "DoWithBothKeys",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
-class DoAndFail extends Req.Command<DoAndFail>()("DoAndFail", {}, {
-  allowAnonymous: true,
-  success: S.Void,
-  error: CmdBoom
-}) {}
+class DoAndFail extends Req.Command<DoAndFail>()(
+  "DoAndFail",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Void,
+    error: CmdBoom
+  }
+) {}
 
-class StreamWithKey extends Req.Command<StreamWithKey>()("StreamWithKey", {}, {
-  stream: true,
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class StreamWithKey extends Req.Command<StreamWithKey>()(
+  "StreamWithKey",
+  {},
+  {
+    stream: true,
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
-class StreamWithRepoWrite extends Req.Command<StreamWithRepoWrite>()("StreamWithRepoWrite", {}, {
-  stream: true,
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class StreamWithRepoWrite extends Req.Command<StreamWithRepoWrite>()(
+  "StreamWithRepoWrite",
+  {},
+  {
+    stream: true,
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
 class RepoItem extends S.Class<RepoItem>("RepoItem")({
   id: S.String,
   label: S.String
 }) {}
 
-class GetRepoCount extends Req.Query<GetRepoCount>()("GetRepoCount", {}, {
-  allowAnonymous: true,
-  success: S.Number
-}) {}
+class GetRepoCount extends Req.Query<GetRepoCount>()(
+  "GetRepoCount",
+  {},
+  {
+    allowAnonymous: true,
+    success: S.Number
+  }
+) {}
 
-class SaveRepoItem extends Req.Command<SaveRepoItem>()("SaveRepoItem", {
-  id: S.String,
-  label: S.String
-}, {
-  allowAnonymous: true,
-  error: S.Union([InvalidStateError, OptimisticConcurrencyException]),
-  success: S.Void
-}) {}
+class SaveRepoItem extends Req.Command<SaveRepoItem>()(
+  "SaveRepoItem",
+  {
+    id: S.String,
+    label: S.String
+  },
+  {
+    allowAnonymous: true,
+    error: S.Union([InvalidStateError, OptimisticConcurrencyException]),
+    success: S.Void
+  }
+) {}
 
 class RepoItems extends Context.Service<RepoItems>()("RepoItems", {
   make: makeRepo("RepoItem", RepoItem, {})
@@ -144,13 +191,17 @@ class OtherItem extends S.Class<OtherItem>("OtherItem")({
   label: S.String
 }) {}
 
-class SaveOtherItem extends Req.Command<SaveOtherItem>()("SaveOtherItem", {
-  id: S.String,
-  label: S.String
-}, {
-  allowAnonymous: true,
-  success: S.Void
-}) {}
+class SaveOtherItem extends Req.Command<SaveOtherItem>()(
+  "SaveOtherItem",
+  {
+    id: S.String,
+    label: S.String
+  },
+  {
+    allowAnonymous: true,
+    success: S.Void
+  }
+) {}
 
 class OtherItems extends Context.Service<OtherItems>()("OtherItems", {
   make: makeRepo("OtherItem", OtherItem, {})
@@ -183,16 +234,16 @@ const router = Router(InvRsc)({
     const otherRepo = yield* OtherItems
     return match({
       DoNothing: () => Effect.void,
-      DoWithDynamicKey: Effect.fnUntraced(function*() {
+      DoWithDynamicKey: Effect.fnUntraced(function* () {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         return "done"
       }),
-      DoWithBothKeys: Effect.fnUntraced(function*() {
+      DoWithBothKeys: Effect.fnUntraced(function* () {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         yield* Invalidation.InvalidationSet.use((_) => _.add(ExtraKey))
         return 99
       }),
-      DoAndFail: Effect.fnUntraced(function*() {
+      DoAndFail: Effect.fnUntraced(function* () {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         return yield* Effect.fail(new CmdBoom({ reason: "intentional failure" }))
       }),
@@ -204,7 +255,11 @@ const router = Router(InvRsc)({
         Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap((n) => repo.save(new RepoItem({ id: String(n), label: "x" })).pipe(Effect.orDie))
         ),
-      GetRepoCount: () => repo.all.pipe(Effect.map((_) => _.length), Effect.orDie),
+      GetRepoCount: () =>
+        repo.all.pipe(
+          Effect.map((_) => _.length),
+          Effect.orDie
+        ),
       SaveRepoItem: ({ id, label }) => repo.save(new RepoItem({ id, label })).pipe(Effect.orDie),
       SaveOtherItem: ({ id, label }) => otherRepo.save(new OtherItem({ id, label })).pipe(Effect.orDie)
     })
@@ -219,35 +274,28 @@ const RpcRouterLayer = matchAll({ router })
 
 const NodeServerLayer = NodeHttpServer.layer(() => createServer(), { port: 0 })
 
-const ServerLayer = HttpRouter
-  .serve(RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer)))
-  .pipe(
-    Layer.provide(NodeServerLayer),
-    Layer.provide(RpcSerialization.layerNdjson)
-  )
+const ServerLayer = HttpRouter.serve(
+  RpcRouterLayer.pipe(Layer.provide(HttpRouter.middleware(RequestContextMiddleware()).layer))
+).pipe(Layer.provide(NodeServerLayer), Layer.provide(RpcSerialization.layerNdjson))
 
-const ClientLayer = Layer
-  .unwrap(
-    Effect.gen(function*() {
-      const server = yield* HttpServer.HttpServer
-      const addr = server.address
-      if (NetAddress.isUnixPathAddress(addr)) {
-        return yield* Effect.die(new Error("expected inet address"))
-      }
-      const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
-      const url = `http://${host}:${addr.port}`
-      return ApiClientFactory
-        .layer({ url, headers: Option.none() })
-        .pipe(Layer.provide(FetchHttpClient.layer))
-    })
-  )
-  .pipe(Layer.provide(NodeServerLayer))
+const ClientLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const addr = server.address
+    if (NetAddress.isUnixPathAddress(addr)) {
+      return yield* Effect.die(new Error("expected inet address"))
+    }
+    const host = NetAddress.isUnspecified(addr.address) ? "127.0.0.1" : NetAddress.formatUrlHost(addr.address)
+    const url = `http://${host}:${addr.port}`
+    return ApiClientFactory.layer({ url, headers: Option.none() }).pipe(Layer.provide(FetchHttpClient.layer))
+  })
+).pipe(Layer.provide(NodeServerLayer))
 
 const TestLayer = Layer.mergeAll(ServerLayer, ClientLayer)
 
 // Helper: provide a fresh `InvalidationKeysFromServer` and capture forwarded keys.
 const withCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
     const svc = makeInvalidationKeysService(ref)
     const result = yield* eff.pipe(Effect.provideService(InvalidationKeysFromServer, svc), Effect.exit)
@@ -255,7 +303,7 @@ const withCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
   })
 
 const withDependencyCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const readsRef = yield* Ref.make(DataDependencies.empty())
     const writesRef = yield* Ref.make(DataDependencies.empty())
     const svc = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
@@ -269,7 +317,7 @@ const withDependencyCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
 
 it.live(
   "command with no invalidation keys: caller sees raw payload, no keys forwarded",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoNothing.handler())
     expect(Exit.isSuccess(result)).toBe(true)
@@ -280,7 +328,7 @@ it.live(
 
 it.live(
   "command with dynamic InvalidationSet.use: payload + key forwarded",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoWithDynamicKey.handler())
     expect(Exit.isSuccess(result) && result.value).toBe("done")
@@ -291,7 +339,7 @@ it.live(
 
 it.live(
   "command accumulating multiple dynamic keys: all keys forwarded in order",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoWithBothKeys.handler())
     expect(Exit.isSuccess(result) && result.value).toBe(99)
@@ -302,7 +350,7 @@ it.live(
 
 it.live(
   "per-request isolation: each command call starts with a fresh InvalidationSet",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const r1 = yield* withCapture(client.DoWithDynamicKey.handler())
     const r2 = yield* withCapture(client.DoWithDynamicKey.handler())
@@ -315,7 +363,7 @@ it.live(
 
 it.live(
   "command failure (V2): keys accumulated before fail still reach the client; original error re-thrown",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoAndFail.handler())
     expect(Exit.isFailure(result)).toBe(true)
@@ -334,7 +382,7 @@ it.live(
 
 it.live(
   "stream: per-chunk metadata accumulates distinct keys",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const ref = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
     const svc = makeInvalidationKeysService(ref)
@@ -350,7 +398,7 @@ it.live(
 
 it.live(
   "stream: per-chunk repo writes are drained and forwarded to the client recorder",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const readsRef = yield* Ref.make(DataDependencies.empty())
     const writesRef = yield* Ref.make(DataDependencies.empty())
@@ -369,7 +417,7 @@ it.live(
 
 it.live(
   "repository dependencies flow through query and command metadata",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
 
     const query = yield* withDependencyCapture(client.GetRepoCount.handler())
@@ -387,7 +435,7 @@ it.live(
 
 it.live(
   "query invalidation: a command's writes invalidate exactly the queries whose reads intersect",
-  Effect.fnUntraced(function*() {
+  Effect.fnUntraced(function* () {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
 
     // Client-side query registry: queryKey -> read dependencies forwarded by the server. Mirrors
@@ -395,9 +443,7 @@ it.live(
     // one the vue mutate engine uses to pick invalidation targets from a command's writes.
     const queryReads = new Map<string, DataDependencies.DataDependencies>()
     const invalidatedBy = (writes: DataDependencies.DataDependencies) =>
-      [...queryReads]
-        .filter(([, reads]) => DataDependencies.intersects(reads, writes))
-        .map(([key]) => key)
+      [...queryReads].filter(([, reads]) => DataDependencies.intersects(reads, writes)).map(([key]) => key)
 
     // Run the query through the real client; register its forwarded reads under its key.
     const query = yield* withDependencyCapture(client.GetRepoCount.handler())

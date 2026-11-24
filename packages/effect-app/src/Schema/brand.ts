@@ -30,42 +30,34 @@ export interface Constructor<in out A extends B.Brand<any>> {
 
 type BrandAnnotations = S.Annotations.Filter
 
-export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
-  S.Bottom<
-    C,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    BrandedSchema<S, C>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    C,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{}
+export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends S.Bottom<
+  C,
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  BrandedSchema<S, C>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  C,
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {}
 
-export const fromBrand = <C extends B.Brand<any>>(
-  _constructor: Constructor<C>,
-  options?: BrandAnnotations
-) =>
-<Self extends S.Top>(self: Self): BrandedSchema<Self, C> => {
-  const branded = self.pipe(S.brand("Brand"))
-  return (options ? branded.pipe(S.annotate(options)) : branded) as BrandedSchema<Self, C>
-}
+export const fromBrand =
+  <C extends B.Brand<any>>(_constructor: Constructor<C>, options?: BrandAnnotations) =>
+  <Self extends S.Top>(self: Self): BrandedSchema<Self, C> => {
+    const branded = self.pipe(S.brand("Brand"))
+    return (options ? branded.pipe(S.annotate(options)) : branded) as BrandedSchema<Self, C>
+  }
 
-export type Brands<P> = P extends B.Brand<any> ? B.Brand.Brands<P>
-  : never
+export type Brands<P> = P extends B.Brand<any> ? B.Brand.Brands<P> : never
 
 export type Unbranded<P> = P extends B.Brand<any> ? B.Brand.Unbranded<P> : P
 
-export const nominal: <A extends B.Brand<any>>() => Constructor<A> = <
-  A extends B.Brand<any>
->(): Constructor<
-  A
-> => B.nominal<A>() as any
+export const nominal: <A extends B.Brand<any>>() => Constructor<A> = <A extends B.Brand<any>>(): Constructor<A> =>
+  B.nominal<A>() as any

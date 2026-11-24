@@ -1,7 +1,18 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type MessageDescriptor, type ResolvedIntlConfig } from "@formatjs/intl"
+import {
+  createIntl,
+  createIntlCache,
+  type Formatters,
+  type IntlFormatters,
+  type MessageDescriptor,
+  type ResolvedIntlConfig
+} from "@formatjs/intl"
 import * as Struct from "effect/Struct"
-import { type FormatXMLElementFn, type Options as IntlMessageFormatOptions, type PrimitiveType } from "intl-messageformat"
+import {
+  type FormatXMLElementFn,
+  type Options as IntlMessageFormatOptions,
+  type PrimitiveType
+} from "intl-messageformat"
 import { type Ref, watch } from "vue"
 import { translate } from "./form.ts"
 import { makeContext } from "./makeContext.ts"
@@ -42,10 +53,7 @@ export const makeIntl = <Locale extends string>(
 
     const trans = (
       id: keyof (typeof messages)[Locale],
-      values?: Record<
-        string,
-        PrimitiveType | FormatXMLElementFn<string, string>
-      >
+      values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     ) => intls[locale.value].formatMessage({ id: id as any }, values)
 

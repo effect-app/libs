@@ -6,7 +6,11 @@
 import { injectRegistry, useAtomValue } from "@effect/atom-vue"
 import * as Array from "effect-app/Array"
 import { makeQueryKey, type Req } from "effect-app/client"
-import type { ClientForOptions, RequestHandlerWithInput, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type {
+  ClientForOptions,
+  RequestHandlerWithInput,
+  RequestStreamHandlerWithInput
+} from "effect-app/client/clientFor"
 import { type CauseException } from "effect-app/client/errors"
 import type * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
@@ -16,8 +20,31 @@ import * as Exit from "effect/Exit"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Atom from "effect/reactivity/Atom"
 import * as Stream from "effect/Stream"
-import { computed, type ComputedRef, effectScope, type MaybeRefOrGetter, onBeforeUnmount, onMounted, onScopeDispose, ref, toValue, type WatchSource } from "vue"
-import { type AtomClientRuntime, type AtomQueryOptions, awaitAtomResult, buildQueryFamily, buildStreamQueryFamily, disabledQueryAtom, isStaleResult, queryKeyForAtom, refreshAtomWithCurrentSpan, staleTimeMsOf, withQueryOptions } from "./atomQuery.ts"
+import {
+  computed,
+  type ComputedRef,
+  effectScope,
+  type MaybeRefOrGetter,
+  onBeforeUnmount,
+  onMounted,
+  onScopeDispose,
+  ref,
+  toValue,
+  type WatchSource
+} from "vue"
+import {
+  type AtomClientRuntime,
+  type AtomQueryOptions,
+  awaitAtomResult,
+  buildQueryFamily,
+  buildStreamQueryFamily,
+  disabledQueryAtom,
+  isStaleResult,
+  queryKeyForAtom,
+  refreshAtomWithCurrentSpan,
+  staleTimeMsOf,
+  withQueryOptions
+} from "./atomQuery.ts"
 import type { QueryInvalidationMode } from "./dependencyMetadata.ts"
 import type { LiveQueryOptions } from "./liveQueryInvalidation.ts"
 import { latestDefined } from "./suspense.ts"
@@ -86,12 +113,9 @@ export type SuspenseQueryTuple<A, E> = readonly [
   QueryHandle<A, E>
 ]
 
-export type SuspenseQueryView<A, E> =
-  & Omit<QueryView<A, E>, "data">
-  & {
-    readonly data: ComputedRef<A>
-  }
-  & SuspenseQueryTuple<A, E>
+export type SuspenseQueryView<A, E> = Omit<QueryView<A, E>, "data"> & {
+  readonly data: ComputedRef<A>
+} & SuspenseQueryTuple<A, E>
 
 export type QueryAtomFamily<I, A, E> = (
   input: I
@@ -112,9 +136,11 @@ interface StreamQueryFamilyDescriptor<I, A, E> {
   readonly queryKeyProjectionHash?: string
 }
 
-const queryFamilyCacheKey = (
-  q: { readonly id: string; readonly options?: ClientForOptions; readonly queryKeyProjectionHash?: string }
-) => `${makeQueryKey(q).join("/")}:${q.queryKeyProjectionHash ?? ""}`
+const queryFamilyCacheKey = (q: {
+  readonly id: string
+  readonly options?: ClientForOptions
+  readonly queryKeyProjectionHash?: string
+}) => `${makeQueryKey(q).join("/")}:${q.queryKeyProjectionHash ?? ""}`
 
 // One atom family per request shape, keyed by the stable query key + projection hash (not the
 // handler object — `clientFor` returns a fresh proxy per call, so the object isn't shareable).
@@ -313,9 +339,10 @@ export const withDataFallback = <A, E>(
       const v = typeof initialData === "function" ? (initialData as () => A)() : initialData
       return AsyncResult.success(v, { waiting: r.waiting })
     }
-    const v = typeof placeholderData === "function"
-      ? (placeholderData as (prev: A | undefined) => A)(lastData)
-      : placeholderData
+    const v =
+      typeof placeholderData === "function"
+        ? (placeholderData as (prev: A | undefined) => A)(lastData)
+        : placeholderData
     return v === undefined ? r : AsyncResult.success(v, { waiting: true })
   })
 }
@@ -354,9 +381,7 @@ const normalizeQueryOptions = (options?: {
   return out
 }
 
-export const useAtomQuery = <A, E>(
-  atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>
-): QueryView<A, E> => {
+export const useAtomQuery = <A, E>(atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>): QueryView<A, E> => {
   const registry = injectRegistry()
   const atomRef = computed(atom)
   const atomResult = useAtomValue(() => atomRef.value)
@@ -364,7 +389,7 @@ export const useAtomQuery = <A, E>(
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () => awaitAtomResult(registry, atomRef.value)
   const refetch = () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       yield* refreshAtomWithCurrentSpan(registry, atomRef.value)
       return yield* awaitResult()
     })
@@ -390,7 +415,7 @@ export const useAtomSuspense = <A, E>(
     return { view, data }
   })
 
-  const eff = Effect.gen(function*() {
+  const eff = Effect.gen(function* () {
     const exit = yield* view.awaitResult().pipe(Effect.exit)
     if (!isMounted.value) {
       return yield* Effect.interrupt
@@ -407,18 +432,10 @@ export const useAtomSuspense = <A, E>(
       registry: view.registry,
       atom: view.atom
     }
-    return Object.assign(
-      [
-        view.result,
-        data,
-        fetch,
-        handle
-      ] as const,
-      {
-        ...view,
-        data
-      }
-    )
+    return Object.assign([view.result, data, fetch, handle] as const, {
+      ...view,
+      data
+    })
   })
 
   return Effect.runPromise(eff, { signal })
@@ -453,7 +470,7 @@ export const useAtomStreamQuery = <A, E>(
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () => awaitAtomResult(registry, atomRef.value)
   const pullAndAwait = () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       pull()
       return yield* awaitResult()
     })
@@ -490,9 +507,8 @@ const optionValue = <I>(
   options?: { readonly mode?: "optional"; readonly enabled?: MaybeRefOrGetter<boolean | undefined> }
 ): readonly [{ readonly value: I }, ComputedRef<boolean>] => {
   if (options?.mode === "optional") {
-    const getOption: () => Option.Option<I> = typeof arr === "function"
-      ? arr as () => Option.Option<I>
-      : () => (arr as { value: Option.Option<I> }).value
+    const getOption: () => Option.Option<I> =
+      typeof arr === "function" ? (arr as () => Option.Option<I>) : () => (arr as { value: Option.Option<I> }).value
     return [
       {
         get value() {
@@ -503,16 +519,16 @@ const optionValue = <I>(
     ] as const
   }
   const req = !arr
-    ? ({ value: undefined as I })
+    ? { value: undefined as I }
     : typeof arr === "function"
-    ? ({
-      get value() {
-        return (arr as any)()
-      }
-    })
-    : (ref(arr) as any)
+      ? {
+          get value() {
+            return (arr as any)()
+          }
+        }
+      : (ref(arr) as any)
   const enabled = options?.enabled
-  return [req, computed(() => enabled === undefined ? true : !!toValue(enabled))] as const
+  return [req, computed(() => (enabled === undefined ? true : !!toValue(enabled)))] as const
 }
 
 const observedAtom = <A, E>(
@@ -567,7 +583,7 @@ const makeQueryView = <I, A, E, TData>(
   const registry = injectRegistry()
   const [req, enabledRef] = optionValue<I>(arg, options)
   const family = getQueryFamily(atomRt, q)
-  const atomRef = computed(() => enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom)
+  const atomRef = computed(() => (enabledRef.value ? observedAtom(family(req.value), options) : disabledQueryAtom))
   // useAtomValue returns Readonly<Ref>, not ComputedRef — re-wrap before withDataFallback / QueryView.
   const rawAtomResult = useAtomValue(() => atomRef.value)
   const rawResult = computed(() => rawAtomResult.value)
@@ -577,16 +593,16 @@ const makeQueryView = <I, A, E, TData>(
   // fallback runs PRE-select, matching TanStack (`initialData`/`placeholderData` are TQueryData).
   const fallbackResult = withDataFallback(rawResult, options)
   const select = options?.select
-  const result = (select
-    ? computed(() => AsyncResult.map(fallbackResult.value, select))
-    : fallbackResult) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
+  const result = (
+    select ? computed(() => AsyncResult.map(fallbackResult.value, select)) : fallbackResult
+  ) as ComputedRef<AsyncResult.AsyncResult<TData, E>>
   const refresh = () => registry.refresh(atomRef.value)
   const awaitResult = () =>
     select
       ? awaitAtomResult(registry, atomRef.value).pipe(Effect.map(select))
       : awaitAtomResult(registry, atomRef.value)
   const refetch = () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       yield* refreshAtomWithCurrentSpan(registry, atomRef.value)
       return yield* awaitResult()
     })
@@ -613,9 +629,8 @@ export const makeQueryFamily = <R>(_getRuntime: () => Context.Context<R>, getAto
     <I, E, A, Request extends Req, Name extends string>(
       q: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): QueryAtomFamily<I, A, E>
-  } = <I, E, A, Request extends Req, Name extends string>(
-    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) => getQueryFamily(getAtomRt(), q)
+  } = <I, E, A, Request extends Req, Name extends string>(q: RequestHandlerWithInput<I, A, E, R, Request, Name>) =>
+    getQueryFamily(getAtomRt(), q)
 
   return useQueryFamily
 }
@@ -630,13 +645,10 @@ export const makeQueryAtom = <R>(_getRuntime: () => Context.Context<R>, getAtomR
         options?: Omit<AtomQueryNewOptions<A, TData>, "select">
       ): Atom.Atom<AsyncResult.AsyncResult<A, E>>
     }
-  } = <I, E, A, Request extends Req, Name extends string>(
-    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-  <TData = A>(
-    arg: I,
-    options?: Omit<AtomQueryNewOptions<A, TData>, "select">
-  ) => queryAtomFor(getAtomRt(), q, arg, options)
+  } =
+    <I, E, A, Request extends Req, Name extends string>(q: RequestHandlerWithInput<I, A, E, R, Request, Name>) =>
+    <TData = A>(arg: I, options?: Omit<AtomQueryNewOptions<A, TData>, "select">) =>
+      queryAtomFor(getAtomRt(), q, arg, options)
 
   return useQueryAtom
 }
@@ -651,18 +663,15 @@ export const makeQueryNew = <R>(_getRuntime: () => Context.Context<R>, getAtomRt
         options: Omit<AtomQueryNewOptions<A, TData>, "enabled"> & { mode: "optional" }
       ): QueryView<TData, E>
 
-      <TData = A>(
-        arg: I | WatchSource<I> | undefined,
-        options?: AtomQueryNewOptions<A, TData>
-      ): QueryView<TData, E>
+      <TData = A>(arg: I | WatchSource<I> | undefined, options?: AtomQueryNewOptions<A, TData>): QueryView<TData, E>
     }
-  } = <I, E, A, Request extends Req, Name extends string>(
-    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-  <TData = A>(
-    arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
-    options?: AtomQueryNewOptions<A, TData> & { readonly mode?: "optional" }
-  ) => makeQueryView<I, A, E, TData>(getAtomRt, q, arg, options)
+  } =
+    <I, E, A, Request extends Req, Name extends string>(q: RequestHandlerWithInput<I, A, E, R, Request, Name>) =>
+    <TData = A>(
+      arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
+      options?: AtomQueryNewOptions<A, TData> & { readonly mode?: "optional" }
+    ) =>
+      makeQueryView<I, A, E, TData>(getAtomRt, q, arg, options)
 
   return useQueryNew
 }
@@ -712,31 +721,22 @@ export const makeQuery = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: (
         UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
     }
-  } = <I, A, E, Request extends Req, Name extends string>(
-    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-  <TData = A>(
-    arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>,
-    options?: any
-  ) => {
-    const view = makeQueryView<I, A, E, TData>(getAtomRt, q, arg, options)
+  } =
+    <I, A, E, Request extends Req, Name extends string>(q: RequestHandlerWithInput<I, A, E, R, Request, Name>) =>
+    <TData = A>(arg: I | WatchSource<I> | undefined | WatchSource<Option.Option<I>>, options?: any) => {
+      const view = makeQueryView<I, A, E, TData>(getAtomRt, q, arg, options)
 
-    // 4th element is internal-only; the public `.suspense()` Promise boundary lives in makeClient.
-    const handle = {
-      awaitResult: view.awaitResult,
-      refetch: view.refetch,
-      refresh: view.refresh,
-      registry: view.registry,
-      atom: view.atom
+      // 4th element is internal-only; the public `.suspense()` Promise boundary lives in makeClient.
+      const handle = {
+        awaitResult: view.awaitResult,
+        refetch: view.refetch,
+        refresh: view.refresh,
+        registry: view.registry,
+        atom: view.atom
+      }
+
+      return [view.result, view.data, (_options?: RefetchOptions) => view.refetch(), handle] as any
     }
-
-    return [
-      view.result,
-      view.data,
-      (_options?: RefetchOptions) => view.refetch(),
-      handle
-    ] as any
-  }
 
   const useQuery: {
     /**
@@ -784,9 +784,7 @@ export const makeQuery = <R>(_getRuntime: () => Context.Context<R>, getAtomRt: (
         UseQueryReturnType<any, any>
       ]
     }
-  } = ((
-    self: any
-  ) => {
+  } = ((self: any) => {
     const q = useQuery_(self)
     return (arg?: any, options?: any) => q(arg, options)
   }) as any
@@ -823,10 +821,10 @@ export const makeStreamQueryAtom = <R>(_getRuntime: () => Context.Context<R>, ge
     <I, E, A, Request extends Req, Name extends string>(
       q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
     ): (arg: I, options?: AtomStreamQueryOptions) => Atom.Writable<Atom.PullResult<A, E>, void>
-  } = <I, E, A, Request extends Req, Name extends string>(
-    q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-  (arg: I, options?: AtomStreamQueryOptions) => streamQueryAtomFor(getAtomRt(), q, arg, options)
+  } =
+    <I, E, A, Request extends Req, Name extends string>(q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>) =>
+    (arg: I, options?: AtomStreamQueryOptions) =>
+      streamQueryAtomFor(getAtomRt(), q, arg, options)
 
   return useStreamQueryAtom
 }
@@ -836,11 +834,10 @@ export const makeStreamQueryNew = <R>(_getRuntime: () => Context.Context<R>, get
     <I, E, A, Request extends Req, Name extends string>(
       q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
     ): (arg: MaybeRefOrGetter<I>, options?: AtomStreamQueryOptions) => StreamQueryView<A, E>
-  } = <I, E, A, Request extends Req, Name extends string>(
-    q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-  (arg: MaybeRefOrGetter<I>, options?: AtomStreamQueryOptions) =>
-    useAtomStreamQuery(() => streamQueryAtomFor(getAtomRt(), q, toValue(arg), options))
+  } =
+    <I, E, A, Request extends Req, Name extends string>(q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>) =>
+    (arg: MaybeRefOrGetter<I>, options?: AtomStreamQueryOptions) =>
+      useAtomStreamQuery(() => streamQueryAtomFor(getAtomRt(), q, toValue(arg), options))
 
   return useStreamQueryNew
 }
@@ -852,10 +849,7 @@ type StreamQueryResult<A, E> = readonly [
   UseQueryReturnType<any, any>
 ]
 
-export const makeStreamQuery = <R>(
-  getRuntime: () => Context.Context<R>,
-  getAtomRt: () => AtomClientRuntime
-) => {
+export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>, getAtomRt: () => AtomClientRuntime) => {
   const query = makeQuery(getRuntime, getAtomRt)
   // A stream query is an ordinary atom query over an effect that collects the whole stream
   // into an array (`Stream.runCollect`). It reuses all the atom machinery (family cache, swr,
@@ -886,33 +880,29 @@ function orPrevious<E, A>(result: AsyncResult.AsyncResult<A, E>) {
     : result
 }
 
-export function composeQueries<
-  R extends Record<string, AsyncResult.AsyncResult<any, any>>
->(
+export function composeQueries<R extends Record<string, AsyncResult.AsyncResult<any, any>>>(
   results: R,
   renderPreviousOnFailure?: boolean
 ): AsyncResult.AsyncResult<
   {
-    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<infer A, any> ? A
-      : never
+    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<infer A, any> ? A : never
   },
   {
-    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<any, infer E> ? E
-      : never
+    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<any, infer E> ? E : never
   }[keyof R]
 > {
-  const values = renderPreviousOnFailure
-    ? Object.values(results).map(orPrevious)
-    : Object.values(results)
+  const values = renderPreviousOnFailure ? Object.values(results).map(orPrevious) : Object.values(results)
   const error = values.find(AsyncResult.isFailure)
   if (error) {
     return error
   }
-  const initial = Array.findFirst(values, (x) => x._tag === "Initial" ? Option.some(x) : Option.none())
+  const initial = Array.findFirst(values, (x) => (x._tag === "Initial" ? Option.some(x) : Option.none()))
   if (initial.value !== undefined) {
     return initial.value
   }
-  const loading = Array.findFirst(values, (x) => AsyncResult.isInitial(x) && x.waiting ? Option.some(x) : Option.none())
+  const loading = Array.findFirst(values, (x) =>
+    AsyncResult.isInitial(x) && x.waiting ? Option.some(x) : Option.none()
+  )
   if (loading.value !== undefined) {
     return loading.value
   }

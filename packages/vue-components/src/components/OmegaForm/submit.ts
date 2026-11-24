@@ -27,10 +27,13 @@ export class FormErrors<From> extends Data.TaggedError("FormErrors")<{
       undefined
     >
   }
-  fields: Record<DeepKeys<From>, {
-    errors: ValidationError[]
-    errorMap: ValidationErrorMap
-  }>
+  fields: Record<
+    DeepKeys<From>,
+    {
+      errors: ValidationError[]
+      errorMap: ValidationErrorMap
+    }
+  >
 }> {}
 
 export const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {
@@ -74,9 +77,7 @@ export const wrapOnSubmit = <From, To>(
       }
       if (Effect.isEffect(r)) {
         const effectResult = await runPromise(r)
-        return Fiber.isFiber(effectResult)
-          ? await runtimeFiberAsPromise(effectResult)
-          : effectResult
+        return Fiber.isFiber(effectResult) ? await runtimeFiberAsPromise(effectResult) : effectResult
       }
       return r
     })
@@ -89,9 +90,7 @@ export const wrapOnSubmit = <From, To>(
  *   ambient `Effect.currentSpan`. With `checkErrors: true`, it fails with
  *   `FormErrors<From>` when validation produced errors.
  */
-export const makeSubmitHandlers = <From, To>(
-  form: OmegaFormApi<From, To>
-) => {
+export const makeSubmitHandlers = <From, To>(form: OmegaFormApi<From, To>) => {
   const hs = form.handleSubmit.bind(form)
 
   const handleSubmitInner: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
@@ -106,25 +105,26 @@ export const makeSubmitHandlers = <From, To>(
   const handleSubmitEffect_ = (meta?: Record<string, any>) =>
     Effect.currentSpan.pipe(
       Effect.option,
-      Effect
-        .flatMap((span) =>
-          Effect.promise(() => handleSubmitInner(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
-        )
+      Effect.flatMap((span) =>
+        Effect.promise(() => handleSubmitInner(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
+      )
     )
 
   const handleSubmitEffect: {
     (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
     (options?: { meta?: Record<string, any> }): Effect.Effect<void>
-  } = (
-    options?: { meta?: Record<string, any>; checkErrors?: true }
-  ): any =>
+  } = (options?: { meta?: Record<string, any>; checkErrors?: true }): any =>
     options?.checkErrors
-      ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
-        const errors = form.getAllErrors()
-        if (Object.keys(errors.fields).length || errors.form.errors.length) {
-          return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
-        }
-      })))
+      ? handleSubmitEffect_(options?.meta).pipe(
+          Effect.flatMap(
+            Effect.fnUntraced(function* () {
+              const errors = form.getAllErrors()
+              if (Object.keys(errors.fields).length || errors.form.errors.length) {
+                return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
+              }
+            })
+          )
+        )
       : handleSubmitEffect_(options?.meta)
 
   return { handleSubmit, handleSubmitEffect }

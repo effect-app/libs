@@ -1,10 +1,12 @@
 <template>
   <div
     class="omega-input"
-    @focusout="(e) => {
-      $emit('blur', e)
-      field.handleBlur()
-    }"
+    @focusout="
+      (e) => {
+        $emit('blur', e)
+        field.handleBlur()
+      }
+    "
     @focusin="$emit('focus', $event)"
   >
     <component
@@ -20,26 +22,22 @@
       :model-value="state.value"
       @change="(e: any) => field.handleChange(e.target.checked)"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </component>
     <v-text-field
-      v-if="inputProps.type === 'email'
-      || inputProps.type === 'string'
-      || inputProps.type === 'password'
-      || inputProps.type === 'date'
-      || inputProps.type === 'tel'
-      || inputProps.type === 'url'
-      || inputProps.type === 'color'
-      || inputProps.type === 'time'
-      || inputProps.type === 'search'"
+      v-if="
+        inputProps.type === 'email' ||
+        inputProps.type === 'string' ||
+        inputProps.type === 'password' ||
+        inputProps.type === 'date' ||
+        inputProps.type === 'tel' ||
+        inputProps.type === 'url' ||
+        inputProps.type === 'color' ||
+        inputProps.type === 'time' ||
+        inputProps.type === 'search'
+      "
       :id="inputProps.id"
       :required="inputProps.required"
       :min-length="inputProps.minLength"
@@ -53,14 +51,8 @@
       :model-value="state.value"
       @update:model-value="(v: any) => field.handleChange(v)"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-text-field>
     <v-textarea
@@ -77,14 +69,8 @@
       :model-value="state.value"
       @update:model-value="(v: any) => field.handleChange(v)"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-textarea>
     <!-- min/max are deliberately NOT passed as VNumberInput props: the component
@@ -113,14 +99,8 @@
       @beforeinput.capture="onNumberBeforeinput"
       @update:model-value="(v: number | null) => field.handleChange((v ?? undefined) as any)"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-number-input>
     <v-slider
@@ -135,22 +115,18 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="state.value as any"
-      @update:model-value="(e: any) => {
-        if (e || e === 0) {
-          field.handleChange(Number(e) as any)
-        } else {
-          field.handleChange(undefined as any)
+      @update:model-value="
+        (e: any) => {
+          if (e || e === 0) {
+            field.handleChange(Number(e) as any)
+          } else {
+            field.handleChange(undefined as any)
+          }
         }
-      }"
+      "
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-slider>
     <template v-if="inputProps.type === 'radio'">
@@ -164,14 +140,8 @@
         :model-value="state.value"
         @update:model-value="(v: any) => field.handleChange(v)"
       >
-        <template
-          v-if="$slots.label"
-          #label
-        >
-          <slot
-            name="label"
-            v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-          />
+        <template v-if="$slots.label" #label>
+          <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
         </template>
         <v-radio
           v-for="option in inputProps.options"
@@ -198,20 +168,13 @@
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-select>
 
     <v-autocomplete
-      v-if="inputProps.type === 'autocomplete'
-      || inputProps.type === 'autocompletemultiple'"
+      v-if="inputProps.type === 'autocomplete' || inputProps.type === 'autocompletemultiple'"
       :id="inputProps.id"
       :clearable="inputProps.type === 'autocomplete'"
       :multiple="inputProps.type === 'autocompletemultiple'"
@@ -227,14 +190,8 @@
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-autocomplete>
 
@@ -254,24 +211,14 @@
       :model-value="state.value"
       @update:model-value="(v: any) => field.handleChange(v)"
     >
-      <template
-        v-if="$slots.label"
-        #label
-      >
-        <slot
-          name="label"
-          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
-        />
+      <template v-if="$slots.label" #label>
+        <slot name="label" v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }" />
       </template>
     </v-text-field>
   </div>
 </template>
 
-<script
-  setup
-  lang="ts"
-  generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
->
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, useAttrs, watchEffect } from "vue"
 import { useLocale } from "vuetify"
@@ -318,9 +265,7 @@ const isUnhandledType = computed(() => !(typeOverrides as readonly string[]).inc
 watchEffect(() => {
   if (isUnhandledType.value) {
     // eslint-disable-next-line no-console
-    console.warn(
-      `[OmegaForm] Unhandled input type "${props.inputProps.type}", falling back to a text input.`
-    )
+    console.warn(`[OmegaForm] Unhandled input type "${props.inputProps.type}", falling back to a text input.`)
   }
 })
 </script>

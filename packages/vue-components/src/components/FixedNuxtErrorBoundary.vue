@@ -99,14 +99,7 @@ defineExpose({ error, clearError })
 </script>
 
 <template>
-  <slot
-    v-if="error"
-    v-bind="{ error, clearError }"
-    name="error"
-  />
+  <slot v-if="error" v-bind="{ error, clearError }" name="error" />
 
-  <slot
-    v-else
-    name="default"
-  />
+  <slot v-else name="default" />
 </template>

@@ -6,9 +6,9 @@ import * as Layer from "./Layer.ts"
 
 export type Root = "root"
 
-export class RequestScopedDependencyNotStartedError extends Data.TaggedError(
-  "RequestScopedDependencyNotStartedError"
-)<{ readonly key: string }> {}
+export class RequestScopedDependencyNotStartedError extends Data.TaggedError("RequestScopedDependencyNotStartedError")<{
+  readonly key: string
+}> {}
 
 export interface RequestScopedDependency<Service, E = never, R = never> extends Context.Reference<Service | Root> {
   readonly current: Effect.Effect<Service, RequestScopedDependencyNotStartedError>
@@ -20,7 +20,10 @@ export const access = <Service>(
   key: string
 ): Effect.Effect<Service, RequestScopedDependencyNotStartedError> =>
   dependency.pipe(
-    Effect.filterOrFail((_): _ is Service => _ !== "root", () => new RequestScopedDependencyNotStartedError({ key }))
+    Effect.filterOrFail(
+      (_): _ is Service => _ !== "root",
+      () => new RequestScopedDependencyNotStartedError({ key })
+    )
   )
 
 export const make = <Service, E = never, R = never>(

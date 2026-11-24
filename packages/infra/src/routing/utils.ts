@@ -36,7 +36,7 @@ export const determineMethod = (fullName: string, schema: S.Top) => {
   const actionName = bits[bits.length - 1]!
 
   if (get.some((_) => actionName.startsWith(_))) {
-    return { _tag: "query", method: onlyStrings(schema) ? "GET" as const : "POST" } as const
+    return { _tag: "query", method: onlyStrings(schema) ? ("GET" as const) : "POST" } as const
   }
   if (del.some((_) => actionName.startsWith(_))) {
     return { _tag: "command", method: onlyStrings(schema) ? "DELETE" : "POST" } as const

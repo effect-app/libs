@@ -14,30 +14,20 @@ const addressText = (request: HttpServerRequest.HttpServerRequest) =>
   Option.getOrElse(request.remoteAddress, () => "unknown")
 
 test("xForwardedHeaders keeps the app error and HttpServerRequest", () => {
-  const app = HttpServerRequest
-    .HttpServerRequest
-    .use((request) => Effect.succeed(HttpServerResponse.text(addressText(request))))
-    .pipe(
-      HttpMiddleware.xForwardedHeaders({ trustedProxies })
-    )
+  const app = HttpServerRequest.HttpServerRequest.use((request) =>
+    Effect.succeed(HttpServerResponse.text(addressText(request)))
+  ).pipe(HttpMiddleware.xForwardedHeaders({ trustedProxies }))
 
   expectTypeOf(app).toEqualTypeOf<
     Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest>
   >()
 
-  const rich: Effect.Effect<
-    HttpServerResponse.HttpServerResponse,
-    "Boom",
-    HttpServerRequest.HttpServerRequest | Svc
-  > = Effect.fail("Boom")
+  const rich: Effect.Effect<HttpServerResponse.HttpServerResponse, "Boom", HttpServerRequest.HttpServerRequest | Svc> =
+    Effect.fail("Boom")
   const wrapped = rich.pipe(HttpMiddleware.xForwardedHeaders({ trustedProxies }))
 
   expectTypeOf(wrapped).toEqualTypeOf<
-    Effect.Effect<
-      HttpServerResponse.HttpServerResponse,
-      "Boom",
-      HttpServerRequest.HttpServerRequest | Svc
-    >
+    Effect.Effect<HttpServerResponse.HttpServerResponse, "Boom", HttpServerRequest.HttpServerRequest | Svc>
   >()
 
   const layer = HttpRouter.middleware(HttpMiddleware.xForwardedHeaders({ trustedProxies }))
@@ -48,17 +38,12 @@ test("xForwardedHeaders keeps the app error and HttpServerRequest", () => {
 })
 
 test("xForwardedHeaders still applies a trusted proxy hop", async () => {
-  const app = HttpServerRequest
-    .HttpServerRequest
-    .use((request) => Effect.succeed(HttpServerResponse.text(addressText(request))))
-    .pipe(
-      HttpMiddleware.xForwardedHeaders({ trustedProxies })
-    )
-  const request = HttpServerRequest
-    .fromWeb(
-      new Request("http://app.test/", { headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.7" } })
-    )
-    .modify({ remoteAddress: Option.some("10.0.0.1") })
+  const app = HttpServerRequest.HttpServerRequest.use((request) =>
+    Effect.succeed(HttpServerResponse.text(addressText(request)))
+  ).pipe(HttpMiddleware.xForwardedHeaders({ trustedProxies }))
+  const request = HttpServerRequest.fromWeb(
+    new Request("http://app.test/", { headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.7" } })
+  ).modify({ remoteAddress: Option.some("10.0.0.1") })
   const response = await Effect.runPromise(Effect.provideService(app, HttpServerRequest.HttpServerRequest, request))
   expect(await HttpServerResponse.toWeb(response).text()).toBe("198.51.100.7")
 })

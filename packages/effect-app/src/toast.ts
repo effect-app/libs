@@ -25,9 +25,8 @@ export const wrap = (toast: ReturnType<UseToast>) => {
         Effect.flatMap((currentToast) =>
           Effect.sync(() => {
             const { id: _id, ...rest } = options ?? {}
-            const id = _id !== undefined
-              ? _id ?? undefined
-              : Option.getOrUndefined(Option.map(currentToast, (_) => _.toastId))
+            const id =
+              _id !== undefined ? (_id ?? undefined) : Option.getOrUndefined(Option.map(currentToast, (_) => _.toastId))
             // when id is undefined, we may end up with no toast at all..
             return toastHandler(message, id !== undefined ? { ...rest, id } : rest)
           })

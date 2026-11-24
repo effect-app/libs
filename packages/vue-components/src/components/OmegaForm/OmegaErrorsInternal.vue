@@ -1,9 +1,6 @@
 <template>
   <Transition>
-    <div
-      v-if="errors.length || showedGeneralErrors.length"
-      class="error-alert"
-    >
+    <div v-if="errors.length || showedGeneralErrors.length" class="error-alert">
       <slot v-bind="{ errors, showedGeneralErrors }">
         <component
           :is="vuetified ? 'v-alert' : 'div'"
@@ -16,12 +13,7 @@
         >
           <div class="container">
             <slot name="icon">
-              <svg
-                v-if="!vuetified"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+              <svg v-if="!vuetified" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
                   stroke="currentColor"
@@ -46,40 +38,19 @@
               </svg>
             </slot>
             <div>
-              <div class="text-h6">
-                {{ trans("form.includes_error") }}:
-              </div>
-              <ul
-                v-if="errors.length"
-                class="error-list"
-              >
-                <li
-                  v-for="error in errors"
-                  :key="error.inputId"
-                  class="error-item"
-                >
+              <div class="text-h6">{{ trans("form.includes_error") }}:</div>
+              <ul v-if="errors.length" class="error-list">
+                <li v-for="error in errors" :key="error.inputId" class="error-item">
                   <div>
-                    <label
-                      :for="error.inputId"
-                      class="error-link"
-                    >{{ error.label }}</label>
+                    <label :for="error.inputId" class="error-link">{{ error.label }}</label>
                     {{ " " }}
                     <div
                       v-if="!hideErrorDetails"
                       class="error-message"
                       :class="error.errors.length < 2 && 'single-error'"
                     >
-                      <component
-                        :is="error.errors.length > 1 ? 'ul' : 'div'"
-                        class="error-list"
-                      >
-                        <component
-                          :is="error.errors.length > 1
-                          ? 'li'
-                          : 'span'"
-                          v-for="e in error.errors"
-                          :key="e"
-                        >
+                      <component :is="error.errors.length > 1 ? 'ul' : 'div'" class="error-list">
+                        <component :is="error.errors.length > 1 ? 'li' : 'span'" v-for="e in error.errors" :key="e">
                           {{ e }}
                         </component>
                       </component>
@@ -106,13 +77,11 @@ import { type OmegaError } from "./types"
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]
 
-const props = defineProps<
-  {
-    generalErrors: unknown[]
-    errors: OmegaError[]
-    hideErrorDetails?: boolean
-  }
->()
+const props = defineProps<{
+  generalErrors: unknown[]
+  errors: OmegaError[]
+  hideErrorDetails?: boolean
+}>()
 
 const { trans } = useIntl()
 
@@ -123,16 +92,15 @@ const showedGeneralErrors = computed(() => {
     if (typeof record === "string") return record ? [record] : []
     if (typeof record !== "object" || record === null) return []
 
-    return Object
-      .values(record)
+    return Object.values(record)
       .filter((issues): issues is unknown[] => Array.isArray(issues))
       .flatMap((issues) =>
         issues.flatMap((issue) =>
-          typeof issue === "object"
-            && issue !== null
-            && "message" in issue
-            && typeof issue.message === "string"
-            && issue.message
+          typeof issue === "object" &&
+          issue !== null &&
+          "message" in issue &&
+          typeof issue.message === "string" &&
+          issue.message
             ? [issue.message]
             : []
         )

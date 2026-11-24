@@ -103,7 +103,10 @@ it("aborts atom suspense promises when the component unmounts", async () => {
   app.unmount()
   await nextTick()
   const settled = await Promise.race([
-    promise.then(() => "resolved" as const, () => "rejected" as const),
+    promise.then(
+      () => "resolved" as const,
+      () => "rejected" as const
+    ),
     new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 20))
   ])
   expect(settled).toBe("rejected")

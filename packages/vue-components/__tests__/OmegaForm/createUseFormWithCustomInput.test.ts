@@ -27,17 +27,15 @@ describe("createUseFormWithCustomInput", () => {
   const useForm = createUseFormWithCustomInput(CustomTestInput)
   const schema = S.Struct({ testField: S.String })
 
-  const createWrapper = (options?: {
-    defaultValues?: any
-    onSubmit?: (data: any) => void | Promise<void>
-  }) => {
+  const createWrapper = (options?: { defaultValues?: any; onSubmit?: (data: any) => void | Promise<void> }) => {
     let submittedValue: any = null
 
-    const wrapper = mount({
-      components: {
-        OmegaIntlProvider
-      },
-      template: `
+    const wrapper = mount(
+      {
+        components: {
+          OmegaIntlProvider
+        },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form" :subscribe="['values']">
             <template #default="{ subscribedValues: { values } }">
@@ -53,23 +51,25 @@ describe("createUseFormWithCustomInput", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useForm(schema, {
-          defaultValues: options?.defaultValues || { testField: "" },
-          onSubmit: async ({ value }) => {
-            submittedValue = value
-            options?.onSubmit?.(value)
+        setup() {
+          const form = useForm(schema, {
+            defaultValues: options?.defaultValues || { testField: "" },
+            onSubmit: async ({ value }) => {
+              submittedValue = value
+              await options?.onSubmit?.(value)
+            }
+          })
+          return { form, getSubmittedValue: () => submittedValue }
+        }
+      },
+      {
+        global: {
+          stubs: {
+            CustomTestInput
           }
-        })
-        return { form, getSubmittedValue: () => submittedValue }
-      }
-    }, {
-      global: {
-        stubs: {
-          CustomTestInput
         }
       }
-    })
+    )
 
     return wrapper
   }
@@ -79,12 +79,12 @@ describe("createUseFormWithCustomInput", () => {
     await wrapper.vm.$nextTick()
 
     // Check that custom input was rendered
-    const customInput = wrapper.find("[data-testid=\"custom-input\"]")
+    const customInput = wrapper.find('[data-testid="custom-input"]')
     expect(customInput.exists()).toBe(true)
     expect(customInput.classes()).toContain("custom-test-input")
 
     // Verify the input has the correct value
-    const inputElement = wrapper.find("[data-testid=\"custom-input-field\"]")
+    const inputElement = wrapper.find('[data-testid="custom-input-field"]')
     expect(inputElement.exists()).toBe(true)
     expect((inputElement.element as HTMLInputElement).value).toBe("test value")
 
@@ -99,7 +99,7 @@ describe("createUseFormWithCustomInput", () => {
     await wrapper.vm.$nextTick()
 
     // Verify initial value
-    const input = wrapper.find("[data-testid=\"custom-input-field\"]")
+    const input = wrapper.find('[data-testid="custom-input-field"]')
     expect((input.element as HTMLInputElement).value).toBe("initial")
 
     // Change the value
@@ -107,11 +107,11 @@ describe("createUseFormWithCustomInput", () => {
     await wrapper.vm.$nextTick()
 
     // Verify the value changed in the form state
-    const valuesDiv = wrapper.find("[data-testid=\"values\"]")
-    expect(valuesDiv.text()).toContain("\"testField\":\"changed value\"")
+    const valuesDiv = wrapper.find('[data-testid="values"]')
+    expect(valuesDiv.text()).toContain('"testField":"changed value"')
 
     // Submit the form
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await wrapper.vm.$nextTick()
     await new Promise((resolve) => setTimeout(resolve, 100))
 
@@ -138,11 +138,12 @@ describe("createUseFormWithCustomInput", () => {
     const useFormWithValidator = createUseFormWithCustomInput(PropsValidatingInput)
     const validationSchema = S.Struct({ myField: S.String })
 
-    const wrapper = mount({
-      components: {
-        OmegaIntlProvider
-      },
-      template: `
+    const wrapper = mount(
+      {
+        components: {
+          OmegaIntlProvider
+        },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <template #default>
@@ -154,30 +155,32 @@ describe("createUseFormWithCustomInput", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useFormWithValidator(validationSchema, {
-          defaultValues: { myField: "test-value" }
-        })
-        return { form }
-      }
-    }, {
-      global: {
-        stubs: {
-          PropsValidatingInput
+        setup() {
+          const form = useFormWithValidator(validationSchema, {
+            defaultValues: { myField: "test-value" }
+          })
+          return { form }
+        }
+      },
+      {
+        global: {
+          stubs: {
+            PropsValidatingInput
+          }
         }
       }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
-    const validator = wrapper.find("[data-testid=\"props-validator\"]")
+    const validator = wrapper.find('[data-testid="props-validator"]')
     expect(validator.exists()).toBe(true)
 
     // Check all required props are passed
-    expect(wrapper.find("[data-testid=\"has-inputprops\"]").text()).toBe("true")
-    expect(wrapper.find("[data-testid=\"has-field\"]").text()).toBe("true")
-    expect(wrapper.find("[data-testid=\"has-label\"]").text()).toContain("My Label")
-    expect(wrapper.find("[data-testid=\"has-id\"]").text()).toBeTruthy()
+    expect(wrapper.find('[data-testid="has-inputprops"]').text()).toBe("true")
+    expect(wrapper.find('[data-testid="has-field"]').text()).toBe("true")
+    expect(wrapper.find('[data-testid="has-label"]').text()).toContain("My Label")
+    expect(wrapper.find('[data-testid="has-id"]').text()).toBeTruthy()
   })
 
   it("forwards an explicit `required` override to inputProps (survives OmegaInput's prop whitelist)", async () => {
@@ -191,11 +194,12 @@ describe("createUseFormWithCustomInput", () => {
     // explicit prop overrode meta AND was not dropped on the way to the input.
     const optionalSchema = S.Struct({ maybe: S.optionalKey(S.Number) })
 
-    const wrapper = mount({
-      components: {
-        OmegaIntlProvider
-      },
-      template: `
+    const wrapper = mount(
+      {
+        components: {
+          OmegaIntlProvider
+        },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <template #default>
@@ -208,21 +212,23 @@ describe("createUseFormWithCustomInput", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useFormWithProbe(optionalSchema, { defaultValues: {} })
-        return { form }
-      }
-    }, {
-      global: {
-        stubs: {
-          RequiredProbe
+        setup() {
+          const form = useFormWithProbe(optionalSchema, { defaultValues: {} })
+          return { form }
+        }
+      },
+      {
+        global: {
+          stubs: {
+            RequiredProbe
+          }
         }
       }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find("[data-testid=\"required-probe\"]").text()).toBe("true")
+    expect(wrapper.find('[data-testid="required-probe"]').text()).toBe("true")
   })
 
   it("falls back to schema-derived required when the prop is omitted", async () => {
@@ -239,11 +245,12 @@ describe("createUseFormWithCustomInput", () => {
     const useFormWithProbe = createUseFormWithCustomInput(RequiredProbe)
     const requiredSchema = S.Struct({ number: S.Number })
 
-    const wrapper = mount({
-      components: {
-        OmegaIntlProvider
-      },
-      template: `
+    const wrapper = mount(
+      {
+        components: {
+          OmegaIntlProvider
+        },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <template #default>
@@ -255,22 +262,24 @@ describe("createUseFormWithCustomInput", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useFormWithProbe(requiredSchema)
-        return { form }
-      }
-    }, {
-      global: {
-        stubs: {
-          RequiredProbe
+        setup() {
+          const form = useFormWithProbe(requiredSchema)
+          return { form }
+        }
+      },
+      {
+        global: {
+          stubs: {
+            RequiredProbe
+          }
         }
       }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find("[data-testid=\"required-probe\"]").text()).toBe("true")
-    expect(wrapper.find("[data-testid=\"label-probe\"]").text()).toBe("Number *")
+    expect(wrapper.find('[data-testid="required-probe"]').text()).toBe("true")
+    expect(wrapper.find('[data-testid="label-probe"]').text()).toBe("Number *")
   })
 
   it("should pass event listeners to custom input component", async () => {
@@ -302,11 +311,12 @@ describe("createUseFormWithCustomInput", () => {
     let focusCount = 0
     let blurCount = 0
 
-    const wrapper = mount({
-      components: {
-        OmegaIntlProvider
-      },
-      template: `
+    const wrapper = mount(
+      {
+        components: {
+          OmegaIntlProvider
+        },
+        template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
             <template #default>
@@ -320,33 +330,35 @@ describe("createUseFormWithCustomInput", () => {
           </component>
         </OmegaIntlProvider>
       `,
-      setup() {
-        const form = useFormWithEvents(eventSchema, {
-          defaultValues: { eventField: "" }
-        })
+        setup() {
+          const form = useFormWithEvents(eventSchema, {
+            defaultValues: { eventField: "" }
+          })
 
-        const handleFocus = () => {
-          focusCount++
+          const handleFocus = () => {
+            focusCount++
+          }
+
+          const handleBlur = () => {
+            blurCount++
+          }
+
+          return { form, handleFocus, handleBlur }
         }
-
-        const handleBlur = () => {
-          blurCount++
+      },
+      {
+        global: {
+          stubs: {
+            EventEmittingInput
+          }
         }
-
-        return { form, handleFocus, handleBlur }
       }
-    }, {
-      global: {
-        stubs: {
-          EventEmittingInput
-        }
-      }
-    })
+    )
 
     await wrapper.vm.$nextTick()
 
     // Verify the custom input was rendered
-    const eventInput = wrapper.find("[data-testid=\"event-input\"]")
+    const eventInput = wrapper.find('[data-testid="event-input"]')
     expect(eventInput.exists()).toBe(true)
 
     // Trigger focus event

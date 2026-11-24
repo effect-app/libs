@@ -2,9 +2,7 @@ import { type makeIntl } from "@effect-app/vue/makeIntl"
 import type * as S from "effect-app/Schema"
 import { inject, type InjectionKey, provide } from "vue"
 
-export const useIntlKey = Symbol() as InjectionKey<
-  ReturnType<typeof makeIntl>["useIntl"]
->
+export const useIntlKey = Symbol() as InjectionKey<ReturnType<typeof makeIntl>["useIntl"]>
 export const useIntl = () => {
   const useIntl = inject(useIntlKey)
   if (!useIntl) {
@@ -12,9 +10,7 @@ export const useIntl = () => {
   }
   return useIntl()
 }
-export const provideIntl = (
-  intl: ReturnType<typeof makeIntl>["useIntl"]
-) => provide(useIntlKey, intl)
+export const provideIntl = (intl: ReturnType<typeof makeIntl>["useIntl"]) => provide(useIntlKey, intl)
 
 /**
  * Walks the encoding chain of the given AST node to its source (encoded)

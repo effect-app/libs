@@ -5,17 +5,9 @@ import { dual, type Predicate } from "./Function.ts"
 import * as Option from "./Option.ts"
 
 export const groupByT = dual<
-  <A, Key>(
-    f: (a: NoInfer<A>) => Key
-  ) => (as: ReadonlyArray<A>) => Array<readonly [Key, NonEmptyArray<A>]>,
-  <A, Key>(
-    as: ReadonlyArray<A>,
-    f: (a: A) => Key
-  ) => Array<readonly [Key, NonEmptyArray<A>]>
->(2, <A, Key>(
-  as: ReadonlyArray<A>,
-  f: (a: A) => Key
-): Array<readonly [Key, NonEmptyArray<A>]> => {
+  <A, Key>(f: (a: NoInfer<A>) => Key) => (as: ReadonlyArray<A>) => Array<readonly [Key, NonEmptyArray<A>]>,
+  <A, Key>(as: ReadonlyArray<A>, f: (a: A) => Key) => Array<readonly [Key, NonEmptyArray<A>]>
+>(2, <A, Key>(as: ReadonlyArray<A>, f: (a: A) => Key): Array<readonly [Key, NonEmptyArray<A>]> => {
   const r = new Map<Key, NonEmptyArray<A>>()
   for (const a of as) {
     const k = f(a)
@@ -32,14 +24,8 @@ export const groupByTNonEmpty = dual<
   <A, Key>(
     f: (a: NoInfer<A>) => Key
   ) => (as: NonEmptyReadonlyArray<A>) => NonEmptyArray<readonly [Key, NonEmptyArray<A>]>,
-  <A, Key>(
-    as: NonEmptyReadonlyArray<A>,
-    f: (a: A) => Key
-  ) => NonEmptyArray<readonly [Key, NonEmptyArray<A>]>
->(2, <A, Key>(
-  as: NonEmptyReadonlyArray<A>,
-  f: (a: A) => Key
-): NonEmptyArray<readonly [Key, NonEmptyArray<A>]> => {
+  <A, Key>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Key) => NonEmptyArray<readonly [Key, NonEmptyArray<A>]>
+>(2, <A, Key>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Key): NonEmptyArray<readonly [Key, NonEmptyArray<A>]> => {
   const r = new Map<Key, NonEmptyArray<A>>()
   for (const a of as) {
     const k = f(a)
@@ -69,9 +55,8 @@ export function filterWith<A>(self: ReadonlyArray<A>, predicates: ReadonlyArray<
 }
 
 export function forEachEffectNA<A, R, E, B>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Effect.Effect<B, E, R>) {
-  return Effect.map(
-    Effect.forEach(as, f),
-    (_) => Option.getOrNull(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(_))
+  return Effect.map(Effect.forEach(as, f), (_) =>
+    Option.getOrNull(Option.liftPredicate(Array.isReadonlyArrayNonEmpty)(_))
   )
 }
 

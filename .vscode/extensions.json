@@ -1,9 +1,3 @@
 {
-  "recommendations": [
-    "oxc.oxc-vscode",
-    "dprint.dprint",
-    "dbaeumer.vscode-eslint",
-    "editorconfig.editorconfig",
-    "Vue.volar"
-  ]
+  "recommendations": ["oxc.oxc-vscode", "dbaeumer.vscode-eslint", "editorconfig.editorconfig", "Vue.volar"]
 }

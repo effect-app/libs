@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DataDependencies, type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
+import {
+  DataDependencies,
+  type InvalidationKey,
+  InvalidationKeysFromServer,
+  makeInvalidationKeysService,
+  makeQueryKey,
+  type Req
+} from "effect-app/client"
 import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidateQueryInstruction } from "effect-app/client/makeClient"
 import * as Effect from "effect-app/Effect"
@@ -27,7 +34,7 @@ export type GetQueryKey = (h: { id: string; options?: ClientForOptions }) => str
 export const defaultGetQueryKey: GetQueryKey = (h) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
-  const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
+  const k = ns.length ? (ns.length > 1 ? ns.slice(0, ns.length - 1) : ns) : undefined
   if (!k) throw new Error("empty query key for: " + h.id)
   return k
 }
@@ -56,9 +63,7 @@ export const setDefaultGetQueryKey = (fn: GetQueryKey | undefined) => {
 
 export const getQueryKey: GetQueryKey = (h) => activeGetQueryKey(h)
 
-export function mutationResultToVue<A, E>(
-  mutationResult: AsyncResult.AsyncResult<A, E>
-): Res<A, E> {
+export function mutationResultToVue<A, E>(mutationResult: AsyncResult.AsyncResult<A, E>): Res<A, E> {
   switch (mutationResult._tag) {
     case "Initial": {
       return { loading: mutationResult.waiting, data: undefined, error: undefined }
@@ -89,16 +94,14 @@ export interface Res<A, E> {
 export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   const result = shallowRef(AsyncResult.initial() as AsyncResult.AsyncResult<A, E>)
 
-  const execute = Effect
-    .sync(() => {
-      result.value = AsyncResult.waiting(result.value)
-    })
-    .pipe(
-      Effect.andThen(self),
-      Effect.exit,
-      Effect.map(AsyncResult.fromExit),
-      Effect.flatMap((r) => Effect.sync(() => result.value = r))
-    )
+  const execute = Effect.sync(() => {
+    result.value = AsyncResult.waiting(result.value)
+  }).pipe(
+    Effect.andThen(self),
+    Effect.exit,
+    Effect.map(AsyncResult.fromExit),
+    Effect.flatMap((r) => Effect.sync(() => (result.value = r)))
+  )
 
   const latestSuccess = computed(() => Option.getOrUndefined(AsyncResult.value(result.value)))
 
@@ -132,17 +135,15 @@ export const combineQueryInvalidators = <R>(
   ...invalidators: ReadonlyArray<QueryInvalidator<R>>
 ): QueryInvalidator<R> => ({
   invalidateAndAwait: (keys) =>
-    Effect.forEach(
-      invalidators,
-      (invalidator) => invalidator.invalidateAndAwait(keys),
-      { discard: true, concurrency: "unbounded" }
-    ),
+    Effect.forEach(invalidators, (invalidator) => invalidator.invalidateAndAwait(keys), {
+      discard: true,
+      concurrency: "unbounded"
+    }),
   invalidateSoft: (keys) =>
-    Effect.forEach(
-      invalidators,
-      (invalidator) => invalidator.invalidateSoft?.(keys) ?? Effect.void,
-      { discard: true, concurrency: "unbounded" }
-    )
+    Effect.forEach(invalidators, (invalidator) => invalidator.invalidateSoft?.(keys) ?? Effect.void, {
+      discard: true,
+      concurrency: "unbounded"
+    })
 })
 
 const isRecord = (value: unknown): value is { readonly [key: string]: unknown } =>
@@ -208,20 +209,23 @@ export const asResult = <Args extends readonly any[], A, E, R>(
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
   const act = (...args: Args) =>
-    Effect
-      .sync(() => {
-        state.value = AsyncResult.initial(true)
-      })
-      .pipe(
-        Effect.andThen(Effect.suspend(() =>
+    Effect.sync(() => {
+      state.value = AsyncResult.initial(true)
+    }).pipe(
+      Effect.andThen(
+        Effect.suspend(() =>
           handler(...args).pipe(
             Effect.exit,
             Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
           )
-        ))
+        )
       )
+    )
 
-  return Tuple.make(computed(() => state.value), act)
+  return Tuple.make(
+    computed(() => state.value),
+    act
+  )
 }
 
 /**
@@ -235,40 +239,41 @@ export const asStreamResult = <Args extends readonly any[], A, E, R>(
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
   const runStream = (stream: Stream.Stream<A, E, R>): Effect.Effect<void, never, R> =>
-    Effect
-      .sync(() => {
-        state.value = AsyncResult.initial(true)
-      })
-      .pipe(
-        Effect.andThen(
-          stream.pipe(
-            Stream.runForEach((value) =>
-              Effect.sync(() => {
-                state.value = AsyncResult.success(value, { waiting: true })
-              })
-            ),
-            Effect.exit,
-            Effect.flatMap((exit) =>
-              Effect.sync(() => {
-                if (exit._tag === "Success") {
-                  const current = state.value
-                  if (AsyncResult.isSuccess(current)) {
-                    state.value = AsyncResult.success(current.value, { waiting: false })
-                  } else {
-                    state.value = AsyncResult.initial(false)
-                  }
+    Effect.sync(() => {
+      state.value = AsyncResult.initial(true)
+    }).pipe(
+      Effect.andThen(
+        stream.pipe(
+          Stream.runForEach((value) =>
+            Effect.sync(() => {
+              state.value = AsyncResult.success(value, { waiting: true })
+            })
+          ),
+          Effect.exit,
+          Effect.flatMap((exit) =>
+            Effect.sync(() => {
+              if (exit._tag === "Success") {
+                const current = state.value
+                if (AsyncResult.isSuccess(current)) {
+                  state.value = AsyncResult.success(current.value, { waiting: false })
                 } else {
-                  state.value = AsyncResult.failure(exit.cause)
+                  state.value = AsyncResult.initial(false)
                 }
-              })
-            )
+              } else {
+                state.value = AsyncResult.failure(exit.cause)
+              }
+            })
           )
         )
       )
+    )
 
   const act = (...args: Args) => runStream(handler(...args))
 
-  return Tuple.make(computed(() => state.value), act)
+  return Tuple.make(
+    computed(() => state.value),
+    act
+  )
 }
 
 const buildInvalidateCache = <RInvalidator>(
@@ -333,37 +338,35 @@ const buildInvalidateCache = <RInvalidator>(
 
       const { awaitKeys, softKeys } = partitionInvalidationKeys(keys)
 
-      return Effect
-        .andThen(
-          Effect.annotateCurrentSpan({
-            keys,
-            awaitKeys,
-            softKeys,
-            clientKeys,
-            serverKeys,
-            derivedKeys,
-            writeDependencies: [...writeDependencies]
-          }),
-          // refetch + AWAIT every live query registered under these keys, so by the time the
-          // mutation resolves the affected queries are fresh.
-          Effect.gen(function*() {
-            if (softKeys.length > 0) {
-              yield* (queryInvalidator.invalidateSoft?.(softKeys) ?? Effect.void).pipe(
-                Effect.catchCause((cause) =>
-                  reportRuntimeError(cause, { invalidation: "soft", keys: softKeys }).pipe(Effect.asVoid)
-                ),
-                Effect.forkDetach({ startImmediately: true })
-              )
-            }
-            if (awaitKeys.length > 0) {
-              yield* queryInvalidator.invalidateAndAwait(awaitKeys)
-            }
-          })
-        )
-        .pipe(
-          Effect.tap(Effect.sleep(0.1)), // allow for refs to update etc
-          Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
-        )
+      return Effect.andThen(
+        Effect.annotateCurrentSpan({
+          keys,
+          awaitKeys,
+          softKeys,
+          clientKeys,
+          serverKeys,
+          derivedKeys,
+          writeDependencies: [...writeDependencies]
+        }),
+        // refetch + AWAIT every live query registered under these keys, so by the time the
+        // mutation resolves the affected queries are fresh.
+        Effect.gen(function* () {
+          if (softKeys.length > 0) {
+            yield* (queryInvalidator.invalidateSoft?.(softKeys) ?? Effect.void).pipe(
+              Effect.catchCause((cause) =>
+                reportRuntimeError(cause, { invalidation: "soft", keys: softKeys }).pipe(Effect.asVoid)
+              ),
+              Effect.forkDetach({ startImmediately: true })
+            )
+          }
+          if (awaitKeys.length > 0) {
+            yield* queryInvalidator.invalidateAndAwait(awaitKeys)
+          }
+        })
+      ).pipe(
+        Effect.tap(Effect.sleep(0.1)), // allow for refs to update etc
+        Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
+      )
     })
 
   return invalidateCache
@@ -379,7 +382,7 @@ export const invalidateQueries = <RInvalidator>(
   const select = options?.select
 
   const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
       const readsRef = yield* Ref.make(DataDependencies.empty())
       const writesRef = yield* Ref.make(DataDependencies.empty())
@@ -388,7 +391,7 @@ export const invalidateQueries = <RInvalidator>(
         Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
         Effect.provideService(DataDependencies.DataDependencyRecorder, dependencyRecorder),
         Effect.onExit((exit) =>
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const serverKeys = yield* Ref.get(keysRef)
             const writeDependencies = yield* Ref.get(writesRef)
             yield* invalidateCache(input, exit, serverKeys, writeDependencies)
@@ -398,7 +401,7 @@ export const invalidateQueries = <RInvalidator>(
       if (select) {
         return yield* select(result).pipe(
           Effect.onExit((exit) =>
-            Effect.gen(function*() {
+            Effect.gen(function* () {
               const serverKeys = yield* Ref.get(keysRef)
               const writeDependencies = yield* Ref.get(writesRef)
               yield* invalidateCache(input, exit, serverKeys, writeDependencies)
@@ -476,7 +479,7 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
     const invCache = buildInvalidateCache(self, mergedInvalidation, queryInvalidator)
 
     const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
         // Server invalidation keys stay settlement-only: flushing them from `add` refetched
         // live queries once per chunk (One-Pick List storms). Write-deps flush once when the
@@ -487,7 +490,7 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
         const dependencyRecorder = DataDependencies.makeDataDependencyRecorder(readsRef, writesRef)
         const lastRef = yield* Ref.make<any>(undefined)
         let flushedFirstWrites = false
-        const flushFirstWrites = Effect.gen(function*() {
+        const flushFirstWrites = Effect.gen(function* () {
           if (flushedFirstWrites) return
           const writeDependencies = yield* Ref.get(writesRef)
           if (!DataDependencies.isNonEmpty(writeDependencies)) return
@@ -501,7 +504,7 @@ export const makeStreamMutation2 = <RInvalidator>(queryInvalidator: QueryInvalid
           Stream.tap((v) => Ref.set(lastRef, v)),
           Stream.tap(() => flushFirstWrites),
           Stream.ensuring(
-            Effect.gen(function*() {
+            Effect.gen(function* () {
               const lastValue = yield* Ref.get(lastRef)
               const serverKeys = yield* Ref.get(keysRef)
               const writeDependencies = yield* Ref.get(writesRef)

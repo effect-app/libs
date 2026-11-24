@@ -5,9 +5,20 @@ import type { NonEmptyReadonlyArray } from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import type { FilterResult } from "effect-app/Model/filter/filterApi"
 import type { FieldValues } from "effect-app/Model/filter/types"
-import type { AggregateIrExpression, ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "effect-app/Model/query"
+import type {
+  AggregateIrExpression,
+  ComputedProjectionIrExpression,
+  ComputedProjectionMathIrExpression
+} from "effect-app/Model/query"
 import * as Option from "effect-app/Option"
-import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, storeId, StoreMaker } from "effect-app/Store"
+import {
+  type FilterArgs,
+  type PersistenceModelType,
+  type Store,
+  type StoreConfig,
+  storeId,
+  StoreMaker
+} from "effect-app/Store"
 import { absurd, flow, pipe } from "effect/Function"
 import * as Order from "effect/Order"
 import * as Ref from "effect/Ref"
@@ -27,13 +38,13 @@ const stripRelationFilterPaths = (state: readonly FilterResult[], relationPath: 
   return state.map((entry) =>
     "path" in entry
       ? {
-        ...entry,
-        path: entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path
-      }
+          ...entry,
+          path: entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path
+        }
       : {
-        ...entry,
-        result: stripRelationFilterPaths(entry.result, relationPath)
-      }
+          ...entry,
+          result: stripRelationFilterPaths(entry.result, relationPath)
+        }
   )
 }
 
@@ -62,10 +73,7 @@ const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
   }
 }
 
-const computeProjectionValue = (
-  row: FieldValues,
-  computed: ComputedProjectionIrExpression
-) => {
+const computeProjectionValue = (row: FieldValues, computed: ComputedProjectionIrExpression) => {
   const relation = get(row, computed.path)
   if (!Array.isArray(relation)) {
     return emptyValueFor(computed._tag)
@@ -76,9 +84,7 @@ const computeProjectionValue = (
   const filter = stripRelationFilterPaths(computed.filter, computed.path)
   // empty filter = unconditional match (codeFilter3_ uses eval on a built
   // string and chokes on `( )`, so short-circuit before invoking it).
-  const matches = filter.length === 0
-    ? (_value: unknown) => true
-    : (value: unknown) => codeFilter3_(filter, value)
+  const matches = filter.length === 0 ? (_value: unknown) => true : (value: unknown) => codeFilter3_(filter, value)
   const evalExpr = (value: unknown, expression: ComputedProjectionMathIrExpression): number => {
     switch (expression._tag) {
       case "field": {
@@ -93,7 +99,7 @@ const computeProjectionValue = (
   }
   switch (computed._tag) {
     case "relation-count":
-      return relation.reduce<number>((acc, value) => matches(value) ? acc + 1 : acc, 0)
+      return relation.reduce<number>((acc, value) => (matches(value) ? acc + 1 : acc), 0)
     case "relation-any":
       return relation.some(matches)
     case "relation-every":
@@ -208,7 +214,7 @@ const computeAggregateValue = <T extends FieldValues>(rows: readonly T[], agg: A
 
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {
   type M = U extends undefined ? T : Pick<T, U>
-  return ((c: T[]): M[] => {
+  return (c: T[]): M[] => {
     const sel = f.select
 
     const selectPerRow = (r: T[]): M[] => {
@@ -218,11 +224,13 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       const hasAggregates = sel.some((s) => typeof s === "object" && s !== null && "aggregate" in s)
       if (hasAggregates) {
         // GROUP BY + aggregate
-        const fieldItems = sel.filter((s): s is { key: string; path: string } =>
-          typeof s === "object" && s !== null && "path" in s && !("aggregate" in s)
+        const fieldItems = sel.filter(
+          (s): s is { key: string; path: string } =>
+            typeof s === "object" && s !== null && "path" in s && !("aggregate" in s)
         )
-        const aggregateItems = sel.filter((s): s is { key: string; aggregate: AggregateIrExpression } =>
-          typeof s === "object" && s !== null && "aggregate" in s
+        const aggregateItems = sel.filter(
+          (s): s is { key: string; aggregate: AggregateIrExpression } =>
+            typeof s === "object" && s !== null && "aggregate" in s
         )
         const groups = new Map<string, T[]>()
         for (const row of r) {
@@ -242,17 +250,23 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       return r.map((i) => {
         const [entries, keys] = pipe(
           sel,
-          Array.partition((entry) => typeof entry === "string" ? Result.fail(String(entry)) : Result.succeed(entry))
+          Array.partition((entry) => (typeof entry === "string" ? Result.fail(String(entry)) : Result.succeed(entry)))
         )
-        const subKeys = entries.filter((entry): entry is { key: string; subKeys: readonly string[] } =>
-          typeof entry === "object" && entry !== null && "subKeys" in entry
+        const subKeys = entries.filter(
+          (entry): entry is { key: string; subKeys: readonly string[] } =>
+            typeof entry === "object" && entry !== null && "subKeys" in entry
         )
-        const computedKeys = entries.filter((entry): entry is {
-          key: string
-          computed: ComputedProjectionIrExpression
-        } => typeof entry === "object" && entry !== null && "computed" in entry)
-        const pathKeys = entries.filter((entry): entry is { key: string; path: string } =>
-          typeof entry === "object" && entry !== null && "path" in entry && !("aggregate" in entry)
+        const computedKeys = entries.filter(
+          (
+            entry
+          ): entry is {
+            key: string
+            computed: ComputedProjectionIrExpression
+          } => typeof entry === "object" && entry !== null && "computed" in entry
+        )
+        const pathKeys = entries.filter(
+          (entry): entry is { key: string; path: string } =>
+            typeof entry === "object" && entry !== null && "path" in entry && !("aggregate" in entry)
         )
         const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
@@ -284,7 +298,8 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
           }
           return selfV < thatV ? 1 : -1
         })
-      ))
+      )
+    )
     if (Option.isSome(ords)) {
       c = Array.sortBy(...ords.value)(c)
     }
@@ -292,9 +307,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       return selectPerRow(
         Array.findFirst(c, f.filter ? codeFilter(f.filter) : (_) => Option.some(_)).pipe(
           Option.map(Array.make),
-          Option.getOrElse(
-            () => []
-          )
+          Option.getOrElse(() => [])
         )
       )
     }
@@ -307,24 +320,20 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
     }
 
     return selectPerRow(r)
-  })
+  }
 }
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
-  return InfraLogger
-    .logDebug("mem query")
-    .pipe(Effect.annotateLogs({
-      filter: JSON.stringify(
-        f.filter,
-        undefined,
-        2
-      ),
+  return InfraLogger.logDebug("mem query").pipe(
+    Effect.annotateLogs({
+      filter: JSON.stringify(f.filter, undefined, 2),
       order: JSON.stringify(f.order, undefined, 2),
       select: JSON.stringify(f.select, undefined, 2),
       defaultValues: JSON.stringify(defaultValues, undefined, 2),
       skip: f.skip,
       limit: f.limit
-    }))
+    })
+  )
 }
 
 export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
@@ -338,7 +347,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
   jitM?: StoreConfig<Encoded>["jitM"]
 ) {
   type PM = PersistenceModelType<Encoded>
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const updateETag = makeUpdateETag(modelName)
     const codec = makeJsonDocumentCodec<Encoded>(schema)
     const encodeDoc = (e: Encoded | PM): PM => codec.encode({ _etag: undefined, ...e })
@@ -364,133 +373,118 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const all = Effect.flatMap(allStored, (rows) => Effect.fromResult(decodeStoredMany(rows, decodeDoc)))
 
     const batchSet = (items: NonEmptyReadonlyArray<PM>) =>
-      Effect
-        .forEach(items, (i) => Effect.flatMap(s.find(i[idKey]), (current) => updateETag(encodeDoc(i), idKey, current)))
-        .pipe(
-          Effect
-            .tap((items) =>
-              Ref
-                .get(store)
-                .pipe(
-                  Effect
-                    .map((m) => {
-                      const mut = m as Map<Encoded[IdKey], PM>
-                      items.forEach((e) => mut.set(e[idKey], e))
-                      return mut
-                    }),
-                  Effect
-                    .flatMap((_) => Ref.set(store, _))
-                )
-            ),
-          Effect
-            .flatMap((items) => Effect.fromResult(decodeStoredMany(items, decodeDoc))),
-          Effect
-            .map((items) => items as unknown as NonEmptyReadonlyArray<PM>),
-          withPermit
-        )
+      Effect.forEach(items, (i) =>
+        Effect.flatMap(s.find(i[idKey]), (current) => updateETag(encodeDoc(i), idKey, current))
+      ).pipe(
+        Effect.tap((items) =>
+          Ref.get(store).pipe(
+            Effect.map((m) => {
+              const mut = m as Map<Encoded[IdKey], PM>
+              items.forEach((e) => mut.set(e[idKey], e))
+              return mut
+            }),
+            Effect.flatMap((_) => Ref.set(store, _))
+          )
+        ),
+        Effect.flatMap((items) => Effect.fromResult(decodeStoredMany(items, decodeDoc))),
+        Effect.map((items) => items as unknown as NonEmptyReadonlyArray<PM>),
+        withPermit
+      )
 
     const batchRemove = (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
-      Ref
-        .get(store)
+      Ref.get(store)
         .pipe(
-          Effect
-            .map((m) => {
-              return new Map([...m].filter(([_k]) => !items.includes(_k)))
-            }),
-          Effect
-            .flatMap((_) => Ref.set(store, _))
+          Effect.map((m) => {
+            return new Map([...m].filter(([_k]) => !items.includes(_k)))
+          }),
+          Effect.flatMap((_) => Ref.set(store, _))
         )
-        .pipe(
-          withPermit
-        )
+        .pipe(withPermit)
     const s: Store<IdKey, Encoded> = {
       seedNamespace: () => Effect.void,
 
       queryRaw: (query) =>
-        allStored
-          .pipe(
-            Effect.map(query.memory),
-            annotateDb({
-              operation: "queryRaw",
-              system: "memory",
-              collection: modelName,
-              namespace,
-              entity: modelName
-            })
-          ),
+        allStored.pipe(
+          Effect.map(query.memory),
+          annotateDb({
+            operation: "queryRaw",
+            system: "memory",
+            collection: modelName,
+            namespace,
+            entity: modelName
+          })
+        ),
 
-      all: all.pipe(annotateDb({
-        operation: "all",
-        system: "memory",
-        collection: modelName,
-        namespace,
-        entity: modelName
-      })),
+      all: all.pipe(
+        annotateDb({
+          operation: "all",
+          system: "memory",
+          collection: modelName,
+          namespace,
+          entity: modelName
+        })
+      ),
       find: (id) =>
-        Ref
-          .get(store)
-          .pipe(
-            Effect.flatMap((_) => Effect.fromResult(decodeStoredOption(Option.fromNullishOr(_.get(id)), decodeDoc))),
-            annotateDb({
-              operation: "find",
-              system: "memory",
-              collection: modelName,
-              namespace,
-              entity: modelName,
-              extra: { "app.entity.id": id }
-            })
-          ),
+        Ref.get(store).pipe(
+          Effect.flatMap((_) => Effect.fromResult(decodeStoredOption(Option.fromNullishOr(_.get(id)), decodeDoc))),
+          annotateDb({
+            operation: "find",
+            system: "memory",
+            collection: modelName,
+            namespace,
+            entity: modelName,
+            extra: { "app.entity.id": id }
+          })
+        ),
       filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) =>
-        allStored
-          .pipe(
-            Effect.tap(() => logQuery(f, encodedDefaults)),
-            Effect.map(memFilter({ ...f, filter: f.filter ? lowerFilter(f.filter) : f.filter })),
-            Effect.flatMap((rows) =>
-              f.select
-                ? Effect.succeed(rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[])
-                : Effect.map(
+        allStored.pipe(
+          Effect.tap(() => logQuery(f, encodedDefaults)),
+          Effect.map(memFilter({ ...f, filter: f.filter ? lowerFilter(f.filter) : f.filter })),
+          Effect.flatMap((rows) =>
+            f.select
+              ? Effect.succeed(rows as (U extends undefined ? Encoded : Pick<Encoded, U>)[])
+              : Effect.map(
                   Effect.fromResult(decodeStoredMany(rows, decodeDoc)),
                   (decoded) => decoded as (U extends undefined ? Encoded : Pick<Encoded, U>)[]
                 )
-            ),
-            annotateDb({
-              operation: "filter",
-              system: "memory",
-              collection: modelName,
-              namespace,
-              entity: modelName
-            })
           ),
+          annotateDb({
+            operation: "filter",
+            system: "memory",
+            collection: modelName,
+            namespace,
+            entity: modelName
+          })
+        ),
       set: (e) =>
-        s
-          .find(e[idKey])
-          .pipe(
-            Effect.flatMap((current) => updateETag(encodeDoc(e), idKey, current.pipe(Option.map(encodeDoc)))),
-            Effect
-              .tap((stored) =>
-                Ref.get(store).pipe(
-                  Effect.map((_) => new Map([..._, [stored[idKey], stored]])),
-                  Effect.flatMap((_) => Ref.set(store, _))
-                )
-              ),
-            Effect.flatMap((stored) => Effect.fromResult(decodeDoc(stored))),
-            withPermit,
-            annotateDb({
-              operation: "set",
-              system: "memory",
-              collection: modelName,
-              namespace,
-              entity: modelName,
-              extra: { "app.entity.id": e[idKey] }
-            })
+        s.find(e[idKey]).pipe(
+          Effect.flatMap((current) => updateETag(encodeDoc(e), idKey, current.pipe(Option.map(encodeDoc)))),
+          Effect.tap((stored) =>
+            Ref.get(store).pipe(
+              Effect.map((_) => new Map([..._, [stored[idKey], stored]])),
+              Effect.flatMap((_) => Ref.set(store, _))
+            )
           ),
+          Effect.flatMap((stored) => Effect.fromResult(decodeDoc(stored))),
+          withPermit,
+          annotateDb({
+            operation: "set",
+            system: "memory",
+            collection: modelName,
+            namespace,
+            entity: modelName,
+            extra: { "app.entity.id": e[idKey] }
+          })
+        ),
       batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
         pipe(
-          Effect
-            .sync(() => items)
+          Effect.sync(() => items)
             // align with CosmosDB
             .pipe(
-              Effect.filterOrFail((_) => _.length <= 100, () => "BatchRemove: a batch may not exceed 100 items"),
+              Effect.filterOrFail(
+                (_) => _.length <= 100,
+                () => "BatchRemove: a batch may not exceed 100 items"
+              ),
               Effect.orDie,
               Effect.andThen(batchRemove),
               annotateDb({
@@ -504,11 +498,13 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         ),
       batchSet: (items: readonly [PM, ...PM[]]) =>
         pipe(
-          Effect
-            .sync(() => items)
+          Effect.sync(() => items)
             // align with CosmosDB
             .pipe(
-              Effect.filterOrFail((_) => _.length <= 100, () => "BatchSet: a batch may not exceed 100 items"),
+              Effect.filterOrFail(
+                (_) => _.length <= 100,
+                () => "BatchSet: a batch may not exceed 100 items"
+              ),
               Effect.orDie,
               Effect.andThen(batchSet),
               annotateDb({
@@ -520,16 +516,16 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               })
             )
         ),
-      bulkSet: flow(
-        batchSet,
-        (_) =>
-          _.pipe(annotateDb({
+      bulkSet: flow(batchSet, (_) =>
+        _.pipe(
+          annotateDb({
             operation: "bulkSet",
             system: "memory",
             collection: modelName,
             namespace,
             entity: modelName
-          }))
+          })
+        )
       )
     }
     return s
@@ -537,7 +533,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
 }
 
 export const makeMemoryStore = () => ({
-  make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+  make: Effect.fnUntraced(function* <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
     modelName: string,
     idKey: IdKey,
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
@@ -566,28 +562,29 @@ export const makeMemoryStore = () => ({
       return sem
     }
     const ensureStore = (namespace: string) =>
-      getSem(namespace).withPermits(1)(Effect.suspend(() => {
-        const store = stores.get(namespace)
-        if (store) return Effect.succeed(store)
-        if (config?.allowNamespace && !config.allowNamespace(namespace)) {
-          throw new Error(`Namespace ${namespace} not allowed!`)
-        }
-        return makeMemoryStoreInt(
-          modelName,
-          idKey,
-          namespace,
-          seed,
-          config?.defaultValues,
-          config?.schema,
-          json,
-          config?.jitM
-        )
-          .pipe(
+      getSem(namespace).withPermits(1)(
+        Effect.suspend(() => {
+          const store = stores.get(namespace)
+          if (store) return Effect.succeed(store)
+          if (config?.allowNamespace && !config.allowNamespace(namespace)) {
+            throw new Error(`Namespace ${namespace} not allowed!`)
+          }
+          return makeMemoryStoreInt(
+            modelName,
+            idKey,
+            namespace,
+            seed,
+            config?.defaultValues,
+            config?.schema,
+            json,
+            config?.jitM
+          ).pipe(
             Effect.orDie,
             Effect.provide(ctx),
             Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
           )
-      }))
+        })
+      )
     const getStore = !config?.allowNamespace
       ? Effect.succeed(primary)
       : storeId.pipe(Effect.flatMap((namespace) => ensureStore(namespace)))

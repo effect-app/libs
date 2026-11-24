@@ -1,4 +1,11 @@
-import { ServiceBusClient, type ServiceBusClientOptions, type ServiceBusMessage, type ServiceBusReceiverOptions, type ServiceBusSenderOptions, type SubscribeOptions } from "@azure/service-bus"
+import {
+  ServiceBusClient,
+  type ServiceBusClientOptions,
+  type ServiceBusMessage,
+  type ServiceBusReceiverOptions,
+  type ServiceBusSenderOptions,
+  type SubscribeOptions
+} from "@azure/service-bus"
 import * as Context from "effect-app/Context"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -43,10 +50,7 @@ export interface ClusterServiceBusReceiver {
 }
 
 export interface ClusterServiceBusClient {
-  readonly createSender: (
-    topicName: string,
-    options?: ServiceBusSenderOptions | undefined
-  ) => ClusterServiceBusSender
+  readonly createSender: (topicName: string, options?: ServiceBusSenderOptions | undefined) => ClusterServiceBusSender
   readonly createReceiver: (
     topicName: string,
     subscriptionName: string,
@@ -55,9 +59,12 @@ export interface ClusterServiceBusClient {
   readonly close: () => Promise<void>
 }
 
-export class ClusterServiceBus extends Context.Service<ClusterServiceBus, {
-  readonly client: ClusterServiceBusClient
-}>()("@effect-app/infra/ClusterServiceBus") {}
+export class ClusterServiceBus extends Context.Service<
+  ClusterServiceBus,
+  {
+    readonly client: ClusterServiceBusClient
+  }
+>()("@effect-app/infra/ClusterServiceBus") {}
 
 export interface TopicOptions {
   readonly topicName: string
@@ -99,12 +106,8 @@ export const makeRunners: (
 ) => Effect.Effect<
   Runners.Runners["Service"],
   never,
-  | ClusterServiceBus
-  | MessageStorage.MessageStorage
-  | ShardingConfig.ShardingConfig
-  | Snowflake.Generator
-  | Scope.Scope
-> = Effect.fnUntraced(function*(options) {
+  ClusterServiceBus | MessageStorage.MessageStorage | ShardingConfig.ShardingConfig | Snowflake.Generator | Scope.Scope
+> = Effect.fnUntraced(function* (options) {
   const serviceBus = yield* ClusterServiceBus
   const scope = yield* Effect.scope
   const sender = serviceBus.client.createSender(options.topicName, options.senderOptions)
@@ -112,14 +115,10 @@ export const makeRunners: (
   yield* Scope.addFinalizer(scope, Effect.promise(() => sender.close()).pipe(Effect.ignore))
 
   const publish = <R extends Rpc.Any>(message: Message.Outgoing<R>) =>
-    Effect
-      .tryPromise({
-        try: () => sender.sendMessages(storageNotification(message)),
-        catch: (cause) => new ServiceBusPublishError({ cause })
-      })
-      .pipe(
-        Effect.catch((cause) => Effect.logDebug("Could not publish cluster storage notification", cause))
-      )
+    Effect.tryPromise({
+      try: () => sender.sendMessages(storageNotification(message)),
+      catch: (cause) => new ServiceBusPublishError({ cause })
+    }).pipe(Effect.catch((cause) => Effect.logDebug("Could not publish cluster storage notification", cause)))
 
   return yield* Runners.make({
     codecFor: Schema.toCodecJson,
@@ -141,26 +140,19 @@ export const layerRunners = (
   Runners.Runners,
   never,
   ClusterServiceBus | MessageStorage.MessageStorage | ShardingConfig.ShardingConfig
-> =>
-  Layer.effect(Runners.Runners, makeRunners(options)).pipe(
-    Layer.provide(Snowflake.layerGenerator)
-  )
+> => Layer.effect(Runners.Runners, makeRunners(options)).pipe(Layer.provide(Snowflake.layerGenerator))
 
 export const makeStoragePoller: (
   options: SubscriptionOptions
 ) => Effect.Effect<void, never, ClusterServiceBus | Sharding.Sharding | Scope.Scope> = Effect.fnUntraced(
-  function*(options) {
+  function* (options) {
     const serviceBus = yield* ClusterServiceBus
     const sharding = yield* Sharding.Sharding
     const scope = yield* Effect.scope
-    const receiver = serviceBus.client.createReceiver(
-      options.topicName,
-      options.subscriptionName,
-      {
-        receiveMode: "receiveAndDelete",
-        ...options.receiverOptions
-      }
-    )
+    const receiver = serviceBus.client.createReceiver(options.topicName, options.subscriptionName, {
+      receiveMode: "receiveAndDelete",
+      ...options.receiverOptions
+    })
     const subscription = receiver.subscribe(
       {
         processMessage: () =>
@@ -208,15 +200,8 @@ export const layer = (
   | RunnerStorage.RunnerStorage
   | ShardingConfig.ShardingConfig
 > => {
-  const sharding = Sharding.layer.pipe(
-    Layer.provideMerge(layerRunners(options))
-  )
-  return Layer.merge(
-    sharding,
-    layerStoragePoller(options).pipe(
-      Layer.provide(sharding)
-    )
-  )
+  const sharding = Sharding.layer.pipe(Layer.provideMerge(layerRunners(options)))
+  return Layer.merge(sharding, layerStoragePoller(options).pipe(Layer.provide(sharding)))
 }
 
 const storageNotification = <R extends Rpc.Any>(message: Message.Outgoing<R>): ServiceBusMessage => {

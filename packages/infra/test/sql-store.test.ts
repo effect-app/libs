@@ -8,7 +8,7 @@ import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/q
 import { makeETag, makeJsonLower } from "../src/Store/utils.js"
 
 const query = (db: Sqlite.Database, sql: string, params: unknown[] = []) =>
-  db.prepare(sql).all(...params as any[]) as any[]
+  db.prepare(sql).all(...(params as any[])) as any[]
 
 // --- Query builder unit tests ---
 
@@ -45,9 +45,9 @@ describe("SQL query builder (SQLite dialect)", () => {
     }
     const day = new Day("2024-06-01")
     const json = {
-      toJson: (v: unknown) => v instanceof Day ? v.ymd : v,
+      toJson: (v: unknown) => (v instanceof Day ? v.ymd : v),
       jsonifyFilter: (filter: readonly { t: string; path?: string; op?: string; value?: unknown }[]) =>
-        filter.map((r) => r.t === "where" ? { ...r, value: r.value instanceof Day ? r.value.ymd : r.value } : r)
+        filter.map((r) => (r.t === "where" ? { ...r, value: r.value instanceof Day ? r.value.ymd : r.value } : r))
     }
     const result = buildWhereSQLQuery(
       sqliteDialect,
@@ -182,18 +182,18 @@ describe("SQL query builder (SQLite dialect)", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
       "id",
-      [{
-        t: "where",
-        path: "dates",
-        op: "includes-any",
-        value: [new Date("2024-01-01T00:00:00.000Z"), new Date("2024-06-01T00:00:00.000Z")]
-      }],
+      [
+        {
+          t: "where",
+          path: "dates",
+          op: "includes-any",
+          value: [new Date("2024-01-01T00:00:00.000Z"), new Date("2024-06-01T00:00:00.000Z")]
+        }
+      ],
       "users",
       {}
     )
-    expect(result.params).toEqual(
-      expect.arrayContaining(["2024-01-01T00:00:00.000Z", "2024-06-01T00:00:00.000Z"])
-    )
+    expect(result.params).toEqual(expect.arrayContaining(["2024-01-01T00:00:00.000Z", "2024-06-01T00:00:00.000Z"]))
   })
 
   it("where eq number", () => {
@@ -402,91 +402,66 @@ describe("SQL query builder (SQLite dialect)", () => {
   })
 
   it("computed relation count projection", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "pickedCount",
         computed: {
           _tag: "relation-count",
           path: "items",
           filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`SELECT COUNT(1) FROM json_each(data, '$.items') AS _items`)
     expect(result.sql).toContain(`AS "pickedCount"`)
     expect(result.params).toContain("%picked%")
   })
 
   it("computed relation any projection (sqlite bool encoding)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "hasPicked",
         computed: {
           _tag: "relation-any",
           path: "items",
           filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain("CASE WHEN EXISTS(")
     expect(result.sql).toContain(`AS "hasPicked"`)
   })
 
   it("computed relation every projection (sqlite emits NOT EXISTS NOT)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "allPicked",
         computed: {
           _tag: "relation-every",
           path: "items",
           filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`NOT EXISTS(SELECT 1 FROM json_each(data, '$.items') AS _items WHERE NOT (`)
     expect(result.sql).toContain(`AS "allPicked"`)
     expect(result.params).toContain("picked")
   })
 
   it("computed relation-every with no filter degenerates to true", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "allPicked",
         computed: { _tag: "relation-every", path: "items", filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain("CASE WHEN 1=1")
     expect(result.sql).toContain(`AS "allPicked"`)
   })
 
   it("computed relation-distinct-count projection (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "positionCount",
         computed: {
           _tag: "relation-distinct-count",
@@ -494,37 +469,27 @@ describe("SQL query builder (SQLite dialect)", () => {
           field: "rowId",
           filter: [{ t: "where", path: "items.-1.state._tag", op: "neq", value: "cancelled" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`SELECT COUNT(DISTINCT json_extract(_items.value, '$.rowId'))`)
     expect(result.sql).toContain(`AS "positionCount"`)
     expect(result.params).toContain("cancelled")
   })
 
   it("computed relation-sum projection (sqlite casts to REAL)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "totalWeight",
         computed: { _tag: "relation-sum", path: "items", field: "weight", filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`SELECT COALESCE(SUM(CAST(json_extract(_items.value, '$.weight') AS REAL)), 0)`)
     expect(result.sql).toContain(`AS "totalWeight"`)
   })
 
   it("computed relation-sum-expr projection (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "totalWeighted",
         computed: {
           _tag: "relation-sum-expr",
@@ -536,8 +501,8 @@ describe("SQL query builder (SQLite dialect)", () => {
           },
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(
       `COALESCE(SUM((CAST(json_extract(_items.value, '$.weight') AS REAL) * CAST(json_extract(_items.value, '$.tradeUnit.amount') AS REAL))), 0)`
     )
@@ -545,13 +510,8 @@ describe("SQL query builder (SQLite dialect)", () => {
   })
 
   it("computed relation-sum-expr-by projection (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "totalsByUnit",
         computed: {
           _tag: "relation-sum-expr-by",
@@ -564,21 +524,16 @@ describe("SQL query builder (SQLite dialect)", () => {
           unit: "tradeUnit.unit",
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`json_group_array(json_object('unit', __unit, 'total', __total))`)
     expect(result.sql).toContain(`GROUP BY json_extract(_items.value, '$.tradeUnit.unit')`)
     expect(result.sql).toContain(`AS "totalsByUnit"`)
   })
 
   it("computed relation-sum-expr-normalized projection (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "totalKg",
         computed: {
           _tag: "relation-sum-expr-normalized",
@@ -593,8 +548,8 @@ describe("SQL query builder (SQLite dialect)", () => {
           factors: { g: 0.001 },
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(
       `CASE json_extract(_items.value, '$.tradeUnit.unit') WHEN 'kg' THEN 1 WHEN 'g' THEN 0.001 ELSE NULL END`
     )
@@ -602,17 +557,12 @@ describe("SQL query builder (SQLite dialect)", () => {
   })
 
   it("computed relation-collect (non-distinct) projection (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "tags",
         computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: false, filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(
       `SELECT COALESCE(json_group_array(json_extract(_items.value, '$.articleId')), json_array())`
     )
@@ -620,17 +570,12 @@ describe("SQL query builder (SQLite dialect)", () => {
   })
 
   it("computed relation-collect (distinct) emits inner DISTINCT subquery (sqlite)", () => {
-    const result = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(sqliteDialect, "id", [], "users", {}, [
+      {
         key: "tags",
         computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: true, filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`json_group_array(__v)`)
     expect(result.sql).toContain(`SELECT DISTINCT json_extract(_items.value, '$.articleId') AS __v`)
     expect(result.sql).toContain(`AS "tags"`)
@@ -700,85 +645,60 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
   })
 
   it("computed relation any projection", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "hasPicked",
         computed: {
           _tag: "relation-any",
           path: "items",
           filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain("EXISTS(SELECT 1 FROM jsonb_array_elements(data->'items') AS _items")
     expect(result.sql).toContain(`AS "hasPicked"`)
   })
 
   it("computed relation-every (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "allPicked",
         computed: {
           _tag: "relation-every",
           path: "items",
           filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`NOT EXISTS(SELECT 1 FROM jsonb_array_elements(data->'items') AS _items WHERE NOT (`)
     expect(result.sql).toContain(`AS "allPicked"`)
   })
 
   it("computed relation-distinct-count (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "positions",
         computed: { _tag: "relation-distinct-count", path: "items", field: "rowId", filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`COUNT(DISTINCT _items->>'rowId')`)
     expect(result.sql).toContain(`AS "positions"`)
   })
 
   it("computed relation-sum (pg casts via ::numeric)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "totalWeight",
         computed: { _tag: "relation-sum", path: "items", field: "weight", filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`COALESCE(SUM((_items->>'weight')::numeric), 0)`)
     expect(result.sql).toContain(`AS "totalWeight"`)
   })
 
   it("computed relation-sum-expr (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "totalWeighted",
         computed: {
           _tag: "relation-sum-expr",
@@ -790,8 +710,8 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
           },
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(
       `COALESCE(SUM(((_items->>'weight')::numeric * (_items->'tradeUnit'->>'amount')::numeric)), 0)`
     )
@@ -799,13 +719,8 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
   })
 
   it("computed relation-sum-expr-by (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "totalsByUnit",
         computed: {
           _tag: "relation-sum-expr-by",
@@ -818,21 +733,16 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
           unit: "tradeUnit.unit",
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`jsonb_agg(jsonb_build_object('unit', __unit, 'total', __total))`)
     expect(result.sql).toContain(`GROUP BY _items->'tradeUnit'->>'unit'`)
     expect(result.sql).toContain(`AS "totalsByUnit"`)
   })
 
   it("computed relation-sum-expr-normalized (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "totalKg",
         computed: {
           _tag: "relation-sum-expr-normalized",
@@ -847,40 +757,30 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
           factors: { g: 0.001 },
           filter: []
         }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`CASE _items->'tradeUnit'->>'unit' WHEN 'kg' THEN 1 WHEN 'g' THEN 0.001 ELSE NULL END`)
     expect(result.sql).toContain(`AS "totalKg"`)
   })
 
   it("computed relation-collect (pg jsonb_agg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "ids",
         computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: false, filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`COALESCE(jsonb_agg(_items->>'articleId'), '[]'::jsonb)`)
     expect(result.sql).toContain(`AS "ids"`)
   })
 
   it("computed relation-collect distinct (pg jsonb_agg DISTINCT)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [],
-      "users",
-      {},
-      [{
+    const result = buildWhereSQLQuery(pgDialect, "id", [], "users", {}, [
+      {
         key: "ids",
         computed: { _tag: "relation-collect", path: "items", field: "articleId", distinct: true, filter: [] }
-      }]
-    )
+      }
+    ])
     expect(result.sql).toContain(`COALESCE(jsonb_agg(DISTINCT _items->>'articleId'), '[]'::jsonb)`)
   })
 })
@@ -900,12 +800,12 @@ describe("SQL Store (SQLite integration)", () => {
 
   it("creates table and seeds data", () =>
     withDb((db) => {
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS "test_items" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
+      db.exec(`CREATE TABLE IF NOT EXISTS "test_items" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "test_items" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "etag1",
+        JSON.stringify({ name: "Alice", age: 30 })
       )
-      db
-        .prepare(`INSERT INTO "test_items" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "etag1", JSON.stringify({ name: "Alice", age: 30 }))
 
       const rows = db.prepare(`SELECT * FROM "test_items"`).all()
       expect(rows.length).toBe(1)
@@ -914,14 +814,10 @@ describe("SQL Store (SQLite integration)", () => {
 
   it("data column should not contain _etag or id", () =>
     withDb((db) => {
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS "test_clean" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
-      )
+      db.exec(`CREATE TABLE IF NOT EXISTS "test_clean" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
       // Simulate what toRow now produces: data without id or _etag
       const data = { name: "Alice", age: 30, tags: ["admin"] }
-      db
-        .prepare(`INSERT INTO "test_clean" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "etag1", JSON.stringify(data))
+      db.prepare(`INSERT INTO "test_clean" (id, _etag, data) VALUES (?, ?, ?)`).run("1", "etag1", JSON.stringify(data))
 
       const row = db.prepare(`SELECT * FROM "test_clean" WHERE id = ?`).get("1") as any
       const parsed = JSON.parse(row.data) as any
@@ -937,17 +833,19 @@ describe("SQL Store (SQLite integration)", () => {
 
   it("backward compat: rows with id/_etag in data still work with queries", () =>
     withDb((db) => {
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS "test_compat" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
-      )
+      db.exec(`CREATE TABLE IF NOT EXISTS "test_compat" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
       // Old format: id and _etag inside data
-      db
-        .prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "etag1", JSON.stringify({ id: "1", _etag: "old_etag", name: "Alice", age: 30 }))
+      db.prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "etag1",
+        JSON.stringify({ id: "1", _etag: "old_etag", name: "Alice", age: 30 })
+      )
       // New format: id and _etag stripped from data
-      db
-        .prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "etag2", JSON.stringify({ name: "Bob", age: 25 }))
+      db.prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "etag2",
+        JSON.stringify({ name: "Bob", age: 25 })
+      )
 
       // Both should be queryable by name
       const q1 = buildWhereSQLQuery(
@@ -985,17 +883,13 @@ describe("SQL Store (SQLite integration)", () => {
 
   it("queries work when data does not contain id", () =>
     withDb((db) => {
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS "test_noid" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
-      )
+      db.exec(`CREATE TABLE IF NOT EXISTS "test_noid" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
       const people = [
         { name: "Alice", age: 30 },
         { name: "Bob", age: 25 },
         { name: "Charlie", age: 35 }
       ]
-      const insert = db.prepare(
-        `INSERT INTO "test_noid" (id, _etag, data) VALUES (?, ?, ?)`
-      )
+      const insert = db.prepare(`INSERT INTO "test_noid" (id, _etag, data) VALUES (?, ?, ?)`)
       people.forEach((p, i) => insert.run(String(i + 1), `etag_${i + 1}`, JSON.stringify(p)))
 
       // Filter by field in data
@@ -1040,9 +934,7 @@ describe("SQL Store (SQLite integration)", () => {
 
   it("query builder generates valid SQL for SQLite", () =>
     withDb((db) => {
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS "test_people" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
-      )
+      db.exec(`CREATE TABLE IF NOT EXISTS "test_people" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
 
       const people = [
         { id: "1", name: "Alice", age: 30, tags: ["admin", "user"] },
@@ -1051,9 +943,7 @@ describe("SQL Store (SQLite integration)", () => {
         { id: "4", name: "Diana", age: 28, tags: ["user", "editor"] }
       ]
 
-      const insert = db.prepare(
-        `INSERT INTO "test_people" (id, _etag, data) VALUES (?, ?, ?)`
-      )
+      const insert = db.prepare(`INSERT INTO "test_people" (id, _etag, data) VALUES (?, ?, ?)`)
       for (const p of people) {
         const { id, ...data } = p
         insert.run(id, `etag_${id}`, JSON.stringify(data))
@@ -1201,9 +1091,7 @@ describe("SQL Store (SQLite integration)", () => {
         },
         {
           id: "o2",
-          items: [
-            { rowId: "r9", articleId: "Z", weight: 10, state: { _tag: "packed" } }
-          ]
+          items: [{ rowId: "r9", articleId: "Z", weight: 10, state: { _tag: "packed" } }]
         }
       ]
       const insert = db.prepare(`INSERT INTO "test_orders" (id, _etag, data) VALUES (?, ?, ?)`)
@@ -1269,28 +1157,20 @@ describe("SQL Store (SQLite integration)", () => {
         "1",
         "e",
         JSON.stringify({
-          items: [
-            { state: { _tag: "picked" } },
-            { state: { _tag: "picked" } }
-          ]
+          items: [{ state: { _tag: "picked" } }, { state: { _tag: "picked" } }]
         })
       )
 
-      const q = buildWhereSQLQuery(
-        sqliteDialect,
-        "id",
-        [],
-        "test_every",
-        {},
-        [{
+      const q = buildWhereSQLQuery(sqliteDialect, "id", [], "test_every", {}, [
+        {
           key: "allPicked",
           computed: {
             _tag: "relation-every",
             path: "items",
             filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "picked" }]
           }
-        }]
-      )
+        }
+      ])
       const rows = query(db, q.sql, q.params) as Array<Record<string, unknown>>
       expect(JSON.parse(rows[0]!["allPicked"] as string)).toBe(true)
     }))
@@ -1300,9 +1180,7 @@ describe("SQL Store (SQLite integration)", () => {
       db.exec(
         `CREATE TABLE IF NOT EXISTS "test_ns" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSON NOT NULL, PRIMARY KEY (id, _namespace))`
       )
-      const insert = db.prepare(
-        `INSERT INTO "test_ns" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`
-      )
+      const insert = db.prepare(`INSERT INTO "test_ns" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`)
       insert.run("1", "primary", "e1", JSON.stringify({ name: "Alice", role: "admin" }))
       insert.run("2", "primary", "e2", JSON.stringify({ name: "Bob", role: "user" }))
       insert.run("3", "other", "e3", JSON.stringify({ name: "Charlie", role: "admin" }))
@@ -1477,13 +1355,7 @@ describe("boolean WHERE clauses — query builder", () => {
   })
 
   it("sqlite: neq/in also serialize booleans", () => {
-    const r1 = buildWhereSQLQuery(
-      sqliteDialect,
-      "id",
-      [{ t: "where", path: "flag", op: "neq", value: true }],
-      "t",
-      {}
-    )
+    const r1 = buildWhereSQLQuery(sqliteDialect, "id", [{ t: "where", path: "flag", op: "neq", value: true }], "t", {})
     expect(r1.params).toEqual([1])
 
     const r2 = buildWhereSQLQuery(
@@ -1497,25 +1369,13 @@ describe("boolean WHERE clauses — query builder", () => {
   })
 
   it("pg: eq true serializes bool → 'true' text (matches ->> output)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [{ t: "where", path: "flag", op: "eq", value: true }],
-      "t",
-      {}
-    )
+    const result = buildWhereSQLQuery(pgDialect, "id", [{ t: "where", path: "flag", op: "eq", value: true }], "t", {})
     expect(result.sql).toContain("data->>'flag' = $1")
     expect(result.params).toEqual(["true"])
   })
 
   it("pg: eq false serializes bool → 'false' text", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [{ t: "where", path: "flag", op: "eq", value: false }],
-      "t",
-      {}
-    )
+    const result = buildWhereSQLQuery(pgDialect, "id", [{ t: "where", path: "flag", op: "eq", value: false }], "t", {})
     expect(result.params).toEqual(["false"])
   })
 
@@ -1542,13 +1402,7 @@ describe("boolean WHERE clauses — query builder", () => {
   })
 
   it("non-boolean scalars pass through unchanged (pg)", () => {
-    const result = buildWhereSQLQuery(
-      pgDialect,
-      "id",
-      [{ t: "where", path: "age", op: "gt", value: 18 }],
-      "t",
-      {}
-    )
+    const result = buildWhereSQLQuery(pgDialect, "id", [{ t: "where", path: "age", op: "gt", value: 18 }], "t", {})
     expect(result.params).toEqual([18])
   })
 })
@@ -1566,20 +1420,18 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
   it("where flag = true matches only true rows", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
-
-      const q = buildWhereSQLQuery(
-        sqliteDialect,
-        "id",
-        [{ t: "where", path: "flag", op: "eq", value: true }],
-        "t",
-        {}
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({ flag: true, name: "Alice" })
       )
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "e",
+        JSON.stringify({ flag: false, name: "Bob" })
+      )
+
+      const q = buildWhereSQLQuery(sqliteDialect, "id", [{ t: "where", path: "flag", op: "eq", value: true }], "t", {})
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
       expect((JSON.parse(rows[0].data) as any).name).toBe("Alice")
@@ -1588,20 +1440,18 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
   it("where flag = false matches only false rows", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
-
-      const q = buildWhereSQLQuery(
-        sqliteDialect,
-        "id",
-        [{ t: "where", path: "flag", op: "eq", value: false }],
-        "t",
-        {}
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({ flag: true, name: "Alice" })
       )
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "e",
+        JSON.stringify({ flag: false, name: "Bob" })
+      )
+
+      const q = buildWhereSQLQuery(sqliteDialect, "id", [{ t: "where", path: "flag", op: "eq", value: false }], "t", {})
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
       expect((JSON.parse(rows[0].data) as any).name).toBe("Bob")
@@ -1610,12 +1460,16 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
   it("where nested boolean path works", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "e", JSON.stringify({ meta: { active: true }, name: "Alice" }))
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "e", JSON.stringify({ meta: { active: false }, name: "Bob" }))
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({ meta: { active: true }, name: "Alice" })
+      )
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "e",
+        JSON.stringify({ meta: { active: false }, name: "Bob" })
+      )
 
       const q = buildWhereSQLQuery(
         sqliteDialect,
@@ -1632,12 +1486,21 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
   it("where hasKey / hasValue / hasKeyValue match Map tuple JSON", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "e", JSON.stringify({ meta: [["n", 1], ["x", 2]] }))
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "e", JSON.stringify({ meta: [["n", 9]] }))
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({
+          meta: [
+            ["n", 1],
+            ["x", 2]
+          ]
+        })
+      )
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "e",
+        JSON.stringify({ meta: [["n", 9]] })
+      )
 
       const byKey = buildWhereSQLQuery(
         sqliteDialect,
@@ -1670,20 +1533,18 @@ describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
   it("where neq boolean works", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
-      db
-        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
-        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
-
-      const q = buildWhereSQLQuery(
-        sqliteDialect,
-        "id",
-        [{ t: "where", path: "flag", op: "neq", value: true }],
-        "t",
-        {}
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "1",
+        "e",
+        JSON.stringify({ flag: true, name: "Alice" })
       )
+      db.prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`).run(
+        "2",
+        "e",
+        JSON.stringify({ flag: false, name: "Bob" })
+      )
+
+      const q = buildWhereSQLQuery(sqliteDialect, "id", [{ t: "where", path: "flag", op: "neq", value: true }], "t", {})
       const rows = query(db, q.sql, q.params)
       expect(rows.length).toBe(1)
       expect((JSON.parse(rows[0].data) as any).name).toBe("Bob")
@@ -1735,13 +1596,9 @@ describe("sqliteDialect.jsonExtractJson boolean round-trip", () => {
   it("nested boolean round-trips correctly", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
-      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
-        JSON.stringify({ nested: { flag: false } })
-      )
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ nested: { flag: false } }))
 
-      const row = db
-        .prepare(`SELECT ${sqliteDialect.jsonExtractJson("nested.flag")} AS v FROM "t"`)
-        .get() as any
+      const row = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("nested.flag")} AS v FROM "t"`).get() as any
       const parsed = JSON.parse(row.v)
       expect(parsed).toBe(false)
       expect(typeof parsed).toBe("boolean")
@@ -1763,9 +1620,7 @@ describe("sqliteDialect.jsonExtractJson boolean round-trip", () => {
   it("strings, arrays, and null still round-trip correctly", () =>
     withDb((db) => {
       db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
-      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
-        JSON.stringify({ s: "hello", arr: [1, 2, 3], nil: null })
-      )
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ s: "hello", arr: [1, 2, 3], nil: null }))
 
       const sRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("s")} AS v FROM "t"`).get() as any
       const aRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("arr")} AS v FROM "t"`).get() as any
@@ -1848,11 +1703,7 @@ describe("parseRow reconstructs full object from row", () => {
   })
 
   it("re-injects custom idKey from row column", () => {
-    const result: any = parseRow(
-      { id: "abc", _etag: "etag2", data: JSON.stringify({ name: "Bob" }) },
-      "myId",
-      {}
-    )
+    const result: any = parseRow({ id: "abc", _etag: "etag2", data: JSON.stringify({ name: "Bob" }) }, "myId", {})
     expect(result.myId).toBe("abc")
     expect(result.name).toBe("Bob")
     expect(result._etag).toBe("etag2")
@@ -1877,11 +1728,10 @@ describe("parseRow reconstructs full object from row", () => {
   })
 
   it("applies defaultValues for missing fields", () => {
-    const result: any = parseRow(
-      { id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) },
-      "id",
-      { status: "active", role: "user" }
-    )
+    const result: any = parseRow({ id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) }, "id", {
+      status: "active",
+      role: "user"
+    })
     expect(result.name).toBe("Alice")
     expect(result.status).toBe("active")
     expect(result.role).toBe("user")
@@ -1897,11 +1747,7 @@ describe("parseRow reconstructs full object from row", () => {
   })
 
   it("handles null _etag from row", () => {
-    const result: any = parseRow(
-      { id: "1", _etag: null, data: JSON.stringify({ name: "Alice" }) },
-      "id",
-      {}
-    )
+    const result: any = parseRow({ id: "1", _etag: null, data: JSON.stringify({ name: "Alice" }) }, "id", {})
     expect(result._etag).toBeUndefined()
   })
 
@@ -1920,11 +1766,9 @@ describe("parseRow reconstructs full object from row", () => {
   })
 
   it("lowers Date defaultValues to ISO before merge", () => {
-    const result: any = parseRow(
-      { id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) },
-      "id",
-      { at: new Date("2024-06-01T00:00:00.000Z") }
-    )
+    const result: any = parseRow({ id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) }, "id", {
+      at: new Date("2024-06-01T00:00:00.000Z")
+    })
     expect(result.at).toBe("2024-06-01T00:00:00.000Z")
     expect(result.name).toBe("Alice")
   })

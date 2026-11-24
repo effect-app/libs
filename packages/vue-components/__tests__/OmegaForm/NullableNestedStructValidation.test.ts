@@ -22,14 +22,14 @@ import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 describe("Nullable nested struct validation", () => {
   const schema = S.Struct({
     optionId: S.NullOr(S.String),
-    override: S
-      .NullOr(S.Struct({
+    override: S.NullOr(
+      S.Struct({
         min: S.NullOr(S.NonNegativeNumber),
         max: S.NullOr(S.NonNegativeNumber),
         readOnly: S.NullOr(S.Boolean).withConstructorDefault,
         isInteger: S.optional(S.NullOr(S.Boolean))
-      }))
-      .withConstructorDefault
+      })
+    ).withConstructorDefault
   })
 
   it("submits when only one child of a nullable struct is filled", async () => {
@@ -73,7 +73,7 @@ describe("Nullable nested struct validation", () => {
       setup() {
         const form = useOmegaForm(schema, {
           onSubmit: async ({ value }) => {
-            submittedValue = value as Record<string, unknown>
+            submittedValue = value
           }
         })
         return { form }
@@ -82,23 +82,23 @@ describe("Nullable nested struct validation", () => {
 
     // The whole struct starts null.
     await vi.waitFor(() => {
-      expect(wrapper.find("[data-testid=\"values\"]").text()).toContain("\"override\":null")
+      expect(wrapper.find('[data-testid="values"]').text()).toContain('"override":null')
     })
 
     // User fills only `override.min`.
-    await wrapper.find("[data-testid=\"min-input\"]").setValue("100")
+    await wrapper.find('[data-testid="min-input"]').setValue("100")
 
     // The struct materialised: its untouched nullable siblings are backfilled
     // into the live form state, not left `undefined`.
     await vi.waitFor(() => {
-      const valuesText = wrapper.find("[data-testid=\"values\"]").text()
-      expect(valuesText).toContain("\"min\":100")
-      expect(valuesText).toContain("\"max\":null")
-      expect(valuesText).toContain("\"readOnly\":null")
+      const valuesText = wrapper.find('[data-testid="values"]').text()
+      expect(valuesText).toContain('"min":100')
+      expect(valuesText).toContain('"max":null')
+      expect(valuesText).toContain('"readOnly":null')
     })
 
     // Submit.
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
 
     // The untouched nullable siblings must NOT block submission; they decode as null.
     await vi.waitFor(() => {
@@ -129,14 +129,14 @@ describe("Nullable nested struct validation", () => {
       setup() {
         const form = useOmegaForm(schema, {
           onSubmit: async ({ value }) => {
-            submittedValue = value as Record<string, unknown>
+            submittedValue = value
           }
         })
         return { form }
       }
     })
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
 
     await vi.waitFor(() => {
       expect(submittedValue).not.toBeNull()

@@ -26,15 +26,7 @@ export const isAgentPrShipAllowed = (env = process.env) => truthy(env["AGENT_PR_
  */
 export const stripGhGlobalFlags = (argv) => {
   const args = [...argv]
-  const skipValue = new Set([
-    "-R",
-    "--repo",
-    "-h",
-    "--hostname",
-    "-p",
-    "--path",
-    "--config-dir"
-  ])
+  const skipValue = new Set(["-R", "--repo", "-h", "--hostname", "-p", "--path", "--config-dir"])
   while (args.length > 0) {
     const a = args[0]
     if (a === "--") {
@@ -111,9 +103,7 @@ export const findRealGh = (opts = {}) => {
     return env["AGENT_GH_REAL"]
   }
 
-  const selfPath = opts.selfPath
-    ? path.resolve(opts.selfPath)
-    : fileURLToPath(import.meta.url)
+  const selfPath = opts.selfPath ? path.resolve(opts.selfPath) : fileURLToPath(import.meta.url)
 
   const pathEnv = env["PATH"] ?? ""
   for (const dir of pathEnv.split(path.delimiter).filter(Boolean)) {

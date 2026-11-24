@@ -44,16 +44,10 @@ export function isTypeScriptSource(filePath: string): boolean {
 }
 
 export function shouldStripJsExtensions(options: BlockOptions, filePath: string): boolean {
-  return options.preset === "barrel"
-    && options["jsExtensions"] === false
-    && isTypeScriptSource(filePath)
+  return options.preset === "barrel" && options["jsExtensions"] === false && isTypeScriptSource(filePath)
 }
 
-export function normaliseGeneratedContent(
-  options: BlockOptions,
-  filePath: string,
-  content: string
-): string {
+export function normaliseGeneratedContent(options: BlockOptions, filePath: string, content: string): string {
   if (!shouldStripJsExtensions(options, filePath)) {
     return content
   }
@@ -66,7 +60,7 @@ export function indentBlock(content: string, indent: string): string {
   }
   return content
     .split("\n")
-    .map((line) => line.length === 0 ? line : `${indent}${line}`)
+    .map((line) => (line.length === 0 ? line : `${indent}${line}`))
     .join("\n")
 }
 

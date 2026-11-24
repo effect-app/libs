@@ -1,4 +1,4 @@
-const dprint = "dprint fmt --config dprint.jsonc"
+const oxfmt = "oxfmt --config .oxfmtrc.json --no-error-on-unmatched-pattern --write"
 
 /**
  * Staged files are linted as well as formatted, so a lint error is caught at the
@@ -21,9 +21,6 @@ const dprint = "dprint fmt --config dprint.jsonc"
  * @type {import('lint-staged').Configuration}
  */
 export default {
-  "*.{ts,tsx,mts,cts}": [
-    "effect-tsgo oxlint --quiet --fix --no-error-on-unmatched-pattern",
-    dprint
-  ],
-  "*.{js,jsx,mjs,cjs,json,jsonc,md,toml,css,scss,sass,less,html,yml,yaml}": dprint
+  "*.{ts,tsx,mts,cts}": ["effect-tsgo oxlint --quiet --fix --no-error-on-unmatched-pattern", oxfmt],
+  "*.{js,jsx,mjs,cjs,json,jsonc,md,toml,css,scss,sass,less,html,yml,yaml,vue}": oxfmt
 }

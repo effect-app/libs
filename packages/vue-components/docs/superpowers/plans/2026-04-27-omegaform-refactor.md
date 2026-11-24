@@ -98,13 +98,8 @@ describe("Meta story characterization", () => {
 
     for (const [key, value] of Object.entries(expectedSubMeta)) {
       expect(meta[key as keyof typeof meta], `root.${key}`).toMatchObject(value)
-      expect(meta[`struct.${key}` as keyof typeof meta], `struct.${key}`)
-        .toMatchObject(value)
-      expect(
-        meta[`nullableStruct.${key}` as keyof typeof meta],
-        `nullableStruct.${key}`
-      )
-        .toMatchObject(value)
+      expect(meta[`struct.${key}` as keyof typeof meta], `struct.${key}`).toMatchObject(value)
+      expect(meta[`nullableStruct.${key}` as keyof typeof meta], `nullableStruct.${key}`).toMatchObject(value)
     }
   })
 })
@@ -148,9 +143,7 @@ describe("defaultsValueFromSchema", () => {
 
   it("extracts withDecodingDefault on optionalKey", () => {
     const schema = S.Struct({
-      flag: S.optionalKey(S.String).pipe(
-        S.withDecodingDefault(Effect.succeed("on"))
-      )
+      flag: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("on")))
     })
     expect(defaultsValueFromSchema(schema)).toEqual({ flag: "on" })
   })
@@ -285,7 +278,11 @@ git commit -m "test(omegaform): characterize toFormSchema for nullable/undefined
 // __tests__/OmegaForm/ValidationLocalization.test.ts
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm/OmegaFormStuff"
+import {
+  generateMetaFromSchema,
+  makeStandardSchemaV1Hooks,
+  toLocalizedStandardSchemaV1
+} from "../../src/components/OmegaForm/OmegaFormStuff"
 
 const trans = (id: string, values?: Record<string, unknown>) => {
   if (!values || Object.keys(values).length === 0) return id
@@ -300,8 +297,7 @@ describe("makeStandardSchemaV1Hooks — leaf hook", () => {
   })
 
   it("translates InvalidType for string", () => {
-    expect(leafHook({ _tag: "InvalidType", ast: S.String.ast } as any))
-      .toBe("validation.empty")
+    expect(leafHook({ _tag: "InvalidType", ast: S.String.ast } as any)).toBe("validation.empty")
   })
 
   it("translates InvalidType for number", () => {
@@ -311,115 +307,81 @@ describe("makeStandardSchemaV1Hooks — leaf hook", () => {
         ast: S.Finite.ast,
         actual: { _tag: "Some", value: NaN }
       } as any)
-    )
-      .toBe(
-        `validation.number.expected|${JSON.stringify({ actualValue: "NaN" })}`
-      )
+    ).toBe(`validation.number.expected|${JSON.stringify({ actualValue: "NaN" })}`)
   })
 
   it("translates InvalidType for boolean", () => {
-    expect(leafHook({ _tag: "InvalidType", ast: S.Boolean.ast } as any))
-      .toBe(`validation.not_a_valid|${JSON.stringify({ type: "boolean" })}`)
+    expect(leafHook({ _tag: "InvalidType", ast: S.Boolean.ast } as any)).toBe(
+      `validation.not_a_valid|${JSON.stringify({ type: "boolean" })}`
+    )
   })
 
   it("falls back for InvalidValue / Forbidden / OneOf", () => {
-    expect(leafHook({ _tag: "InvalidValue" } as any)).toBe(
-      "validation.not_a_valid"
-    )
-    expect(leafHook({ _tag: "Forbidden" } as any)).toBe(
-      "validation.not_a_valid"
-    )
+    expect(leafHook({ _tag: "InvalidValue" } as any)).toBe("validation.not_a_valid")
+    expect(leafHook({ _tag: "Forbidden" } as any)).toBe("validation.not_a_valid")
     expect(leafHook({ _tag: "OneOf" } as any)).toBe("validation.not_a_valid")
   })
 
   it("honors annotation override messages", () => {
-    expect(
-      leafHook(
-        { _tag: "InvalidValue", annotations: { message: "custom" } } as any
-      )
-    )
-      .toBe("custom")
+    expect(leafHook({ _tag: "InvalidValue", annotations: { message: "custom" } } as any)).toBe("custom")
   })
 })
 
 describe("makeStandardSchemaV1Hooks — check hook", () => {
   const { checkHook } = makeStandardSchemaV1Hooks(trans)
 
-  const filterIssue = (
-    meta: Record<string, unknown>
-  ) => ({ _tag: "Filter", filter: { annotations: { meta } } } as any)
+  const filterIssue = (meta: Record<string, unknown>) => ({ _tag: "Filter", filter: { annotations: { meta } } }) as any
 
   it("isMinLength === 1 → validation.empty", () => {
-    expect(checkHook(filterIssue({ _tag: "isMinLength", minLength: 1 })))
-      .toBe("validation.empty")
+    expect(checkHook(filterIssue({ _tag: "isMinLength", minLength: 1 }))).toBe("validation.empty")
   })
 
   it("isMinLength > 1 → validation.string.minLength", () => {
-    expect(checkHook(filterIssue({ _tag: "isMinLength", minLength: 5 })))
-      .toBe(`validation.string.minLength|${JSON.stringify({ minLength: 5 })}`)
+    expect(checkHook(filterIssue({ _tag: "isMinLength", minLength: 5 }))).toBe(
+      `validation.string.minLength|${JSON.stringify({ minLength: 5 })}`
+    )
   })
 
   it("isMaxLength → validation.string.maxLength", () => {
-    expect(checkHook(filterIssue({ _tag: "isMaxLength", maxLength: 10 })))
-      .toBe(`validation.string.maxLength|${JSON.stringify({ maxLength: 10 })}`)
+    expect(checkHook(filterIssue({ _tag: "isMaxLength", maxLength: 10 }))).toBe(
+      `validation.string.maxLength|${JSON.stringify({ maxLength: 10 })}`
+    )
   })
 
   it("isInt → validation.integer.expected", () => {
-    expect(checkHook(filterIssue({ _tag: "isInt" })))
-      .toBe(
-        `validation.integer.expected|${JSON.stringify({ actualValue: "NaN" })}`
-      )
+    expect(checkHook(filterIssue({ _tag: "isInt" }))).toBe(
+      `validation.integer.expected|${JSON.stringify({ actualValue: "NaN" })}`
+    )
   })
 
   it("isGreaterThanOrEqualTo 0 → positive (inclusive)", () => {
-    expect(
-      checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 0 }))
+    expect(checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 0 }))).toBe(
+      `validation.number.positive|${JSON.stringify({ minimum: 0, isExclusive: true })}`
     )
-      .toBe(
-        `validation.number.positive|${
-          JSON.stringify({ minimum: 0, isExclusive: true })
-        }`
-      )
   })
 
   it("isGreaterThanOrEqualTo N → min (inclusive)", () => {
-    expect(
-      checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 3 }))
+    expect(checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 3 }))).toBe(
+      `validation.number.min|${JSON.stringify({ minimum: 3, isExclusive: true })}`
     )
-      .toBe(
-        `validation.number.min|${
-          JSON.stringify({ minimum: 3, isExclusive: true })
-        }`
-      )
   })
 
   it("isGreaterThan 0 → positive (exclusive)", () => {
-    expect(
-      checkHook(filterIssue({ _tag: "isGreaterThan", exclusiveMinimum: 0 }))
+    expect(checkHook(filterIssue({ _tag: "isGreaterThan", exclusiveMinimum: 0 }))).toBe(
+      `validation.number.positive|${JSON.stringify({ minimum: 0, isExclusive: false })}`
     )
-      .toBe(
-        `validation.number.positive|${
-          JSON.stringify({ minimum: 0, isExclusive: false })
-        }`
-      )
   })
 
   it("isLessThanOrEqualTo → max (inclusive)", () => {
-    expect(checkHook(filterIssue({ _tag: "isLessThanOrEqualTo", maximum: 10 })))
-      .toBe(
-        `validation.number.max|${
-          JSON.stringify({ maximum: 10, isExclusive: true })
-        }`
-      )
+    expect(checkHook(filterIssue({ _tag: "isLessThanOrEqualTo", maximum: 10 }))).toBe(
+      `validation.number.max|${JSON.stringify({ maximum: 10, isExclusive: true })}`
+    )
   })
 
   it("isLessThan → max (exclusive)", () => {
-    expect(checkHook(filterIssue({ _tag: "isLessThan", exclusiveMaximum: 10 })))
-      .toBe(
-        `validation.number.max|${
-          JSON.stringify({ maximum: 10, isExclusive: false })
-        }`
-      )
+    expect(checkHook(filterIssue({ _tag: "isLessThan", exclusiveMaximum: 10 }))).toBe(
+      `validation.number.max|${JSON.stringify({ maximum: 10, isExclusive: false })}`
+    )
   })
 })
 
@@ -428,9 +390,7 @@ describe("toLocalizedStandardSchemaV1", () => {
     const schema = S.String.pipe(S.check(S.isMinLength(5)))
     const std = toLocalizedStandardSchemaV1(schema as any, trans)
     const result = await std["~standard"].validate("hi")
-    expect((result as any).issues?.[0]?.message).toBe(
-      `validation.string.minLength|${JSON.stringify({ minLength: 5 })}`
-    )
+    expect((result as any).issues?.[0]?.message).toBe(`validation.string.minLength|${JSON.stringify({ minLength: 5 })}`)
   })
 })
 
@@ -500,10 +460,10 @@ const mountForm = <T>(setupForm: () => T): T => {
 describe("handleSubmitEffect", () => {
   it("succeeds with void on valid input (no checkErrors)", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "ok" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "ok" },
+        onSubmit: async () => undefined
+      })
     )
     const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect()))
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -511,10 +471,10 @@ describe("handleSubmitEffect", () => {
 
   it("succeeds with void even on invalid input without checkErrors", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => undefined
+      })
     )
     const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect()))
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -522,14 +482,12 @@ describe("handleSubmitEffect", () => {
 
   it("fails with FormErrors when checkErrors and validation fails", async () => {
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }),
-        { defaultValues: { x: "" }, onSubmit: async () => undefined }
-      )
+      useOmegaForm(S.Struct({ x: S.String.pipe(S.check(S.isMinLength(2))) }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => undefined
+      })
     )
-    const exit = await Effect.runPromise(
-      Effect.exit(form.handleSubmitEffect({ checkErrors: true }))
-    )
+    const exit = await Effect.runPromise(Effect.exit(form.handleSubmitEffect({ checkErrors: true })))
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const cause = exit.cause
@@ -541,15 +499,12 @@ describe("handleSubmitEffect", () => {
   it("delivers decoded To to onSubmit (not raw From)", async () => {
     let received: unknown
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ n: S.FiniteFromString }),
-        {
-          defaultValues: { n: "42" },
-          onSubmit: async ({ value }) => {
-            received = value
-          }
+      useOmegaForm(S.Struct({ n: S.FiniteFromString }), {
+        defaultValues: { n: "42" },
+        onSubmit: async ({ value }) => {
+          received = value
         }
-      )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(received).toEqual({ n: 42 })
@@ -558,16 +513,13 @@ describe("handleSubmitEffect", () => {
   it("awaits Promise-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: async () => {
-            await new Promise((r) => setTimeout(r, 5))
-            resolved = true
-          }
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: async () => {
+          await new Promise((r) => setTimeout(r, 5))
+          resolved = true
         }
-      )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)
@@ -576,16 +528,13 @@ describe("handleSubmitEffect", () => {
   it("awaits Effect-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: () =>
-            Effect.sync(() => {
-              resolved = true
-            })
-        }
-      )
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: () =>
+          Effect.sync(() => {
+            resolved = true
+          })
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)
@@ -594,18 +543,15 @@ describe("handleSubmitEffect", () => {
   it("awaits Fiber-returning onSubmit", async () => {
     let resolved = false
     const form = mountForm(() =>
-      useOmegaForm(
-        S.Struct({ x: S.String }),
-        {
-          defaultValues: { x: "" },
-          onSubmit: () =>
-            Effect.runFork(
-              Effect.sync(() => {
-                resolved = true
-              })
-            )
-        }
-      )
+      useOmegaForm(S.Struct({ x: S.String }), {
+        defaultValues: { x: "" },
+        onSubmit: () =>
+          Effect.runFork(
+            Effect.sync(() => {
+              resolved = true
+            })
+          )
+      })
     )
     await Effect.runPromise(form.handleSubmitEffect())
     expect(resolved).toBe(true)
@@ -668,9 +614,7 @@ describe("submit error redistribution (current behavior)", () => {
       a: S.String.pipe(S.check(S.isMinLength(2))),
       b: S.String.pipe(S.check(S.isMinLength(2)))
     })
-    const form = mountForm(() =>
-      useOmegaForm(schema, { defaultValues: { a: "", b: "" } })
-    )
+    const form = mountForm(() => useOmegaForm(schema, { defaultValues: { a: "", b: "" } }))
 
     await form.handleSubmit()
     await nextTick()
@@ -731,8 +675,7 @@ describe("deepMerge", () => {
   })
 
   it("recursively merges objects", () => {
-    expect(deepMerge({ a: { b: 1, c: 2 } }, { a: { c: 9, d: 3 } }))
-      .toEqual({ a: { b: 1, c: 9, d: 3 } })
+    expect(deepMerge({ a: { b: 1, c: 2 } }, { a: { c: 9, d: 3 } })).toEqual({ a: { b: 1, c: 9, d: 3 } })
   })
 
   it("source wins for primitives", () => {
@@ -863,9 +806,7 @@ import { defaultsValueFromSchema, generateMetaFromSchema } from "../../src/compo
 
 const schema = S.Union([
   S.TaggedStruct("A", {
-    a: S.NonEmptyString255.pipe(
-      S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))
-    ),
+    a: S.NonEmptyString255.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))),
     common: S.NonEmptyString255
   }),
   S.TaggedStruct("B", {
@@ -974,9 +915,7 @@ afterEach(() => {
 
 describe("legacy _tag deprecation warning", () => {
   it("warns once for the legacy S.Struct({_tag: S.Literal(...)}) pattern", () => {
-    const schema = S.Union([
-      S.Struct({ _tag: S.Literal("Legacy"), x: S.String })
-    ])
+    const schema = S.Union([S.Struct({ _tag: S.Literal("Legacy"), x: S.String })])
     generateMetaFromSchema(schema)
     expect(warnSpy).toHaveBeenCalled()
     const calls = warnSpy.mock.calls.flatMap((args) => args.map(String))
@@ -986,9 +925,7 @@ describe("legacy _tag deprecation warning", () => {
   it("does not warn again for the same tag value (module-level memoization)", () => {
     // Use a unique tag the previous test did not touch. If isolated, this
     // exercises both "first warn" and "second-time no warn" paths.
-    const schema = S.Union([
-      S.Struct({ _tag: S.Literal("LegacyOnce"), x: S.String })
-    ])
+    const schema = S.Union([S.Struct({ _tag: S.Literal("LegacyOnce"), x: S.String })])
     generateMetaFromSchema(schema)
     const firstCalls = warnSpy.mock.calls.length
     generateMetaFromSchema(schema)
@@ -1071,7 +1008,19 @@ import type { Redacted } from "effect/Redacted"
 
 ```ts
 // near the top of OmegaFormStuff.ts, replace the original definitions
-export { type BaseFieldMeta, type BooleanFieldMeta, type DateFieldMeta, type FieldMeta, type MetaRecord, type MultipleFieldMeta, type NestedKeyOf, type NumberFieldMeta, type SelectFieldMeta, type StringFieldMeta, type UnknownFieldMeta } from "./meta/types"
+export {
+  type BaseFieldMeta,
+  type BooleanFieldMeta,
+  type DateFieldMeta,
+  type FieldMeta,
+  type MetaRecord,
+  type MultipleFieldMeta,
+  type NestedKeyOf,
+  type NumberFieldMeta,
+  type SelectFieldMeta,
+  type StringFieldMeta,
+  type UnknownFieldMeta
+} from "./meta/types"
 ```
 
 - [ ] **Step 3: Run the test suite**
@@ -1115,8 +1064,8 @@ export const warnLegacyTag = (tagValue: string) => {
   if (legacyTagWarningEmittedFor.has(tagValue)) return
   legacyTagWarningEmittedFor.add(tagValue)
   console.warn(
-    `[OmegaForm] Union member with _tag "${tagValue}" uses S.Struct({ _tag: S.Literal("${tagValue}"), ... }). `
-      + `Please migrate to S.TaggedStruct("${tagValue}", { ... }) for cleaner AST handling.`
+    `[OmegaForm] Union member with _tag "${tagValue}" uses S.Struct({ _tag: S.Literal("${tagValue}"), ... }). ` +
+      `Please migrate to S.TaggedStruct("${tagValue}", { ... }) for cleaner AST handling.`
   )
 }
 ```
@@ -1330,10 +1279,7 @@ export const makeStandardSchemaV1Hooks = (
 
   const checkHook = (issue: SchemaIssue): string | undefined => {
     if (issue._tag !== "Filter") return undefined
-    const meta = (issue.filter?.annotations?.meta ?? {}) as Record<
-      string,
-      unknown
-    >
+    const meta = (issue.filter?.annotations?.meta ?? {}) as Record<string, unknown>
     switch (meta._tag) {
       case "isMinLength":
         return meta.minLength === 1
@@ -1346,19 +1292,15 @@ export const makeStandardSchemaV1Hooks = (
       case "isInt":
         return trans("validation.integer.expected", { actualValue: "NaN" })
       case "isGreaterThanOrEqualTo":
-        return trans(
-          meta.minimum === 0
-            ? "validation.number.positive"
-            : "validation.number.min",
-          { minimum: meta.minimum, isExclusive: true }
-        )
+        return trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+          minimum: meta.minimum,
+          isExclusive: true
+        })
       case "isGreaterThan":
-        return trans(
-          meta.exclusiveMinimum === 0
-            ? "validation.number.positive"
-            : "validation.number.min",
-          { minimum: meta.exclusiveMinimum, isExclusive: false }
-        )
+        return trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
+          minimum: meta.exclusiveMinimum,
+          isExclusive: false
+        })
       case "isLessThanOrEqualTo":
         return trans("validation.number.max", {
           maximum: meta.maximum,
@@ -1399,7 +1341,11 @@ Move the entire `generateInputStandardSchemaFromFieldMeta` function (currently i
 - [ ] **Step 3: Re-export from `OmegaFormStuff.ts`**
 
 ```ts
-export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
+export {
+  generateInputStandardSchemaFromFieldMeta,
+  makeStandardSchemaV1Hooks,
+  toLocalizedStandardSchemaV1
+} from "./validation/localized"
 ```
 
 - [ ] **Step 4: Run tests**
@@ -1445,7 +1391,19 @@ Move these public type definitions from `OmegaFormStuff.ts` into `types.ts`:
 Imports for the new file:
 
 ```ts
-import type { DeepKeys, DeepValue, FieldAsyncValidateOrFn, FieldValidateOrFn, FormApi, FormAsyncValidateOrFn, FormOptions, FormState, FormValidateOrFn, StandardSchemaV1, VueFormApi } from "@tanstack/vue-form"
+import type {
+  DeepKeys,
+  DeepValue,
+  FieldAsyncValidateOrFn,
+  FieldValidateOrFn,
+  FormApi,
+  FormAsyncValidateOrFn,
+  FormOptions,
+  FormState,
+  FormValidateOrFn,
+  StandardSchemaV1,
+  VueFormApi
+} from "@tanstack/vue-form"
 import type { Effect } from "effect-app"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
@@ -1457,7 +1415,27 @@ import type { OF } from "./useOmegaForm"
 - [ ] **Step 2: Re-export from `OmegaFormStuff.ts`**
 
 ```ts
-export type { BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride, TypesWithOptions } from "./types"
+export type {
+  BaseProps,
+  DefaultTypeProps,
+  FieldPath,
+  FieldPath_,
+  FieldValidators,
+  FormComponent,
+  FormProps,
+  FormType,
+  OmegaArrayProps,
+  OmegaAutoGenMeta,
+  OmegaError,
+  OmegaFormApi,
+  OmegaFormParams,
+  OmegaFormState,
+  OmegaInputProps,
+  OmegaInputPropsBase,
+  PrefixFromDepth,
+  TypeOverride,
+  TypesWithOptions
+} from "./types"
 ```
 
 - [ ] **Step 3: Run tests**
@@ -1615,9 +1593,7 @@ import { type Component, type ConcreteComponent, h } from "vue"
 import type { OF } from "./useOmegaForm"
 
 export const fHoc = (form: OF<any, any>) => {
-  return function FormHoc<P>(
-    WrappedComponent: Component<P>
-  ): ConcreteComponent<P> {
+  return function FormHoc<P>(WrappedComponent: Component<P>): ConcreteComponent<P> {
     return {
       render() {
         return h(WrappedComponent, { form, ...this.$attrs } as any, this.$slots)
@@ -1642,12 +1618,14 @@ import { type ComputedRef, onUnmounted, type Ref, ref, watch } from "vue"
 
 export const makeFieldMap = () => {
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
-  const registerField = (
-    field: ComputedRef<{ name: string; label: string; id: string }>
-  ) => {
-    watch(field, (f) => {
-      fieldMap.value.set(f.name, { label: f.label, id: f.id })
-    }, { immediate: true })
+  const registerField = (field: ComputedRef<{ name: string; label: string; id: string }>) => {
+    watch(
+      field,
+      (f) => {
+        fieldMap.value.set(f.name, { label: f.label, id: f.id })
+      },
+      { immediate: true }
+    )
     onUnmounted(() => {
       const current = fieldMap.value.get(field.value.name)
       if (current?.id === field.value.id) {
@@ -1740,7 +1718,15 @@ Expected: a list of imports. They must all be updated.
 export { useOnClose, usePreventClose } from "./blockDialog"
 export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
 export { useErrorLabel } from "./errors"
-export { type ExtractTagValue, type ExtractUnionBranch, type InputProps, type MergedInputProps, type TaggedUnionOption, type TaggedUnionOptionsArray, type TaggedUnionProps } from "./InputProps"
+export {
+  type ExtractTagValue,
+  type ExtractUnionBranch,
+  type InputProps,
+  type MergedInputProps,
+  type TaggedUnionOption,
+  type TaggedUnionOptionsArray,
+  type TaggedUnionProps
+} from "./InputProps"
 export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst } from "./meta/createMeta"
 export { getInputType } from "./meta/createMeta" // or wherever it lands
 export { defaultsValueFromSchema } from "./meta/defaults"
@@ -1751,9 +1737,44 @@ export { default as OmegaTaggedUnion } from "./OmegaTaggedUnion.vue"
 export { default as OmegaTaggedUnionInternal } from "./OmegaTaggedUnionInternal.vue"
 export { deepMerge } from "./persistency"
 export { FormErrors } from "./submit"
-export type { BaseFieldMeta, BaseProps, BooleanFieldMeta, DateFieldMeta, DefaultTypeProps, FieldMeta, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, SelectFieldMeta, StringFieldMeta, TypeOverride, TypesWithOptions, UnknownFieldMeta } from "./types"
+export type {
+  BaseFieldMeta,
+  BaseProps,
+  BooleanFieldMeta,
+  DateFieldMeta,
+  DefaultTypeProps,
+  FieldMeta,
+  FieldPath,
+  FieldPath_,
+  FieldValidators,
+  FormComponent,
+  FormProps,
+  FormType,
+  MetaRecord,
+  MultipleFieldMeta,
+  NestedKeyOf,
+  NumberFieldMeta,
+  OmegaArrayProps,
+  OmegaAutoGenMeta,
+  OmegaError,
+  OmegaFormApi,
+  OmegaFormParams,
+  OmegaFormState,
+  OmegaInputProps,
+  OmegaInputPropsBase,
+  PrefixFromDepth,
+  SelectFieldMeta,
+  StringFieldMeta,
+  TypeOverride,
+  TypesWithOptions,
+  UnknownFieldMeta
+} from "./types"
 export { type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
-export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
+export {
+  generateInputStandardSchemaFromFieldMeta,
+  makeStandardSchemaV1Hooks,
+  toLocalizedStandardSchemaV1
+} from "./validation/localized"
 ```
 
 (Verify `getInputType` and `SupportedInputs` location — they're currently leaf utilities in `OmegaFormStuff.ts`. Decide between `meta/types.ts`, `validation/localized.ts`, or a new `inputs.ts`. Pick whatever yields the smallest diff.)
@@ -2051,10 +2072,7 @@ const { trans } = useIntl()
 Replace the schema build:
 
 ```ts
-const standardSchema = toLocalizedStandardSchemaV1(
-  formCompatibleSchema as any,
-  trans
-)
+const standardSchema = toLocalizedStandardSchemaV1(formCompatibleSchema as any, trans)
 ```
 
 Add the import at the top:
@@ -2091,18 +2109,22 @@ Locate the block (currently around lines 988–1004):
 const lastSubmitAttempts = ref(0)
 const submissionAttempts = form.useStore((s) => s.submissionAttempts)
 const formValues = form.useStore((s) => s.values)
-watch(formValues, () => {
-  if (lastSubmitAttempts.value === submissionAttempts.value) return
-  lastSubmitAttempts.value = submissionAttempts.value
-  for (const info of Object.values(form.fieldInfo) as any[]) {
-    if (info?.instance?.state.meta.errorMap?.onSubmit) {
-      info.instance.setMeta((prev: any) => ({
-        ...prev,
-        errorMap: { ...prev.errorMap, onSubmit: undefined }
-      }))
+watch(
+  formValues,
+  () => {
+    if (lastSubmitAttempts.value === submissionAttempts.value) return
+    lastSubmitAttempts.value = submissionAttempts.value
+    for (const info of Object.values(form.fieldInfo) as any[]) {
+      if (info?.instance?.state.meta.errorMap?.onSubmit) {
+        info.instance.setMeta((prev: any) => ({
+          ...prev,
+          errorMap: { ...prev.errorMap, onSubmit: undefined }
+        }))
+      }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 ```
 
 - [ ] **Step 2: Delete the entire block**
@@ -2156,9 +2178,7 @@ describe("post-submit revalidation (TanStack default)", () => {
       a: S.String.pipe(S.check(S.isMinLength(2))),
       b: S.String.pipe(S.check(S.isMinLength(2)))
     })
-    const form = mountForm(() =>
-      useOmegaForm(schema, { defaultValues: { a: "", b: "" } })
-    )
+    const form = mountForm(() => useOmegaForm(schema, { defaultValues: { a: "", b: "" } }))
 
     await form.handleSubmit()
     await nextTick()
@@ -2277,10 +2297,7 @@ const computedClass = computed(() => {
   return attrs.class as string | undefined
 })
 
-const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
-  "getMetaFromArray",
-  null
-)
+const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>("getMetaFromArray", null)
 
 const meta = computed(() => {
   if (getMetaFromArray?.value && getMetaFromArray.value(props.name as DeepKeys<From>)) {
@@ -2297,11 +2314,7 @@ And replace the template's `<component :is="form.Field" :key="fieldKey" ...>` wi
 
 ```vue
 <template>
-  <component
-    :is="form.Field"
-    :name="name"
-    :validators="validators"
-  >
+  <component :is="form.Field" :name="name" :validators="validators">
     <template #default="{ field, state }">
       <OmegaInternalInput
         v-if="meta"
@@ -2539,10 +2552,7 @@ In `OmegaArray.vue`, remove:
 
 ```vue
 <!-- TODO: legacy slot, remove this slot -->
-<slot
-  name="field"
-  v-bind="{ field }"
-/>
+<slot name="field" v-bind="{ field }" />
 ```
 
 And update the `OmegaFormReturn["Array"]` slot type definition (currently in `useOmegaForm.ts`) to drop the optional `field` slot from the slots record.

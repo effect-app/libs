@@ -27,9 +27,9 @@ const repoCloneUrl = (repo: string) => {
   return repo
 }
 
-const joinPosix = (a: string, b: string) => a.endsWith("/") ? a + b : a + "/" + b
+const joinPosix = (a: string, b: string) => (a.endsWith("/") ? a + b : a + "/" + b)
 
-const readLockfile = Effect.fnUntraced(function*(lockfilePath: string) {
+const readLockfile = Effect.fnUntraced(function* (lockfilePath: string) {
   const fs = yield* FileSystem.FileSystem
   if (!(yield* fs.exists(lockfilePath))) {
     return yield* Effect.fail(new Error(`No ${lockfilePath} found in current directory.`))
@@ -38,7 +38,7 @@ const readLockfile = Effect.fnUntraced(function*(lockfilePath: string) {
   return { content, lockfile: JSON.parse(content) as SharedLockfile }
 })
 
-const ensureCache = Effect.fnUntraced(function*(lockfile: SharedLockfile) {
+const ensureCache = Effect.fnUntraced(function* (lockfile: SharedLockfile) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const { runGetExitCode } = yield* RunCommandService
@@ -68,11 +68,10 @@ const ensureCache = Effect.fnUntraced(function*(lockfile: SharedLockfile) {
  * shas; bare branch names are resolved against `origin/` first so the result
  * is the latest remote commit, not a stale local ref.
  */
-const resolveLatestSha = Effect.fnUntraced(function*(cachePath: string, requestedRef?: string) {
+const resolveLatestSha = Effect.fnUntraced(function* (cachePath: string, requestedRef?: string) {
   const { runGetExitCode, runGetString } = yield* RunCommandService
 
-  const target = requestedRef
-    ?? (yield* runGetString("git rev-parse --abbrev-ref origin/HEAD", cachePath)).trim()
+  const target = requestedRef ?? (yield* runGetString("git rev-parse --abbrev-ref origin/HEAD", cachePath)).trim()
 
   const candidates = target.includes("/") ? [target] : [`origin/${target}`, target]
   for (const candidate of candidates) {
@@ -90,10 +89,7 @@ const resolveLatestSha = Effect.fnUntraced(function*(cachePath: string, requeste
  * Walk artifact files. For each file in the artifact map (respecting excludes),
  * yields `{ srcRel, srcAbs, destAbs }`.
  */
-const walkArtifacts = Effect.fnUntraced(function*(
-  lockfile: SharedLockfile,
-  cachePath: string
-) {
+const walkArtifacts = Effect.fnUntraced(function* (lockfile: SharedLockfile, cachePath: string) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const { runGetString } = yield* RunCommandService
@@ -138,7 +134,7 @@ const walkArtifacts = Effect.fnUntraced(function*(
  * MVP: overwrites destination files. Caller is expected to inspect `git status`
  * after sync to review local changes. Conflict handling lands in a follow-up.
  */
-export const syncShared = Effect.fnUntraced(function*(
+export const syncShared = Effect.fnUntraced(function* (
   opts: { lockfilePath?: string; update?: boolean; ref?: string | undefined } = {}
 ) {
   const fs = yield* FileSystem.FileSystem
@@ -199,7 +195,7 @@ export const syncShared = Effect.fnUntraced(function*(
  *
  * Files that match cache exactly are not listed.
  */
-export const syncDiff = Effect.fnUntraced(function*(opts: { lockfilePath?: string } = {}) {
+export const syncDiff = Effect.fnUntraced(function* (opts: { lockfilePath?: string } = {}) {
   const fs = yield* FileSystem.FileSystem
   const { runGetString } = yield* RunCommandService
 
@@ -243,9 +239,7 @@ export const syncDiff = Effect.fnUntraced(function*(opts: { lockfilePath?: strin
   yield* Effect.logInfo("")
   yield* Effect.logInfo(
     `Summary: ${changes.filter((c) => c.kind === "M").length} modified, ${
-      changes
-        .filter((c) => c.kind === "D")
-        .length
+      changes.filter((c) => c.kind === "D").length
     } missing in project, ${changes.filter((c) => c.kind === "E").length} excluded.`
   )
 })
@@ -260,12 +254,14 @@ export const syncDiff = Effect.fnUntraced(function*(opts: { lockfilePath?: strin
  *   3. Create new branch in cache, copy modified files in, commit, push.
  *   4. Optionally run `gh pr create` if `--pr` set.
  */
-export const syncPush = Effect.fnUntraced(function*(opts: {
-  lockfilePath?: string | undefined
-  message?: string | undefined
-  branch?: string | undefined
-  pr?: boolean | undefined
-} = {}) {
+export const syncPush = Effect.fnUntraced(function* (
+  opts: {
+    lockfilePath?: string | undefined
+    message?: string | undefined
+    branch?: string | undefined
+    pr?: boolean | undefined
+  } = {}
+) {
   const { runGetExitCode, runGetString } = yield* RunCommandService
 
   const lockfilePath = opts.lockfilePath ?? ".shared.json"
@@ -304,10 +300,11 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
     yield* Effect.logInfo(`  D ${srcRel}`)
   }
 
-  const branch = opts.branch
-    ?? `sync/from-${sanitizeRepoSlug(process.cwd().split("/").pop() ?? "project")}-${
-      new Date().toISOString().slice(0, 10)
-    }`
+  const branch =
+    opts.branch ??
+    `sync/from-${sanitizeRepoSlug(process.cwd().split("/").pop() ?? "project")}-${new Date()
+      .toISOString()
+      .slice(0, 10)}`
 
   const message = opts.message ?? "sync: propagate local edits"
 
@@ -323,23 +320,17 @@ export const syncPush = Effect.fnUntraced(function*(opts: {
   }
 
   yield* runGetExitCode(`git add -A`, cachePath)
-  yield* runGetExitCode(
-    `git -c commit.gpgsign=false commit -m ${JSON.stringify(message)}`,
-    cachePath
-  )
+  yield* runGetExitCode(`git -c commit.gpgsign=false commit -m ${JSON.stringify(message)}`, cachePath)
   yield* runGetExitCode(`git push -u origin ${JSON.stringify(branch)}`, cachePath)
 
   if (opts.pr) {
     yield* runGetExitCode(
-      `gh pr create --title ${JSON.stringify(message)} --body ${
-        JSON.stringify(`Propagated from project at ${process.cwd()}.\n\nFiles:\n${
-          [
-            ...modified.map((m) => `- M ${m.srcRel}`),
-            ...deleted.map((d) => `- D ${d.srcRel}`)
-          ]
-            .join("\n")
-        }`)
-      } --head ${JSON.stringify(branch)}`,
+      `gh pr create --title ${JSON.stringify(message)} --body ${JSON.stringify(
+        `Propagated from project at ${process.cwd()}.\n\nFiles:\n${[
+          ...modified.map((m) => `- M ${m.srcRel}`),
+          ...deleted.map((d) => `- D ${d.srcRel}`)
+        ].join("\n")}`
+      )} --head ${JSON.stringify(branch)}`,
       cachePath
     )
   }

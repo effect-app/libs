@@ -57,9 +57,7 @@ const flushAfterTagChange = async () => {
 describe("RootLevelTaggedUnion behavior", () => {
   const schema = S.Union([
     S.TaggedStruct("A", {
-      a: S.NonEmptyString255.pipe(
-        S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))
-      ),
+      a: S.NonEmptyString255.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))),
       common: S.NonEmptyString255
     }),
     S.TaggedStruct("B", {
@@ -112,27 +110,27 @@ describe("RootLevelTaggedUnion behavior", () => {
     const wrapper = mountForm()
     await nextTick()
 
-    expect(wrapper.find("[data-testid=\"input-a\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"input-common\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"input-b\"]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=\"input-nullableB\"]").exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-a"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-common"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-b"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-nullableB"]').exists()).toBe(false)
   })
 
   it("toggling _tag from A to B swaps the rendered branch slot", async () => {
     const wrapper = mountForm()
     await nextTick()
 
-    const select = wrapper.find("[data-testid=\"select-_tag\"]")
+    const select = wrapper.find('[data-testid="select-_tag"]')
     expect(select.exists()).toBe(true) // Drive the change through the form API to mirror what the UI handler
-     // produces. setValue + change events on the bare <select> race with
+    // produces. setValue + change events on the bare <select> race with
     // tanstack-form's commit cycle in some environments; setFieldValue is the
     // canonical path the watcher in OmegaTaggedUnionInternal observes.
     ;(wrapper.vm as any).form.setFieldValue("_tag", "B")
     await flushAfterTagChange()
 
-    expect(wrapper.find("[data-testid=\"input-b\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"input-nullableB\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"input-a\"]").exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-b"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-nullableB"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-a"]').exists()).toBe(false)
   })
 
   it("submits branch A's data with correct tag when no toggle happens", async () => {
@@ -142,10 +140,10 @@ describe("RootLevelTaggedUnion behavior", () => {
     })
     await nextTick()
 
-    await wrapper.find("[data-testid=\"input-common\"]").setValue("hello")
+    await wrapper.find('[data-testid="input-common"]').setValue("hello")
     await nextTick()
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await new Promise((r) => setTimeout(r, 50))
     await nextTick()
 
@@ -161,10 +159,10 @@ describe("RootLevelTaggedUnion behavior", () => {
     ;(wrapper.vm as any).form.setFieldValue("_tag", "B")
     await flushAfterTagChange()
 
-    await wrapper.find("[data-testid=\"input-b\"]").setValue(42)
+    await wrapper.find('[data-testid="input-b"]').setValue(42)
     await nextTick()
 
-    await wrapper.find("[data-testid=\"submit\"]").trigger("click")
+    await wrapper.find('[data-testid="submit"]').trigger("click")
     await new Promise((r) => setTimeout(r, 50))
     await nextTick()
 
@@ -227,25 +225,25 @@ describe("FormTaggedUnion behavior (nested)", () => {
     const wrapper = mountForm()
     await nextTick()
 
-    expect(wrapper.find("[data-testid=\"input-union.a\"]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=\"input-union.b\"]").exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-union.a"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-union.b"]').exists()).toBe(false)
   })
 
   it("selecting union._tag = A renders A's slot, switching to B swaps it", async () => {
     const wrapper = mountForm()
     await nextTick()
 
-    const select = wrapper.find("[data-testid=\"select-union._tag\"]")
+    const select = wrapper.find('[data-testid="select-union._tag"]')
     expect(select.exists()).toBe(true)
     ;(wrapper.vm as any).form.setFieldValue("union._tag", "A")
     await flushAfterTagChange()
 
-    expect(wrapper.find("[data-testid=\"input-union.a\"]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=\"input-union.b\"]").exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-union.a"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-union.b"]').exists()).toBe(false)
     ;(wrapper.vm as any).form.setFieldValue("union._tag", "B")
     await flushAfterTagChange()
 
-    expect(wrapper.find("[data-testid=\"input-union.a\"]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=\"input-union.b\"]").exists()).toBe(true)
+    expect(wrapper.find('[data-testid="input-union.a"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="input-union.b"]').exists()).toBe(true)
   })
 })

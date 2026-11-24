@@ -29,7 +29,7 @@ for (const root of roots) {
       continue
     }
     const content = await readFile(file, "utf8")
-    const rewritten = content.replace(relativeTsSpecifier, '$1$2.js$1')
+    const rewritten = content.replace(relativeTsSpecifier, "$1$2.js$1")
     if (rewritten !== content) {
       await writeFile(file, rewritten)
     }

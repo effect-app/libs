@@ -24,44 +24,59 @@
     "**/CHANGELOG.md"
   ],
   "rules": {
-    "codegen/codegen": ["error", {
-      "meta": {
-        "stripSuffixes": [".Queries", ".Commands"]
+    "codegen/codegen": [
+      "error",
+      {
+        "meta": {
+          "stripSuffixes": [".Queries", ".Commands"]
+        }
       }
-    }],
-    "typescript/consistent-type-imports": ["error", {
-      "fixStyle": "inline-type-imports"
-    }],
+    ],
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "fixStyle": "inline-type-imports"
+      }
+    ],
     // strange issue with types from namespaces somehow
     "import/namespace": "off",
     "import/no-duplicates": "error",
     "import/no-self-import": "warn",
     "import/no-empty-named-blocks": "error",
-    "eslint/no-restricted-imports": ["error", {
-      "paths": [
-        {
-          "name": ".",
-          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
-        },
-        {
-          "name": "./",
-          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
-        },
-        {
-          "name": "./index",
-          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
-        }
-      ]
-    }],
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": ".",
+            "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+          },
+          {
+            "name": "./",
+            "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+          },
+          {
+            "name": "./index",
+            "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+          }
+        ]
+      }
+    ],
     "eslint/object-shorthand": "error",
-    "eslint/no-underscore-dangle": ["warn", {
-      "allow": ["_tag", "_etag"]
-    }],
-    "typescript/no-use-before-define": ["warn", {
-      "functions": false,
-      "classes": true,
-      "variables": true
-    }],
+    "eslint/no-underscore-dangle": [
+      "warn",
+      {
+        "allow": ["_tag", "_etag"]
+      }
+    ],
+    "typescript/no-use-before-define": [
+      "warn",
+      {
+        "functions": false,
+        "classes": true,
+        "variables": true
+      }
+    ],
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-constraint": "error",
     "typescript/no-useless-empty-export": "error",
@@ -72,11 +87,14 @@
     "unicorn/no-accessor-recursion": "error",
     "oxc/no-map-spread": "off",
     "eslint/no-unused-vars": "off",
-    "typescript/no-unused-vars": ["error", {
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_",
-      "ignoreRestSiblings": true
-    }],
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
     "eslint/require-yield": "off",
     "eslint/no-fallthrough": "off",
     "eslint/no-await-in-loop": "off",

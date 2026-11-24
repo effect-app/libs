@@ -53,7 +53,7 @@ const cases = [
 test("bounds match Java Integer / Float", () => {
   expect(INT32_MIN).toBe(-(2 ** 31))
   expect(INT32_MAX).toBe(2 ** 31 - 1)
-  expect(INT32_MAX + 1 | 0).toBe(INT32_MIN)
+  expect((INT32_MAX + 1) | 0).toBe(INT32_MIN)
   // Java Float.toString(Float.MAX_VALUE / Float.MIN_VALUE)
   expect(FLOAT32_MAX).toBe(Number("3.4028235E38"))
   expect(FLOAT32_MIN_POSITIVE).toBe(Number("1.4E-45"))
@@ -157,7 +157,10 @@ describe("JSON Schema / OpenAPI", () => {
   test("flattenSimpleAllOf keeps allOf on conflicting non-bound keywords", () => {
     const input = { type: "string", format: "uuid", allOf: [{ format: "email" }] }
     expect(flattenSimpleAllOf(input)).toStrictEqual(input)
-    expect(flattenSimpleAllOf({ type: "string", "x-a": 1, allOf: [{ "x-a": 2, deprecated: true }] }))
-      .toStrictEqual({ type: "string", "x-a": 2, deprecated: true })
+    expect(flattenSimpleAllOf({ type: "string", "x-a": 1, allOf: [{ "x-a": 2, deprecated: true }] })).toStrictEqual({
+      type: "string",
+      "x-a": 2,
+      deprecated: true
+    })
   })
 })

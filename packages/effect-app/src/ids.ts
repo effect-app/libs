@@ -1,4 +1,11 @@
-import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringIdBrand, withDefaultMake } from "effect-app/Schema"
+import {
+  brandedStringId,
+  type Codec,
+  NonEmptyString255,
+  StringId,
+  type StringIdBrand,
+  withDefaultMake
+} from "effect-app/Schema"
 import type { B } from "effect-app/Schema/schema"
 import * as Effect from "effect/Effect"
 import type { Simplify } from "effect/Types"
@@ -29,11 +36,10 @@ const requestIdSamples = S.makeFilter<string>(() => undefined, {
 })
 
 export const RequestId = extendM(
-  Object
-    .assign(
-      Object.create(NonEmptyString255) as {},
-      NonEmptyString255.pipe(S.check(requestIdSamples)) as unknown as Codec<NonEmptyString255, string>
-    ),
+  Object.assign(
+    Object.create(NonEmptyString255) as {},
+    NonEmptyString255.pipe(S.check(requestIdSamples)) as unknown as Codec<NonEmptyString255, string>
+  ),
   (s) => {
     function make(): NonEmptyString255
     function make(input: string, options?: S.MakeOptions): NonEmptyString255
@@ -41,7 +47,7 @@ export const RequestId = extendM(
       const id = input === undefined ? StringId.make() : StringId.make(input, options)
       return id
     }
-    return ({
+    return {
       make,
       /**
        * Construction-only default: fresh `StringId`. Applied only when the
@@ -50,10 +56,9 @@ export const RequestId = extendM(
        * file-level note.
        */
       withConstructorDefault: S.withConstructorDefault(Effect.sync(make))(s as typeof s & S.WithoutConstructorDefault)
-    })
+    }
   }
-)
-  .pipe(withDefaultMake)
+).pipe(withDefaultMake)
 
 export interface UserProfileIdBrand extends Simplify<B.Brand<"UserProfileId"> & StringIdBrand> {}
 export type UserProfileId = string & UserProfileIdBrand

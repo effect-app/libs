@@ -26,15 +26,14 @@ const filterMetaOf = (filter: {
   const rep = filter.annotations?.representation
   if (rep && typeof rep.id === "string") {
     const tag = rep.id.replace(/^effect\/schema\//, "")
-    const payload = rep.payload !== null && typeof rep.payload === "object"
-      ? rep.payload as Record<string, unknown>
-      : {}
+    const payload =
+      rep.payload !== null && typeof rep.payload === "object" ? (rep.payload as Record<string, unknown>) : {}
     return { _tag: tag, ...payload } as FilterMeta
   }
-  return (filter.annotations?.meta ?? {})
+  return filter.annotations?.meta ?? {}
 }
 
-const reportedInput = (issue: S.SchemaIssue.Issue): unknown => S.SchemaIssue.hasInput(issue) ? issue.input : undefined
+const reportedInput = (issue: S.SchemaIssue.Issue): unknown => (S.SchemaIssue.hasInput(issue) ? issue.input : undefined)
 
 export const makeStandardSchemaV1Hooks = (
   trans: TransFn
@@ -89,15 +88,15 @@ export const makeStandardSchemaV1Hooks = (
       // isExclusive semantics in the message catalog: true = strict bound
       // ("greater/less than"), false = inclusive bound ("at least/at most").
       case "isGreaterThanOrEqualTo":
-        return trans(
-          meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",
-          { minimum: meta.minimum, isExclusive: false }
-        )
+        return trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+          minimum: meta.minimum,
+          isExclusive: false
+        })
       case "isGreaterThan":
-        return trans(
-          meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min",
-          { minimum: meta.exclusiveMinimum, isExclusive: true }
-        )
+        return trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
+          minimum: meta.exclusiveMinimum,
+          isExclusive: true
+        })
       case "isLessThanOrEqualTo":
         return trans("validation.number.max", { maximum: meta.maximum, isExclusive: false })
       case "isLessThan":
@@ -188,11 +187,7 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
     const newRest = ast.rest.map((e) => walkAst(e, trans))
     const newElements = ast.elements.map((e) => walkAst(e, trans))
     let annotations = ast.annotations
-    if (
-      ast.annotations?.message === undefined
-      && ast.rest.length === 1
-      && isLiteralUnion(ast.rest[0])
-    ) {
+    if (ast.annotations?.message === undefined && ast.rest.length === 1 && isLiteralUnion(ast.rest[0])) {
       const members = ast.rest[0].types.map((t) => t.literal)
       annotations = {
         ...ast.annotations,

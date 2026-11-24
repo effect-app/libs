@@ -48,94 +48,86 @@ beforeEach(() => {
 })
 
 it("validates integer field with decimal value (English)", () =>
-  Effect
-    .gen(function*() {
-      currentLocale = "en"
-      const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
-      const integerFieldInfo = fieldInfo.fields.integerField
+  Effect.gen(function* () {
+    currentLocale = "en"
+    const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
+    const integerFieldInfo = fieldInfo.fields.integerField
 
-      expect(integerFieldInfo._tag).toBe("FieldInfo")
-      expect(integerFieldInfo.type).toBe("int")
+    expect(integerFieldInfo._tag).toBe("FieldInfo")
+    expect(integerFieldInfo.type).toBe("int")
 
-      // test validation rules with a decimal value
-      const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("59.5") : undefined
+    // test validation rules with a decimal value
+    const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("59.5") : undefined
 
-      console.log("Validation result (EN):", result)
-      console.log("Translation calls:", translationCalls)
+    console.log("Validation result (EN):", result)
+    console.log("Translation calls:", translationCalls)
 
-      // the validation should fail
-      expect(result).not.toBe(true)
-      expect(typeof result).toBe("string")
+    // the validation should fail
+    expect(result).not.toBe(true)
+    expect(typeof result).toBe("string")
 
-      // check if the correct translation key was called
-      const integerErrorCall = translationCalls.find((call) => call.id === "validation.integer.expected")
-      expect(integerErrorCall).toBeDefined()
-      expect(integerErrorCall?.params).toHaveProperty("actualValue")
-      expect(integerErrorCall?.params.actualValue).toBe("59.5")
+    // check if the correct translation key was called
+    const integerErrorCall = translationCalls.find((call) => call.id === "validation.integer.expected")
+    expect(integerErrorCall).toBeDefined()
+    expect(integerErrorCall?.params).toHaveProperty("actualValue")
+    expect(integerErrorCall?.params.actualValue).toBe("59.5")
 
-      // MOST IMPORTANT: verify the actual translated string returned
-      expect(result).toBe("Expected an integer, actual 59.5")
-    })
-    .pipe(Effect.runPromise))
+    // MOST IMPORTANT: verify the actual translated string returned
+    expect(result).toBe("Expected an integer, actual 59.5")
+  }).pipe(Effect.runPromise))
 
 it("validates integer field with decimal value (German)", () =>
-  Effect
-    .gen(function*() {
-      currentLocale = "de"
-      const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
-      const integerFieldInfo = fieldInfo.fields.integerField
+  Effect.gen(function* () {
+    currentLocale = "de"
+    const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
+    const integerFieldInfo = fieldInfo.fields.integerField
 
-      expect(integerFieldInfo._tag).toBe("FieldInfo")
-      expect(integerFieldInfo.type).toBe("int")
+    expect(integerFieldInfo._tag).toBe("FieldInfo")
+    expect(integerFieldInfo.type).toBe("int")
 
-      // test validation rules with a decimal value
-      const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("59.5") : undefined
+    // test validation rules with a decimal value
+    const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("59.5") : undefined
 
-      console.log("Validation result (DE):", result)
+    console.log("Validation result (DE):", result)
 
-      // the validation should fail
-      expect(result).not.toBe(true)
-      expect(typeof result).toBe("string")
+    // the validation should fail
+    expect(result).not.toBe(true)
+    expect(typeof result).toBe("string")
 
-      // MOST IMPORTANT: verify the actual German translated string returned
-      expect(result).toBe("Es wird eine ganze Zahl erwartet, tatsächlich: 59.5")
-    })
-    .pipe(Effect.runPromise))
+    // MOST IMPORTANT: verify the actual German translated string returned
+    expect(result).toBe("Es wird eine ganze Zahl erwartet, tatsächlich: 59.5")
+  }).pipe(Effect.runPromise))
 
 it("validates string field parsed as number", () =>
-  Effect
-    .gen(function*() {
-      const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
-      const stringFieldInfo = fieldInfo.fields.stringField
+  Effect.gen(function* () {
+    const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
+    const stringFieldInfo = fieldInfo.fields.stringField
 
-      expect(stringFieldInfo._tag).toBe("FieldInfo")
-      expect(stringFieldInfo.type).toBe("text")
+    expect(stringFieldInfo._tag).toBe("FieldInfo")
+    expect(stringFieldInfo.type).toBe("text")
 
-      // test validation rules with a number that should fail string validation
-      const result = stringFieldInfo.rules[0] ? stringFieldInfo.rules[0]("123") : undefined
+    // test validation rules with a number that should fail string validation
+    const result = stringFieldInfo.rules[0] ? stringFieldInfo.rules[0]("123") : undefined
 
-      console.log("Validation result for string field:", result)
+    console.log("Validation result for string field:", result)
 
-      // string field should accept "123" as a valid string
-      expect(result).toBe(true)
-    })
-    .pipe(Effect.runPromise))
+    // string field should accept "123" as a valid string
+    expect(result).toBe(true)
+  }).pipe(Effect.runPromise))
 
 it("validates integer field with valid integer", () =>
-  Effect
-    .gen(function*() {
-      const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
-      const integerFieldInfo = fieldInfo.fields.integerField
+  Effect.gen(function* () {
+    const fieldInfo = buildFieldInfoFromFieldsRoot(TestSchema)
+    const integerFieldInfo = fieldInfo.fields.integerField
 
-      // test validation rules with a valid integer
-      const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("42") : undefined
+    // test validation rules with a valid integer
+    const result = integerFieldInfo.rules[1] ? integerFieldInfo.rules[1]("42") : undefined
 
-      console.log("Validation result for valid integer:", result)
+    console.log("Validation result for valid integer:", result)
 
-      // the validation should pass
-      expect(result).toBe(true)
-    })
-    .pipe(Effect.runPromise))
+    // the validation should pass
+    expect(result).toBe(true)
+  }).pipe(Effect.runPromise))
 
 it("error message format matches regex pattern", () => {
   // test the actual error message format from Effect Schema (both old "actual" and new "got" formats)
@@ -155,9 +147,9 @@ it("error message format matches regex pattern", () => {
 
   const numOldMatch = numberErrorOld.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
   expect(numOldMatch).toBeTruthy()
-  expect(numOldMatch![1]).toBe("\"not-a-number\"")
+  expect(numOldMatch![1]).toBe('"not-a-number"')
 
   const numNewMatch = numberErrorNew.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
   expect(numNewMatch).toBeTruthy()
-  expect(numNewMatch![1]).toBe("\"not-a-number\"")
+  expect(numNewMatch![1]).toBe('"not-a-number"')
 })

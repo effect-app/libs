@@ -5,8 +5,8 @@ export function snipValue(value: string | readonly string[] | undefined) {
   return Array.isArray(value)
     ? value.map(snipString)
     : typeof value === "string" && value.length > 50
-    ? snipString(value)
-    : value
+      ? snipString(value)
+      : value
 }
 
 export function snipString(value: string) {

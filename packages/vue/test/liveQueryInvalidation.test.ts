@@ -4,9 +4,22 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
+import {
+  awaitAtomResult,
+  buildQueryFamily,
+  invalidateAndAwait,
+  invalidateSoft,
+  makeAtomClientRuntime,
+  withQueryOptions
+} from "../src/atomQuery.js"
 import { getQueryInvalidationMode } from "../src/dependencyMetadata.js"
-import { acquireLiveQueryFetch, awaitLiveQueryFetch, configureLiveQueryInvalidation, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
+import {
+  acquireLiveQueryFetch,
+  awaitLiveQueryFetch,
+  configureLiveQueryInvalidation,
+  registerLiveQuery,
+  releaseLiveQueryFetch
+} from "../src/liveQueryInvalidation.js"
 
 const repo = DataDependencies.repo("Inventory", ["item-1"])
 const otherId = DataDependencies.repo("Inventory", ["item-2"])
@@ -158,7 +171,7 @@ describe("live query invalidation", () => {
     const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
     let receive = (_writes: DataDependencies.DataDependencies) => {}
     let open = () => {}
-    const ready = new Promise<void>((resolve) => open = resolve)
+    const ready = new Promise<void>((resolve) => (open = resolve))
     configureLiveQueryInvalidation({
       ready: () => ready,
       subscribe: (onWrites) => {
@@ -190,7 +203,7 @@ describe("live query invalidation", () => {
     const invalidations: Array<ReadonlyArray<ReadonlyArray<unknown>>> = []
     let receive = (_writes: DataDependencies.DataDependencies) => {}
     let readyCalled = () => {}
-    const readyRequested = new Promise<void>((resolve) => readyCalled = resolve)
+    const readyRequested = new Promise<void>((resolve) => (readyCalled = resolve))
     configureLiveQueryInvalidation({
       ready: () => {
         readyCalled()
@@ -237,7 +250,7 @@ describe("live query invalidation", () => {
     const starting = awaitLiveQueryFetch(fetch)
 
     let open = () => {}
-    const ready = new Promise<void>((resolve) => open = resolve)
+    const ready = new Promise<void>((resolve) => (open = resolve))
     configureLiveQueryInvalidation({
       ready: () => ready,
       subscribe: (onWrites) => {

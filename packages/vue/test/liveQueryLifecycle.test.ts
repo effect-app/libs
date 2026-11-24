@@ -4,9 +4,25 @@ import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { awaitAtomResult, buildQueryFamily, invalidateAndAwait, makeAtomClientRuntime, withQueryOptions } from "../src/atomQuery.js"
+import {
+  awaitAtomResult,
+  buildQueryFamily,
+  invalidateAndAwait,
+  makeAtomClientRuntime,
+  withQueryOptions
+} from "../src/atomQuery.js"
 import { getQueryReadDependencies } from "../src/dependencyMetadata.js"
-import { acquireLiveQueryFetch, awaitLiveQueryFetch, beginLiveQueryFetch, configureLiveQueryInvalidation, endLiveQueryFetch, type LiveQueryInvalidationSource, liveQueryReady, registerLiveQuery, releaseLiveQueryFetch } from "../src/liveQueryInvalidation.js"
+import {
+  acquireLiveQueryFetch,
+  awaitLiveQueryFetch,
+  beginLiveQueryFetch,
+  configureLiveQueryInvalidation,
+  endLiveQueryFetch,
+  type LiveQueryInvalidationSource,
+  liveQueryReady,
+  registerLiveQuery,
+  releaseLiveQueryFetch
+} from "../src/liveQueryInvalidation.js"
 
 type Keys = Array<ReadonlyArray<ReadonlyArray<unknown>>>
 
@@ -65,11 +81,15 @@ describe("live query lifecycle", () => {
     const query = {
       id: "DelayedOrders.List",
       handler: () =>
-        DataDependencies.read(dependency).pipe(Effect.andThen(Effect.sync(() => {
-          // the server changes while the initial fetch is still discovering
-          if (++calls === 1) handlers.receive(new Set([dependency]))
-          return calls
-        })))
+        DataDependencies.read(dependency).pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              // the server changes while the initial fetch is still discovering
+              if (++calls === 1) handlers.receive(new Set([dependency]))
+              return calls
+            })
+          )
+        )
     }
     const atom = withQueryOptions(
       buildQueryFamily(rt, query)(undefined),
@@ -100,14 +120,14 @@ describe("live query lifecycle", () => {
   it("requests readiness again when the same source is configured again", async () => {
     let calls = 0
     let open = () => {}
-    const { source } = makeSource(() => ++calls === 1 ? never() : new Promise<void>((resolve) => open = resolve))
+    const { source } = makeSource(() => (++calls === 1 ? never() : new Promise<void>((resolve) => (open = resolve))))
     configureLiveQueryInvalidation(source)
     const key = ["$Inventory", "Get", { id: "same" }]
     cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
     const fetch = acquire(key)
     cleanups.push(() => releaseLiveQueryFetch(fetch))
     let ready = false
-    void awaitLiveQueryFetch(fetch).then(() => ready = true)
+    void awaitLiveQueryFetch(fetch).then(() => (ready = true))
 
     configureLiveQueryInvalidation(source)
     await flush()
@@ -133,7 +153,7 @@ describe("live query lifecycle", () => {
 
   it("ignores a stale rejection from a replaced source", async () => {
     let reject = (_error: unknown) => {}
-    const { source } = makeSource(() => new Promise<void>((_, rej) => reject = rej))
+    const { source } = makeSource(() => new Promise<void>((_, rej) => (reject = rej)))
     configureLiveQueryInvalidation(source)
     const key = ["$Inventory", "Get", { id: "stale" }]
     cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
@@ -349,7 +369,7 @@ describe("live query lifecycle", () => {
 
   it("does not ask the source again after an unregistered query's catch-up is cancelled", async () => {
     let open = () => {}
-    const ready = vi.fn(() => new Promise<void>((resolve) => open = resolve))
+    const ready = vi.fn(() => new Promise<void>((resolve) => (open = resolve)))
     const { invalidations, source } = makeSource(ready)
     configureLiveQueryInvalidation(source)
     const key = ["$Inventory", "List", "cancelled-catch-up"]
@@ -424,14 +444,17 @@ describe("live query lifecycle", () => {
 
   it("keeps waiting when a switch runs between readiness settling and the wait resuming", async () => {
     let open = () => {}
-    const ready = new Promise<void>((resolve) => open = resolve)
+    const ready = new Promise<void>((resolve) => (open = resolve))
     configureLiveQueryInvalidation(makeSource(() => ready).source)
     const key = ["$Inventory", "Get", { id: "overtaken" }]
     cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
     const fetch = acquire(key)
     cleanups.push(() => releaseLiveQueryFetch(fetch))
     let settled = false
-    void awaitLiveQueryFetch(fetch).then(() => settled = true, () => settled = true)
+    void awaitLiveQueryFetch(fetch).then(
+      () => (settled = true),
+      () => (settled = true)
+    )
     void ready.then(() => configureLiveQueryInvalidation(makeSource(never).source))
     open()
     await flush()
@@ -444,8 +467,7 @@ describe("live query lifecycle", () => {
       makeSource(() => {
         controller.abort()
         return never()
-      })
-        .source
+      }).source
     )
     const key = ["$Inventory", "Get", { id: "sync-abort" }]
     cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
@@ -458,7 +480,7 @@ describe("live query lifecycle", () => {
     "keeps a %s wait when a switch is queued right after readiness",
     async (api) => {
       let open = () => {}
-      const oldReady = new Promise<void>((resolve) => open = resolve)
+      const oldReady = new Promise<void>((resolve) => (open = resolve))
       configureLiveQueryInvalidation(makeSource(() => oldReady).source)
       const key = ["$Inventory", "Get", { id: `deferred-${api}` }]
       cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
@@ -466,10 +488,16 @@ describe("live query lifecycle", () => {
       if (api === "modern") {
         const fetch = acquire(key)
         cleanups.push(() => releaseLiveQueryFetch(fetch))
-        void awaitLiveQueryFetch(fetch).then(() => settled = true, () => settled = true)
+        void awaitLiveQueryFetch(fetch).then(
+          () => (settled = true),
+          () => (settled = true)
+        )
       } else {
         cleanups.push(() => endLiveQueryFetch(true))
-        void beginLiveQueryFetch(key).then(() => settled = true, () => settled = true)
+        void beginLiveQueryFetch(key).then(
+          () => (settled = true),
+          () => (settled = true)
+        )
       }
       void oldReady.then(() => queueMicrotask(() => configureLiveQueryInvalidation(makeSource(never).source)))
       open()
@@ -482,12 +510,12 @@ describe("live query lifecycle", () => {
     "ignores a %s rejection when a switch is queued right after it",
     async (api) => {
       let rejectOld = (_error: unknown) => {}
-      const oldReady = new Promise<void>((_, reject) => rejectOld = reject)
+      const oldReady = new Promise<void>((_, reject) => (rejectOld = reject))
       configureLiveQueryInvalidation(makeSource(() => oldReady).source)
       const key = ["$Inventory", "Get", { id: `deferred-rejection-${api}` }]
       cleanups.push(registerLiveQuery(key, () => DataDependencies.empty(), {}))
       let settled = false
-      const done = () => settled = true
+      const done = () => (settled = true)
       if (api === "modern") {
         const fetch = acquire(key)
         cleanups.push(() => releaseLiveQueryFetch(fetch))

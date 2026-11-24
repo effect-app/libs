@@ -20,16 +20,20 @@ export interface EnhancedClass<
   /**
    * See `copyOrigin` docs in `utils.ts` for return-type design details.
    */
-  readonly copy: ReturnType<typeof copyOrigin<new(_: any) => Self>>
+  readonly copy: ReturnType<typeof copyOrigin<new (_: any) => Self>>
 }
-type MissingSelfGeneric<Usage extends string, Params extends string = ""> =
-  `Missing \`Self\` generic - use \`class Self extends ${Usage}<Self>()(${Params}{ ... })\``
+type MissingSelfGeneric<
+  Usage extends string,
+  Params extends string = ""
+> = `Missing \`Self\` generic - use \`class Self extends ${Usage}<Self>()(${Params}{ ... })\``
 
-type HasFields<Fields extends S.Struct.Fields> = {
-  readonly fields: Fields
-} | {
-  readonly from: HasFields<Fields>
-}
+type HasFields<Fields extends S.Struct.Fields> =
+  | {
+      readonly fields: Fields
+    }
+  | {
+      readonly from: HasFields<Fields>
+    }
 
 type ClassOptions = {
   readonly strict?: boolean
@@ -46,9 +50,10 @@ export type ExtendedSchemaNoEncoded = typeof ExtendedSchemaNoEncoded
  */
 type WithEncoded<SchemaS extends S.Constraint, Encoded> = SchemaS & { readonly Encoded: Encoded }
 
-type ExtendedSchema<SchemaS extends S.Constraint & { readonly fields: S.Struct.Fields }, Encoded> = [
-  Encoded
-] extends [ExtendedSchemaNoEncoded] ? SchemaS
+type ExtendedSchema<SchemaS extends S.Constraint & { readonly fields: S.Struct.Fields }, Encoded> = [Encoded] extends [
+  ExtendedSchemaNoEncoded
+]
+  ? SchemaS
   : WithEncoded<SchemaS, Encoded>
 
 /** Struct fields schema, optionally with a caller-supplied Encoded override. */
@@ -64,11 +69,7 @@ export type Class<Self, S extends S.Constraint & { readonly fields: S.Struct.Fie
  * Build a modified Declaration that accepts struct-matching values during
  * encoding, given the original Declaration and the class's fields.
  */
-function makeRelaxedDeclaration(
-  ast: SchemaAST.Declaration,
-  fields: S.Struct.Fields,
-  cls: any
-): SchemaAST.Declaration {
+function makeRelaxedDeclaration(ast: SchemaAST.Declaration, fields: S.Struct.Fields, cls: any): SchemaAST.Declaration {
   const parseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
   const structSchema = S.Struct(fields)
   const annotatedStruct = parseOptions ? S.toType(structSchema).annotate({ parseOptions }) : S.toType(structSchema)
@@ -121,43 +122,40 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
-) => [Self] extends [never] ? MissingSelfGeneric<"Class">
-  : EnhancedClass<
-    Self,
-    ClassFieldsSchema<Fields, Encoded>,
-    Brand
-  > = (identifier) => (fields, annotations, options) => {
-    const relaxed = options?.strict === false
-    // Build the original Schema.Class
-    const Base = (S.Class as any)(identifier)(fields, annotations)
-    // Get the original ast getter from the base class
-    const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
+) => [Self] extends [never]
+  ? MissingSelfGeneric<"Class">
+  : EnhancedClass<Self, ClassFieldsSchema<Fields, Encoded>, Brand> = (identifier) => (fields, annotations, options) => {
+  const relaxed = options?.strict === false
+  // Build the original Schema.Class
+  const Base = (S.Class as any)(identifier)(fields, annotations)
+  // Get the original ast getter from the base class
+  const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
 
-    // Cache per-class to avoid recomputing
-    const astCache = new WeakMap<any, SchemaAST.Declaration>()
-    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
+  // Cache per-class to avoid recomputing
+  const astCache = new WeakMap<any, SchemaAST.Declaration>()
+  const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
 
-    return class extends Base {
-      static get copy() {
-        let cached = copyCache.get(this)
-        if (cached === undefined) {
-          cached = copyOrigin(this)
-          copyCache.set(this, cached)
-        }
-        return cached
+  return class extends Base {
+    static get copy() {
+      let cached = copyCache.get(this)
+      if (cached === undefined) {
+        cached = copyOrigin(this)
+        copyCache.set(this, cached)
       }
-      static get ast(): SchemaAST.Declaration {
-        let cached = astCache.get(this)
-        if (cached !== undefined) return cached
-        // Call the original getter with `this` bound to the actual user class,
-        // so getClassSchema(this) creates a schema that uses `new this(...)`.
-        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
-        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
-        astCache.set(this, cached)
-        return cached
-      }
-    } as any
-  }
+      return cached
+    }
+    static get ast(): SchemaAST.Declaration {
+      let cached = astCache.get(this)
+      if (cached !== undefined) return cached
+      // Call the original getter with `this` bound to the actual user class,
+      // so getClassSchema(this) creates a schema that uses `new this(...)`.
+      const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+      cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
+      astCache.set(this, cached)
+      return cached
+    }
+  } as any
+}
 
 // ---------------------------------------------------------------------------
 // TaggedClass — like Schema.TaggedClass but with relaxed encoding
@@ -186,12 +184,10 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Bran
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
-) => [Self] extends [never] ? MissingSelfGeneric<"TaggedClass">
-  : EnhancedClass<
-    Self,
-    ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>,
-    Brand
-  > = (identifier) => (tag, fields, annotations, options) => {
+) => [Self] extends [never]
+  ? MissingSelfGeneric<"TaggedClass">
+  : EnhancedClass<Self, ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>, Brand> =
+  (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
@@ -228,12 +224,10 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
-) => [Self] extends [never] ? MissingSelfGeneric<"ErrorClass">
-  : EnhancedClass<
-    Self,
-    ClassFieldsSchema<Fields, Encoded>,
-    Cause.YieldableError & Brand
-  > = (identifier) => (fields, annotations, options) => {
+) => [Self] extends [never]
+  ? MissingSelfGeneric<"ErrorClass">
+  : EnhancedClass<Self, ClassFieldsSchema<Fields, Encoded>, Cause.YieldableError & Brand> =
+  (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
     const Base = (S.Error as any)(identifier)(fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
@@ -271,40 +265,41 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
-) => [Self] extends [never] ? MissingSelfGeneric<"TaggedErrorClass">
+) => [Self] extends [never]
+  ? MissingSelfGeneric<"TaggedErrorClass">
   : EnhancedClass<
-    Self,
-    ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>,
-    Cause.YieldableError & Brand
-  > = (identifier) => (tag, fields, annotations, options) => {
-    const relaxed = options?.strict === false
-    const Base = (S.TaggedError as any)(identifier)(tag, fields, annotations)
-    const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
-    const astCache = new WeakMap<any, SchemaAST.Declaration>()
-    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
+      Self,
+      ClassFieldsSchema<{ readonly _tag: S.tag<Tag> } & Fields, Encoded>,
+      Cause.YieldableError & Brand
+    > = (identifier) => (tag, fields, annotations, options) => {
+  const relaxed = options?.strict === false
+  const Base = (S.TaggedError as any)(identifier)(tag, fields, annotations)
+  const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
+  const astCache = new WeakMap<any, SchemaAST.Declaration>()
+  const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
 
-    return class extends Base {
-      static get copy() {
-        let cached = copyCache.get(this)
-        if (cached === undefined) {
-          cached = copyOrigin(this)
-          copyCache.set(this, cached)
-        }
-        return cached
+  return class extends Base {
+    static get copy() {
+      let cached = copyCache.get(this)
+      if (cached === undefined) {
+        cached = copyOrigin(this)
+        copyCache.set(this, cached)
       }
-      static get ast(): SchemaAST.Declaration {
-        let cached = astCache.get(this)
-        if (cached !== undefined) return cached
-        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
-        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
-        astCache.set(this, cached)
-        return cached
-      }
-    } as any
-  }
+      return cached
+    }
+    static get ast(): SchemaAST.Declaration {
+      let cached = astCache.get(this)
+      if (cached !== undefined) return cached
+      const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+      cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
+      astCache.set(this, cached)
+      return cached
+    }
+  } as any
+}
 
 export interface Opaque<Self, Encoded, SchemaS extends S.Top, Brand> extends S.Opaque<Self, SchemaS, Brand> {
-  readonly "Encoded": Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
+  readonly Encoded: Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
 }
 
 export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
@@ -337,15 +332,16 @@ export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => 
  * a future `OpaqueShape`-style helper if those also need to be supplied.
  */
 export interface OpaqueType<Self, Encoded, SchemaS extends S.Top, Brand> extends S.Opaque<Self, SchemaS, Brand> {
-  readonly "Encoded": Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
-  new(_: never): Self
+  readonly Encoded: Encoded extends ExtendedSchemaNoEncoded ? SchemaS["Encoded"] : Encoded
+  new (_: never): Self
 }
 
 export const OpaqueType: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
   schema: S
 ) => OpaqueType<Self, Encoded, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any
 
-type OpaqueFacadeConstructorArgs<MakeIn> = {} extends MakeIn ? [props?: MakeIn, options?: S.MakeOptions]
+type OpaqueFacadeConstructorArgs<MakeIn> = {} extends MakeIn
+  ? [props?: MakeIn, options?: S.MakeOptions]
   : [props: MakeIn, options?: S.MakeOptions]
 
 // Only the codec channels are required. `copy`/`fields`/`mapFields` are NOT
@@ -358,12 +354,11 @@ type OpaqueFacadeInput<DecodingServices, EncodingServices> = S.Top & {
   readonly EncodingServices: EncodingServices
 }
 
-type OpaqueClassFacadeInput<DecodingServices, EncodingServices> =
-  & OpaqueFacadeInput<
-    DecodingServices,
-    EncodingServices
-  >
-  & (abstract new(...args: Array<never>) => unknown)
+type OpaqueClassFacadeInput<DecodingServices, EncodingServices> = OpaqueFacadeInput<
+  DecodingServices,
+  EncodingServices
+> &
+  (abstract new (...args: Array<never>) => unknown)
 
 type PrototypeFunction = Function & { prototype: object }
 
@@ -387,9 +382,9 @@ const isClassSchemaConstructor = (value: unknown): value is PrototypeFunction =>
   // Real Schema.Class constructors expose a static `identifier`.
   if (typeof (value as { readonly identifier?: unknown }).identifier !== "string") return false
   const ast = (value as { readonly ast?: unknown }).ast
-  return SchemaAST.isAST(ast)
-    && SchemaAST.isDeclaration(ast)
-    && ast.annotations?.[ConstructorAnnotationKey] !== undefined
+  return (
+    SchemaAST.isAST(ast) && SchemaAST.isDeclaration(ast) && ast.annotations?.[ConstructorAnnotationKey] !== undefined
+  )
 }
 
 const getFacadeClassSchema = (schema: OpaqueFacadeInput<any, any>): PrototypeFunction | undefined => {
@@ -449,12 +444,14 @@ type OpaqueFacadeStatics<SchemaS extends S.Top> = Omit<SchemaS, Exclude<keyof S.
  * consumer-side reads of `Type`/`Encoded`/`MakeIn`. Same `no-branding` gap as
  * {@link OpaqueType}.
  */
-export interface OpaqueShape<Self, Encoded, MakeIn, SchemaS extends S.Top, Brand>
-  extends S.Opaque<Self, SchemaS, Brand>
-{
-  readonly "Encoded": Encoded
+export interface OpaqueShape<Self, Encoded, MakeIn, SchemaS extends S.Top, Brand> extends S.Opaque<
+  Self,
+  SchemaS,
+  Brand
+> {
+  readonly Encoded: Encoded
   readonly "~type.make.in": MakeIn
-  new(_: never): Self
+  new (_: never): Self
 }
 
 export const OpaqueShape: <Self, Encoded, MakeIn, Brand = {}>() => <S extends S.Top>(
@@ -476,22 +473,20 @@ export interface OpaqueFacade<
   DecodingServices = never,
   EncodingServices = DecodingServices,
   Brand = {}
-> extends
-  S.Bottom<
-    Self,
-    Encoded,
-    DecodingServices,
-    EncodingServices,
-    SchemaAST.AST,
-    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
-    MakeIn,
-    Self,
-    readonly [],
-    MakeIn
-  >
-{
-  new(_: never): Brand
-  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+> extends S.Bottom<
+  Self,
+  Encoded,
+  DecodingServices,
+  EncodingServices,
+  SchemaAST.AST,
+  S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+  MakeIn,
+  Self,
+  readonly [],
+  MakeIn
+> {
+  new (_: never): Brand
+  readonly copy: ReturnType<typeof copyOrigin<new (_: MakeIn) => Self>>
   // NOTE: no `identifier` here — `S.Opaque` (and requests) build on `S.Bottom`, not `S.Class`,
   // so they have no `identifier`. It lives only on the class facades below.
   // NOTE: `fields` / `mapFields` are intentionally NOT redeclared here. They are
@@ -507,22 +502,20 @@ export interface OpaqueClassFacade<
   DecodingServices = never,
   EncodingServices = DecodingServices,
   Brand = {}
-> extends
-  S.Bottom<
-    Self,
-    Encoded,
-    DecodingServices,
-    EncodingServices,
-    SchemaAST.AST,
-    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
-    MakeIn,
-    Self,
-    readonly [],
-    MakeIn
-  >
-{
-  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
-  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+> extends S.Bottom<
+  Self,
+  Encoded,
+  DecodingServices,
+  EncodingServices,
+  SchemaAST.AST,
+  S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+  MakeIn,
+  Self,
+  readonly [],
+  MakeIn
+> {
+  new (...args: OpaqueFacadeConstructorArgs<MakeIn>): Brand
+  readonly copy: ReturnType<typeof copyOrigin<new (_: MakeIn) => Self>>
   readonly identifier: string
 }
 
@@ -536,14 +529,10 @@ export function OpaqueFacade<
 >() {
   function facade<SchemaS extends OpaqueClassFacadeInput<DecodingServices, EncodingServices>>(
     schema: SchemaS
-  ):
-    & OpaqueClassFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS>
+  ): OpaqueClassFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand> & OpaqueFacadeStatics<SchemaS>
   function facade<SchemaS extends OpaqueFacadeInput<DecodingServices, EncodingServices>>(
     schema: SchemaS
-  ):
-    & OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS>
+  ): OpaqueFacade<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand> & OpaqueFacadeStatics<SchemaS>
   function facade(schema: OpaqueFacadeInput<DecodingServices, EncodingServices>) {
     const Base = getFacadeClassSchema(schema)
     if (Base !== undefined) {
@@ -585,26 +574,24 @@ export interface OpaqueErrorFacadeClass<
   DecodingServices = never,
   EncodingServices = DecodingServices,
   Brand = {}
-> extends
-  S.Bottom<
-    Self,
-    Encoded,
-    DecodingServices,
-    EncodingServices,
-    SchemaAST.AST,
-    S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
-    MakeIn,
-    Self,
-    readonly [],
-    MakeIn
-  >
-{
+> extends S.Bottom<
+  Self,
+  Encoded,
+  DecodingServices,
+  EncodingServices,
+  SchemaAST.AST,
+  S.Codec<Self, Encoded, DecodingServices, EncodingServices>,
+  MakeIn,
+  Self,
+  readonly [],
+  MakeIn
+> {
   // YieldableError (not Self) on the constructed instance — like class-schema OpaqueFacade's
   // `new(): Brand`, the data type comes from the declaration-merged `interface X`,
   // so `Self` must NOT appear here (would recurse). Merging `X & YieldableError`
   // makes `yield* new X()` / `Effect.fail` / `instanceof` work without losing data.
-  new(...args: OpaqueFacadeConstructorArgs<MakeIn>): Cause.YieldableError & Brand
-  readonly copy: ReturnType<typeof copyOrigin<new(_: MakeIn) => Self>>
+  new (...args: OpaqueFacadeConstructorArgs<MakeIn>): Cause.YieldableError & Brand
+  readonly copy: ReturnType<typeof copyOrigin<new (_: MakeIn) => Self>>
   readonly identifier: string
 }
 
@@ -618,13 +605,10 @@ export function OpaqueErrorFacadeClass<
 >() {
   return <SchemaS extends OpaqueClassFacadeInput<DecodingServices, EncodingServices>>(
     schema: SchemaS
-  ):
-    & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-    & OpaqueFacadeStatics<SchemaS> =>
-  {
-    type FacadeSchema =
-      & OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand>
-      & OpaqueFacadeStatics<SchemaS>
+  ): OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand> &
+    OpaqueFacadeStatics<SchemaS> => {
+    type FacadeSchema = OpaqueErrorFacadeClass<Self, Encoded, MakeIn, DecodingServices, EncodingServices, Brand> &
+      OpaqueFacadeStatics<SchemaS>
 
     if (isClassSchemaConstructor(schema)) {
       return schema as SchemaS & FacadeSchema
@@ -659,12 +643,10 @@ export type StructFacade<
   DecodingServices,
   EncodingServices,
   Fields extends S.Struct.Fields
-> =
-  & Omit<EffectAppStruct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices">
-  & {
-    readonly "Type": Self
-    readonly "Encoded": Encoded
-    readonly "~type.make.in": MakeIn
-    readonly "DecodingServices": DecodingServices
-    readonly "EncodingServices": EncodingServices
-  }
+> = Omit<EffectAppStruct<Fields>, "Type" | "Encoded" | "~type.make.in" | "DecodingServices" | "EncodingServices"> & {
+  readonly Type: Self
+  readonly Encoded: Encoded
+  readonly "~type.make.in": MakeIn
+  readonly DecodingServices: DecodingServices
+  readonly EncodingServices: EncodingServices
+}

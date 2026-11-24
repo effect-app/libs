@@ -16,10 +16,12 @@ const mountForm = <T>(setup: () => T): T => {
     },
     template: "<div></div>"
   })
-  mount(defineComponent({
-    components: { OmegaIntlProvider, Inner },
-    template: "<OmegaIntlProvider><Inner /></OmegaIntlProvider>"
-  }))
+  mount(
+    defineComponent({
+      components: { OmegaIntlProvider, Inner },
+      template: "<OmegaIntlProvider><Inner /></OmegaIntlProvider>"
+    })
+  )
   if (!captured) throw new Error("no capture")
   return captured
 }

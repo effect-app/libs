@@ -1,52 +1,82 @@
 <template>
   <zero.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values zero: <br> {{ vvv }}</div>
+      <div>
+        Values zero: <br />
+        {{ vvv }}
+      </div>
     </template>
   </zero.Form>
   <one.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values one: <br> {{ vvv }}</div>
+      <div>
+        Values one: <br />
+        {{ vvv }}
+      </div>
     </template>
   </one.Form>
   <two.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values two: <br> {{ vvv }}</div>
+      <div>
+        Values two: <br />
+        {{ vvv }}
+      </div>
     </template>
   </two.Form>
   <three.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values three: <br> {{ vvv }}</div>
+      <div>
+        Values three: <br />
+        {{ vvv }}
+      </div>
     </template>
   </three.Form>
   <four.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values four: <br> {{ vvv }}</div>
+      <div>
+        Values four: <br />
+        {{ vvv }}
+      </div>
     </template>
   </four.Form>
   <five.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values five: <br> {{ vvv }}</div>
+      <div>
+        Values five: <br />
+        {{ vvv }}
+      </div>
     </template>
   </five.Form>
   <six.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values six: <br> {{ vvv }}</div>
+      <div>
+        Values six: <br />
+        {{ vvv }}
+      </div>
     </template>
   </six.Form>
   <seven.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values seven: <br> {{ vvv }}</div>
+      <div>
+        Values seven: <br />
+        {{ vvv }}
+      </div>
     </template>
   </seven.Form>
   <eight.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values eight: <br> {{ vvv }}</div>
+      <div>
+        Values eight: <br />
+        {{ vvv }}
+      </div>
     </template>
   </eight.Form>
   <nine.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values: vvv } }">
-      <div>Values nine: <br> {{ vvv }}</div>
+      <div>
+        Values nine: <br />
+        {{ vvv }}
+      </div>
     </template>
   </nine.Form>
 </template>
@@ -62,13 +92,11 @@ const struct = {
   c: S.NonEmptyArray(S.String).pipe(
     S.withConstructorDefault(Effect.sync(() => [S.NonEmptyString("C"), S.NonEmptyString("Non Empty Array")]))
   ),
-  d: S
-    .NonEmptyArray(S.Struct({
+  d: S.NonEmptyArray(
+    S.Struct({
       e: S.NonEmptyString
-    }))
-    .pipe(
-      S.withConstructorDefault(Effect.sync(() => [{ e: S.NonEmptyString("default") }]))
-    ),
+    })
+  ).pipe(S.withConstructorDefault(Effect.sync(() => [{ e: S.NonEmptyString("default") }]))),
   f: S.Union([
     S.Struct({
       _tag: S.Literal("taggo1").pipe(S.withConstructorDefault(Effect.succeed("taggo1"))),
@@ -103,12 +131,12 @@ const struct = {
   }),
   p: S.NullOr(S.Struct({ z: S.String })),
   q: S.UndefinedOr(S.Struct({ z: S.String })),
-  r: S
-    .NullOr(S.Struct({
+  r: S.NullOr(
+    S.Struct({
       p: S.NullOr(S.Struct({ z: S.String })),
       r: S.UndefinedOr(S.Struct({ z: S.String }))
-    }))
-    .withConstructorDefault,
+    })
+  ).withConstructorDefault,
   s: S.NullOr(S.Struct({ z: S.String })).withConstructorDefault,
   t: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000))),
   u: S.NullOr(S.NonEmptyString),
@@ -142,63 +170,86 @@ const three = useOmegaForm(schema, {
   }
 })
 
-const four = useOmegaForm(schema, {
-  defaultValues: {
-    a: "aaaaah"
-  }
-}, {
-  defaultValuesPriority: ["schema"]
-})
-
-const five = useOmegaForm(schema, {
-  defaultValues: {
-    a: "aaaaah"
-  }
-}, {
-  defaultValuesPriority: ["tanstack"]
-})
-
-const six = useOmegaForm(schema, {
-  defaultValues: {
-    a: "aaaaah"
-  }
-}, {
-  defaultValuesPriority: ["tanstack", "schema"]
-})
-
-const seven = useOmegaForm(S.Union([
-  S.Struct({
-    _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
-    a: S.NonEmptyString,
-    s: S.NullOr(S.Finite).withConstructorDefault
-  }),
-  S.Struct({
-    _tag: S.Literal("tag2"),
-    b: S.NonEmptyString,
-    t: S.Finite
-  })
-]))
-
-const eight = useOmegaForm(ClassSchema
-  .pipe(
-    S.check(S.makeFilter((form) => {
-      if (form.a !== form.b) {
-        return {
-          path: ["a"],
-          issue: "Email and confirmation must match!"
-        }
-      }
-    }))
-  ))
-
-const nine = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
-  if (form.a !== form.b) {
-    return {
-      path: ["a"],
-      issue: "Email and confirmation must match!"
+const four = useOmegaForm(
+  schema,
+  {
+    defaultValues: {
+      a: "aaaaah"
     }
+  },
+  {
+    defaultValuesPriority: ["schema"]
   }
-}))))
+)
+
+const five = useOmegaForm(
+  schema,
+  {
+    defaultValues: {
+      a: "aaaaah"
+    }
+  },
+  {
+    defaultValuesPriority: ["tanstack"]
+  }
+)
+
+const six = useOmegaForm(
+  schema,
+  {
+    defaultValues: {
+      a: "aaaaah"
+    }
+  },
+  {
+    defaultValuesPriority: ["tanstack", "schema"]
+  }
+)
+
+const seven = useOmegaForm(
+  S.Union([
+    S.Struct({
+      _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
+      a: S.NonEmptyString,
+      s: S.NullOr(S.Finite).withConstructorDefault
+    }),
+    S.Struct({
+      _tag: S.Literal("tag2"),
+      b: S.NonEmptyString,
+      t: S.Finite
+    })
+  ])
+)
+
+const eight = useOmegaForm(
+  ClassSchema.pipe(
+    S.check(
+      S.makeFilter((form) => {
+        if (form.a !== form.b) {
+          return {
+            path: ["a"],
+            issue: "Email and confirmation must match!"
+          }
+        }
+      })
+    )
+  )
+)
+
+const nine = useOmegaForm(
+  ClassSchema.pipe(
+    S.check(
+      S.makeFilter((form) => {
+        if (form.a !== form.b) {
+          return {
+            path: ["a"],
+            issue: "Email and confirmation must match!"
+          }
+        }
+      })
+    )
+  )
+)
 </script>
 
 <style scoped>

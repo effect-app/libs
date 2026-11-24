@@ -35,17 +35,12 @@ import type { Concurrency } from "effect/Types"
  * failure, or interruption.
  */
 export function SEM_withPermitsDuration(permits: number, duration: Duration.Duration) {
-  return (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> => {
+  return (self: Semaphore): (<A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>) => {
     return <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-      Effect.uninterruptibleMask(
-        (restore) =>
-          restore(self.take(permits))
-            .pipe(Effect.andThen(
-              restore(effect)
-                .pipe(Effect.ensuring(
-                  Effect.delay(self.release(permits), duration)
-                ))
-            ))
+      Effect.uninterruptibleMask((restore) =>
+        restore(self.take(permits)).pipe(
+          Effect.andThen(restore(effect).pipe(Effect.ensuring(Effect.delay(self.release(permits), duration))))
+        )
       )
   }
 }
@@ -80,9 +75,9 @@ export const batch: {
     Effect.forEach(
       Array.chunksOf(items, n),
       (_, i) =>
-        Effect
-          .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: options?.concurrency })
-          .pipe(Effect.flatMap((_) => forEachBatch(_, i))),
+        Effect.forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: options?.concurrency }).pipe(
+          Effect.flatMap((_) => forEachBatch(_, i))
+        ),
       { concurrency: options?.concurrency }
     )
 )
@@ -103,24 +98,15 @@ export const batch: {
 //         .runCollect
 // }
 
-export function naiveRateLimit(
-  n: number,
-  d: Duration.Duration
-) {
-  return <T>(items: Iterable<T>) => (<R, E, A, R2, E2, A2>(
-    forEachItem: (i: T) => Effect.Effect<A, E, R>,
-    forEachBatch: (a: A[]) => Effect.Effect<A2, E2, R2>
-  ) =>
-    Effect.forEach(
-      Array.chunksOf(items, n),
-      (batch, i) =>
-        ((i === 0)
-          ? Effect.void
-          : Effect.sleep(d))
-          .pipe(Effect.andThen(
-            Effect
-              .forEach(batch, forEachItem, { concurrency: n })
-              .pipe(Effect.flatMap(forEachBatch))
-          ))
-    ))
+export function naiveRateLimit(n: number, d: Duration.Duration) {
+  return <T>(items: Iterable<T>) =>
+    <R, E, A, R2, E2, A2>(
+      forEachItem: (i: T) => Effect.Effect<A, E, R>,
+      forEachBatch: (a: A[]) => Effect.Effect<A2, E2, R2>
+    ) =>
+      Effect.forEach(Array.chunksOf(items, n), (batch, i) =>
+        (i === 0 ? Effect.void : Effect.sleep(d)).pipe(
+          Effect.andThen(Effect.forEach(batch, forEachItem, { concurrency: n }).pipe(Effect.flatMap(forEachBatch)))
+        )
+      )
 }

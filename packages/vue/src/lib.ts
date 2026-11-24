@@ -23,7 +23,7 @@ const determineLevel = (cause: Cause.Cause<unknown>) => {
     case "TransportError":
       return "Info" as const
     case "DecodeError":
-      return filters.some((_) => causeStr?.includes(_)) ? "Info" as const : undefined
+      return filters.some((_) => causeStr?.includes(_)) ? ("Info" as const) : undefined
     default:
       return undefined
   }
@@ -34,12 +34,8 @@ export const reportRuntimeError = (cause: Cause.Cause<unknown>, extras?: Record<
 
 export { makeQueryKey } from "effect-app/client"
 
-export function pauseWhileProcessing(
-  iv: Pausable,
-  pmf: () => Promise<unknown>
-) {
-  return Promise
-    .resolve(iv.pause())
+export function pauseWhileProcessing(iv: Pausable, pmf: () => Promise<unknown>) {
+  return Promise.resolve(iv.pause())
     .then(() => pmf())
     .finally(() => iv.resume())
 }
@@ -79,18 +75,14 @@ export function deepToRaw<T>(sourceObj: T): T {
       return objectIterator(input.value)
     }
 
-    const rawInput = isReactive(input) || isProxy(input)
-      ? toRaw(input)
-      : input
+    const rawInput = isReactive(input) || isProxy(input) ? toRaw(input) : input
 
     if (Array.isArray(rawInput)) {
       return rawInput.map((item) => objectIterator(item))
     }
 
     if (rawInput instanceof Map) {
-      return new Map(
-        Array.from(rawInput.entries(), ([key, value]) => [objectIterator(key), objectIterator(value)])
-      )
+      return new Map(Array.from(rawInput.entries(), ([key, value]) => [objectIterator(key), objectIterator(value)]))
     }
 
     if (rawInput instanceof Set) {
@@ -102,10 +94,13 @@ export function deepToRaw<T>(sourceObj: T): T {
     }
 
     if (rawInput && typeof rawInput === "object") {
-      return Object.keys(rawInput).reduce((acc, key) => {
-        acc[key] = objectIterator(rawInput[key])
-        return acc
-      }, {} as Record<string, unknown>)
+      return Object.keys(rawInput).reduce(
+        (acc, key) => {
+          acc[key] = objectIterator(rawInput[key])
+          return acc
+        },
+        {} as Record<string, unknown>
+      )
     }
 
     return rawInput

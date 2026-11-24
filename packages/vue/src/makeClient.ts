@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { camelCase } from "change-case"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { ExtractModuleName, HandlerInput, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type {
+  ExtractModuleName,
+  HandlerInput,
+  RequestHandlers,
+  RequestHandlerWithInput,
+  RequestsAny,
+  RequestStreamHandlerWithInput
+} from "effect-app/client/clientFor"
 import type { CauseException } from "effect-app/client/errors"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import * as Context from "effect-app/Context"
@@ -21,11 +28,45 @@ import * as Struct from "effect/Struct"
 import { type ComputedRef, effectScope, onBeforeUnmount, onScopeDispose, ref, type WatchSource } from "vue"
 import { type AtomClientRuntime, invalidateAndAwait, invalidateSoft, makeAtomClientRuntime } from "./atomQuery.ts"
 import { type Commander, CommanderStatic, type Progress } from "./commander.ts"
-import { makeTanstackQuery, makeTanstackQueryCacheUpdater, makeTanstackQueryClient, makeTanstackQueryInvalidator } from "./internal/tanstackQuery.ts"
+import {
+  makeTanstackQuery,
+  makeTanstackQueryCacheUpdater,
+  makeTanstackQueryClient,
+  makeTanstackQueryInvalidator
+} from "./internal/tanstackQuery.ts"
 import { type I18n } from "./intl.ts"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.ts"
-import { atomQueryInvalidator, combineQueryInvalidators, type InvalidationEntry, makeMutation, makeStreamMutation2, type MutationOptionsBase, type QueryInvalidator, useMakeMutation } from "./mutate.ts"
-import { atomQueryCacheUpdater, type AtomQueryNewOptions, combineQueryCacheUpdaters, type CustomUndefinedInitialQueryOptions, makeQuery, makeQueryAtom, makeQueryFamily, makeQueryNew, makeStreamQuery, makeStreamQueryAtom, makeStreamQueryFamily, makeStreamQueryNew, optionalAtomQueryCacheUpdater, type QueryObserverResult, type RefetchOptions, setQueryCacheUpdater, type StreamQueryAtomFamily, type SuspenseQueryView, type UseQueryReturnType } from "./query.ts"
+import {
+  atomQueryInvalidator,
+  combineQueryInvalidators,
+  type InvalidationEntry,
+  makeMutation,
+  makeStreamMutation2,
+  type MutationOptionsBase,
+  type QueryInvalidator,
+  useMakeMutation
+} from "./mutate.ts"
+import {
+  atomQueryCacheUpdater,
+  type AtomQueryNewOptions,
+  combineQueryCacheUpdaters,
+  type CustomUndefinedInitialQueryOptions,
+  makeQuery,
+  makeQueryAtom,
+  makeQueryFamily,
+  makeQueryNew,
+  makeStreamQuery,
+  makeStreamQueryAtom,
+  makeStreamQueryFamily,
+  makeStreamQueryNew,
+  optionalAtomQueryCacheUpdater,
+  type QueryObserverResult,
+  type RefetchOptions,
+  setQueryCacheUpdater,
+  type StreamQueryAtomFamily,
+  type SuspenseQueryView,
+  type UseQueryReturnType
+} from "./query.ts"
 import { makeRunPromise } from "./runtime.ts"
 import { latestDefined } from "./suspense.ts"
 import { type Toast } from "./toast.ts"
@@ -86,8 +127,8 @@ const projectHandler = <
   A,
   E,
   R,
-  SuccessSchema extends S.Top & { readonly "EncodingServices": R },
-  ProjSchema extends S.Top & { readonly "DecodingServices": R }
+  SuccessSchema extends S.Top & { readonly EncodingServices: R },
+  ProjSchema extends S.Top & { readonly DecodingServices: R }
 >(
   handler: (i: I) => Effect.Effect<A, E, R>,
   successSchema: SuccessSchema,
@@ -115,18 +156,11 @@ export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
 }
 
 /** my other doc */
-export interface RequestExt<
-  RT,
-  Id extends string,
-  I,
-  A,
-  E,
-  R
-> extends
-  Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>,
-  CommandRequestExtensions<RT, Id, I, A, E, R>
-{
+export interface RequestExt<RT, Id extends string, I, A, E, R>
+  extends
+    Commander.CommandContextLocal<Id, Id>,
+    Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>,
+    CommandRequestExtensions<RT, Id, I, A, E, R> {
   /**
    * Send the request to the endpoint and return the raw Effect response.
    * This does not perform query cache invalidation.
@@ -134,9 +168,10 @@ export interface RequestExt<
   request: (i: I) => Effect.Effect<A, E, R>
 }
 
-export type CommandRequestWithExtensions<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, I, A, E, R>
-  : never
+export type CommandRequestWithExtensions<RT, Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
+    ? RequestExt<RT, Id, I, A, E, R>
+    : never
 
 export interface QueryExtensions<I, A, E, R> {
   /**
@@ -146,33 +181,38 @@ export interface QueryExtensions<I, A, E, R> {
   request: (i: I) => Effect.Effect<A, E, R>
 }
 
-export type QueryRequestWithExtensions<Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id> ? QueryExtensions<I, A, E, R>
-  : never
+export type QueryRequestWithExtensions<Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id>
+    ? QueryExtensions<I, A, E, R>
+    : never
 
-type QueryHandler<Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Request["type"] extends "query" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
-  : never
+type QueryHandler<Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query"
+      ? RequestHandlerWithInput<I, A, E, R, Request, Id>
+      : never
+    : never
 
-type CommandHandler<Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Request["type"] extends "command" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
-  : never
+type CommandHandler<Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "command"
+      ? RequestHandlerWithInput<I, A, E, R, Request, Id>
+      : never
+    : never
 
-type QueryStreamHandler<Req> = Req extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
-  ? [Request["stream"], Request["type"]] extends [true, "query"]
-    ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
-  : never
-  : never
+type QueryStreamHandler<Req> =
+  Req extends RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
+    ? [Request["stream"], Request["type"]] extends [true, "query"]
+      ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
+      : never
+    : never
 
-type CommandStreamHandler<Req> = Req extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
-  ? [Request["stream"], Request["type"]] extends [true, "command"]
-    ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
-  : never
-  : never
+type CommandStreamHandler<Req> =
+  Req extends RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
+    ? [Request["stream"], Request["type"]] extends [true, "command"]
+      ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
+      : never
+    : never
 
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
@@ -201,15 +241,14 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
  *
  * When `I = void` the input argument may be omitted.
  */
-export interface MutationExt<
+export interface MutationExt<RT, Id extends string, I, A, E, R, EA = unknown> extends MutationExtensions<
   RT,
-  Id extends string,
+  Id,
   I,
   A,
   E,
-  R,
-  EA = unknown
-> extends MutationExtensions<RT, Id, I, A, E, R> {
+  R
+> {
   <B = A, E2 = never, R2 = never>(
     input: I,
     options?: MutationOptionsBase<A, B, E2, R2>
@@ -228,35 +267,42 @@ export interface MutationExt<
   >
 }
 
-export type MutationWithExtensions<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? MutationExt<RT, Id, I, A, E, R, Request["success"]["Encoded"]>
-  : never
+export type MutationWithExtensions<RT, Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+    ? MutationExt<RT, Id, I, A, E, R, Request["success"]["Encoded"]>
+    : never
 
 /**
  * The `streamFn` builder for a stream-type request handler, using the stream-specific overloads.
  */
-export type StreamFnStreamExtension<RT, Req> = Req extends
-  RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
-  ? <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
-    options?: Commander.FnOptions<Id, I18nKey, State>
-  ) => Commander.StreamGen<RT, Id, I18nKey, State> & Commander.NonGenStream<RT, Id, I18nKey, State>
-  : never
+export type StreamFnStreamExtension<RT, Req> =
+  Req extends RequestStreamHandlerWithInput<
+    infer _I,
+    infer _A,
+    infer _E,
+    infer _R,
+    infer _Request,
+    infer Id,
+    infer _Final
+  >
+    ? <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+        options?: Commander.FnOptions<Id, I18nKey, State>
+      ) => Commander.StreamGen<RT, Id, I18nKey, State> & Commander.NonGenStream<RT, Id, I18nKey, State>
+    : never
 
 /**
  * `mutate` factory — wraps per-invocation invalidation scaffolding
  * into the stream itself (via `Stream.unwrap`) for use with `streamFn` combinators.
  */
-export type StreamMutation2WithExtensions<RT, Req> = Req extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-    & ((input: I) => Stream.Stream<A, E, R>)
-    & {
-      readonly id: Id
-      readonly wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
-        options?: Commander.FnOptions<Id, I18nKey, State>
-      ) => Commander.StreamerWrap<RT, Id, I18nKey, State, I, A, E, R>
-    }
-  : never
+export type StreamMutation2WithExtensions<RT, Req> =
+  Req extends RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
+    ? ((input: I) => Stream.Stream<A, E, R>) & {
+        readonly id: Id
+        readonly wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+          options?: Commander.FnOptions<Id, I18nKey, State>
+        ) => Commander.StreamerWrap<RT, Id, I18nKey, State, I, A, E, R>
+      }
+    : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
 // eslint-disable-next-line unused-imports/no-unused-vars
@@ -282,37 +328,44 @@ declare const useStreamQueryNew_: QueryImpl<any>["useStreamQueryNew"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
   request: (i: I) => Effect.Effect<B, E, R>
-  family: Exclude<R, RT> extends never ? ReturnType<typeof useQueryFamily_<I, E, B, Request, Id>>
+  family: Exclude<R, RT> extends never
+    ? ReturnType<typeof useQueryFamily_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
-  query: Exclude<R, RT> extends never ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
+  query: Exclude<R, RT> extends never
+    ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
-  queryNew: Exclude<R, RT> extends never ? ReturnType<typeof useQueryNew_<I, E, B, Request, Id>>
+  queryNew: Exclude<R, RT> extends never
+    ? ReturnType<typeof useQueryNew_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
-  suspense: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
+  suspense: Exclude<R, RT> extends never
+    ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
-  suspenseNew: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQueryNew_<I, E, B, Request, Id>>
+  suspenseNew: Exclude<R, RT> extends never
+    ? ReturnType<typeof useSuspenseQueryNew_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
-  atom: Exclude<R, RT> extends never ? ReturnType<typeof useQueryAtom_<I, E, B, Request, Id>>
+  atom: Exclude<R, RT> extends never
+    ? ReturnType<typeof useQueryAtom_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
 }
 
-export type QueryProjection<RT, HandlerReq> = HandlerReq extends
-  RequestHandlerWithInput<infer I, infer _A, infer E, infer R, infer Request, infer Id>
-  ? Request["type"] extends "query" ? {
-      project: <ProjSchema extends S.Top>(
-        schema: Request["success"]["Encoded"] extends ProjSchema["Encoded"] ? ProjSchema : never
-      ) => ProjectResult<
-        RT,
-        I,
-        ProjSchema["Type"],
-        E | S.SchemaError,
-        R | ProjSchema["DecodingServices"],
-        Request,
-        Id
-      >
-    }
-  : {}
-  : {}
+export type QueryProjection<RT, HandlerReq> =
+  HandlerReq extends RequestHandlerWithInput<infer I, infer _A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query"
+      ? {
+          project: <ProjSchema extends S.Top>(
+            schema: Request["success"]["Encoded"] extends ProjSchema["Encoded"] ? ProjSchema : never
+          ) => ProjectResult<
+            RT,
+            I,
+            ProjSchema["Type"],
+            E | S.SchemaError,
+            R | ProjSchema["DecodingServices"],
+            Request,
+            Id
+          >
+        }
+      : {}
+    : {}
 
 export interface QueryResultExtensions<Request extends Req, Id extends string, I, A, E> {
   /**
@@ -353,19 +406,21 @@ export type MissingDependencies<RT, R> = {
   dependencies: Exclude<R, RT>
 }
 
-export type Queries<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueryResultExtensions<Request, Id, I, A, E>
-    : {
-      atom: MissingDependencies<RT, R> & {}
-      family: MissingDependencies<RT, R> & {}
-      query: MissingDependencies<RT, R> & {}
-      queryNew: MissingDependencies<RT, R> & {}
-      suspense: MissingDependencies<RT, R> & {}
-      suspenseNew: MissingDependencies<RT, R> & {}
-    }
-  : never
-  : never
+export type Queries<RT, Req> =
+  Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query"
+      ? Exclude<R, RT> extends never
+        ? QueryResultExtensions<Request, Id, I, A, E>
+        : {
+            atom: MissingDependencies<RT, R> & {}
+            family: MissingDependencies<RT, R> & {}
+            query: MissingDependencies<RT, R> & {}
+            queryNew: MissingDependencies<RT, R> & {}
+            suspense: MissingDependencies<RT, R> & {}
+            suspenseNew: MissingDependencies<RT, R> & {}
+          }
+      : never
+    : never
 
 export interface StreamQueryExtensions<Request extends Req, Id extends string, I, A, E> {
   atom: ReturnType<typeof useStreamQueryAtom_<I, E, A, Request, Id>>
@@ -383,16 +438,25 @@ export interface StreamQueryExtensions<Request extends Req, Id extends string, I
    */
   queryNew: ReturnType<typeof useStreamQueryNew_<I, E, A, Request, Id>>
 }
-export type StreamQueries<RT, HandlerReq> = HandlerReq extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
-  ? Exclude<R, RT> extends never ? StreamQueryExtensions<Request, Id, I, A, E>
-  : {
-    atom: MissingDependencies<RT, R> & {}
-    family: MissingDependencies<RT, R> & {}
-    query: MissingDependencies<RT, R> & {}
-    queryNew: MissingDependencies<RT, R> & {}
-  }
-  : never
+export type StreamQueries<RT, HandlerReq> =
+  HandlerReq extends RequestStreamHandlerWithInput<
+    infer I,
+    infer A,
+    infer E,
+    infer R,
+    infer Request,
+    infer Id,
+    infer _Final
+  >
+    ? Exclude<R, RT> extends never
+      ? StreamQueryExtensions<Request, Id, I, A, E>
+      : {
+          atom: MissingDependencies<RT, R> & {}
+          family: MissingDependencies<RT, R> & {}
+          query: MissingDependencies<RT, R> & {}
+          queryNew: MissingDependencies<RT, R> & {}
+        }
+    : never
 
 const _useMutation = makeMutation(atomQueryInvalidator)
 
@@ -407,20 +471,9 @@ const wrapWithSpan = (self: { id: string }, mut: any) => {
  * Executes query cache invalidation based on default rules or provided option.
  * adds a span with the mutation id
  */
-export const useMutation: typeof _useMutation = (<
-  I,
-  E,
-  A,
-  R,
-  Request extends Req,
-  Name extends string
->(
+export const useMutation: typeof _useMutation = (<I, E, A, R, Request extends Req, Name extends string>(
   self: RequestHandlerWithInput<I, A, E, R, Request, Name>
-) =>
-  Object.assign(
-    wrapWithSpan(self, _useMutation(self as any)),
-    { id: self.id }
-  )) as any
+) => Object.assign(wrapWithSpan(self, _useMutation(self as any)), { id: self.id })) as any
 
 /**
  * Pass an Effect or a function that returns an Effect, e.g from a client action
@@ -429,20 +482,9 @@ export const useMutation: typeof _useMutation = (<
  */
 export const useMutationInt = (queryInvalidator: QueryInvalidator): typeof _useMutation => {
   const _useMutation = useMakeMutation(queryInvalidator)
-  return (<
-    I,
-    E,
-    A,
-    R,
-    Request extends Req,
-    Name extends string
-  >(
+  return (<I, E, A, R, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) =>
-    Object.assign(
-      wrapWithSpan(self, _useMutation(self as any)),
-      { id: self.id }
-    )) as any
+  ) => Object.assign(wrapWithSpan(self, _useMutation(self as any)), { id: self.id })) as any
 }
 
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
@@ -510,13 +552,7 @@ export class QueryImpl<R> {
      * So that Suspense and error boundaries can be used.
      * When `I = void` the input argument may be omitted.
      */
-    <
-      I,
-      E,
-      A,
-      Request extends Req,
-      Name extends string
-    >(
+    <I, E, A, Request extends Req, Name extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
       <TData = A>(
@@ -526,34 +562,26 @@ export class QueryImpl<R> {
         readonly [
           ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
-          (
-            options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, E>>,
+          (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, E>>,
           UseQueryReturnType<any, any>
         ]
       >
     }
-  } = <I, E, A, Request extends Req, Name extends string>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) => {
+  } = <I, E, A, Request extends Req, Name extends string>(self: RequestHandlerWithInput<I, A, E, R, Request, Name>) => {
     const runPromise = makeRunPromise(this.getRuntime())
     const q = this.useQuery(self)
     return <TData = A>(
       argOrOptions: I | WatchSource<I>,
       options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
     ) => {
-      const [
-        [resultRef, latestDefinedRef, fetch, uqrt],
-        isMounted,
-        signal
-      ] = useScopedSuspenseSetup(() => {
+      const [[resultRef, latestDefinedRef, fetch, uqrt], isMounted, signal] = useScopedSuspenseSetup(() => {
         const [resultRef, latestRef, fetch, uqrt] = q<TData>(argOrOptions, options)
         const latestDefinedRef = latestDefined(() => latestRef.value, "suspense")
         return [resultRef, latestDefinedRef, fetch, uqrt] as const
       })
 
       // @effect-diagnostics effect/missingEffectError:off
-      const eff = Effect.gen(function*() {
+      const eff = Effect.gen(function* () {
         const exit = yield* uqrt.awaitResult().pipe(Effect.exit)
         if (!isMounted.value) {
           return yield* Effect.interrupt
@@ -576,13 +604,7 @@ export class QueryImpl<R> {
   }
 
   readonly useSuspenseQueryNew: {
-    <
-      I,
-      E,
-      A,
-      Request extends Req,
-      Name extends string
-    >(
+    <I, E, A, Request extends Req, Name extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
       <TData = A>(
@@ -590,15 +612,10 @@ export class QueryImpl<R> {
         options?: AtomQueryNewOptions<A, TData>
       ): Promise<SuspenseQueryView<TData, E>>
     }
-  } = <I, E, A, Request extends Req, Name extends string>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name>
-  ) => {
+  } = <I, E, A, Request extends Req, Name extends string>(self: RequestHandlerWithInput<I, A, E, R, Request, Name>) => {
     const runPromise = makeRunPromise(this.getRuntime())
     const q = this.useQueryNew(self)
-    return <TData = A>(
-      argOrOptions: I | WatchSource<I>,
-      options?: AtomQueryNewOptions<A, TData>
-    ) => {
+    return <TData = A>(argOrOptions: I | WatchSource<I>, options?: AtomQueryNewOptions<A, TData>) => {
       const [{ view, data }, isMounted, signal] = useScopedSuspenseSetup(() => {
         const view = q<TData>(argOrOptions, options)
         const data = latestDefined(() => view.data.value, "suspenseNew")
@@ -606,7 +623,7 @@ export class QueryImpl<R> {
       })
 
       // @effect-diagnostics effect/missingEffectError:off
-      const eff = Effect.gen(function*() {
+      const eff = Effect.gen(function* () {
         const exit = yield* view.awaitResult().pipe(Effect.exit)
         if (!isMounted.value) {
           return yield* Effect.interrupt
@@ -627,18 +644,10 @@ export class QueryImpl<R> {
           registry: view.registry,
           atom: view.atom
         }
-        return Object.assign(
-          [
-            view.result,
-            data,
-            fetch,
-            handle
-          ] as const,
-          {
-            ...view,
-            data
-          }
-        )
+        return Object.assign([view.result, data, fetch, handle] as const, {
+          ...view,
+          data
+        })
       })
 
       return runPromise(eff, { signal })
@@ -653,57 +662,63 @@ type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | Base
 
 type InvalidationResources = Record<string, Record<string, unknown>>
-type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends ((arg: infer I) => void) ? I
-  : never
+type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends (arg: infer I) => void ? I : never
 
 type CommandInvalidationResources<Req> = Req extends {
   readonly type: "command"
   readonly "~invalidationResources"?: infer Resources
-} ? NonNullable<Resources> extends InvalidationResources ? NonNullable<Resources> : never
-  : Req extends {
-    readonly type: "command"
-    readonly config?: infer Config
-  } ? Config extends {
-      readonly invalidationResources?: infer LegacyResources
-    } ? NonNullable<LegacyResources> extends InvalidationResources ? NonNullable<LegacyResources> : never
-    : Config extends {
-      readonly invalidatesQueries?: InvalidationCallback<infer LegacyResources, any, any, any>
-    } ? NonNullable<LegacyResources> extends InvalidationResources ? NonNullable<LegacyResources> : never
+}
+  ? NonNullable<Resources> extends InvalidationResources
+    ? NonNullable<Resources>
     : never
-  : never
+  : Req extends {
+        readonly type: "command"
+        readonly config?: infer Config
+      }
+    ? Config extends {
+        readonly invalidationResources?: infer LegacyResources
+      }
+      ? NonNullable<LegacyResources> extends InvalidationResources
+        ? NonNullable<LegacyResources>
+        : never
+      : Config extends {
+            readonly invalidatesQueries?: InvalidationCallback<infer LegacyResources, any, any, any>
+          }
+        ? NonNullable<LegacyResources> extends InvalidationResources
+          ? NonNullable<LegacyResources>
+          : never
+        : never
+    : never
 
 type InvalidationResourcesForUnion<M extends RequestsAny> = {
   [K in keyof M]: CommandInvalidationResources<M[K]>
 }[keyof M]
 
-type InvalidationResourcesFor<M extends RequestsAny> = [InvalidationResourcesForUnion<M>] extends [never] ? never
-  : UnionToIntersection<InvalidationResourcesForUnion<M>> extends infer R ? R extends InvalidationResources ? R
+type InvalidationResourcesFor<M extends RequestsAny> = [InvalidationResourcesForUnion<M>] extends [never]
+  ? never
+  : UnionToIntersection<InvalidationResourcesForUnion<M>> extends infer R
+    ? R extends InvalidationResources
+      ? R
+      : never
     : never
-  : never
 
 type QueryInvalidationFactory<M extends RequestsAny> = (client: ClientFrom<M>) => QueryInvalidation<M>
 
-type StrictResourcesArg<Shape, Actual extends Shape = Shape> =
-  & Actual
-  & Record<Exclude<keyof Actual, keyof Shape>, never>
+type StrictResourcesArg<Shape, Actual extends Shape = Shape> = Actual &
+  Record<Exclude<keyof Actual, keyof Shape>, never>
 
 type ClientForArgs<
   M extends RequestsAny,
   Resources extends InvalidationResourcesFor<M> = InvalidationResourcesFor<M>
-> = [InvalidationResourcesFor<M>] extends [never] ? [
-    queryInvalidation?: QueryInvalidationFactory<M>,
-    invalidationResources?: StrictResourcesArg<
-      InvalidationResourcesFor<M>,
-      Resources
-    >
-  ]
+> = [InvalidationResourcesFor<M>] extends [never]
+  ? [
+      queryInvalidation?: QueryInvalidationFactory<M>,
+      invalidationResources?: StrictResourcesArg<InvalidationResourcesFor<M>, Resources>
+    ]
   : [
-    queryInvalidation: QueryInvalidationFactory<M> | undefined,
-    invalidationResources: StrictResourcesArg<
-      InvalidationResourcesFor<M>,
-      Resources
-    >
-  ]
+      queryInvalidation: QueryInvalidationFactory<M> | undefined,
+      invalidationResources: StrictResourcesArg<InvalidationResourcesFor<M>, Resources>
+    ]
 
 const makeResolvedAtomQueryInvalidator = <R>(getContext: () => Context.Context<R>): QueryInvalidator => {
   let reactivity: Context.Service.Shape<typeof Reactivity.Reactivity> | undefined
@@ -713,25 +728,20 @@ const makeResolvedAtomQueryInvalidator = <R>(getContext: () => Context.Context<R
     if (service === undefined) {
       throw new Error("Reactivity service is missing from the client runtime")
     }
-    return reactivity = service
+    return (reactivity = service)
   }
 
   return {
     invalidateAndAwait: (keys) =>
-      invalidateAndAwait(keys).pipe(
-        Effect.provideService(Reactivity.Reactivity, getReactivity())
-      ),
-    invalidateSoft: (keys) =>
-      invalidateSoft(keys).pipe(
-        Effect.provideService(Reactivity.Reactivity, getReactivity())
-      )
+      invalidateAndAwait(keys).pipe(Effect.provideService(Reactivity.Reactivity, getReactivity())),
+    invalidateSoft: (keys) => invalidateSoft(keys).pipe(Effect.provideService(Reactivity.Reactivity, getReactivity()))
   }
 }
 
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
-  clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>,
+  clientFor_: ReturnType<(typeof ApiClientFactory)["makeFor"]>,
   rtHooks: Layer.Layer<RTHooks, never, Mix>,
   options?: MakeClientOptions
 ) => {
@@ -739,39 +749,39 @@ export const makeClient = <RT_, RTHooks>(
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
   const makeCommand = makeUseCommand<RT, RTHooks>(rtHooks)
   let cmd: Effect.Success<typeof makeCommand>
-  const useCommand = () => cmd ??= getBaseMrt().runSync(makeCommand)
+  const useCommand = () => (cmd ??= getBaseMrt().runSync(makeCommand))
 
   // one AtomRuntime for the query engine, built lazily from the live app context;
   // shares the ManagedRuntime memoMap so layers + Reactivity are the same instances.
   let atomRt: AtomClientRuntime | undefined
-  const getAtomRt =
-    () => (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
+  const getAtomRt = () =>
+    (atomRt ??= makeAtomClientRuntime(() => Layer.succeedContext(getBaseRt()), getBaseMrt().memoMap))
 
   const legacyQueryEngine = options?.legacyQueryEngine ?? "tanstack"
   let tanstackQueryClient: ReturnType<typeof makeTanstackQueryClient> | undefined
-  const getTanstackQueryClient = () => tanstackQueryClient ??= makeTanstackQueryClient()
+  const getTanstackQueryClient = () => (tanstackQueryClient ??= makeTanstackQueryClient())
   const atomInvalidator = makeResolvedAtomQueryInvalidator(getBaseRt)
-  const queryInvalidator = legacyQueryEngine === "tanstack"
-    ? combineQueryInvalidators(atomInvalidator, makeTanstackQueryInvalidator(getTanstackQueryClient()))
-    : atomInvalidator
+  const queryInvalidator =
+    legacyQueryEngine === "tanstack"
+      ? combineQueryInvalidators(atomInvalidator, makeTanstackQueryInvalidator(getTanstackQueryClient()))
+      : atomInvalidator
   setQueryCacheUpdater(
     legacyQueryEngine === "tanstack"
       ? combineQueryCacheUpdaters(
-        makeTanstackQueryCacheUpdater(getTanstackQueryClient()),
-        optionalAtomQueryCacheUpdater
-      )
+          makeTanstackQueryCacheUpdater(getTanstackQueryClient()),
+          optionalAtomQueryCacheUpdater
+        )
       : atomQueryCacheUpdater
   )
 
   let m: ReturnType<typeof useMutationInt>
-  const useMutation = () => m ??= useMutationInt(queryInvalidator)
+  const useMutation = () => (m ??= useMutationInt(queryInvalidator))
 
   let sm2: ReturnType<typeof makeStreamMutation2>
-  const useStreamMutation2 = () => sm2 ??= makeStreamMutation2(queryInvalidator)
+  const useStreamMutation2 = () => (sm2 ??= makeStreamMutation2(queryInvalidator))
 
-  const legacyUseQuery = legacyQueryEngine === "tanstack"
-    ? makeTanstackQuery(getBaseRt, getTanstackQueryClient())
-    : undefined
+  const legacyUseQuery =
+    legacyQueryEngine === "tanstack" ? makeTanstackQuery(getBaseRt, getTanstackQueryClient()) : undefined
   const query = new QueryImpl(getBaseRt, getAtomRt, legacyUseQuery)
   const useQuery = query.useQuery
   const useQueryNew = query.useQueryNew
@@ -810,36 +820,37 @@ export const makeClient = <RT_, RTHooks>(
     queryNew: useStreamQueryNew(handler)
   })
 
-  const projectQueryFor = <
-    I,
-    A,
-    E,
-    Request extends Req & { readonly success: S.Top & { readonly "EncodingServices": RT } },
-    Name extends string
-  >(
-    handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
-  ) =>
-  <ProjSchema extends S.Top & { readonly "DecodingServices": RT }>(projectionSchema: ProjSchema) => {
-    const successSchema = handler.Request.success
-    const projectionHash = projectionSchemaHash(projectionSchema)
-    const projected = projectHandler(handler.handler, successSchema, projectionSchema)
-    const projectedHandler = {
-      handler: projected,
-      id: handler.id,
-      Request: handler.Request,
-      queryKeyProjectionHash: projectionHash
-    }
-    if (handler.options) {
+  const projectQueryFor =
+    <
+      I,
+      A,
+      E,
+      Request extends Req & { readonly success: S.Top & { readonly EncodingServices: RT } },
+      Name extends string
+    >(
+      handler: RequestHandlerWithInput<I, A, E, RT, Request, Name>
+    ) =>
+    <ProjSchema extends S.Top & { readonly DecodingServices: RT }>(projectionSchema: ProjSchema) => {
+      const successSchema = handler.Request.success
+      const projectionHash = projectionSchemaHash(projectionSchema)
+      const projected = projectHandler(handler.handler, successSchema, projectionSchema)
+      const projectedHandler = {
+        handler: projected,
+        id: handler.id,
+        Request: handler.Request,
+        queryKeyProjectionHash: projectionHash
+      }
+      if (handler.options) {
+        return {
+          request: projected,
+          ...queryHelpersFor({ ...projectedHandler, options: handler.options })
+        }
+      }
       return {
         request: projected,
-        ...queryHelpersFor({ ...projectedHandler, options: handler.options })
+        ...queryHelpersFor(projectedHandler)
       }
     }
-    return {
-      request: projected,
-      ...queryHelpersFor(projectedHandler)
-    }
-  }
 
   const mergeInvalidation = (
     a?: MutationOptionsBase["queryInvalidation"],
@@ -854,10 +865,7 @@ export const makeClient = <RT_, RTHooks>(
     ]
   }
 
-  const withDefaultInvalidation = (
-    mut: any,
-    defaultInvalidation?: MutationOptionsBase["queryInvalidation"]
-  ) => {
+  const withDefaultInvalidation = (mut: any, defaultInvalidation?: MutationOptionsBase["queryInvalidation"]) => {
     if (!defaultInvalidation) return mut
     const apply = (callerOpts?: MutationOptionsBase) => ({
       ...callerOpts,
@@ -875,9 +883,7 @@ export const makeClient = <RT_, RTHooks>(
     return resources as Record<string, Record<string, unknown>>
   }
 
-  const mapQuery = <M extends RequestsAny>(
-    client: ClientFrom<M>
-  ) => {
+  const mapQuery = <M extends RequestsAny>(client: ClientFrom<M>) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
         const handler = client[key]
@@ -896,12 +902,9 @@ export const makeClient = <RT_, RTHooks>(
           ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(handler), {
             id: client[key].id
           })
-          ;(acc as any)[camelCase(key) + "SuspenseQueryNew"] = Object.assign(
-            useSuspenseQueryNew(handler),
-            {
-              id: client[key].id
-            }
-          )
+          ;(acc as any)[camelCase(key) + "SuspenseQueryNew"] = Object.assign(useSuspenseQueryNew(handler), {
+            id: client[key].id
+          })
         } else if (isStreamQueryHandler(handler)) {
           const streamHelpers = streamQueryHelpersFor(handler)
           Object.assign(acc, {
@@ -918,71 +921,64 @@ export const makeClient = <RT_, RTHooks>(
         }
         return acc
       },
-      {} as
-        & {
-          [
-            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}QueryFamily`
-          ]: Queries<RT, QueryHandler<typeof client[Key]>>["family"]
-        }
-        & {
-          // apparently can't get JSDoc in here..
-          [
-            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}Query`
-          ]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
-        }
-        & {
-          [
-            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}QueryNew`
-          ]: Queries<RT, QueryHandler<typeof client[Key]>>["queryNew"]
-        }
+      {} as {
+        [
+          Key in keyof typeof client as QueryHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}QueryFamily`
+        ]: Queries<RT, QueryHandler<(typeof client)[Key]>>["family"]
+      } & {
+        // apparently can't get JSDoc in here..
+        [
+          Key in keyof typeof client as QueryHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}Query`
+        ]: Queries<RT, QueryHandler<(typeof client)[Key]>>["query"]
+      } & {
+        [
+          Key in keyof typeof client as QueryHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}QueryNew`
+        ]: Queries<RT, QueryHandler<(typeof client)[Key]>>["queryNew"]
+      } &
         // todo: or suspense as an Option?
-        & {
+        {
           // apparently can't get JSDoc in here..
           [
-            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+            Key in keyof typeof client as QueryHandler<(typeof client)[Key]> extends never
+              ? never
               : `${ToCamel<string & Key>}SuspenseQuery`
-          ]: Queries<
-            RT,
-            QueryHandler<typeof client[Key]>
-          >["suspense"]
-        }
-        & {
-          [
-            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}SuspenseQueryNew`
-          ]: Queries<
-            RT,
-            QueryHandler<typeof client[Key]>
-          >["suspenseNew"]
-        }
-        & {
-          [
-            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}QueryFamily`
-          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["family"]
-        }
-        & {
-          [
-            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}Query`
-          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["query"]
-        }
-        & {
-          [
-            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}QueryNew`
-          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["queryNew"]
-        }
+          ]: Queries<RT, QueryHandler<(typeof client)[Key]>>["suspense"]
+        } & {
+        [
+          Key in keyof typeof client as QueryHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}SuspenseQueryNew`
+        ]: Queries<RT, QueryHandler<(typeof client)[Key]>>["suspenseNew"]
+      } & {
+        [
+          Key in keyof typeof client as QueryStreamHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}QueryFamily`
+        ]: StreamQueries<RT, QueryStreamHandler<(typeof client)[Key]>>["family"]
+      } & {
+        [
+          Key in keyof typeof client as QueryStreamHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}Query`
+        ]: StreamQueries<RT, QueryStreamHandler<(typeof client)[Key]>>["query"]
+      } & {
+        [
+          Key in keyof typeof client as QueryStreamHandler<(typeof client)[Key]> extends never
+            ? never
+            : `${ToCamel<string & Key>}QueryNew`
+        ]: StreamQueries<RT, QueryStreamHandler<(typeof client)[Key]>>["queryNew"]
+      }
     )
     return queries
   }
 
-  const mapRequest = <M extends RequestsAny>(
-    client: ClientFrom<M>
-  ) => {
+  const mapRequest = <M extends RequestsAny>(client: ClientFrom<M>) => {
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
@@ -1002,12 +998,10 @@ export const makeClient = <RT_, RTHooks>(
       },
       {} as {
         [
-          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+          Key in keyof typeof client as CommandHandler<(typeof client)[Key]> extends never
+            ? never
             : `${ToCamel<string & Key>}Request`
-        ]: CommandRequestWithExtensions<
-          RT | RTHooks,
-          CommandHandler<typeof client[Key]>
-        >
+        ]: CommandRequestWithExtensions<RT | RTHooks, CommandHandler<(typeof client)[Key]>>
       }
     )
     return mutations
@@ -1031,13 +1025,8 @@ export const makeClient = <RT_, RTHooks>(
           | InvalidationCallback<InvalidationResourcesFor<M>>
           | undefined
         const fromRequest = fromRequestConfig
-          ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-            fromRequestConfig(
-              defaultKey,
-              queryResources as never,
-              input,
-              output as never
-            ) as InvalidationEntry[])
+          ? (defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+              fromRequestConfig(defaultKey, queryResources as never, input, output as never) as InvalidationEntry[]
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
@@ -1059,12 +1048,10 @@ export const makeClient = <RT_, RTHooks>(
       },
       {} as {
         [
-          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+          Key in keyof typeof client as CommandHandler<(typeof client)[Key]> extends never
+            ? never
             : `${ToCamel<string & Key>}Mutation`
-        ]: MutationWithExtensions<
-          RT | RTHooks,
-          CommandHandler<typeof client[Key]>
-        >
+        ]: MutationWithExtensions<RT | RTHooks, CommandHandler<(typeof client)[Key]>>
       }
     )
     return mutations
@@ -1072,151 +1059,154 @@ export const makeClient = <RT_, RTHooks>(
 
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
-  const mapClient = <M extends RequestsAny>(
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
-    invalidationResources?: InvalidationResourcesFor<M>
-  ) =>
-  (
-    client: ClientFrom<M>
-  ) => {
-    const Command = useCommand()
-    const mutation = useMutation()
-    const invalidation = queryInvalidation?.(client)
-    const queryResources = makeQueryResources(invalidationResources)
-    const extended = Struct.keys(client).reduce(
-      (acc, key) => {
-        const handler = client[key]
-        const requestType = handler.Request.type
-        const isStream = handler.Request.stream
-        const fn = Command.fn(client[key].id)
-        const h_ = handler.handler
-        const request = h_
-        ;(acc as any)[key] = Object.assign(
-          isQueryHandler(handler)
-            ? {
-              ...handler,
-              request,
-              ...queryHelpersFor(handler),
-              project: projectQueryFor(handler)
-            }
-            : isStreamQueryHandler(handler)
-            ? {
-              ...client[key],
-              request,
-              ...streamQueryHelpersFor(handler)
-            }
-            : requestType === "command" && isStream
-            ? (() => {
-              const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
-                | InvalidationCallback<InvalidationResourcesFor<M>>
-                | undefined
-              const fromRequest = fromRequestConfig
-                ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-                  fromRequestConfig(
-                    defaultKey,
-                    queryResources as never,
-                    input,
-                    output as never
-                  ) as InvalidationEntry[])
-                : undefined
-              const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-              const streamCmd = useCommand()
-              return {
-                ...client[key],
-                request,
-                query: useStreamQuery(client[key] as any),
-                fn: (options?: any) => streamCmd.streamFn(client[key].id as any, options),
-                mutate: (() => {
-                  const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
-                  const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
-                  return Object.assign(sm2Act, {
-                    id: client[key].id,
-                    wrap: (options?: any) => streamCmd.streamWrap(sm2Handler, client[key].id as any, options)
-                  })
-                })()
-              }
-            })()
-            : {
-              mutate: ((handler: any) => {
-                const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
-                  | InvalidationCallback<InvalidationResourcesFor<M>>
-                  | undefined
-                const fromRequest = fromRequestConfig
-                  ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
-                    fromRequestConfig(
-                      defaultKey,
-                      queryResources as never,
-                      input,
-                      output as never
-                    ) as InvalidationEntry[])
-                  : undefined
-                const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-                const makeProjectedMutation = (h: any): any => {
-                  const mutate = withDefaultInvalidation(mutation(h), mergedInvalidation)
-                  return Object.assign(
-                    mutate,
-                    {
-                      wrap: (options?: any) =>
-                        Command.wrap({
-                          mutate,
-                          id: client[key].id
-                        }, options),
-                      fn: (options?: any) => Command.fn(client[key].id, options),
-                      project: (projectionSchema: any) => {
-                        const projected = {
-                          ...h,
-                          handler: projectHandler(h.handler, client[key].Request.success, projectionSchema)
-                        }
-                        return makeProjectedMutation(projected)
-                      }
-                    }
-                  )
+  const mapClient =
+    <M extends RequestsAny>(
+      queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+      invalidationResources?: InvalidationResourcesFor<M>
+    ) =>
+    (client: ClientFrom<M>) => {
+      const Command = useCommand()
+      const mutation = useMutation()
+      const invalidation = queryInvalidation?.(client)
+      const queryResources = makeQueryResources(invalidationResources)
+      const extended = Struct.keys(client).reduce(
+        (acc, key) => {
+          const handler = client[key]
+          const requestType = handler.Request.type
+          const isStream = handler.Request.stream
+          const fn = Command.fn(client[key].id)
+          const h_ = handler.handler
+          const request = h_
+          ;(acc as any)[key] = Object.assign(
+            isQueryHandler(handler)
+              ? {
+                  ...handler,
+                  request,
+                  ...queryHelpersFor(handler),
+                  project: projectQueryFor(handler)
                 }
-                return makeProjectedMutation(handler)
-              })(client[key] as any),
-              ...client[key],
-              ...fn, // to get the i18n key etc.
-              request,
-              fn: (options?: any) => Command.fn(client[key].id, options),
-              wrap: (options?: any) => Command.wrap({ mutate: h_, id: client[key].id }, options)
+              : isStreamQueryHandler(handler)
+                ? {
+                    ...client[key],
+                    request,
+                    ...streamQueryHelpersFor(handler)
+                  }
+                : requestType === "command" && isStream
+                  ? (() => {
+                      const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
+                        | InvalidationCallback<InvalidationResourcesFor<M>>
+                        | undefined
+                      const fromRequest = fromRequestConfig
+                        ? (defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+                            fromRequestConfig(
+                              defaultKey,
+                              queryResources as never,
+                              input,
+                              output as never
+                            ) as InvalidationEntry[]
+                        : undefined
+                      const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+                      const streamCmd = useCommand()
+                      return {
+                        ...client[key],
+                        request,
+                        query: useStreamQuery(client[key] as any),
+                        fn: (options?: any) => streamCmd.streamFn(client[key].id as any, options),
+                        mutate: (() => {
+                          const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
+                          const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
+                          return Object.assign(sm2Act, {
+                            id: client[key].id,
+                            wrap: (options?: any) => streamCmd.streamWrap(sm2Handler, client[key].id as any, options)
+                          })
+                        })()
+                      }
+                    })()
+                  : {
+                      mutate: ((handler: any) => {
+                        const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
+                          | InvalidationCallback<InvalidationResourcesFor<M>>
+                          | undefined
+                        const fromRequest = fromRequestConfig
+                          ? (defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+                              fromRequestConfig(
+                                defaultKey,
+                                queryResources as never,
+                                input,
+                                output as never
+                              ) as InvalidationEntry[]
+                          : undefined
+                        const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+                        const makeProjectedMutation = (h: any): any => {
+                          const mutate = withDefaultInvalidation(mutation(h), mergedInvalidation)
+                          return Object.assign(mutate, {
+                            wrap: (options?: any) =>
+                              Command.wrap(
+                                {
+                                  mutate,
+                                  id: client[key].id
+                                },
+                                options
+                              ),
+                            fn: (options?: any) => Command.fn(client[key].id, options),
+                            project: (projectionSchema: any) => {
+                              const projected = {
+                                ...h,
+                                handler: projectHandler(h.handler, client[key].Request.success, projectionSchema)
+                              }
+                              return makeProjectedMutation(projected)
+                            }
+                          })
+                        }
+                        return makeProjectedMutation(handler)
+                      })(client[key] as any),
+                      ...client[key],
+                      ...fn, // to get the i18n key etc.
+                      request,
+                      fn: (options?: any) => Command.fn(client[key].id, options),
+                      wrap: (options?: any) => Command.wrap({ mutate: h_, id: client[key].id }, options)
+                    }
+          )
+          return acc
+        },
+        {} as {
+          [Key in keyof typeof client]: (typeof client)[Key] &
+            (QueryHandler<(typeof client)[Key]> extends never
+              ? {}
+              : QueryRequestWithExtensions<QueryHandler<(typeof client)[Key]>> &
+                  Queries<RT, QueryHandler<(typeof client)[Key]>> &
+                  QueryProjection<RT, QueryHandler<(typeof client)[Key]>>) &
+            (QueryStreamHandler<(typeof client)[Key]> extends never
+              ? {}
+              : StreamQueries<RT, QueryStreamHandler<(typeof client)[Key]>>) &
+            (CommandHandler<(typeof client)[Key]> extends never
+              ? {}
+              : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<(typeof client)[Key]>>) &
+            (CommandHandler<(typeof client)[Key]> extends never
+              ? {}
+              : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<(typeof client)[Key]>> }) &
+            (CommandStreamHandler<(typeof client)[Key]> extends never
+              ? {}
+              : {
+                  fn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<(typeof client)[Key]>>
+                  mutate: StreamMutation2WithExtensions<RT | RTHooks, CommandStreamHandler<(typeof client)[Key]>>
+                }) & {
+              Input: (typeof client)[Key] extends RequestStreamHandlerWithInput<infer I, any, any, any, any, any, any>
+                ? I
+                : (typeof client)[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any>
+                  ? I
+                  : never
             }
-        )
-        return acc
-      },
-      {} as {
-        [Key in keyof typeof client]:
-          & typeof client[Key]
-          & (QueryHandler<typeof client[Key]> extends never ? {}
-            :
-              & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
-              & Queries<RT, QueryHandler<typeof client[Key]>>
-              & QueryProjection<RT, QueryHandler<typeof client[Key]>>)
-          & (QueryStreamHandler<typeof client[Key]> extends never ? {}
-            : StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>)
-          & (CommandHandler<typeof client[Key]> extends never ? {}
-            : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
-          & (CommandHandler<typeof client[Key]> extends never ? {}
-            : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
-          & (CommandStreamHandler<typeof client[Key]> extends never ? {}
-            : {
-              fn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
-              mutate: StreamMutation2WithExtensions<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
-            })
-          & {
-            Input: typeof client[Key] extends RequestStreamHandlerWithInput<infer I, any, any, any, any, any, any> ? I
-              : typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I
-              : never
-          }
-      }
-    )
-    return Object.assign(extended, {
-      helpers: {
-        ...mapRequest(client),
-        ...mapMutation(client, queryInvalidation, invalidationResources),
-        ...mapQuery(client)
-      }
-    })
-  }
+        }
+      )
+      return Object.assign(extended, {
+        helpers: {
+          ...mapRequest(client),
+          ...mapMutation(client, queryInvalidation, invalidationResources),
+          ...mapQuery(client)
+        }
+      })
+    }
 
   // TODO: Clean up this delay initialisation messs
   // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
@@ -1245,30 +1235,32 @@ export const makeClient = <RT_, RTHooks>(
     const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation, invalidationResources))
 
     // initialize on first use..
-    const proxy = Struct.keys(m).concat(["helpers"]).reduce((acc, key) => {
-      Object.defineProperty(acc, key, {
-        configurable: true,
-        get() {
-          const v = (getOrMakeClient() as any)[key as any]
-          // cache on first use.
-          Object.defineProperty(acc, key, { value: v })
-          return v
-        }
-      })
-      return acc
-    }, {} as Client)
+    const proxy = Struct.keys(m)
+      .concat(["helpers"])
+      .reduce((acc, key) => {
+        Object.defineProperty(acc, key, {
+          configurable: true,
+          get() {
+            const v = (getOrMakeClient() as any)[key as any]
+            // cache on first use.
+            Object.defineProperty(acc, key, { value: v })
+            return v
+          }
+        })
+        return acc
+      }, {} as Client)
     return proxy
   }
 
   const Command: CommanderResolved<RT, RTHooks> = {
-    ...{
+    ...({
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),
       wrap: (...args: [any]) => useCommand().wrap(...args),
       streamFn: (...args: [any]) => useCommand().streamFn(...args),
       alt: (...args: [any]) => useCommand().alt(...args),
       alt2: (...args: [any]) => useCommand().alt2(...args)
-    } as ReturnType<typeof useCommand>,
+    } as ReturnType<typeof useCommand>),
     ...CommanderStatic
   }
 
@@ -1290,8 +1282,9 @@ export type QueryInvalidation<M> = {
 }
 
 export type ToCamel<S extends string | number | symbol> = S extends string
-  ? S extends `${infer Head}_${infer Tail}` ? `${Uncapitalize<Head>}${Capitalize<ToCamel<Tail>>}`
-  : Uncapitalize<S>
+  ? S extends `${infer Head}_${infer Tail}`
+    ? `${Uncapitalize<Head>}${Capitalize<ToCamel<Tail>>}`
+    : Uncapitalize<S>
   : never
 
 export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
@@ -1309,6 +1302,8 @@ export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>, A, E> {}
 
-export interface CommandFromRequest<I extends { readonly make: (...args: any[]) => any }, A = unknown, E = unknown>
-  extends EffectCommand<HandlerInput<I>, A, E>
-{}
+export interface CommandFromRequest<
+  I extends { readonly make: (...args: any[]) => any },
+  A = unknown,
+  E = unknown
+> extends EffectCommand<HandlerInput<I>, A, E> {}

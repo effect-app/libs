@@ -41,7 +41,7 @@ const makeCounted = (id: string, repo: DataDependencies.DataDependency) => {
   const self = {
     id,
     handler: () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* DataDependencies.read(repo)
         return ++starts
       })
@@ -134,7 +134,7 @@ describe("inactive invalidation (refetchType: active)", () => {
     const self = {
       id: "Await.List",
       handler: () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           yield* DataDependencies.read(repo)
           const n = ++starts
           if (n > 1) {

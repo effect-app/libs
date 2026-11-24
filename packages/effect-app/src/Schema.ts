@@ -112,10 +112,31 @@ export { withDecodingDefaultTypeKey } from "effect/Schema"
 export * from "effect/Schema"
 
 export * from "./Schema/Class.ts"
-export { Class, ErrorClass, Opaque, OpaqueErrorFacadeClass, OpaqueFacade, OpaqueShape, OpaqueType, TaggedClass, TaggedErrorClass } from "./Schema/Class.ts"
+export {
+  Class,
+  ErrorClass,
+  Opaque,
+  OpaqueErrorFacadeClass,
+  OpaqueFacade,
+  OpaqueShape,
+  OpaqueType,
+  TaggedClass,
+  TaggedErrorClass
+} from "./Schema/Class.ts"
 
 export { fromBrand, nominal } from "./Schema/brand.ts"
-export { Array, Boolean, Date, DateFromString, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.ts"
+export {
+  Array,
+  Boolean,
+  Date,
+  DateFromString,
+  Finite,
+  Literals,
+  NullOr,
+  Number,
+  ReadonlyMap,
+  ReadonlySet
+} from "./Schema/ext.ts"
 export { Int, NonNegativeInt } from "./Schema/numbers.ts"
 
 export * from "./Schema/email.ts"
@@ -153,9 +174,7 @@ export const Void: Void = S.Void
 // Struct / NonEmptyArray / Record
 // ---------------------------------------------------------------------------
 
-export function Struct<const Fields extends S.Struct.Fields>(
-  fields: Fields
-): Struct<Fields> {
+export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): Struct<Fields> {
   const result = S.Struct(fields)
   const allowVoidMake = (schema: any): any => {
     // Normalize omitted input to an empty object so optional/default-only structs can be constructed with make().
@@ -164,7 +183,7 @@ export function Struct<const Fields extends S.Struct.Fields>(
     const origMakeOption = EffectSchemaParser.makeOption(schema)
     const origMakeEffect = EffectSchemaParser.makeEffect(schema)
     const wrap = (orig: (input: any, options?: any) => any) =>
-      function(this: any, input: any, options?: any) {
+      function (this: any, input: any, options?: any) {
         return orig.call(this, input === undefined ? {} : input, options)
       }
     defineOwn(schema, "make", wrap(origMake))
@@ -181,28 +200,28 @@ export function Struct<const Fields extends S.Struct.Fields>(
 
   const preserveCopyAndMethods = (schema: any): any => {
     schema.copy = copy
-    schema.mapFields = function(this: any, f: any, options?: any) {
+    schema.mapFields = function (this: any, f: any, options?: any) {
       return (result as any).mapFields.call(this, f, options)
     }
-    schema.annotate = function(this: any, annotations?: any) {
+    schema.annotate = function (this: any, annotations?: any) {
       return (result as any).annotate.call(this, annotations)
     }
-    schema.annotateKey = function(this: any, annotations?: any) {
+    schema.annotateKey = function (this: any, annotations?: any) {
       return (result as any).annotateKey.call(this, annotations)
     }
     return allowVoidMake(schema)
   }
-  ;(result as any).mapFields = function(this: any, f: any, options?: any) {
+  ;(result as any).mapFields = function (this: any, f: any, options?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const mapped = origMapFields.call(this, f, options)
     return preserveCopyAndMethods(mapped)
   }
-  ;(result as any).annotate = function(this: any, annotations?: any) {
+  ;(result as any).annotate = function (this: any, annotations?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const annotated = origAnnotate.call(this, annotations)
     return preserveCopyAndMethods(annotated)
   }
-  ;(result as any).annotateKey = function(this: any, annotations?: any) {
+  ;(result as any).annotateKey = function (this: any, annotations?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const annotated = origAnnotateKey.call(this, annotations)
     return preserveCopyAndMethods(annotated)
@@ -212,19 +231,17 @@ export function Struct<const Fields extends S.Struct.Fields>(
   return result as Struct<Fields>
 }
 
-export interface Struct<Fields extends S.Struct.Fields> extends
-  S.Bottom<
-    Struct.Type<Fields>,
-    Struct.Encoded<Fields>,
-    Struct.DecodingServices<Fields>,
-    Struct.EncodingServices<Fields>,
-    AST.Objects,
-    // Rebuild is what's returned from annotate etc
-    Struct<Fields>,
-    Struct.MakeIn<Fields>,
-    Struct.Iso<Fields>
-  >
-{
+export interface Struct<Fields extends S.Struct.Fields> extends S.Bottom<
+  Struct.Type<Fields>,
+  Struct.Encoded<Fields>,
+  Struct.DecodingServices<Fields>,
+  Struct.EncodingServices<Fields>,
+  AST.Objects,
+  // Rebuild is what's returned from annotate etc
+  Struct<Fields>,
+  Struct.MakeIn<Fields>,
+  Struct.Iso<Fields>
+> {
   /**
    * The field definitions of this struct. Spread them into a new struct to
    * reuse fields across schemas.
@@ -263,9 +280,11 @@ export interface Struct<Fields extends S.Struct.Fields> extends
    */
   mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined
+        }
+      | undefined
   ): Struct<Simplify<Readonly<To>>>
 
   // added copy
@@ -279,9 +298,8 @@ export declare namespace Struct {
   export type DecodingServices<F extends S.Struct.Fields> = S.Struct.DecodingServices<F>
   export type EncodingServices<F extends S.Struct.Fields> = S.Struct.EncodingServices<F>
   // changed; all optional allows void
-  export type MakeIn<F extends S.Struct.Fields> = RequiredKeys<S.Struct.MakeIn<F>> extends never
-    ? void | S.Struct.MakeIn<F>
-    : S.Struct.MakeIn<F>
+  export type MakeIn<F extends S.Struct.Fields> =
+    RequiredKeys<S.Struct.MakeIn<F>> extends never ? void | S.Struct.MakeIn<F> : S.Struct.MakeIn<F>
   export type Iso<F extends S.Struct.Fields> = S.Struct.Iso<F>
 }
 
@@ -291,9 +309,11 @@ export type StructNestedEncodedError<T> = {
   readonly schema: T
 }
 
-export type StructNestedEncoded<T> = T extends { fields: infer Fields extends S.Struct.Fields } ? Struct.Encoded<Fields>
-  : T extends { readonly from: { readonly Encoded: infer Encoded } } ? Encoded
-  : StructNestedEncodedError<T>
+export type StructNestedEncoded<T> = T extends { fields: infer Fields extends S.Struct.Fields }
+  ? Struct.Encoded<Fields>
+  : T extends { readonly from: { readonly Encoded: infer Encoded } }
+    ? Encoded
+    : StructNestedEncodedError<T>
 
 export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArray<Value> {
   return S.NonEmptyArray(value)
@@ -305,9 +325,9 @@ export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fie
 ): TaggedStruct<Tag, Fields> {
   return Struct({ _tag: S.tag(value), ...fields }) as any
 }
-export interface TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields>
-  extends Struct<{ readonly _tag: S.tag<Tag> } & Fields>
-{}
+export interface TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> extends Struct<
+  { readonly _tag: S.tag<Tag> } & Fields
+> {}
 export declare namespace TaggedStruct {
   export type Fields = S.Struct.Fields
   export type Type<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.Type<
@@ -316,14 +336,14 @@ export declare namespace TaggedStruct {
   export type Encoded<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.Encoded<
     { readonly _tag: S.tag<Tag> } & F
   >
-  export type DecodingServices<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> =
-    S.Struct.DecodingServices<
-      { readonly _tag: S.tag<Tag> } & F
-    >
-  export type EncodingServices<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> =
-    S.Struct.EncodingServices<
-      { readonly _tag: S.tag<Tag> } & F
-    >
+  export type DecodingServices<
+    Tag extends SchemaAST.LiteralValue,
+    F extends S.Struct.Fields
+  > = S.Struct.DecodingServices<{ readonly _tag: S.tag<Tag> } & F>
+  export type EncodingServices<
+    Tag extends SchemaAST.LiteralValue,
+    F extends S.Struct.Fields
+  > = S.Struct.EncodingServices<{ readonly _tag: S.tag<Tag> } & F>
   export type MakeIn<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.MakeIn<
     { readonly _tag: S.tag<Tag> } & F
   >
@@ -332,10 +352,7 @@ export declare namespace TaggedStruct {
   >
 }
 
-export function Record<Key extends S.Record.Key, Value extends S.Top>(
-  key: Key,
-  value: Value
-): S.$Record<Key, Value> {
+export function Record<Key extends S.Record.Key, Value extends S.Top>(key: Key, value: Value): S.$Record<Key, Value> {
   return S.Record(key, value)
 }
 export declare namespace Record {
@@ -394,69 +411,52 @@ function collectSentinelsFromAST(
   }
 }
 
-export const tags = <
-  Members extends NonEmptyReadonlyArray<(S.Top & { readonly Type: { readonly _tag: string } })>
->(
+export const tags = <Members extends NonEmptyReadonlyArray<S.Top & { readonly Type: { readonly _tag: string } }>>(
   self: Members
 ) =>
   S.Literals(
     self.map(getTagFromAST) as {
       [Index in keyof Members]: Members[Index]["Type"]["_tag"]
     }
-  ) as S.Literals<
-    {
-      [Index in keyof Members]: Members[Index]["Type"]["_tag"]
-    }
-  >
-
-type TaggedUnionMembers = NonEmptyReadonlyArray<
-  S.Top & { readonly Type: { readonly _tag: string } }
->
-
-type TaggedUnionTags<Members extends TaggedUnionMembers> = S.Literals<
-  {
+  ) as S.Literals<{
     [Index in keyof Members]: Members[Index]["Type"]["_tag"]
-  }
->
+  }>
+
+type TaggedUnionMembers = NonEmptyReadonlyArray<S.Top & { readonly Type: { readonly _tag: string } }>
+
+type TaggedUnionTags<Members extends TaggedUnionMembers> = S.Literals<{
+  [Index in keyof Members]: Members[Index]["Type"]["_tag"]
+}>
 
 type TaggedPropertyKeys<A, Members extends TaggedUnionMembers> = {
   [K in keyof A & string]: A[K] extends Members[number]["Type"] ? K : never
 }[keyof A & string]
 
-type PropertyGuardsFor<
-  Members extends TaggedUnionMembers,
-  K extends string,
-  A
-> =
-  & {
-    readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: (
-      target: A
-    ) => target is A & { readonly [P in K]: M["Type"] }
-  }
-  & {
-    readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
-      tags: Tags
-    ) => (
-      target: A
-    ) => target is A & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
-  }
+type PropertyGuardsFor<Members extends TaggedUnionMembers, K extends string, A> = {
+  readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: (
+    target: A
+  ) => target is A & { readonly [P in K]: M["Type"] }
+} & {
+  readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
+    tags: Tags
+  ) => (
+    target: A
+  ) => target is A & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
+}
 
-type PropertyGuards<
-  Members extends TaggedUnionMembers,
-  K extends string
-> =
-  & {
-    readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: <
-      T extends { readonly [P in K]: Members[number]["Type"] }
-    >(target: T) => target is T & { readonly [P in K]: M["Type"] }
-  }
-  & {
-    readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
-      tags: Tags
-    ) => <T extends { readonly [P in K]: Members[number]["Type"] }>(
-      target: T
-    ) => target is T & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
-  }
+type PropertyGuards<Members extends TaggedUnionMembers, K extends string> = {
+  readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: <
+    T extends { readonly [P in K]: Members[number]["Type"] }
+  >(
+    target: T
+  ) => target is T & { readonly [P in K]: M["Type"] }
+} & {
+  readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
+    tags: Tags
+  ) => <T extends { readonly [P in K]: Members[number]["Type"] }>(
+    target: T
+  ) => target is T & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
+}
 
 type TaggedUnionWithTags<Members extends TaggedUnionMembers> = S.toTaggedUnion<"_tag", Members> & {
   readonly tags: TaggedUnionTags<Members>
@@ -469,22 +469,25 @@ type TaggedUnionWithTags<Members extends TaggedUnionMembers> = S.toTaggedUnion<"
 // Mirrors effect `Schema.toTaggedUnion`: duplicate `_tag` values, including `1` and `"1"`, are rejected.
 type TaggedFor<Tag extends PropertyKey> = { readonly Type: { readonly [K in Tag]: PropertyKey } }
 type FlattenTaggedMembers<Schemas> = Schemas extends readonly [infer Head, ...infer Tail]
-  ? Head extends S.Union<infer Inner> ? [...FlattenTaggedMembers<Inner>, ...FlattenTaggedMembers<Tail>]
-  : [Head, ...FlattenTaggedMembers<Tail>]
+  ? Head extends S.Union<infer Inner>
+    ? [...FlattenTaggedMembers<Inner>, ...FlattenTaggedMembers<Tail>]
+    : [Head, ...FlattenTaggedMembers<Tail>]
   : []
 type DiscriminantKey<T extends PropertyKey> = T extends number ? `${T}` : T
-type EnsureUniqueDiscriminants<Tags extends ReadonlyArray<PropertyKey>, Seen = never> = Tags extends
-  readonly [infer Head extends PropertyKey, ...infer Tail extends ReadonlyArray<PropertyKey>]
-  ? [DiscriminantKey<Head> & Seen] extends [never] ? EnsureUniqueDiscriminants<Tail, Seen | DiscriminantKey<Head>>
-  : never
+type EnsureUniqueDiscriminants<Tags extends ReadonlyArray<PropertyKey>, Seen = never> = Tags extends readonly [
+  infer Head extends PropertyKey,
+  ...infer Tail extends ReadonlyArray<PropertyKey>
+]
+  ? [DiscriminantKey<Head> & Seen] extends [never]
+    ? EnsureUniqueDiscriminants<Tail, Seen | DiscriminantKey<Head>>
+    : never
   : unknown
 type TaggedDiscriminants<
   Members extends ReadonlyArray<TaggedFor<"_tag">>,
   Flattened extends ReadonlyArray<TaggedFor<"_tag">> = FlattenTaggedMembers<Members>
 > = { readonly [I in keyof Flattened]: Flattened[I]["Type"]["_tag"] }
-type UniqueTaggedUnion<Members extends TaggedUnionMembers> =
-  & S.Union<Members>
-  & NoInfer<EnsureUniqueDiscriminants<TaggedDiscriminants<Members>>>
+type UniqueTaggedUnion<Members extends TaggedUnionMembers> = S.Union<Members> &
+  NoInfer<EnsureUniqueDiscriminants<TaggedDiscriminants<Members>>>
 
 const extendTaggedUnionWithTags = <Members extends TaggedUnionMembers>(
   schema: UniqueTaggedUnion<Members>
@@ -514,9 +517,7 @@ export const ExtendTaggedUnion = <Members extends TaggedUnionMembers>(
   schema: UniqueTaggedUnion<Members>
 ): TaggedUnionWithTags<Members> => extendTaggedUnionWithTags(schema)
 
-export const TaggedUnion = <
-  Members extends TaggedUnionMembers
->(
+export const TaggedUnion = <Members extends TaggedUnionMembers>(
   members: Members & NoInfer<EnsureUniqueDiscriminants<TaggedDiscriminants<Members>>>
 ): TaggedUnionWithTags<Members> =>
   // `Schema.Union` does not carry the uniqueness proof checked on `members`.

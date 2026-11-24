@@ -1,31 +1,16 @@
 <template>
-  <addForm.Form
-    :subscribe="['errors', 'values']"
-    show-errors-on="onChange"
-  >
+  <addForm.Form :subscribe="['errors', 'values']" show-errors-on="onChange">
     <template #default="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
       <div>Values: {{ vvv }}</div>
-      <addForm.Input
-        label="first"
-        name="first"
-      />
+      <addForm.Input label="first" name="first" />
       <div>+</div>
-      <addForm.Input
-        label="second"
-        name="second"
-      />
-      <br>
-      <hr>
-      <br>
-      <addForm.Input
-        label="third.fourth"
-        name="third.fourth"
-      />
-      <addForm.Input
-        label="third.fifth"
-        name="third.fifth"
-      />
+      <addForm.Input label="second" name="second" />
+      <br />
+      <hr />
+      <br />
+      <addForm.Input label="third.fourth" name="third.fourth" />
+      <addForm.Input label="third.fifth" name="third.fifth" />
     </template>
   </addForm.Form>
 

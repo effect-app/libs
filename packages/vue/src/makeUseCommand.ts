@@ -8,22 +8,20 @@ type X<X> = X
 export interface CommanderResolved<RT, RTHooks>
   extends
     X<typeof CommanderStatic>,
-    Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "streamWrap" | "streamFn" | "alt" | "alt2">
-{
-}
+    Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "streamWrap" | "streamFn" | "alt" | "alt2"> {}
 
-export const makeUseCommand = Effect.fnUntraced(
-  function*<R = never, RTHooks = never>(rtHooks: Layer.Layer<RTHooks, never, R>) {
-    const cmndr = yield* Commander
-    const runtime = yield* Effect.context<R>()
+export const makeUseCommand = Effect.fnUntraced(function* <R = never, RTHooks = never>(
+  rtHooks: Layer.Layer<RTHooks, never, R>
+) {
+  const cmndr = yield* Commander
+  const runtime = yield* Effect.context<R>()
 
-    const comm = cmndr(runtime, rtHooks)
+  const comm = cmndr(runtime, rtHooks)
 
-    const command: CommanderResolved<R, RTHooks> = {
-      ...comm,
-      ...CommanderStatic
-    }
-
-    return command
+  const command: CommanderResolved<R, RTHooks> = {
+    ...comm,
+    ...CommanderStatic
   }
-)
+
+  return command
+})

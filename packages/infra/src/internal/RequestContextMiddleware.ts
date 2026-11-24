@@ -8,16 +8,17 @@ import { storeId } from "effect-app/Store"
 
 export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
   HttpMiddleware.make((app) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const req = yield* HttpServerRequest.HttpServerRequest
 
       const currentSpan = yield* Effect.currentSpan.pipe(Effect.orDie)
       const supported = Locale.literals
       const desiredLocale = req.headers["x-locale"]
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-      const locale = desiredLocale && supported.includes(desiredLocale as any)
-        ? (desiredLocale as typeof supported[number])
-        : defaultLocale
+      const locale =
+        desiredLocale && supported.includes(desiredLocale as any)
+          ? (desiredLocale as (typeof supported)[number])
+          : defaultLocale
 
       const ns = req.headers["x-store-id"]
       const namespace = NonEmptyString255((ns && (Array.isArray(ns) ? ns[0] : ns)) || "primary")
@@ -46,10 +47,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
       // using ContextMap-cached etags) after `app` returns; a sub-scope from
       // `Effect.provide(layer)` would close too early and wipe etags mid-stream,
       // causing spurious OptimisticConcurrencyException on later writes.
-      const res = yield* app.pipe(
-        Effect.withLogSpan(requestContext.name),
-        provideOnRequestScope(layer)
-      )
+      const res = yield* app.pipe(Effect.withLogSpan(requestContext.name), provideOnRequestScope(layer))
 
       // TODO: how to set also on errors?
       return HttpServerResponse.setHeaders(res, {

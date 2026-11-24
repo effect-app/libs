@@ -1,8 +1,5 @@
 <template>
-  <OmegaInput
-    v-bind="$props"
-    :form="form"
-  >
+  <OmegaInput v-bind="$props" :form="form">
     <template #default="slotProps">
       <slot v-bind="slotProps" />
     </template>
@@ -21,19 +18,13 @@ import OmegaInput from "./OmegaInput.vue"
 import type { BaseProps, DefaultTypeProps, OmegaInputProps } from "./types"
 import { OmegaFormKey } from "./useOmegaForm"
 
-const form = inject(OmegaFormKey) as unknown as OmegaInputProps<
-  From,
-  To,
-  Name
->["form"]
+const form = inject(OmegaFormKey) as unknown as OmegaInputProps<From, To, Name>["form"]
 
 if (!form) {
   throw new Error("OmegaFormInput must be used within an OmegaForm context")
 }
 
-defineProps<
-  BaseProps<From, Name> & DefaultTypeProps
->()
+defineProps<BaseProps<From, Name> & DefaultTypeProps>()
 
 defineSlots<{
   default(props: MergedInputProps<From, Name>): void

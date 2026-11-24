@@ -30,6 +30,7 @@
  * whose `fireAt` is due, completing the deferred idempotently (create-only) and
  * deleting the doc. Survives restarts.
  */
+import { PartitionKeyDefinitionVersion } from "@azure/cosmos"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
 import * as Option from "effect-app/Option"
@@ -149,7 +150,7 @@ const makeCosmosWorkflowEngine = Effect.fnUntraced(function*(cfg: WorkflowEngine
   yield* Effect.promise(() =>
     createContainerIfNotExists(db, {
       id: containerId,
-      partitionKey: { paths: ["/_partitionKey"], version: 2 }
+      partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
     }, cfg)
   )
   const container = db.container(containerId)

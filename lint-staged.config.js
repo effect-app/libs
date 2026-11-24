@@ -22,7 +22,7 @@ const dprint = "dprint fmt --config dprint.jsonc"
  */
 export default {
   "*.{ts,tsx,mts,cts}": [
-    "oxlint --quiet --fix --no-error-on-unmatched-pattern",
+    "effect-tsgo oxlint --quiet --fix --no-error-on-unmatched-pattern",
     dprint
   ],
   "*.{js,jsx,mjs,cjs,json,jsonc,md,toml,css,scss,sass,less,html,yml,yaml}": dprint

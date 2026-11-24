@@ -9,7 +9,7 @@
  * raw `gh pr ready`, which the shim gates rather than refuses.
  *
  * Ship gate — the JS quality path CI runs, and nothing else:
- *   1. `pnpm check`  — tsgo --build ./tsconfig.all.json
+ *   1. `pnpm check`  — tsrs --build ./tsconfig.all.json
  *   2. `pnpm lint`
  *   3. `pnpm test`   — pnpm -r --no-bail test:run
  *

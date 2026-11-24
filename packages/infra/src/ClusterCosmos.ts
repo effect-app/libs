@@ -1,4 +1,4 @@
-import type { OperationInput, PatchRequestBody } from "@azure/cosmos"
+import { type OperationInput, PartitionKeyDefinitionVersion, type PatchRequestBody } from "@azure/cosmos"
 import * as Arr from "effect-app/Array"
 import * as Effect from "effect-app/Effect"
 import * as Layer from "effect-app/Layer"
@@ -354,7 +354,7 @@ const createContainer = (prefix: string, throughput?: CosmosContainerThroughput)
       .tryPromise(() =>
         createContainerIfNotExists(db, {
           id: containerId,
-          partitionKey: { paths: ["/_partitionKey"], version: 2 }
+          partitionKey: { paths: ["/_partitionKey"], version: PartitionKeyDefinitionVersion.V2 }
         }, throughput)
       )
       .pipe(Effect.catchIf(isConflict, () => Effect.void))

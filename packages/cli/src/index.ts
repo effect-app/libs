@@ -709,9 +709,13 @@ NodeRuntime.runMain(
         ref: Flag.String("ref").pipe(
           Flag.optional,
           Flag.withDescription("Ref escape hatch (branch/tag/sha/latest); latest means main")
+        ),
+        includeRepos: Flag.Boolean("include-repos").pipe(
+          Flag.withDefault(false),
+          Flag.withDescription("Keep upstream nested repos/ directory instead of replacing it with a README stub")
         )
       },
-      Effect.fn("effa-cli.sync-effect-app")(function* ({ manifests, prefix, ref, url }) {
+      Effect.fn("effa-cli.sync-effect-app")(function* ({ includeRepos, manifests, prefix, ref, url }) {
         yield* syncEffectAppSubtree({
           manifestPaths: Option.match(manifests, {
             onNone: () => ["package.json"],
@@ -721,6 +725,7 @@ NodeRuntime.runMain(
             onNone: () => ({}),
             onSome: (ref) => ({ ref })
           }),
+          includeRepos,
           subtreePrefix: Option.getOrElse(prefix, () => "repos/libs"),
           url: Option.getOrElse(url, () => "https://github.com/effect-app/libs.git")
         })

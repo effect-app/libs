@@ -66,6 +66,12 @@ Apps that vendor this repository as `repos/libs` can sync it to the pinned
 effa sync-effect-app
 ```
 
+By default `effa sync-effect-app` materializes the upstream tree cleanly without
+nested `repos/` (replacing `repos/` with a small `repos/README.md` linking to
+top-level `repos/effect/` and the exact synced upstream commit URL) to avoid
+duplicating `repos/effect` or introducing version skew. Pass `--include-repos` to
+preserve the upstream `repos/` tree as-is.
+
 The command first tries Changesets package tags such as
 `effect-app@4.0.0-beta.271` or `@effect-app/infra@4.0.0-beta.271`. If no
 matching tag exists, it fetches `https://github.com/effect-app/libs.git` into a
@@ -80,8 +86,8 @@ effa sync-effect-app --ref latest # latest main
 ```
 
 Both `sync-effect` and `sync-effect-app` fetch selected commits with
-`--no-tags`, so syncing subtrees does not import upstream package tags into the
-app repository.
+`--no-tags`, so syncing does not import upstream package tags into the app
+repository.
 
 The clean release convention is to publish git tags for package versions
 (`effect-app@<version>`, `@effect-app/infra@<version>`, etc.) from the release

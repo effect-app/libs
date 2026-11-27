@@ -711,6 +711,7 @@ NodeRuntime.runMain(
           Flag.withDescription("Ref escape hatch (branch/tag/sha/latest); latest means main")
         ),
         includeRepos: Flag.Boolean("include-repos").pipe(
+          Flag.withDefault(false),
           Flag.withDescription("Keep upstream nested repos/ directory instead of replacing it with a README stub")
         )
       },
